@@ -23,31 +23,31 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
   const employerNavItems = [
     {
       name: "Dashboard",
-      href: "/employer/dashboard",
+      href: "/dashboard",
       icon: LayoutDashboard,
       active: isActive("/employer/dashboard"),
     },
     {
       name: "Assessments",
-      href: "/employer/assessments",
+      href: "/assessments",
       icon: FileText,
       active: isActive("/employer/assessments"),
     },
     {
       name: "Repositories",
-      href: "/employer/repositories",
+      href: "/repositories",
       icon: Database,
       active: isActive("/employer/repositories"),
     },
     {
       name: "Candidates",
-      href: "/employer/candidates",
+      href: "/candidates",
       icon: Users,
       active: isActive("/employer/candidates"),
     },
     {
       name: "Reports",
-      href: "/employer/reports",
+      href: "/reports",
       icon: ChartBarStacked,
       active: isActive("/employer/reports"),
     },
@@ -105,7 +105,7 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
             <div className="flex items-center h-16 flex-shrink-0 px-4 bg-gray-900">
               <div className="flex items-center">
                 <Code className="h-8 w-8 text-primary" />
-                <span className="ml-2 text-white text-xl font-semibold">CodeHire</span>
+                <span className="ml-2 text-white text-xl font-semibold">Delphi</span>
               </div>
             </div>
             

@@ -6,7 +6,6 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 
 // Pages
-import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
 import NotFound from "@/pages/not-found";
 
@@ -21,20 +20,27 @@ import CreateAssessment from "@/pages/employer/create-assessment";
 // Candidate Pages
 import CandidateAssessments from "@/pages/candidate/assessments";
 import CandidateProfile from "@/pages/candidate/profile";
+import LandingPage from "./pages/lander";
+import SignupPage from "./pages/auth/signup";
+import LoginPage from "./pages/auth/login";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute path="/" component={HomePage} />
+      <Route path="/" component={LandingPage} />
+      <Route path="/login" component={LoginPage} />
+      <Route path="/signup" component={SignupPage} />
+      <Route path="/dashboard" component={EmployerDashboard}/>
+      {/* <Route path="/auth" component={AuthPage} /> */}
+      {/* <ProtectedRoute path="/" component={HomePage} /> */}
       
       {/* Employer Routes */}
-      <ProtectedRoute path="/employer/dashboard" component={EmployerDashboard} role="employer" />
-      <ProtectedRoute path="/employer/assessments" component={EmployerAssessments} role="employer" />
-      <ProtectedRoute path="/employer/repositories" component={EmployerRepositories} role="employer" />
-      <ProtectedRoute path="/employer/candidates" component={EmployerCandidates} role="employer" />
-      <ProtectedRoute path="/employer/reports" component={EmployerReports} role="employer" />
-      <ProtectedRoute path="/employer/create-assessment" component={CreateAssessment} role="employer" />
+      {/* <ProtectedRoute path="/dashboard" component={EmployerDashboard} role="employer" /> */}
+      <ProtectedRoute path="/assessments" component={EmployerAssessments} role="employer" />
+      <ProtectedRoute path="/repositories" component={EmployerRepositories} role="employer" />
+      <ProtectedRoute path="/candidates" component={EmployerCandidates} role="employer" />
+      <ProtectedRoute path="/reports" component={EmployerReports} role="employer" />
+      <ProtectedRoute path="/create-assessment" component={CreateAssessment} role="employer" />
       
       {/* Candidate Routes */}
       <ProtectedRoute path="/candidate/assessments" component={CandidateAssessments} role="candidate" />

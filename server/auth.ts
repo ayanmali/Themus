@@ -30,7 +30,7 @@ async function comparePasswords(supplied: string, stored: string) {
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || "codehire-assessment-platform-secret",
+    secret: process.env.SESSION_SECRET || "delphi-assessment-platform-secret",
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
