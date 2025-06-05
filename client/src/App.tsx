@@ -11,7 +11,7 @@ import NotFound from "@/pages/not-found";
 
 // Employer Pages
 import EmployerDashboard from "@/pages/employer/dashboard";
-import EmployerAssessments from "@/pages/employer/assessments";
+import EmployerAssessments from "@/pages/employer/assessmentss";
 import EmployerRepositories from "@/pages/employer/repositories";
 import EmployerCandidates from "@/pages/employer/candidates";
 import EmployerReports from "@/pages/employer/reports";
