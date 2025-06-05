@@ -48,7 +48,7 @@ export default function EmployerAssessments() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg leading-6 font-medium text-gray-900">All Assessments</h2>
         <Button asChild>
-          <Link href="/employer/create-assessment">
+          <Link href="/assessments/new">
             <Plus className="-ml-1 mr-2 h-5 w-5" />
             Create Assessment
           </Link>

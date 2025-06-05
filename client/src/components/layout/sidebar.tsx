@@ -1,7 +1,8 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
-import { Code, LayoutDashboard, FileText, Database, Users, ChartBarStacked, User } from "lucide-react";
+import { Code, LayoutDashboard, FileText, Database, Users, ChartBarStacked, User as LucideUser } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { User } from "@/lib/types/user";
 
 interface SidebarProps {
   open: boolean;
@@ -9,7 +10,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ open, setOpen }: SidebarProps) {
-  const { user, logoutMutation } = useAuth();
+  const { user, logoutMutation, isLoading } = useAuth();
+
   const [location] = useLocation();
 
   const closeSidebar = () => setOpen(false);
@@ -18,6 +20,10 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
     return location === path;
   };
 
+  // if (isLoading) {
+  //   // Optionally show a sidebar skeleton or spinner
+  //   return <div className="w-64 bg-gray-800">Loading...</div>;
+  // }
   if (!user) return null;
 
   const employerNavItems = [
@@ -25,31 +31,31 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
       name: "Dashboard",
       href: "/dashboard",
       icon: LayoutDashboard,
-      active: isActive("/employer/dashboard"),
+      active: isActive("/dashboard"),
     },
     {
       name: "Assessments",
       href: "/assessments",
       icon: FileText,
-      active: isActive("/employer/assessments"),
+      active: isActive("/assessments"),
     },
     {
       name: "Repositories",
       href: "/repositories",
       icon: Database,
-      active: isActive("/employer/repositories"),
+      active: isActive("/repositories"),
     },
     {
       name: "Candidates",
       href: "/candidates",
       icon: Users,
-      active: isActive("/employer/candidates"),
+      active: isActive("/candidates"),
     },
     {
       name: "Reports",
       href: "/reports",
       icon: ChartBarStacked,
-      active: isActive("/employer/reports"),
+      active: isActive("/reports"),
     },
   ];
 
@@ -63,7 +69,7 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
     {
       name: "Profile",
       href: "/candidate/profile",
-      icon: User,
+      icon: LucideUser,
       active: isActive("/candidate/profile"),
     },
   ];
@@ -144,10 +150,10 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                   </div>
                   <div className="ml-3">
                     <p className="text-sm font-medium text-white">{user.name}</p>
-                    <p className="text-xs font-medium text-gray-300 capitalize">{user.role}</p>
+                    <p className="text-xs font-medium text-gray-300 capitalize">{user.orgName ? user.orgName : ""}</p>
                   </div>
                   <button
-                    onClick={() => logoutMutation.mutate()}
+                    // onClick={() => logoutMutation.mutate()}
                     className="ml-auto text-gray-300 hover:text-white"
                   >
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

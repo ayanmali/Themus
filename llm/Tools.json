@@ -1,0 +1,144 @@
+[
+    {
+        "type": "function",
+        "function": {
+            "name": "create_repository",
+            "description": "Creates a Git repository in the user's GitHub account using the GitHub API"
+        }
+    },
+
+    {
+        "type": "function",
+        "function": {
+            "name": "get_repository_contents",
+            "description": "Gets the file and directory contents of the default branch of the Git repository using the GitHub API.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path" : {
+                        "type": "string",
+                        "description": "The file path or directory in the repository to retrieve the contents from. This path should begin with the root of the repository."
+                    }
+                },
+                "required": [
+                    "path"
+                ]
+            }
+        }
+    },
+
+    {
+        "type": "function",
+        "function": {
+            "name": "add_file",
+            "description": "Adds a file to the repository using the GitHub API",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "description": "The commit message to add to the repository regarding this file."
+                    },
+                    "file_path" : {
+                        "type": "string",
+                        "description": "The file path or directory in the repository to add the file to. The root of the repository is already included in the path. Do not add the repository name to the path, and be sure to add the name of the file to add, including the file extension, at the end of the path."
+                    },
+                    "file_content" : {
+                        "type": "string",
+                        "description": "The Base64 encoded content of the file to add to the repository."
+                    }
+                },
+                "required": [
+                    "message",
+                    "file_path",
+                    "file_content"
+                ]
+            }
+        }
+    },
+
+    {
+        "type": "function",
+        "function": {
+            "name": "edit_file",
+            "description": "Replaces the contents of an existing file in the repository with new content using the GitHub API.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "description": "The commit message to add to the repository regarding this file."
+                    },
+                    "file_path" : {
+                        "type": "string",
+                        "description": "The file path or directory in the repository containing the file to edit. The root of the repository is already included in the path. Do not add the repository name to the path, and be sure to add the name of the file to edit, including the file extension, at the end of the path."
+                    },
+                    "file_content" : {
+                        "type": "string",
+                        "description": "The Base64 encoded content of the file in the repository to edit."
+                    },
+                    "sha" : {
+                        "type": "string",
+                        "description": "The blob SHA of the file being edited. This is the unique identifier of the file in the repository."
+                    }
+                },
+                "required": [
+                    "message",
+                    "file_path",
+                    "file_content",
+                    "sha"
+                ]
+            }
+        }
+    },
+    
+    {
+        "type": "function",
+        "function": {
+            "name": "delete_file",
+            "description": "Deletes a file in the Git repository using the GitHub API.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "message" : {
+                        "type": "string",
+                        "description": "The commit message to add to the repository regarding this file deletion."
+                    },
+                    "sha" : {
+                        "type": "string",
+                        "description": "The blob SHA of the file being deleted. This is the unique identifier of the file in the repository."
+                    },
+                    "path" : {
+                        "type": "string",
+                        "description": "The file path or directory in the repository containing the file to delete. The root of the repository is already included in the path. Do not add the repository name to the path, and be sure to add the name of the file to delete, including the file extension, at the end of the path."
+                    }
+                },
+                "required": [
+                    "message",
+                    "sha",
+                    "path"
+                ]
+            }
+        }
+    },
+
+    {
+        "type": "function",
+        "function": {
+            "name": "send_user_message",
+            "description": "Sends a message to the user after applying changes to the repository.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "message" : {
+                        "type": "string",
+                        "description": "The message to send to the user after applying changes to the repository. Keep this message descriptive but concise, and don't be too verbose."
+                    }
+                },
+                "required": [
+                    "message"
+                ]
+            }
+        }
+    }
+]

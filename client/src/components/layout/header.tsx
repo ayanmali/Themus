@@ -1,5 +1,5 @@
 import { UserSwitch } from "@/components/user-switch";
-import { Bell } from "lucide-react";
+import { Bell, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface HeaderProps {
@@ -38,7 +38,7 @@ export function Header({ title, setSidebarOpen }: HeaderProps) {
           
           {/* Page title */}
           <div className="w-full flex items-center ml-4">
-            <h1 className="text-2xl font-semibold text-gray-800 md:block hidden">
+            <h1 className="text-2xl font-medium text-gray-800 md:block hidden">
               {title}
             </h1>
             <h1 className="text-xl font-semibold text-gray-800 md:hidden">
@@ -52,6 +52,11 @@ export function Header({ title, setSidebarOpen }: HeaderProps) {
           <Button variant="ghost" size="icon">
             <Bell className="h-5 w-5" />
             <span className="sr-only">View notifications</span>
+          </Button>
+
+          <Button variant="ghost" size="icon">
+            <Plus className="h-5 w-5" />
+            <span className="sr-only">Create</span>
           </Button>
           
           {/* User switcher (for demo) */}

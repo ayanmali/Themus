@@ -25,11 +25,14 @@ export const repositories = pgTable("repositories", {
 export const assessments = pgTable("assessments", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
+  role: text("role").notNull(),
+  skills: text("skills").notNull(),
   description: text("description"),
-  repositoryId: integer("repository_id").notNull(),
-  durationDays: integer("duration_days").notNull(),
-  status: text("status").notNull().default("draft"), // "draft", "active", "completed"
-  employerId: integer("employer_id").notNull(),
+  repositoryLink: text("repository_link"),
+  //repositoryId: integer("repository_id").notNull(),
+  userId: integer("user_id").notNull(),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -64,12 +67,14 @@ export const insertRepositorySchema = createInsertSchema(repositories).pick({
 });
 
 export const insertAssessmentSchema = createInsertSchema(assessments).pick({
-  title: true,
-  description: true,
-  repositoryId: true,
-  durationDays: true,
-  status: true,
-  employerId: true,
+  title: true, // for the user's reference
+  role: true, // for the user's reference
+  skills: true, // for the user's reference
+  description: true, // LLM input
+  repositoryLink: true,
+  userId: true,
+  startDate: true,
+  endDate: true,
 });
 
 export const insertCandidateAssessmentSchema = createInsertSchema(candidateAssessments).pick({
