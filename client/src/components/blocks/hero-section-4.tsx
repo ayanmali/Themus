@@ -15,8 +15,8 @@ export function HeroSection() {
                     <div className="pb-24 pt-12 md:pb-32 lg:pb-56 lg:pt-44">
                         <div className="relative mx-auto flex max-w-6xl flex-col px-6 lg:grid lg:grid-cols-2">
                             <div className="mx-auto max-w-lg text-center lg:ml-0 lg:text-left">
-                                <h1 className="mt-8 max-w-2xl text-balance text-5xl font-medium md:text-6xl lg:mt-16 xl:text-7xl">AI for Technical Assessments</h1>
-                                <p className="mt-8 max-w-2xl text-pretty text-lg">Repository-based assessments for hiring technical talent based on practical skills and your company's needs.</p>
+                                <h1 className="mt-8 max-w-2xl text-balance text-5xl font-medium md:text-6xl lg:mt-16 xl:text-7xl">Make Technical Hiring Great Again</h1>
+                                <p className="mt-8 max-w-2xl text-pretty text-lg">Repository-based assessments for hiring technical talent based on practical skills and your team's needs.</p>
 
                                 <div className="mt-12 flex flex-col items-center justify-center gap-2 sm:flex-row lg:justify-start">
                                     <Button
@@ -179,7 +179,8 @@ const HeroHeader = () => {
                                 href="/"
                                 aria-label="home"
                                 className="flex items-center space-x-2">
-                                <Logo />
+                                {/* <Logo /> */}
+                                <span className="text-xl font-semibold">Delphi</span>
                             </Link>
 
                             <button
