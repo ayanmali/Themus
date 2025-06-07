@@ -15,3 +15,11 @@ export type Assessment = {
     repoLink: string; // link to the repository
     metadata: Record<string, string>; // additional metadata
 }
+
+export type Candidate = {
+    id: string;
+    name: string;
+    email: string;
+    status: 'invited' | 'started' | 'submitted' | 'evaluated';
+    appliedAt: Date;
+}

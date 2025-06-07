@@ -26,7 +26,7 @@ export function AppShell({ children, title }: AppShellProps) {
           <div className="mt-4">
             {/* Title and Create button container */}
             <div className="flex items-center justify-between ml-8 mr-8 mb-4">
-              <div>
+              {/* <div>
                 <h1 className="text-2xl font-medium text-gray-100 md:block hidden">
                   {title}
                 </h1>
@@ -34,15 +34,15 @@ export function AppShell({ children, title }: AppShellProps) {
                 <h1 className="text-xl font-semibold text-gray-100 md:hidden">
                   {title}
                 </h1>
-              </div>
-              {title === "Assessments" && (
+              </div> */}
+              {/* {title === "Assessments" && (
                 <Link to="/assessments/new">
                 <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                     <Plus size={16} className="mr-2" />
                     New 
                 </Button>
                 </Link>
-              )}
+              )} */}
           </div>
 
           <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">

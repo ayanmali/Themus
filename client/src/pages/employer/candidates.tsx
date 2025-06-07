@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { CandidateCard } from "@/components/candidate-card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function EmployerCandidates() {
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Mock candidates for demonstration
   const candidates = [
     {
@@ -41,32 +42,56 @@ export default function EmployerCandidates() {
       skills: ["DevOps", "Docker", "CI/CD"]
     }
   ];
-  
+
   // Filter candidates based on search query
   const filteredCandidates = candidates.filter(candidate => {
     if (searchQuery === "") return true;
-    
+
     return (
       candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       candidate.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
-  
+
   return (
     <AppShell title="Candidates">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg leading-6 font-medium text-gray-900">Candidates</h2>
-        <Button>
-          <Plus className="-ml-1 mr-2 h-5 w-5" />
-          Add Candidate
-        </Button>
+        <h1 className="text-2xl font-medium text-gray-100 md:block hidden">
+          Candidates
+        </h1>
+
+        <h1 className="text-xl font-semibold text-gray-100 md:hidden">
+          Candidates
+        </h1>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button>
+              <Plus className="-ml-1 mr-2 h-5 w-5" />
+              Add
+            </Button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent className="w-56 bg-slate-700 text-gray-100 border-slate-500" align="start">
+            {/* <DropdownMenuLabel>My Account</DropdownMenuLabel> */}
+            <DropdownMenuGroup>
+              <DropdownMenuItem>
+                Add new candidate
+                {/* <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut> */}
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                Bulk import from CSV
+                {/* <DropdownMenuShortcut>⌘B</DropdownMenuShortcut> */}
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
-      
+
       {/* Filters */}
-      <div className="bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6 mb-6">
+      <div className="bg-slate-600 text-gray-100 shadow-md px-4 py-5 sm:rounded-lg sm:p-6 mb-6">
         <div className="md:flex md:items-center md:justify-between">
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg leading-6 font-medium text-gray-900">Filters</h2>
+            <h2 className="text-lg leading-6 font-medium">Filters</h2>
           </div>
           <div className="mt-4 flex md:mt-0 md:ml-4">
             <div className="flex items-center">
@@ -80,7 +105,7 @@ export default function EmployerCandidates() {
                   id="candidate-search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 text-gray-100 bg-slate-700 border-slate-600 focus:ring-slate-500 focus:border-slate-500"
                   placeholder="Search candidates..."
                 />
               </div>
@@ -91,10 +116,10 @@ export default function EmployerCandidates() {
           <div>
             <Label htmlFor="assessment-filter">Assessment</Label>
             <Select defaultValue="all">
-              <SelectTrigger id="assessment-filter" className="mt-1">
+              <SelectTrigger id="assessment-filter" className="mt-1 bg-slate-700 border-slate-600 focus:ring-slate-500 focus:border-slate-500">
                 <SelectValue placeholder="All Assessments" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-slate-700 border-slate-600 text-gray-100">
                 <SelectItem value="all">All Assessments</SelectItem>
                 <SelectItem value="frontend">Frontend Developer Assessment</SelectItem>
                 <SelectItem value="backend">Backend Developer Assessment</SelectItem>
@@ -105,10 +130,10 @@ export default function EmployerCandidates() {
           <div>
             <Label htmlFor="status-filter">Status</Label>
             <Select defaultValue="all">
-              <SelectTrigger id="status-filter" className="mt-1">
+              <SelectTrigger id="status-filter" className="mt-1 bg-slate-700 border-slate-600 focus:ring-slate-500 focus:border-slate-500">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-slate-700 border-slate-600 text-gray-100">
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="in_progress">In Progress</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
@@ -119,10 +144,10 @@ export default function EmployerCandidates() {
           <div>
             <Label htmlFor="date-filter">Date Added</Label>
             <Select defaultValue="all">
-              <SelectTrigger id="date-filter" className="mt-1">
+              <SelectTrigger id="date-filter" className="mt-1 bg-slate-700 border-slate-600 focus:ring-slate-500 focus:border-slate-500">
                 <SelectValue placeholder="All Time" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-slate-700 border-slate-600 text-gray-100">
                 <SelectItem value="all">All Time</SelectItem>
                 <SelectItem value="7days">Last 7 Days</SelectItem>
                 <SelectItem value="30days">Last 30 Days</SelectItem>
@@ -132,7 +157,7 @@ export default function EmployerCandidates() {
           </div>
         </div>
       </div>
-      
+
       {/* Candidate List */}
       <div className="space-y-4">
         {filteredCandidates.length === 0 ? (

@@ -1,29 +1,11 @@
 import { useState } from "react";
-import { ArrowLeft, Calendar, Clock, ExternalLink, MoreHorizontal, Pause, Play, Plus, Trash2, X } from "lucide-react";
-import { AppShell } from "@/components/layout/app-shell";
+import { ArrowLeft, Calendar, Clock, ExternalLink, Link2, MoreHorizontal, Pause, Play, Plus, Trash2, X, Edit3, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { toast } from "sonner"
-import AssesmentPagination from "@/components/ui/AssessmentPagination";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AppShell } from "@/components/layout/app-shell";
+import { Assessment, Candidate } from "@/lib/types/assessment";
+import { Link } from "wouter";
 import AssessmentPagination from "@/components/ui/AssessmentPagination";
-
-interface Assessment {
-    id: string;
-    role: string;
-    employerName: string;
-    description: string;
-    skills: string[];
-    createdAt: Date;
-    updatedAt: Date;
-    name: string;
-    status: 'active' | 'inactive';
-    startDate?: Date;
-    endDate?: Date;
-    duration?: number;
-    type: 'take-home' | 'live-coding';
-    repoLink: string;
-    metadata: Record<string, string>;
-}
 
 export default function EmployerAssessments() {
     const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
@@ -32,12 +14,24 @@ export default function EmployerAssessments() {
     const [newMetadataKey, setNewMetadataKey] = useState('');
     const [newMetadataValue, setNewMetadataValue] = useState('');
 
+    // Editing states
+    const [isEditingDescription, setIsEditingDescription] = useState(false);
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [isEditingRole, setIsEditingRole] = useState(false);
+    const [tempDescription, setTempDescription] = useState('');
+    const [tempName, setTempName] = useState('');
+    const [tempRole, setTempRole] = useState('');
+
+    // Candidates pagination
+    const [currentCandidatePage, setCurrentCandidatePage] = useState(1);
+    const candidatesPerPage = 5;
+
     // Sample assessment data
     const assessments: Assessment[] = [
         {
             id: '1',
             role: 'Senior Software Engineer',
-            employerName: 'Google',
+            employerId: '123',
             description: 'Full-stack development assessment focusing on system design and microservices architecture. Candidates will build a scalable web application with proper testing and documentation.',
             skills: ['React', 'Node.js', 'TypeScript', 'Python', 'SQL', 'Docker', 'Kubernetes'],
             createdAt: new Date('2024-01-15'),
@@ -57,7 +51,7 @@ export default function EmployerAssessments() {
         {
             id: '2',
             role: 'Data Scientist Intern',
-            employerName: 'Meta',
+            employerId: '456',
             description: 'Machine learning assessment covering data analysis, model building, and statistical interpretation. Focus on real-world data processing and visualization.',
             skills: ['Python', 'Pandas', 'Scikit-learn', 'PyTorch', 'NumPy', 'Matplotlib', 'Seaborn'],
             createdAt: new Date('2024-01-20'),
@@ -75,22 +69,36 @@ export default function EmployerAssessments() {
         },
         {
             id: '3',
-            role: 'Frontend Developer',
-            employerName: 'Amazon',
-            description: 'Live coding session focusing on React components, state management, and responsive design. Real-time problem solving with immediate feedback.',
-            skills: ['React', 'JavaScript', 'HTML', 'CSS', 'TypeScript', 'Component Architecture', 'CSS Grid', 'Responsive Design', 'Real-time Problem Solving'],
-            createdAt: new Date('2024-02-10'),
-            updatedAt: new Date('2024-02-12'),
-            name: 'React Frontend Live Coding',
+            role: 'Software Engineering Intern',
+            employerId: '789',
+            description: 'Backend engineering assessment focusing on secure, performat REST API design. Candidates will build a scalable web application with proper testing and documentation.',
+            skills: ['Go', 'Kafka', 'Redis', 'Authentication & Authorization', 'Rate Limiting', 'Caching', 'API Design', 'Testing', 'Documentation'],
+            createdAt: new Date('2024-01-25'),
+            updatedAt: new Date('2024-01-25'),
+            name: 'Backend Engineering Intern Assessment',
             status: 'active',
-            duration: 90,
-            type: 'live-coding',
-            repoLink: 'https://github.com/company/frontend-live-coding',
+            startDate: new Date('2024-03-01'),
+            endDate: new Date('2024-03-10'),
+            type: 'take-home',
+            repoLink: 'https://github.com/company/full-stack-engineering-assessment',
             metadata: {
-                'Tools': 'CodeSandbox, VS Code Live Share',
-                'Focus': 'Component Architecture, CSS Grid'
+                'Duration': '7 days',
+                'Difficulty': 'Junior Level',
+                'Focus Areas': 'System Design, API Development'
             }
         }
+    ];
+
+    // Sample candidates data
+    const candidates: Candidate[] = [
+        { id: '1', name: 'Alice Johnson', email: 'alice.johnson@email.com', status: 'evaluated', appliedAt: new Date('2024-02-01') },
+        { id: '2', name: 'Bob Smith', email: 'bob.smith@email.com', status: 'submitted', appliedAt: new Date('2024-02-02') },
+        { id: '3', name: 'Carol Davis', email: 'carol.davis@email.com', status: 'started', appliedAt: new Date('2024-02-03') },
+        { id: '4', name: 'David Wilson', email: 'david.wilson@email.com', status: 'invited', appliedAt: new Date('2024-02-04') },
+        { id: '5', name: 'Eva Brown', email: 'eva.brown@email.com', status: 'submitted', appliedAt: new Date('2024-02-05') },
+        { id: '6', name: 'Frank Miller', email: 'frank.miller@email.com', status: 'started', appliedAt: new Date('2024-02-06') },
+        { id: '7', name: 'Grace Lee', email: 'grace.lee@email.com', status: 'invited', appliedAt: new Date('2024-02-07') },
+        { id: '8', name: 'Henry Taylor', email: 'henry.taylor@email.com', status: 'evaluated', appliedAt: new Date('2024-02-08') },
     ];
 
     const formatDateRange = (assessment: Assessment) => {
@@ -160,18 +168,88 @@ export default function EmployerAssessments() {
 
     const saveChanges = () => {
         if (editedAssessment) {
-            // In a real app, this would make an API call to save changes
             console.log('Saving changes:', editedAssessment);
             setSelectedAssessment(editedAssessment);
-            toast("Assessment has been updated", {
-                description: "Assessment has been updated",
-                action: {
-                  label: "Undo",
-                  onClick: () => console.log("Undo"),
-                },
-              })
         }
     };
+
+    // Editing functions
+    const startEditingDescription = () => {
+        setIsEditingDescription(true);
+        setTempDescription(editedAssessment?.description || '');
+    };
+
+    const saveDescription = () => {
+        if (editedAssessment) {
+            setEditedAssessment({
+                ...editedAssessment,
+                description: tempDescription
+            });
+        }
+        setIsEditingDescription(false);
+    };
+
+    const cancelDescriptionEdit = () => {
+        setIsEditingDescription(false);
+        setTempDescription('');
+    };
+
+    const startEditingName = () => {
+        setIsEditingName(true);
+        setTempName(editedAssessment?.name || '');
+    };
+
+    const saveName = () => {
+        if (editedAssessment) {
+            setEditedAssessment({
+                ...editedAssessment,
+                name: tempName
+            });
+        }
+        setIsEditingName(false);
+    };
+
+    const cancelNameEdit = () => {
+        setIsEditingName(false);
+        setTempName('');
+    };
+
+    const startEditingRole = () => {
+        setIsEditingRole(true);
+        setTempRole(editedAssessment?.role || '');
+    };
+
+    const saveRole = () => {
+        if (editedAssessment) {
+            setEditedAssessment({
+                ...editedAssessment,
+                role: tempRole
+            });
+        }
+        setIsEditingRole(false);
+    };
+
+    const cancelRoleEdit = () => {
+        setIsEditingRole(false);
+        setTempRole('');
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'invited': return 'bg-blue-600';
+            case 'started': return 'bg-yellow-600';
+            case 'submitted': return 'bg-green-600';
+            case 'evaluated': return 'bg-purple-600';
+            default: return 'bg-gray-600';
+        }
+    };
+
+    // Candidates pagination
+    const totalCandidatePages = Math.ceil(candidates.length / candidatesPerPage);
+    const paginatedCandidates = candidates.slice(
+        (currentCandidatePage - 1) * candidatesPerPage,
+        currentCandidatePage * candidatesPerPage
+    );
 
     if (selectedAssessment) {
         return (
@@ -195,8 +273,79 @@ export default function EmployerAssessments() {
                     <div className="bg-gray-800 rounded-lg p-8 shadow-xl">
                         <div className="flex justify-between items-start mb-6">
                             <div className="flex-1">
-                                <h1 className="text-3xl font-bold mb-4">{selectedAssessment.name}</h1>
-                                <p className="text-gray-300 text-lg mb-4">{selectedAssessment.role}</p>
+                                {/* Editable Assessment Name */}
+                                <div className="mb-4">
+                                    {isEditingName ? (
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                value={tempName}
+                                                onChange={(e) => setTempName(e.target.value)}
+                                                className="text-3xl font-bold bg-gray-700 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none flex-1"
+                                                autoFocus
+                                            />
+                                            <button
+                                                onClick={saveName}
+                                                className="p-2 text-green-400 hover:text-green-300 hover:bg-gray-700 rounded transition-colors"
+                                            >
+                                                <Check size={20} />
+                                            </button>
+                                            <button
+                                                onClick={cancelNameEdit}
+                                                className="p-2 text-red-400 hover:text-red-300 hover:bg-gray-700 rounded transition-colors"
+                                            >
+                                                <X size={20} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <h1 className="text-3xl font-bold">{editedAssessment?.name}</h1>
+                                            <button
+                                                onClick={startEditingName}
+                                                className="p-1 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
+                                            >
+                                                <Edit3 size={16} />
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Editable Role */}
+                                <div className="mb-4">
+                                    {isEditingRole ? (
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                value={tempRole}
+                                                onChange={(e) => setTempRole(e.target.value)}
+                                                className="text-lg bg-gray-700 text-gray-300 px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none flex-1"
+                                                autoFocus
+                                            />
+                                            <button
+                                                onClick={saveRole}
+                                                className="p-2 text-green-400 hover:text-green-300 hover:bg-gray-700 rounded transition-colors"
+                                            >
+                                                <Check size={16} />
+                                            </button>
+                                            <button
+                                                onClick={cancelRoleEdit}
+                                                className="p-2 text-red-400 hover:text-red-300 hover:bg-gray-700 rounded transition-colors"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-gray-300 text-lg">{editedAssessment?.role}</p>
+                                            <button
+                                                onClick={startEditingRole}
+                                                className="p-1 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
+                                            >
+                                                <Edit3 size={14} />
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
 
                                 {/* Status and Type labels */}
                                 <div className="flex items-center gap-3 mb-4">
@@ -226,6 +375,13 @@ export default function EmployerAssessments() {
                                         <span>{formatDateRange(selectedAssessment)}</span>
                                     </div>
                                 </div>
+
+                                <div className="flex items-center gap-2 my-5">
+                                    <Button variant="link" className="flex items-center">
+                                        <Link2 size={20} className="text-blue-400" />
+                                        <span className="text-blue-400">usedelphi.dev/invite/id</span>
+                                    </Button>
+                                </div>
                             </div>
 
                             <button
@@ -238,8 +394,110 @@ export default function EmployerAssessments() {
                         </div>
 
                         <div className="mb-8">
-                            <h3 className="text-xl font-semibold mb-4">Description</h3>
-                            <p className="text-gray-300 leading-relaxed">{selectedAssessment.description}</p>
+                            <h3 className="text-xl font-semibold mb-4">Skills, Technologies, and Focus Areas</h3>
+                            <p className="text-gray-300 leading-relaxed">{selectedAssessment.skills.join(', ')}</p>
+                        </div>
+
+                        {/* Editable Description */}
+                        <div className="mb-8">
+                            <div className="flex items-center gap-2 mb-4">
+                                <h3 className="text-xl font-semibold">Description</h3>
+                                {!isEditingDescription && (
+                                    <button
+                                        onClick={startEditingDescription}
+                                        className="p-1 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
+                                    >
+                                        <Edit3 size={16} />
+                                    </button>
+                                )}
+                            </div>
+
+                            {isEditingDescription ? (
+                                <div className="space-y-4">
+                                    <textarea
+                                        value={tempDescription}
+                                        onChange={(e) => setTempDescription(e.target.value)}
+                                        className="w-full bg-gray-700 text-white px-4 py-3 rounded border border-gray-500 focus:border-blue-400 focus:outline-none resize-vertical min-h-[100px]"
+                                        autoFocus
+                                    />
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={saveDescription}
+                                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
+                                        >
+                                            Save
+                                        </button>
+                                        <button
+                                            onClick={cancelDescriptionEdit}
+                                            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-gray-300 leading-relaxed">{editedAssessment?.description}</p>
+                            )}
+                        </div>
+
+                        {/* Candidates Section */}
+                        <div className="mb-8">
+                            <h3 className="text-xl font-semibold mb-4">Candidates</h3>
+                            <div className="space-y-3">
+                                {paginatedCandidates.map((candidate) => (
+                                    <div
+                                        key={candidate.id}
+                                        className="bg-gray-700 rounded-lg p-4 flex items-center justify-between"
+                                    >
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-4">
+                                                <div>
+                                                    <h4 className="font-medium text-white">{candidate.name}</h4>
+                                                    <p className="text-sm text-gray-400">{candidate.email}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <span className="text-sm text-gray-400">
+                                                Applied: {candidate.appliedAt.toLocaleDateString()}
+                                            </span>
+                                            <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize text-white ${getStatusColor(candidate.status)}`}>
+                                                {candidate.status}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Candidates Pagination */}
+                            {totalCandidatePages > 1 && (
+                                <div className="flex items-center justify-between mt-6">
+                                    <p className="text-sm text-gray-400">
+                                        Showing {((currentCandidatePage - 1) * candidatesPerPage) + 1} to{' '}
+                                        {Math.min(currentCandidatePage * candidatesPerPage, candidates.length)} of{' '}
+                                        {candidates.length} candidates
+                                    </p>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => setCurrentCandidatePage(prev => Math.max(prev - 1, 1))}
+                                            disabled={currentCandidatePage === 1}
+                                            className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <ChevronLeft size={16} />
+                                        </button>
+                                        <span className="text-sm text-gray-300">
+                                            {currentCandidatePage} of {totalCandidatePages}
+                                        </span>
+                                        <button
+                                            onClick={() => setCurrentCandidatePage(prev => Math.min(prev + 1, totalCandidatePages))}
+                                            disabled={currentCandidatePage === totalCandidatePages}
+                                            className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <ChevronRight size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="mb-8">
@@ -304,15 +562,17 @@ export default function EmployerAssessments() {
                             </div>
                         </div>
 
-                        {/* Save button */}
-                        <div className="flex justify-end">
-                            <button
-                                onClick={saveChanges}
-                                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors font-medium"
-                            >
-                                Save Changes
-                            </button>
-                        </div>
+                        {/* Save button - only show when description is being edited or other changes need saving */}
+                        {(isEditingDescription || JSON.stringify(selectedAssessment) !== JSON.stringify(editedAssessment)) && (
+                            <div className="flex justify-end">
+                                <button
+                                    onClick={saveChanges}
+                                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors font-medium"
+                                >
+                                    Save Changes
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -321,8 +581,18 @@ export default function EmployerAssessments() {
 
     return (
         <AppShell title="Assessments">
-            <div className="min-h-screen bg-slate-700 text-white p-6">
+            <div className="min-h-screen bg-gray-900 text-white p-6">
                 <div className="max-w-6xl mx-auto">
+                    <div className="flex justify-between items-center mb-6">
+                        <h1 className="text-2xl font-medium text-gray-100">Assessments</h1>
+                        <Link to="/assessments/new">
+                            <Button className="flex items-center gap-2">
+                                <Plus size={16} />
+                                New Assessment
+                            </Button>
+                        </Link>
+                    </div>
+
                     <div className="space-y-4">
                         {assessments.map((assessment) => (
                             <div
@@ -368,91 +638,37 @@ export default function EmployerAssessments() {
                                     </div>
 
                                     <DropdownMenu>
-                                        <DropdownMenuTrigger asChild className="p-2 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
-                                            <Button variant="ghost"><MoreHorizontal size={20} /></Button>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" className="p-2 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
+                                                <MoreHorizontal size={20} />
+                                            </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
                                             <DropdownMenuLabel>More Actions</DropdownMenuLabel>
-                                            <DropdownMenuGroup className="hover:bg-slate-700 transition-colors hover:text-white">
+                                            <DropdownMenuGroup>
                                                 <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                                                {assessment.status === 'active' ? (
-                                                        <>
-                                                            Deactivate Assessment
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            Activate Assessment
-                                                        </>
-                                                    )}
+                                                    Copy link
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                    {assessment.status === 'active' ? 'Deactivate Assessment' : 'Activate Assessment'}
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
                                                     View Repository on GitHub
                                                 </DropdownMenuItem>
-                                                
+                                                <DropdownMenuSeparator className="bg-slate-700" />
+                                                <DropdownMenuItem className="hover:bg-slate-700 text-red-400 transition-colors hover:text-white">
+                                                    Delete Assessment
+                                                </DropdownMenuItem>
                                             </DropdownMenuGroup>
-                                            
                                         </DropdownMenuContent>
                                     </DropdownMenu>
-                                    {/* <div className="relative">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setActiveDropdown(activeDropdown === assessment.id ? null : assessment.id);
-                                            }}
-                                            className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
-                                        >
-                                            <MoreHorizontal size={20} />
-                                        </button>
-                                        
-
-                                        {activeDropdown === assessment.id && (
-                                            <div className="absolute right-0 top-12 bg-gray-700 rounded-lg shadow-xl py-2 w-48 z-10">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        toggleAssessmentStatus(assessment.id);
-                                                    }}
-                                                    className="w-full px-4 py-2 text-left hover:bg-gray-600 flex items-center gap-2 text-sm"
-                                                >
-                                                    {assessment.status === 'active' ? (
-                                                        <>
-                                                            <Pause size={16} />
-                                                            Deactivate Assessment
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Play size={16} />
-                                                            Activate Assessment
-                                                        </>
-                                                    )}
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        openRepository(assessment.repoLink);
-                                                    }}
-                                                    className="w-full px-4 py-2 text-left hover:bg-gray-600 flex items-center gap-2 text-sm"
-                                                >
-                                                    <ExternalLink size={16} />
-                                                    Open Repository
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div> */}
                                 </div>
                             </div>
                         ))}
                     </div>
-
-                    {/* Click outside to close dropdown */}
-                    {activeDropdown && (
-                        <div
-                            className="fixed inset-0 z-5"
-                            onClick={() => setActiveDropdown(null)}
-                        />
-                    )}
                 </div>
                 <AssessmentPagination/>
+
             </div>
         </AppShell>
     );
