@@ -9,7 +9,7 @@
 // import { useLocation } from "wouter";
 
 import { AppShell } from "@/components/layout/app-shell";
-import { AnimatedAIChat } from "@/components/ui/animated-ai-chat";
+import { AnimatedAIChat } from "@/components/new-assessment/animated-ai-chat";
 
 // import { AppShell } from "@/components/layout/app-shell";
 // import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";

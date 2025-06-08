@@ -26,6 +26,10 @@ export default function EmployerAssessments() {
     const [currentCandidatePage, setCurrentCandidatePage] = useState(1);
     const candidatesPerPage = 5;
 
+    // Add these state variables after your existing useState declarations
+    const [candidateSearchTerm, setCandidateSearchTerm] = useState('');
+    const [candidateStatusFilter, setCandidateStatusFilter] = useState<string>('all');
+
     // Sample assessment data
     const assessments: Assessment[] = [
         {
@@ -100,6 +104,21 @@ export default function EmployerAssessments() {
         { id: '7', name: 'Grace Lee', email: 'grace.lee@email.com', status: 'invited', appliedAt: new Date('2024-02-07') },
         { id: '8', name: 'Henry Taylor', email: 'henry.taylor@email.com', status: 'evaluated', appliedAt: new Date('2024-02-08') },
     ];
+
+    // Add this filtering logic before the pagination logic
+    const filteredCandidates = candidates.filter(candidate => {
+        const matchesSearch = candidate.name.toLowerCase().includes(candidateSearchTerm.toLowerCase()) ||
+            candidate.email.toLowerCase().includes(candidateSearchTerm.toLowerCase());
+        const matchesStatus = candidateStatusFilter === 'all' || candidate.status === candidateStatusFilter;
+        return matchesSearch && matchesStatus;
+    });
+
+    // Update the pagination to use filtered candidates
+    const totalCandidatePages = Math.ceil(filteredCandidates.length / candidatesPerPage);
+    const paginatedCandidates = filteredCandidates.slice(
+        (currentCandidatePage - 1) * candidatesPerPage,
+        currentCandidatePage * candidatesPerPage
+    );
 
     const formatDateRange = (assessment: Assessment) => {
         if (assessment.type === 'live-coding') {
@@ -244,13 +263,6 @@ export default function EmployerAssessments() {
         }
     };
 
-    // Candidates pagination
-    const totalCandidatePages = Math.ceil(candidates.length / candidatesPerPage);
-    const paginatedCandidates = candidates.slice(
-        (currentCandidatePage - 1) * candidatesPerPage,
-        currentCandidatePage * candidatesPerPage
-    );
-
     if (selectedAssessment) {
         return (
             <div className="min-h-screen bg-gray-900 text-white p-6">
@@ -311,7 +323,7 @@ export default function EmployerAssessments() {
                                 </div>
 
                                 {/* Editable Role */}
-                                <div className="mb-4">
+                                <div className="flex items-center justify-between mb-4">
                                     {isEditingRole ? (
                                         <div className="flex items-center gap-2">
                                             <input
@@ -345,6 +357,13 @@ export default function EmployerAssessments() {
                                             </button>
                                         </div>
                                     )}
+                                    <button
+                                        onClick={() => openRepository(selectedAssessment.repoLink)}
+                                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors text-sm"
+                                    >
+                                        <ExternalLink size={16} />
+                                        View Template Repository
+                                    </button>
                                 </div>
 
                                 {/* Status and Type labels */}
@@ -384,13 +403,7 @@ export default function EmployerAssessments() {
                                 </div>
                             </div>
 
-                            <button
-                                onClick={() => openRepository(selectedAssessment.repoLink)}
-                                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors"
-                            >
-                                <ExternalLink size={16} />
-                                View Repository
-                            </button>
+
                         </div>
 
                         <div className="mb-8">
@@ -442,31 +455,104 @@ export default function EmployerAssessments() {
 
                         {/* Candidates Section */}
                         <div className="mb-8">
-                            <h3 className="text-xl font-semibold mb-4">Candidates</h3>
-                            <div className="space-y-3">
-                                {paginatedCandidates.map((candidate) => (
-                                    <div
-                                        key={candidate.id}
-                                        className="bg-gray-700 rounded-lg p-4 flex items-center justify-between"
+                            <h3 className="text-xl font-semibold mb-6">Candidates</h3>
+
+                            {/* Search Bar and Filters */}
+                            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                                {/* Search Bar */}
+                                <div className="flex-1">
+                                    <input
+                                        type="text"
+                                        placeholder="Search candidates by name or email..."
+                                        value={candidateSearchTerm}
+                                        onChange={(e) => setCandidateSearchTerm(e.target.value)}
+                                        className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-400 focus:outline-none placeholder-gray-400"
+                                    />
+                                </div>
+
+                                {/* Status Filter */}
+                                <div className="sm:w-48">
+                                    <select
+                                        value={candidateStatusFilter}
+                                        onChange={(e) => setCandidateStatusFilter(e.target.value)}
+                                        className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-400 focus:outline-none"
                                     >
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-4">
-                                                <div>
-                                                    <h4 className="font-medium text-white">{candidate.name}</h4>
-                                                    <p className="text-sm text-gray-400">{candidate.email}</p>
+                                        <option value="all">All Statuses</option>
+                                        <option value="invited">Invited</option>
+                                        <option value="started">Started</option>
+                                        <option value="submitted">Submitted</option>
+                                        <option value="evaluated">Evaluated</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Results Summary */}
+                            <div className="mb-4">
+                                <p className="text-sm text-gray-400">
+                                    Showing {filteredCandidates.length} of {candidates.length} candidates
+                                </p>
+                            </div>
+
+                            {/* Candidates List */}
+                            <div className="space-y-3">
+                                {paginatedCandidates.length > 0 ? (
+                                    paginatedCandidates.map((candidate) => (
+                                        <div
+                                            key={candidate.id}
+                                            className="bg-gray-700 rounded-lg p-4 flex items-center justify-between hover:bg-gray-650 transition-colors"
+                                        >
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-4">
+                                                    <div>
+                                                        <h4 className="font-medium text-white">{candidate.name}</h4>
+                                                        <p className="text-sm text-gray-400">{candidate.email}</p>
+                                                    </div>
                                                 </div>
                                             </div>
+                                            <div className="flex items-center gap-4">
+                                                {/* <span className="text-sm text-gray-400">
+                                                    Applied: {candidate.appliedAt.toLocaleDateString()}
+                                                </span> */}
+                                                <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize text-white ${getStatusColor(candidate.status)}`}>
+                                                    {candidate.status}
+                                                </span>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" className="p-2 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
+                                                            <MoreHorizontal size={20} />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
+                                                        <DropdownMenuLabel>More Actions</DropdownMenuLabel>
+                                                        <DropdownMenuGroup>
+                                                            <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                                Send email
+                                                            </DropdownMenuItem>
+                                                            {(candidate.status.toLowerCase() === "submitted" || candidate.status.toLowerCase() === "evaluated") && (
+                                                                <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                                    View Pull Request on GitHub
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            {candidate.status.toLowerCase() === "started" && (
+                                                                <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                                    View Repository on GitHub
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            <DropdownMenuSeparator className="bg-slate-700" />
+                                                            {/* <DropdownMenuItem className="hover:bg-slate-700 text-red-400 transition-colors hover:text-white">
+                                                    Delete Assessment
+                                                </DropdownMenuItem> */}
+                                                        </DropdownMenuGroup>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-4">
-                                            <span className="text-sm text-gray-400">
-                                                Applied: {candidate.appliedAt.toLocaleDateString()}
-                                            </span>
-                                            <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize text-white ${getStatusColor(candidate.status)}`}>
-                                                {candidate.status}
-                                            </span>
-                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="bg-gray-700 rounded-lg p-8 text-center">
+                                        <p className="text-gray-400">No candidates found matching your search criteria.</p>
                                     </div>
-                                ))}
+                                )}
                             </div>
 
                             {/* Candidates Pagination */}
@@ -474,8 +560,8 @@ export default function EmployerAssessments() {
                                 <div className="flex items-center justify-between mt-6">
                                     <p className="text-sm text-gray-400">
                                         Showing {((currentCandidatePage - 1) * candidatesPerPage) + 1} to{' '}
-                                        {Math.min(currentCandidatePage * candidatesPerPage, candidates.length)} of{' '}
-                                        {candidates.length} candidates
+                                        {Math.min(currentCandidatePage * candidatesPerPage, filteredCandidates.length)} of{' '}
+                                        {filteredCandidates.length} filtered candidates
                                     </p>
                                     <div className="flex items-center gap-2">
                                         <button
@@ -513,14 +599,14 @@ export default function EmployerAssessments() {
                                                 type="text"
                                                 value={key}
                                                 onChange={(e) => updateMetadataField(key, e.target.value, value)}
-                                                className="bg-gray-600 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none"
+                                                className="bg-gray-600 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
                                                 placeholder="Field name"
                                             />
                                             <input
                                                 type="text"
                                                 value={value}
                                                 onChange={(e) => updateMetadataField(key, key, e.target.value)}
-                                                className="bg-gray-600 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none"
+                                                className="bg-gray-600 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
                                                 placeholder="Field value"
                                             />
                                         </div>
@@ -667,7 +753,7 @@ export default function EmployerAssessments() {
                         ))}
                     </div>
                 </div>
-                <AssessmentPagination/>
+                <AssessmentPagination />
 
             </div>
         </AppShell>

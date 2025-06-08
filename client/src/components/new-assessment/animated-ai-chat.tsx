@@ -14,10 +14,10 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as React from "react"
-import { Button } from "./button";
-import { Form, FormField, FormItem, FormLabel, FormMessage } from "./form";
-import { FormControl } from "./form";
-import { Input } from "./input";
+import { Button } from "../ui/button";
+import { Form, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
+import { FormControl } from "../ui/form";
+import { Input } from "../ui/input";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
@@ -26,7 +26,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { z } from "zod";
-import { DatePicker } from "./date-picker";
+import { DatePicker } from "../ui/date-picker";
+import ChoiceConfig from "./candidate-choices";
 
 // Create a schema for the assessment creation form
 const createAssessmentSchema = insertAssessmentSchema.pick({
@@ -528,6 +529,8 @@ export function AnimatedAIChat() {
                                 </div>
                             </div>
 
+                            <ChoiceConfig />
+
                             <FormField
                                 control={form.control}
                                 name="description"
@@ -859,5 +862,3 @@ if (typeof document !== 'undefined') {
     style.innerHTML = rippleKeyframes;
     document.head.appendChild(style);
 }
-
-

@@ -26,8 +26,48 @@
             }
         }
     },
+    
+    {
+        "type": "function",
+        "function": {
+            "name": "get_repository_branches",
+            "description": "Gets the branches of the repository using the GitHub API.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "branch" : {
+                        "type": "string",
+                            "description": "The branch of the repository to retrieve the contents from. This branch should be the default branch of the repository."
+                    }
+                },
+                "required": [
+                    "branch"
+                ]
+            }
+        }
+    },
 
     {
+        "type": "function",
+        "function": {
+            "name": "add_branch",
+            "description": "Adds a branch to the repository using the GitHub API.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "branch_name" : {
+                        "type": "string",
+                        "description": "The name of the branch to add to the repository. This name should be unique to the repository."
+                    }
+                },
+                "required": [
+                    "branch_name"
+                ]
+            }
+        }
+    },
+
+    {   
         "type": "function",
         "function": {
             "name": "add_file",
