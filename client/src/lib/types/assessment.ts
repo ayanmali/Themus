@@ -10,10 +10,13 @@ export type Assessment = {
     status: 'active' | 'inactive';
     startDate?: Date;
     endDate?: Date;
-    duration?: number; // in minutes
+    duration?: number; // in minutes - for take home assessments, this is the estimated duration of the assessment in minutes. For live coding assessments, this is the duration of the assessment in minutes.
+    languageOptions?: string[]; // ex. ["React", "Vue", "Angular"]
+    rules?: string[];
+    instructions?: string[];
     type: 'take-home' | 'live-coding'; // Take home assessments are completed by the candidate at their own pace, while live coding assessments are completed live in real-time
     repoLink: string; // link to the repository
-    metadata: Record<string, string>; // additional metadata
+    metadata?: Record<string, string>; // additional metadata
 }
 
 export type Candidate = {
@@ -22,4 +25,5 @@ export type Candidate = {
     email: string;
     status: 'invited' | 'started' | 'submitted' | 'evaluated';
     appliedAt: Date;
+    startedAt: Date | null;
 }

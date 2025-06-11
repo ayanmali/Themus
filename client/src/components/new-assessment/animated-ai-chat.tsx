@@ -41,6 +41,16 @@ const createAssessmentSchema = insertAssessmentSchema.pick({
 }).extend({
     startDate: z.coerce.date().min(new Date(), { message: "Start date must be in the future" }),
     endDate: z.coerce.date().min(new Date(), { message: "End date must be in the future" }),
+    candidateChoices: z.object({
+        enableLanguageSelection: z.boolean().default(false),
+        languageOptions: z.array(z.object({
+            id: z.string(),
+            name: z.string().min(1, "Language name is required")
+        })).default([])
+    }).default({
+        enableLanguageSelection: false,
+        languageOptions: []
+    })
 });
 
 type CreateAssessmentFormValues = z.infer<typeof createAssessmentSchema>;
@@ -177,7 +187,7 @@ export function AnimatedAIChat() {
     const { toast } = useToast();
     const [, navigate] = useLocation();
 
-    // Setup form
+    // Setup form with updated default values
     const form = useForm<CreateAssessmentFormValues>({
         resolver: zodResolver(createAssessmentSchema),
         defaultValues: {
@@ -186,6 +196,10 @@ export function AnimatedAIChat() {
             skills: "",
             description: "",
             repositoryLink: "",
+            candidateChoices: {
+                enableLanguageSelection: false,
+                languageOptions: []
+            }
         },
     });
 
@@ -213,6 +227,12 @@ export function AnimatedAIChat() {
     });
 
     const onSubmit = (data: CreateAssessmentFormValues) => {
+        console.log('Form data with candidate choices:', data);
+        // data.candidateChoices will contain:
+        // {
+        //   enableLanguageSelection: boolean,
+        //   languageOptions: [{ id: string, name: string }]
+        // }
         createAssessmentMutation.mutate(data);
     };
 
@@ -529,7 +549,18 @@ export function AnimatedAIChat() {
                                 </div>
                             </div>
 
-                            <ChoiceConfig />
+                            <FormField
+                                control={form.control}
+                                name="candidateChoices"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormControl>
+                                            <ChoiceConfig control={form.control} name="candidateChoices" />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
                             <FormField
                                 control={form.control}

@@ -1,27 +1,39 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Plus, X, Settings, Code, Users } from 'lucide-react';
 import { FormLabel } from '../ui/form';
+import { Control, useController } from 'react-hook-form';
 
 interface LanguageOption {
     id: string;
     name: string;
 }
 
-interface ChoiceConfigProps {
-    onConfigChange?: (config: any) => void;
+interface CandidateChoicesData {
+    enableLanguageSelection: boolean;
+    languageOptions: LanguageOption[];
 }
 
-const ChoiceConfig: React.FC<ChoiceConfigProps> = ({ onConfigChange }) => {
+interface ChoiceConfigProps {
+    control: Control<any>;
+    name: string;
+}
+
+const ChoiceConfig: React.FC<ChoiceConfigProps> = ({ control, name }) => {
     const [isLanguageSectionOpen, setIsLanguageSectionOpen] = useState(false);
-    const [enableLanguageSelection, setEnableLanguageSelection] = useState(false);
-    const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>([
-        // { id: '1', name: 'React' },
-        // { id: '2', name: 'Vue' },
-        // { id: '3', name: 'Angular' }
-    ]);
-    const [selectedLanguage, setSelectedLanguage] = useState<string>('');
     const [newLanguageName, setNewLanguageName] = useState('');
     const [isAddingNew, setIsAddingNew] = useState(false);
+
+    const {
+        field: { value, onChange },
+        fieldState: { error }
+    } = useController({
+        name,
+        control,
+        defaultValue: {
+            enableLanguageSelection: false,
+            languageOptions: []
+        }
+    });
 
     const addLanguageOption = () => {
         if (newLanguageName.trim()) {
@@ -29,17 +41,27 @@ const ChoiceConfig: React.FC<ChoiceConfigProps> = ({ onConfigChange }) => {
                 id: Date.now().toString(),
                 name: newLanguageName.trim()
             };
-            setLanguageOptions([...languageOptions, newOption]);
+            onChange({
+                ...value,
+                languageOptions: [...value.languageOptions, newOption]
+            });
             setNewLanguageName('');
             setIsAddingNew(false);
         }
     };
 
     const removeLanguageOption = (id: string) => {
-        setLanguageOptions(languageOptions.filter(option => option.id !== id));
-        if (selectedLanguage === id) {
-            setSelectedLanguage('');
-        }
+        onChange({
+            ...value,
+            languageOptions: value.languageOptions.filter((option: LanguageOption) => option.id !== id)
+        });
+    };
+
+    const toggleLanguageSelection = (enabled: boolean) => {
+        onChange({
+            ...value,
+            enableLanguageSelection: enabled
+        });
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -56,6 +78,7 @@ const ChoiceConfig: React.FC<ChoiceConfigProps> = ({ onConfigChange }) => {
             {/* Language/Framework Selection Section */}
             <div className="border border-gray-700 rounded-lg bg-gray-750">
                 <button
+                    type="button"
                     onClick={() => setIsLanguageSectionOpen(!isLanguageSectionOpen)}
                     className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-700 transition-colors rounded-lg"
                 >
@@ -77,8 +100,8 @@ const ChoiceConfig: React.FC<ChoiceConfigProps> = ({ onConfigChange }) => {
                                 <input
                                     type="checkbox"
                                     id="enableLanguageSelection"
-                                    checked={enableLanguageSelection}
-                                    onChange={(e) => setEnableLanguageSelection(e.target.checked)}
+                                    checked={value.enableLanguageSelection}
+                                    onChange={(e) => toggleLanguageSelection(e.target.checked)}
                                     className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
                                 />
                                 <label htmlFor="enableLanguageSelection" className="text-white font-medium text-sm">
@@ -86,11 +109,12 @@ const ChoiceConfig: React.FC<ChoiceConfigProps> = ({ onConfigChange }) => {
                                 </label>
                             </div>
 
-                            {enableLanguageSelection && (
+                            {value.enableLanguageSelection && (
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
                                         <h4 className="text-white font-medium">Available Options</h4>
                                         <button
+                                            type="button"
                                             onClick={() => setIsAddingNew(true)}
                                             className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
                                         >
@@ -100,23 +124,14 @@ const ChoiceConfig: React.FC<ChoiceConfigProps> = ({ onConfigChange }) => {
                                     </div>
 
                                     <div className="grid gap-3">
-                                        {languageOptions.map((option) => (
+                                        {value.languageOptions.map((option: LanguageOption) => (
                                             <div
                                                 key={option.id}
                                                 className="flex items-center justify-between p-4 bg-gray-700 rounded-lg border border-gray-600"
                                             >
-                                                <label className="flex items-center gap-3 cursor-pointer flex-1">
-                                                    {/* <input
-                                                        type="radio"
-                                                        name="selectedLanguage"
-                                                        value={option.id}
-                                                        checked={selectedLanguage === option.id}
-                                                        onChange={(e) => setSelectedLanguage(e.target.value)}
-                                                        className="w-4 h-4 text-blue-600 bg-gray-600 border-gray-500 focus:ring-blue-500 focus:ring-2"
-                                                    /> */}
-                                                    <span className="text-white font-medium">{option.name}</span>
-                                                </label>
+                                                <span className="text-white font-medium">{option.name}</span>
                                                 <button
+                                                    type="button"
                                                     onClick={() => removeLanguageOption(option.id)}
                                                     className="p-1 text-gray-400 hover:text-red-400 hover:bg-red-900/20 rounded transition-colors"
                                                 >
@@ -127,7 +142,6 @@ const ChoiceConfig: React.FC<ChoiceConfigProps> = ({ onConfigChange }) => {
 
                                         {isAddingNew && (
                                             <div className="flex items-center gap-3 p-4 bg-gray-700 rounded-lg border border-blue-500">
-                                                <div className="w-4 h-4" /> {/* Spacer for alignment */}
                                                 <input
                                                     type="text"
                                                     value={newLanguageName}
@@ -139,12 +153,14 @@ const ChoiceConfig: React.FC<ChoiceConfigProps> = ({ onConfigChange }) => {
                                                 />
                                                 <div className="flex gap-2">
                                                     <button
+                                                        type="button"
                                                         onClick={addLanguageOption}
                                                         className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium transition-colors"
                                                     >
                                                         Add
                                                     </button>
                                                     <button
+                                                        type="button"
                                                         onClick={() => {
                                                             setIsAddingNew(false);
                                                             setNewLanguageName('');
@@ -158,7 +174,7 @@ const ChoiceConfig: React.FC<ChoiceConfigProps> = ({ onConfigChange }) => {
                                         )}
                                     </div>
 
-                                    {languageOptions.length === 0 && !isAddingNew && (
+                                    {value.languageOptions.length === 0 && !isAddingNew && (
                                         <div className="text-center py-8 text-gray-400">
                                             <Code className="w-12 h-12 mx-auto mb-3 opacity-50" />
                                             <p className="text-sm">No language options configured</p>
@@ -166,7 +182,7 @@ const ChoiceConfig: React.FC<ChoiceConfigProps> = ({ onConfigChange }) => {
                                         </div>
                                     )}
 
-                                    {languageOptions.length > 0 && (
+                                    {value.languageOptions.length > 0 && (
                                         <div className="mt-6 p-4 bg-blue-900/20 border border-blue-700 rounded-lg">
                                             <div className="flex items-center gap-2 mb-2">
                                                 <Users className="w-4 h-4 text-blue-400" />
@@ -183,16 +199,9 @@ const ChoiceConfig: React.FC<ChoiceConfigProps> = ({ onConfigChange }) => {
                     </div>
                 )}
             </div>
-
-            {/* Action Buttons */}
-            {/* <div className="flex justify-end gap-4 pt-6 border-t border-gray-700">
-                <button className="px-6 py-3 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors font-medium">
-                    Cancel
-                </button>
-                <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium shadow-lg">
-                    Save Configuration
-                </button>
-            </div> */}
+            {error && (
+                <p className="text-red-400 text-sm mt-1">{error.message}</p>
+            )}
         </div>
     );
 };

@@ -23,6 +23,7 @@ import CandidateProfile from "@/pages/candidate/profile";
 import LandingPage from "./pages/lander";
 import SignupPage from "./pages/auth/signup";
 import LoginPage from "./pages/auth/login";
+import CandidateAssessmentInvite from "./pages/candidate/assessment-invite";
 
 function Router() {
   return (
@@ -45,6 +46,7 @@ function Router() {
       {/* Candidate Routes */}
       {/* <Route path="/start-assessment/{assessment_id}" component={StartAssessment} /> */}
       {/* <Route path="/candidate/dashboard" component={CandidateDashboard} /> */}
+      <Route path="/invite/:assessment_id" component={CandidateAssessmentInvite} />
       <ProtectedRoute path="/candidate/assessments" component={CandidateAssessments} role="candidate" />
       <ProtectedRoute path="/candidate/profile" component={CandidateProfile} role="candidate" />
       
