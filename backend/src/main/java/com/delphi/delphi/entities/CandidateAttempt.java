@@ -1,4 +1,4 @@
-package com.delphi.delphi.models;
+package com.delphi.delphi.entities;
 
 import java.time.LocalDateTime;
 
