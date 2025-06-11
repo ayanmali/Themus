@@ -69,8 +69,8 @@ public class CandidateAttempt {
     @Column(name = "started_date")
     private LocalDateTime startedDate;
     
-    @Column(name = "submitted_date")
-    private LocalDateTime submittedDate;
+    @Column(name = "completed_date")
+    private LocalDateTime completedDate;
     
     @Column(name = "evaluated_date")
     private LocalDateTime evaluatedDate;
@@ -91,11 +91,11 @@ public class CandidateAttempt {
     
     @AssertTrue(message = "Submitted date must be after started date")
     private boolean isSubmittedDateAfterStartedDate() {
-        return startedDate == null || submittedDate == null || submittedDate.isAfter(startedDate);
+        return startedDate == null || completedDate == null || completedDate.isAfter(startedDate);
     }
     
     @AssertTrue(message = "Evaluated date must be after submitted date")
     private boolean isEvaluatedDateAfterSubmittedDate() {
-        return submittedDate == null || evaluatedDate == null || evaluatedDate.isAfter(submittedDate);
+        return completedDate == null || evaluatedDate == null || evaluatedDate.isAfter(completedDate);
     }
 }

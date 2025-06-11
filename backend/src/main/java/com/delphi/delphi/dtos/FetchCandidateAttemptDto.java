@@ -16,7 +16,7 @@ public class FetchCandidateAttemptDto {
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
     private LocalDateTime startedDate;
-    private LocalDateTime submittedDate;
+    private LocalDateTime completedDate;
     private LocalDateTime evaluatedDate;
     private Long candidateId;
     private Long assessmentId;
@@ -30,7 +30,7 @@ public class FetchCandidateAttemptDto {
         this.createdDate = candidateAttempt.getCreatedDate();
         this.updatedDate = candidateAttempt.getUpdatedDate();
         this.startedDate = candidateAttempt.getStartedDate();
-        this.submittedDate = candidateAttempt.getSubmittedDate();
+        this.completedDate = candidateAttempt.getCompletedDate();
         this.evaluatedDate = candidateAttempt.getEvaluatedDate();
         this.candidateId = candidateAttempt.getCandidate().getId();
         this.assessmentId = candidateAttempt.getAssessment().getId();
