@@ -25,10 +25,12 @@ export const repositories = pgTable("repositories", {
 export const assessments = pgTable("assessments", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
+  assessmentType: text("assessment_type").notNull(),
   role: text("role").notNull(),
   skills: text("skills").notNull(),
   description: text("description"),
   repositoryLink: text("repository_link"),
+  duration: integer("duration").notNull(),
   //repositoryId: integer("repository_id").notNull(),
   userId: integer("user_id").notNull(),
   startDate: timestamp("start_date"),
@@ -72,6 +74,8 @@ export const insertAssessmentSchema = createInsertSchema(assessments).pick({
   skills: true, // for the user's reference
   description: true, // LLM input
   repositoryLink: true,
+  duration: true,
+  assessmentType: true,
   userId: true,
   startDate: true,
   endDate: true,
