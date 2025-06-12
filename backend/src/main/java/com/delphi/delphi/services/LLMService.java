@@ -11,22 +11,18 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import com.delphi.delphi.dtos.NewAssessmentDto;
-import com.delphi.delphi.entities.ChatMessage;
-
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.delphi.delphi.entities.UserChatMessage;
 
 // @RestController
 // @RequestMapping("/api/ai")
 @Service
 @Transactional
 public class LLMService {
-    private final ChatService chatService;
+    private final UserChatService chatService;
     private final ChatModel chatModel; // Autowired via constructor injection
     private static final Logger log = LoggerFactory.getLogger(LLMService.class);
 
-    public LLMService(ChatModel chatModel, ChatService chatService) {
+    public LLMService(ChatModel chatModel, UserChatService chatService) {
         this.chatModel = chatModel;
         this.chatService = chatService;
         log.info("LLMService initialized with Spring AI ChatModel, targeting OpenRouter.");
@@ -35,11 +31,23 @@ public class LLMService {
     /**
      * Data Transfer Object for the chat request.
      */
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
     public static class ChatRequest {
         private String message;
+
+        public ChatRequest() {
+        }
+
+        public ChatRequest(String message) {
+            this.message = message;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
     }
 
     /**
@@ -59,7 +67,7 @@ public class LLMService {
     // sends a message to the user (to be used by the LLM as a tool)
     public String sendMessageToUser(String message, Long chatHistoryId) {
         try {
-            chatService.addMessageToChatHistory(message, chatHistoryId, ChatMessage.MessageSender.AI);
+            chatService.addMessageToChatHistory(message, chatHistoryId, UserChatMessage.MessageSender.AI);
             return message;
         } catch (Exception e) {
             return "Error sending message: " + e.getMessage();

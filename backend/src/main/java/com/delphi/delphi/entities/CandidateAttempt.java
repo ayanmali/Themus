@@ -22,9 +22,6 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /*
  * Represents a candidate's attempt at an assessment.
@@ -38,9 +35,6 @@ import lombok.NoArgsConstructor;
  */
 @Entity
 @Table(name = "candidate_attempts")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class CandidateAttempt {
     
     @Id
@@ -88,14 +82,129 @@ public class CandidateAttempt {
     // One-to-one relationship with Evaluation (placeholder)
     @OneToOne(mappedBy = "candidateAttempt", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Evaluation evaluation;
+
+    public CandidateAttempt() {
+    }
+
+    public CandidateAttempt(String githubRepositoryLink, AttemptStatus status, String languageChoice, LocalDateTime createdDate, LocalDateTime updatedDate, LocalDateTime startedDate, LocalDateTime completedDate, LocalDateTime evaluatedDate, Candidate candidate, Assessment assessment, Evaluation evaluation) {
+        this.githubRepositoryLink = githubRepositoryLink;
+        this.status = status;
+        this.languageChoice = languageChoice;
+        this.createdDate = createdDate;
+        this.updatedDate = updatedDate;
+        this.startedDate = startedDate;
+        this.completedDate = completedDate;
+        this.evaluatedDate = evaluatedDate;
+        this.candidate = candidate;
+        this.assessment = assessment;
+        this.evaluation = evaluation;
+    }
     
     @AssertTrue(message = "Submitted date must be after started date")
-    private boolean isSubmittedDateAfterStartedDate() {
+    private boolean isCompletedDateAfterStartedDate() {
         return startedDate == null || completedDate == null || completedDate.isAfter(startedDate);
     }
     
     @AssertTrue(message = "Evaluated date must be after submitted date")
-    private boolean isEvaluatedDateAfterSubmittedDate() {
+    private boolean isEvaluatedDateAfterCompletedDate() {
         return completedDate == null || evaluatedDate == null || evaluatedDate.isAfter(completedDate);
     }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getGithubRepositoryLink() {
+        return githubRepositoryLink;
+    }
+
+    public void setGithubRepositoryLink(String githubRepositoryLink) {
+        this.githubRepositoryLink = githubRepositoryLink;
+    }
+
+    public AttemptStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(AttemptStatus status) {
+        this.status = status;
+    }
+
+    public String getLanguageChoice() {
+        return languageChoice;
+    }
+
+    public void setLanguageChoice(String languageChoice) {
+        this.languageChoice = languageChoice;
+    }
+
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
+    }
+
+    public LocalDateTime getUpdatedDate() {
+        return updatedDate;
+    }
+
+    public void setUpdatedDate(LocalDateTime updatedDate) {
+        this.updatedDate = updatedDate;
+    }
+
+    public LocalDateTime getStartedDate() {
+        return startedDate;
+    }
+
+    public void setStartedDate(LocalDateTime startedDate) {
+        this.startedDate = startedDate;
+    }
+
+    public LocalDateTime getCompletedDate() {
+        return completedDate;
+    }
+
+    public void setCompletedDate(LocalDateTime completedDate) {
+        this.completedDate = completedDate;
+    }
+
+    public LocalDateTime getEvaluatedDate() {
+        return evaluatedDate;
+    }
+
+    public void setEvaluatedDate(LocalDateTime evaluatedDate) {
+        this.evaluatedDate = evaluatedDate;
+    }
+
+    public Candidate getCandidate() {
+        return candidate;
+    }
+
+    public void setCandidate(Candidate candidate) {
+        this.candidate = candidate;
+    }
+
+    public Assessment getAssessment() {
+        return assessment;
+    }
+
+    public void setAssessment(Assessment assessment) {
+        this.assessment = assessment;
+    }
+
+    public Evaluation getEvaluation() {
+        return evaluation;
+    }
+
+    public void setEvaluation(Evaluation evaluation) {
+        this.evaluation = evaluation;
+    }
+
+    
 }

@@ -5,13 +5,7 @@ import java.util.List;
 
 import com.delphi.delphi.utils.AssessmentType;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class NewAssessmentDto {
     private String name; // title
     private String description; // description
@@ -22,4 +16,76 @@ public class NewAssessmentDto {
     private Integer duration; // estimated duration/time limit
     private List<String> skills;
     private List<String> languageOptions;
+
+    public NewAssessmentDto() {
+    }
+
+    public NewAssessmentDto(String name, String description, String roleName, AssessmentType assessmentType, LocalDateTime startDate, LocalDateTime endDate, Integer duration, List<String> skills, List<String> languageOptions) {
+        this.name = name;
+        this.description = description;
+        this.roleName = roleName;
+        this.assessmentType = assessmentType;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.duration = duration;
+        this.skills = skills;
+        this.languageOptions = languageOptions;
+    }
+
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+    public String getDescription() {
+        return description;
+    }
+    public void setDescription(String description) {
+        this.description = description;
+    }
+    public String getRoleName() {
+        return roleName;
+    }
+    public void setRoleName(String roleName) {
+        this.roleName = roleName;
+    }
+    public AssessmentType getAssessmentType() {
+        return assessmentType;
+    }
+    public void setAssessmentType(AssessmentType assessmentType) {
+        this.assessmentType = assessmentType;
+    }
+    public LocalDateTime getStartDate() {
+        return startDate;
+    }
+    public void setStartDate(LocalDateTime startDate) {
+        this.startDate = startDate;
+    }
+    public LocalDateTime getEndDate() {
+        return endDate;
+    }
+    public void setEndDate(LocalDateTime endDate) {
+        this.endDate = endDate;
+    }
+    public Integer getDuration() {
+        return duration;
+    }
+    public void setDuration(Integer duration) {
+        this.duration = duration;
+    }
+    public List<String> getSkills() {
+        return skills;
+    }
+    public void setSkills(List<String> skills) {
+        this.skills = skills;
+    }
+    public List<String> getLanguageOptions() {
+        return languageOptions;
+    }
+    public void setLanguageOptions(List<String> languageOptions) {
+        this.languageOptions = languageOptions;
+    }
 }
+
+

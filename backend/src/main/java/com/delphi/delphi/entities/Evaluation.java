@@ -18,9 +18,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapKeyColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /*
  * Represents an evaluation of a candidate's attempt at an assessment.
@@ -31,9 +28,6 @@ import lombok.NoArgsConstructor;
  */
 @Entity
 @Table(name = "evaluations")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Evaluation {
     
     @Id
@@ -59,6 +53,58 @@ public class Evaluation {
     @MapKeyColumn(name = "metadata_key")
     @Column(name = "metadata_value")
     private Map<String, String> metadata;
+
+    public Evaluation() {
+    }
+
+    public Evaluation(LocalDateTime createdDate, LocalDateTime updatedDate, CandidateAttempt candidateAttempt, Map<String, String> metadata) {
+        this.createdDate = createdDate;
+        this.updatedDate = updatedDate;
+        this.candidateAttempt = candidateAttempt;
+        this.metadata = metadata;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
+    }
+
+    public LocalDateTime getUpdatedDate() {
+        return updatedDate;
+    }
+
+    public void setUpdatedDate(LocalDateTime updatedDate) {
+        this.updatedDate = updatedDate;
+    }
+
+    public CandidateAttempt getCandidateAttempt() {
+        return candidateAttempt;
+    }
+
+    public void setCandidateAttempt(CandidateAttempt candidateAttempt) {
+        this.candidateAttempt = candidateAttempt;
+    }
+
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, String> metadata) {
+        this.metadata = metadata;
+    }
+
+    
     
     // Additional evaluation fields can be added here as needed
 }

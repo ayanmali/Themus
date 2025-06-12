@@ -50,8 +50,8 @@ public interface CandidateAttemptRepository extends JpaRepository<CandidateAttem
                                                   Pageable pageable);
     
     // Find attempts submitted within date range
-    @Query("SELECT ca FROM CandidateAttempt ca WHERE ca.submittedDate BETWEEN :startDate AND :endDate")
-    Page<CandidateAttempt> findBySubmittedDateBetween(@Param("startDate") LocalDateTime startDate, 
+    @Query("SELECT ca FROM CandidateAttempt ca WHERE ca.completedDate BETWEEN :startDate AND :endDate")
+    Page<CandidateAttempt> findByCompletedDateBetween(@Param("startDate") LocalDateTime startDate, 
                                                     @Param("endDate") LocalDateTime endDate, 
                                                     Pageable pageable);
     

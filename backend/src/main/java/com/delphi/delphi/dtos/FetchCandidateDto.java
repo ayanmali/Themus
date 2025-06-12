@@ -5,13 +5,6 @@ import java.util.Map;
 
 import com.delphi.delphi.entities.Candidate;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class FetchCandidateDto {
     private Long id;
     private String fullName;
@@ -20,6 +13,9 @@ public class FetchCandidateDto {
     private LocalDateTime updatedDate;
     private Map<String, String> metadata;
     private Long userId;
+
+    public FetchCandidateDto() {
+    }
 
     public FetchCandidateDto(Candidate candidate) {
         this.id = candidate.getId();
@@ -30,4 +26,62 @@ public class FetchCandidateDto {
         this.metadata = candidate.getMetadata();
         this.userId = candidate.getUser().getId();
     }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
+    }
+
+    public LocalDateTime getUpdatedDate() {
+        return updatedDate;
+    }
+
+    public void setUpdatedDate(LocalDateTime updatedDate) {
+        this.updatedDate = updatedDate;
+    }
+
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, String> metadata) {
+        this.metadata = metadata;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    
 }

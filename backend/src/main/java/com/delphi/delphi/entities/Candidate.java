@@ -26,9 +26,6 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /*
  * A Candidate is someone who is taking an assessment.
@@ -42,9 +39,6 @@ import lombok.NoArgsConstructor;
  */
 @Entity
 @Table(name = "candidates")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Candidate {
     
     @Id
@@ -99,9 +93,104 @@ public class Candidate {
     @MapKeyColumn(name = "metadata_key")
     @Column(name = "metadata_value")
     private Map<String, String> metadata;
+
+    public Candidate() {
+    }
+
+    public Candidate(String firstName, String lastName, String email, User user, List<CandidateAttempt> candidateAttempts, List<Assessment> assessments, Map<String, String> metadata) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.email = email;
+        this.user = user;
+        this.candidateAttempts = candidateAttempts;
+        this.assessments = assessments;
+        this.metadata = metadata;
+    }
     
     // Computed property for full name
     public String getFullName() {
         return firstName + " " + lastName;
     }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
+    }
+
+    public LocalDateTime getUpdatedDate() {
+        return updatedDate;
+    }
+
+    public void setUpdatedDate(LocalDateTime updatedDate) {
+        this.updatedDate = updatedDate;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public List<CandidateAttempt> getCandidateAttempts() {
+        return candidateAttempts;
+    }
+
+    public void setCandidateAttempts(List<CandidateAttempt> candidateAttempts) {
+        this.candidateAttempts = candidateAttempts;
+    }
+
+    public List<Assessment> getAssessments() {
+        return assessments;
+    }
+
+    public void setAssessments(List<Assessment> assessments) {
+        this.assessments = assessments;
+    }
+
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, String> metadata) {
+        this.metadata = metadata;
+    }
+
+    
 }

@@ -4,13 +4,6 @@ import java.time.LocalDateTime;
 
 import com.delphi.delphi.entities.User;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class FetchUserDto {
     private Long id;
     private String name;
@@ -18,6 +11,9 @@ public class FetchUserDto {
     private String organizationName;
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
+
+    public FetchUserDto() {
+    }
 
     public FetchUserDto(User user) {
         this.id = user.getId();
@@ -27,4 +23,53 @@ public class FetchUserDto {
         this.createdDate = user.getCreatedDate();
         this.updatedDate = user.getUpdatedDate();
     }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getOrganizationName() {
+        return organizationName;
+    }
+
+    public void setOrganizationName(String organizationName) {
+        this.organizationName = organizationName;
+    }
+
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
+    }
+
+    public LocalDateTime getUpdatedDate() {
+        return updatedDate;
+    }
+
+    public void setUpdatedDate(LocalDateTime updatedDate) {
+        this.updatedDate = updatedDate;
+    }
+   
 }

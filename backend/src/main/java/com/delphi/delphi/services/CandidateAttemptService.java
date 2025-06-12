@@ -166,7 +166,7 @@ public class CandidateAttemptService {
     // Get attempts submitted within date range
     @Transactional(readOnly = true)
     public Page<CandidateAttempt> getAttemptsSubmittedBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
-        return candidateAttemptRepository.findBySubmittedDateBetween(startDate, endDate, pageable);
+        return candidateAttemptRepository.findByCompletedDateBetween(startDate, endDate, pageable);
     }
     
     // Get overdue attempts

@@ -33,9 +33,6 @@ import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /*
  * An Assessment represents the template repository that is used to create a new repository for each candidate.
@@ -50,11 +47,7 @@ import lombok.NoArgsConstructor;
  */
 @Entity
 @Table(name = "assessments")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Assessment {
-    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -138,8 +131,179 @@ public class Assessment {
 
     // One-to-one relationship with ChatHistory
     @OneToOne(mappedBy = "assessment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private ChatHistory chatHistory;
+    private UserChatHistory chatHistory;
+
+    public Assessment() {
+    }
+
+    public Assessment(String name, String description, String roleName, AssessmentType assessmentType, LocalDateTime startDate, LocalDateTime endDate, Integer duration, String githubRepositoryLink, User user, List<String> skills, List<String> languageOptions, Map<String, String> metadata) {
+        this.name = name;
+        this.description = description;
+        this.roleName = roleName;
+        this.assessmentType = assessmentType;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.duration = duration;
+        this.githubRepositoryLink = githubRepositoryLink;
+        this.user = user;
+        this.skills = skills;
+        this.languageOptions = languageOptions;
+        this.metadata = metadata;
+        this.status = AssessmentStatus.DRAFT;
+    }
     
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getRoleName() {
+        return roleName;
+    }
+
+    public void setRoleName(String roleName) {
+        this.roleName = roleName;
+    }
+
+    public AssessmentStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(AssessmentStatus status) {
+        this.status = status;
+    }
+
+    public AssessmentType getAssessmentType() {
+        return assessmentType;
+    }
+
+    public void setAssessmentType(AssessmentType assessmentType) {
+        this.assessmentType = assessmentType;
+    }
+
+    public LocalDateTime getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(LocalDateTime startDate) {
+        this.startDate = startDate;
+    }
+
+    public LocalDateTime getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(LocalDateTime endDate) {
+        this.endDate = endDate;
+    }
+
+    public Integer getDuration() {
+        return duration;
+    }
+
+    public void setDuration(Integer duration) {
+        this.duration = duration;
+    }
+
+    public String getGithubRepositoryLink() {
+        return githubRepositoryLink;
+    }
+
+    public void setGithubRepositoryLink(String githubRepositoryLink) {
+        this.githubRepositoryLink = githubRepositoryLink;
+    }
+
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
+    }
+
+    public LocalDateTime getUpdatedDate() {
+        return updatedDate;
+    }
+
+    public void setUpdatedDate(LocalDateTime updatedDate) {
+        this.updatedDate = updatedDate;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public List<String> getSkills() {
+        return skills;
+    }
+
+    public void setSkills(List<String> skills) {
+        this.skills = skills;
+    }
+
+    public List<String> getLanguageOptions() {
+        return languageOptions;
+    }
+
+    public void setLanguageOptions(List<String> languageOptions) {
+        this.languageOptions = languageOptions;
+    }
+
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, String> metadata) {
+        this.metadata = metadata;
+    }
+
+    public List<CandidateAttempt> getCandidateAttempts() {
+        return candidateAttempts;
+    }
+
+    public void setCandidateAttempts(List<CandidateAttempt> candidateAttempts) {
+        this.candidateAttempts = candidateAttempts;
+    }
+
+    public List<Candidate> getCandidates() {
+        return candidates;
+    }
+
+    public void setCandidates(List<Candidate> candidates) {
+        this.candidates = candidates;
+    }
+
+    public UserChatHistory getChatHistory() {
+        return chatHistory;
+    }
+
+    public void setChatHistory(UserChatHistory chatHistory) {
+        this.chatHistory = chatHistory;
+    }
+
     @AssertTrue(message = "End date must be after start date")
     private boolean isEndDateAfterStartDate() {
         return startDate == null || endDate == null || endDate.isAfter(startDate);

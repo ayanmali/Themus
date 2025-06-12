@@ -5,9 +5,6 @@ import java.util.Map;
 
 import com.delphi.delphi.entities.Evaluation;
 
-import lombok.Data;
-
-@Data
 public class FetchEvaluationDto {
     private Long id;
     private LocalDateTime createdDate;
@@ -21,6 +18,9 @@ public class FetchEvaluationDto {
     // private String evaluationRecommendations;
     // private String evaluationImprovements;
 
+    public FetchEvaluationDto() {
+    }
+
     public FetchEvaluationDto(Evaluation evaluation) {
         this.id = evaluation.getId();
         this.createdDate = evaluation.getCreatedDate();
@@ -28,4 +28,45 @@ public class FetchEvaluationDto {
         this.candidateAttemptId = evaluation.getCandidateAttempt().getId();
         this.metadata = evaluation.getMetadata();
     }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
+    }
+
+    public LocalDateTime getUpdatedDate() {
+        return updatedDate;
+    }
+
+    public void setUpdatedDate(LocalDateTime updatedDate) {
+        this.updatedDate = updatedDate;
+    }
+
+    public Long getCandidateAttemptId() {
+        return candidateAttemptId;
+    }
+
+    public void setCandidateAttemptId(Long candidateAttemptId) {
+        this.candidateAttemptId = candidateAttemptId;
+    }
+
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, String> metadata) {
+        this.metadata = metadata;
+    }
+   
 }

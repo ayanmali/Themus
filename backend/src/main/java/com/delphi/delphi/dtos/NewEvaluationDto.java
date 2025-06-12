@@ -1,12 +1,20 @@
 package com.delphi.delphi.dtos;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class NewEvaluationDto {
     private Long candidateAttemptId;
+
+    public NewEvaluationDto() {
+    }
+
+    public NewEvaluationDto(Long candidateAttemptId) {
+        this.candidateAttemptId = candidateAttemptId;
+    }
+
+    public Long getCandidateAttemptId() {
+        return candidateAttemptId;
+    }
+
+    public void setCandidateAttemptId(Long candidateAttemptId) {
+        this.candidateAttemptId = candidateAttemptId;
+    }
 }
