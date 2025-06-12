@@ -26,6 +26,7 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapKeyColumn;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Future;
@@ -134,6 +135,10 @@ public class Assessment {
     // Many-to-many relationship with Candidate
     @ManyToMany(mappedBy = "assessments", fetch = FetchType.LAZY)
     private List<Candidate> candidates;
+
+    // One-to-one relationship with ChatHistory
+    @OneToOne(mappedBy = "assessment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private ChatHistory chatHistory;
     
     @AssertTrue(message = "End date must be after start date")
     private boolean isEndDateAfterStartDate() {

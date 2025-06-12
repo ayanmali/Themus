@@ -69,4 +69,8 @@ public class User {
     // One-to-many relationship with Candidate
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Candidate> candidates;
+
+    // One-to-many relationship with ChatHistory
+    // @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // private List<ChatHistory> chatHistories;
 }
