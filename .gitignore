@@ -6,3 +6,4 @@ vite.config.ts.*
 *.tar.gz
 .env
 unslop-firebase**.json
+postgres_data
