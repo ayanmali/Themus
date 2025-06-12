@@ -23,6 +23,7 @@ export const repositories = pgTable("repositories", {
 });
 
 export const assessments = pgTable("assessments", {
+  model: text("model").notNull(),
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   assessmentType: text("assessment_type").notNull(),
@@ -69,6 +70,7 @@ export const insertRepositorySchema = createInsertSchema(repositories).pick({
 });
 
 export const insertAssessmentSchema = createInsertSchema(assessments).pick({
+  model: true,
   title: true, // for the user's reference
   role: true, // for the user's reference
   skills: true, // for the user's reference

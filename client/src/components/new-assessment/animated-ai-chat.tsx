@@ -7,10 +7,12 @@ import {
     Paperclip,
     XIcon,
     TabletSmartphone,
-    Command,
+    Command as CommandIcon,
     Database,
     Code,
-    Server
+    Server,
+    ChevronsUpDown,
+    Check
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as React from "react"
@@ -29,9 +31,13 @@ import { z } from "zod";
 import { DatePicker } from "../ui/date-picker";
 import ChoiceConfig from "./candidate-choices";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "../ui/command";
+import { models } from "@/lib/models";
 
 // Create a schema for the assessment creation form
 const createAssessmentSchema = insertAssessmentSchema.pick({
+    model: true,
     title: true,
     role: true,
     skills: true,
@@ -172,6 +178,8 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
 Textarea.displayName = "Textarea"
 
 export function AnimatedAIChat() {
+    const [open, setOpen] = React.useState(false)
+    const [modelValue, setModelValue] = React.useState("")
     const [value, setValue] = useState("");
     const [attachments, setAttachments] = useState<string[]>([]);
     const [isTyping, setIsTyping] = useState(false);
@@ -195,6 +203,7 @@ export function AnimatedAIChat() {
         resolver: zodResolver(createAssessmentSchema),
         defaultValues: {
             title: "",
+            // model: "anthropic/claude-sonnet-4",
             role: "",
             skills: "",
             description: "",
@@ -440,7 +449,6 @@ export function AnimatedAIChat() {
                             Create a new assessment by describing the role, experience level, skills and competencies you want to assess.
                         </motion.p>
 
-
                     </div>
 
                     <div className="flex flex-wrap items-center justify-center gap-2">
@@ -465,6 +473,63 @@ export function AnimatedAIChat() {
                             onSubmit={form.handleSubmit(onSubmit)}
                             className="space-y-6"
                         >
+                            <FormField
+                                control={form.control}
+                                name="model"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        {/* <FormLabel className="text-slate-300 font-medium">Model</FormLabel> */}
+                                        <FormControl>
+                                            <div className="flex justify-center items-center w-full pt-2 pb-8">
+                                                <Popover open={open} onOpenChange={setOpen}>
+                                                    <PopoverTrigger asChild className="w-1/2">
+                                                        <Button
+                                                            variant="outline"
+                                                            role="combobox"
+                                                            aria-expanded={open}
+                                                            className="w-1/2 justify-between bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-700/80 hover:text-white hover:border-slate-600/50 backdrop-blur-sm"
+                                                        >
+                                                            {modelValue
+                                                                ? models.find((model) => model === modelValue)
+                                                                : "Select model..."}
+                                                            <ChevronsUpDown className="opacity-50" />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-[200px] p-0 bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-700/80 hover:text-white hover:border-slate-600/50 backdrop-blur-sm">
+                                                        <Command className="bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-700/80 hover:text-white hover:border-slate-600/50 backdrop-blur-sm">
+                                                            <CommandInput placeholder="Search model..." className="h-9" />
+                                                            <CommandList>
+                                                                <CommandEmpty>No model found.</CommandEmpty>
+                                                                <CommandGroup className="bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-700/80 hover:text-white hover:border-slate-600/50 backdrop-blur-sm">
+                                                                    {models.map((model) => (
+                                                                        <CommandItem
+                                                                            key={model}
+                                                                            value={model}
+                                                                            onSelect={(currentValue) => {
+                                                                                setModelValue(currentValue === modelValue ? "" : currentValue)
+                                                                                setOpen(false)
+                                                                            }}
+                                                                        >
+                                                                            {model}
+                                                                            <Check
+                                                                                className={cn(
+                                                                                    "ml-auto",
+                                                                                    modelValue === model ? "opacity-100" : "opacity-0"
+                                                                                )}
+                                                                            />
+                                                                        </CommandItem>
+                                                                    ))}
+                                                                </CommandGroup>
+                                                            </CommandList>
+                                                        </Command>
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+
+                            />
                             <FormField
                                 control={form.control}
                                 name="title"
@@ -528,7 +593,7 @@ export function AnimatedAIChat() {
                                         <Select
                                             onValueChange={field.onChange}
                                             defaultValue="TAKE_HOME"
-                                            
+
                                         >
                                             <SelectTrigger className="bg-slate-800/60 border-slate-700/50 text-gray-100 placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-violet-500/20 backdrop-blur-sm">
                                                 <SelectValue placeholder="Select Assessment Type" />
@@ -552,15 +617,15 @@ export function AnimatedAIChat() {
                                         <div className="flex items-center gap-2">
                                             <FormControl className="w-1/4">
                                                 <Input
-                                                type="number"
-                                                min={1}
-                                                max={999}
-                                                placeholder="60"
-                                                {...field}
-                                                className="bg-slate-800/60 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-violet-500/20 backdrop-blur-sm"
-                                            />
-                                        </FormControl>
-                                        <span className="text-slate-400 text-sm w-1/2 pl-5">minutes</span>
+                                                    type="number"
+                                                    min={1}
+                                                    max={999}
+                                                    placeholder="60"
+                                                    {...field}
+                                                    className="bg-slate-800/60 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-violet-500/20 backdrop-blur-sm"
+                                                />
+                                            </FormControl>
+                                            <span className="text-slate-400 text-sm w-1/2 pl-5">minutes</span>
                                         </div>
                                     </FormItem>
                                 )}
@@ -761,7 +826,7 @@ export function AnimatedAIChat() {
                                                                 showCommandPalette && "bg-violet-600/20 text-white"
                                                             )}
                                                         >
-                                                            <Command className="w-4 h-4" />
+                                                            <CommandIcon className="w-4 h-4" />
                                                             <motion.span
                                                                 className="absolute inset-0 bg-slate-700/30 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
                                                                 layoutId="button-highlight"
