@@ -13,13 +13,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class NewAssessmentDto {
-    private String name;
-    private String description;
-    private String roleName;
-    private AssessmentType assessmentType;
-    private LocalDateTime startDate;
+    private String name; // title
+    private String description; // description
+    private String roleName; // role
+    private AssessmentType assessmentType; // type
+    private LocalDateTime startDate; // start date
     private LocalDateTime endDate;
-    private Integer duration;
+    private Integer duration; // estimated duration/time limit
     private List<String> skills;
     private List<String> languageOptions;
 }

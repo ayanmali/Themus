@@ -4,13 +4,16 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.delphi.delphi.entities.ChatHistory;
 import com.delphi.delphi.entities.ChatMessage;
+import com.delphi.delphi.entities.ChatMessage.MessageSender;
 import com.delphi.delphi.repositories.ChatHistoryRepository;
 import com.delphi.delphi.repositories.ChatMessageRepository;
 
 @Service
+@Transactional
 public class ChatService {
 
     @Autowired
@@ -47,10 +50,18 @@ public class ChatService {
         return chatHistoryRepository.findAll();
     }
 
-    public void addMessageToChatHistory(Long id, ChatMessage message) throws Exception {
-        ChatHistory existingChatHistory = getChatHistoryById(id);
+    public void addMessageToChatHistory(ChatMessage message, MessageSender sender) throws Exception {
+        ChatHistory existingChatHistory = getChatHistoryById(message.getChatHistory().getId());
         existingChatHistory.getMessages().add(message);
         chatHistoryRepository.save(existingChatHistory);
+    }
+
+    public void addMessageToChatHistory(String message, Long chatHistoryId, MessageSender sender) throws Exception {
+        ChatMessage chatMessage = new ChatMessage();
+        chatMessage.setMessage(message);
+        chatMessage.setChatHistory(getChatHistoryById(chatHistoryId));
+        chatMessage.setSender(sender);
+        chatMessageRepository.save(chatMessage);
     }
 
     public List<ChatMessage> getMessagesByChatHistoryId(Long id) throws Exception {

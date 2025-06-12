@@ -89,9 +89,9 @@
         <!-- https://mvnrepository.com/artifact/org.springframework.ai/spring-ai-openai -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-openai</artifactId>
-            <version>1.0.0</version>
+            <artifactId>spring-ai-starter-model-openai</artifactId>
         </dependency>
+
 
         <!-- https://mvnrepository.com/artifact/org.projectlombok/lombok -->
         <dependency>
@@ -112,6 +112,17 @@
         </dependency> -->
 
     </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>1.0.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <plugins>

@@ -1,4 +1,4 @@
-package com.delphi.delphi.controllers;
+package com.delphi.delphi.services;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -6,10 +6,12 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import com.delphi.delphi.dtos.NewAssessmentDto;
+import com.delphi.delphi.entities.ChatMessage;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -18,13 +20,15 @@ import lombok.NoArgsConstructor;
 // @RestController
 // @RequestMapping("/api/ai")
 @Service
+@Transactional
 public class LLMService {
-
+    private final ChatService chatService;
     private final ChatModel chatModel; // Autowired via constructor injection
     private static final Logger log = LoggerFactory.getLogger(LLMService.class);
 
-    public LLMService(ChatModel chatModel) {
+    public LLMService(ChatModel chatModel, ChatService chatService) {
         this.chatModel = chatModel;
+        this.chatService = chatService;
         log.info("LLMService initialized with Spring AI ChatModel, targeting OpenRouter.");
     }
 
@@ -49,6 +53,16 @@ public class LLMService {
         } catch (Exception e) {
             log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to get completion from AI service: " + e.getMessage(), e);
+        }
+    }
+
+    // sends a message to the user (to be used by the LLM as a tool)
+    public String sendMessageToUser(String message, Long chatHistoryId) {
+        try {
+            chatService.addMessageToChatHistory(message, chatHistoryId, ChatMessage.MessageSender.AI);
+            return message;
+        } catch (Exception e) {
+            return "Error sending message: " + e.getMessage();
         }
     }
 
@@ -80,4 +94,7 @@ public class LLMService {
                     .body("Sorry, an error occurred while communicating with the AI service:" + e.getMessage());
         }
     }
+
+    /* LLM Tools */
+
 }

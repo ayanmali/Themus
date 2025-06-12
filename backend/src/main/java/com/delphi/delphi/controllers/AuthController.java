@@ -51,10 +51,16 @@ public class AuthController {
         params.add("code", code);
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+        // ResponseEntity<Map> 
         ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
 
-        String accessToken = (String) response.getBody().get("access_token");
+        Map<String, Object> body = response.getBody();
+        if (body == null) {
+            return ResponseEntity.badRequest().body("Failed to get access token");
+        }
+        String accessToken = (String) body.get("access_token");
 
+        System.out.println("Access token: " + accessToken);
         // Store access token securely (e.g. in DB or session)
         return ResponseEntity.ok("Access token: " + accessToken);
     }
