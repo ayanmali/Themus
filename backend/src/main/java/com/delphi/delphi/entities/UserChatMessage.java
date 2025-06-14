@@ -26,7 +26,11 @@ public class UserChatMessage {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "message", nullable = false)
     private String message;
+
+    @Column(name = "model", nullable = false)
+    private String model;
 
     @ManyToOne
     @JoinColumn(name = "chat_history_id", nullable = false)
@@ -39,10 +43,11 @@ public class UserChatMessage {
     public UserChatMessage() {
     }
 
-    public UserChatMessage(String message, UserChatHistory chatHistory, MessageSender sender) {
+    public UserChatMessage(String message, UserChatHistory chatHistory, MessageSender sender, String model) {
         this.message = message;
         this.chatHistory = chatHistory;
-        this.sender = sender;
+        this.sender = sender; 
+        this.model = model;
     }
 
     public Long getId() {
@@ -83,6 +88,14 @@ public class UserChatMessage {
 
     public void setSender(MessageSender sender) {
         this.sender = sender;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public void setModel(String model) {
+        this.model = model;
     }
 
     public enum MessageSender {

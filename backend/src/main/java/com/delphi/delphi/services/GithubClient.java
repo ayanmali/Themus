@@ -10,12 +10,12 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-@Service
+@Component
 /*
- * This class is used to interact with the GitHub API.
+ * This class contains methods to interact with the GitHub API.
  * It is used to create repositories, add files to repositories, and get repository contents.
  * It is used to get repository branches, add branches, edit files, and delete files.
  * It is used to get branch SHA, and add branch.
@@ -139,7 +139,7 @@ public class GithubClient {
         restTemplate.exchange(url, HttpMethod.DELETE, entity, String.class);
     }
 
-    private String getBranchSha(String accessToken, String owner, String repo, String branch) {
+    public String getBranchSha(String accessToken, String owner, String repo, String branch) {
         RestTemplate restTemplate = new RestTemplate();
         String url = String.format("https://api.github.com/repos/%s/%s/branches/%s", owner, repo, branch);
         

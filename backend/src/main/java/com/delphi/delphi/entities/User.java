@@ -47,6 +47,12 @@ public class User {
     @Size(max = 200, message = "Organization name must not exceed 200 characters")
     @Column(name = "organization_name", nullable = false, length = 200)
     private String organizationName;
+
+    @Column(name = "github_access_token", nullable = true)
+    private String githubAccessToken;
+
+    @Column(name = "github_username", nullable = true)
+    private String githubUsername;
     
     @CreationTimestamp
     @Column(name = "created_date", nullable = false, updatable = false)
@@ -67,11 +73,13 @@ public class User {
     public User() {
     }
 
-    public User(String name, String email, String password, String organizationName) {
+    public User(String name, String email, String password, String organizationName, String githubAccessToken, String githubUsername) {
         this.name = name;
         this.email = email;
         this.password = password;
         this.organizationName = organizationName;
+        this.githubAccessToken = githubAccessToken;
+        this.githubUsername = githubUsername;
     }
 
     public Long getId() {
@@ -112,6 +120,22 @@ public class User {
 
     public void setOrganizationName(String organizationName) {
         this.organizationName = organizationName;
+    }
+
+    public String getGithubAccessToken() {
+        return githubAccessToken;
+    }
+
+    public void setGithubAccessToken(String githubAccessToken) {
+        this.githubAccessToken = githubAccessToken;
+    }
+
+    public String getGithubUsername() {
+        return githubUsername;
+    }
+
+    public void setGithubUsername(String githubUsername) {
+        this.githubUsername = githubUsername;
     }
 
     public LocalDateTime getCreatedDate() {

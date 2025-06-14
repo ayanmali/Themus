@@ -19,6 +19,18 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     // Check if email exists
     boolean existsByEmail(String email);
+
+    // Check if github username exists
+    boolean existsByGithubUsername(String githubUsername);
+    
+    // Find user by GitHub username
+    Optional<User> findByGithubUsername(String githubUsername);
+    
+    // Find user by GitHub access token
+    Optional<User> findByGithubAccessToken(String githubAccessToken);
+    
+    // Check if GitHub access token exists
+    boolean existsByGithubAccessToken(String githubAccessToken);
     
     // Find users by organization name with pagination
     Page<User> findByOrganizationNameContainingIgnoreCase(String organizationName, Pageable pageable);

@@ -152,4 +152,95 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
+    
+    // Get user by GitHub username
+    @Transactional(readOnly = true)
+    public Optional<User> getUserByGithubUsername(String githubUsername) {
+        return userRepository.findByGithubUsername(githubUsername);
+    }
+    
+    // Get user by GitHub access token
+    @Transactional(readOnly = true)
+    public Optional<User> getUserByGithubAccessToken(String githubAccessToken) {
+        return userRepository.findByGithubAccessToken(githubAccessToken);
+    }
+    
+    // Check if GitHub username exists
+    @Transactional(readOnly = true)
+    public boolean githubUsernameExists(String githubUsername) {
+        return userRepository.existsByGithubUsername(githubUsername);
+    }
+    
+    // Check if GitHub access token exists
+    @Transactional(readOnly = true)
+    public boolean githubAccessTokenExists(String githubAccessToken) {
+        return userRepository.existsByGithubAccessToken(githubAccessToken);
+    }
+    
+    // Update user's GitHub credentials
+    public User updateGithubCredentials(Long userId, String githubAccessToken, String githubUsername) {
+        User user = getUserByIdOrThrow(userId);
+        
+        // Check if GitHub username is already taken by another user
+        if (githubUsername != null && !githubUsername.equals(user.getGithubUsername())) {
+            if (userRepository.existsByGithubUsername(githubUsername)) {
+                throw new IllegalArgumentException("GitHub username " + githubUsername + " is already in use");
+            }
+        }
+        
+        // Check if GitHub access token is already taken by another user
+        if (githubAccessToken != null && !githubAccessToken.equals(user.getGithubAccessToken())) {
+            if (userRepository.existsByGithubAccessToken(githubAccessToken)) {
+                throw new IllegalArgumentException("GitHub access token is already in use");
+            }
+        }
+        
+        user.setGithubAccessToken(githubAccessToken);
+        user.setGithubUsername(githubUsername);
+        
+        return userRepository.save(user);
+    }
+    
+    // Remove user's GitHub credentials
+    public User removeGithubCredentials(Long userId) {
+        User user = getUserByIdOrThrow(userId);
+        user.setGithubAccessToken(null);
+        user.setGithubUsername(null);
+        return userRepository.save(user);
+    }
+    
+    // Find or create user by GitHub credentials
+    public User findOrCreateUserByGithub(String githubUsername, String githubAccessToken, String name, String email, String organizationName) {
+        // First try to find by GitHub username
+        Optional<User> existingUser = getUserByGithubUsername(githubUsername);
+        if (existingUser.isPresent()) {
+            // Update access token if different
+            User user = existingUser.get();
+            if (!githubAccessToken.equals(user.getGithubAccessToken())) {
+                user.setGithubAccessToken(githubAccessToken);
+                return userRepository.save(user);
+            }
+            return user;
+        }
+        
+        // Check if user exists by email
+        existingUser = getUserByEmail(email);
+        if (existingUser.isPresent()) {
+            // Link GitHub credentials to existing user
+            return updateGithubCredentials(existingUser.get().getId(), githubAccessToken, githubUsername);
+        }
+        
+        // Create new user with GitHub credentials
+        User newUser = new User();
+        newUser.setName(name);
+        newUser.setEmail(email);
+        newUser.setOrganizationName(organizationName);
+        newUser.setGithubUsername(githubUsername);
+        newUser.setGithubAccessToken(githubAccessToken);
+        
+        // Set a default password (should be changed later)
+        newUser.setPassword(passwordEncoder.encode("temp-github-password-" + System.currentTimeMillis()));
+        
+        return userRepository.save(newUser);
+    }
 }

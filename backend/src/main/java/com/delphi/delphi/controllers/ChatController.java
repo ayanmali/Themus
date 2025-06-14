@@ -35,9 +35,8 @@ public class ChatController {
 
     private final UserChatService chatService;
     private final ChatClient llmClient;
-    
-    private SystemMessage repositoryGenSysPrompt = new SystemMessage(REPO_GEN_SYSTEM_PROMPT);
 
+    private final SystemMessage SYSTEM_PROMPT = new SystemMessage(REPO_GEN_SYSTEM_PROMPT);
     /*
      * chatService - Service for managing chat histories and messages
      * llmClient - Client for managing LLM API calls
@@ -53,8 +52,8 @@ public class ChatController {
         try {
             UserMessage userMessage = new UserMessage(messageDto.getMessage());
             ChatResponse response = llmClient
-            .prompt(REPO_GEN_SYSTEM_PROMPT)
-            .messages(List.of(userMessage))
+            .prompt(userMessage.getText())
+            .messages(List.of(SYSTEM_PROMPT, userMessage))
             .call()
             .chatResponse();
 
