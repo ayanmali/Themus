@@ -3,6 +3,7 @@ package com.delphi.delphi.services;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,17 @@ public class LLMService {
         }
     }
 
+    // sends a message to the user (to be used by the LLM as a tool)
+    @Tool(description="Sends a message to the user after applying changes to the repository.")
+    public String sendMessageToUser(String message, Long chatHistoryId) {
+        try {
+            chatService.addMessageToChatHistory(message, chatHistoryId, UserChatMessage.MessageSender.AI);
+            return message;
+        } catch (Exception e) {
+            return "Error sending message: " + e.getMessage();
+        }
+    }
+
     /**
      * Internal method to call the AI model.
      */
@@ -61,16 +73,6 @@ public class LLMService {
         } catch (Exception e) {
             log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to get completion from AI service: " + e.getMessage(), e);
-        }
-    }
-
-    // sends a message to the user (to be used by the LLM as a tool)
-    public String sendMessageToUser(String message, Long chatHistoryId) {
-        try {
-            chatService.addMessageToChatHistory(message, chatHistoryId, UserChatMessage.MessageSender.AI);
-            return message;
-        } catch (Exception e) {
-            return "Error sending message: " + e.getMessage();
         }
     }
 
