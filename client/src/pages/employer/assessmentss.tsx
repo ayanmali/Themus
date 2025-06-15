@@ -6,6 +6,8 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Assessment, Candidate } from "@/lib/types/assessment";
 import { Link } from "wouter";
 import AssessmentPagination from "@/components/ui/AssessmentPagination";
+import { ChatMessageList } from "@/components/ui/chat-message-list";
+import { ChatMessageListExample } from "@/components/blocks/chat-msg-list";
 
 export default function EmployerAssessments() {
     const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
@@ -266,7 +268,7 @@ export default function EmployerAssessments() {
     if (selectedAssessment) {
         return (
             <div className="min-h-screen bg-gray-900 text-white p-6">
-                <div className="max-w-4xl mx-auto">
+                <div className="max-w-7xl mx-auto">
                     <div className="flex justify-between items-center mb-6">
                         <button
                             onClick={() => setSelectedAssessment(null)}
@@ -282,383 +284,391 @@ export default function EmployerAssessments() {
                         </button>
                     </div>
 
-                    <div className="bg-gray-800 rounded-lg p-8 shadow-xl">
-                        <div className="flex justify-between items-start mb-6">
-                            <div className="flex-1">
-                                {/* Editable Assessment Name */}
-                                <div className="mb-4">
-                                    {isEditingName ? (
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                type="text"
-                                                value={tempName}
-                                                onChange={(e) => setTempName(e.target.value)}
-                                                className="text-3xl font-bold bg-gray-700 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none flex-1"
-                                                autoFocus
-                                            />
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-8rem)]">
+                        <div className="lg:col-span-2 overflow-y-auto">
+                            <div className="bg-gray-800 rounded-lg p-8 shadow-xl">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="flex-1">
+                                        <div className="mb-4">
+                                            {isEditingName ? (
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="text"
+                                                        value={tempName}
+                                                        onChange={(e) => setTempName(e.target.value)}
+                                                        className="text-3xl font-bold bg-gray-700 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none flex-1"
+                                                        autoFocus
+                                                    />
+                                                    <button
+                                                        onClick={saveName}
+                                                        className="p-2 text-green-400 hover:text-green-300 hover:bg-gray-700 rounded transition-colors"
+                                                    >
+                                                        <Check size={20} />
+                                                    </button>
+                                                    <button
+                                                        onClick={cancelNameEdit}
+                                                        className="p-2 text-red-400 hover:text-red-300 hover:bg-gray-700 rounded transition-colors"
+                                                    >
+                                                        <X size={20} />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <h1 className="text-3xl font-bold">{editedAssessment?.name}</h1>
+                                                    <button
+                                                        onClick={startEditingName}
+                                                        className="p-1 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
+                                                    >
+                                                        <Edit3 size={16} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center justify-between mb-4">
+                                            {isEditingRole ? (
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="text"
+                                                        value={tempRole}
+                                                        onChange={(e) => setTempRole(e.target.value)}
+                                                        className="text-lg bg-gray-700 text-gray-300 px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none flex-1"
+                                                        autoFocus
+                                                    />
+                                                    <button
+                                                        onClick={saveRole}
+                                                        className="p-2 text-green-400 hover:text-green-300 hover:bg-gray-700 rounded transition-colors"
+                                                    >
+                                                        <Check size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={cancelRoleEdit}
+                                                        className="p-2 text-red-400 hover:text-red-300 hover:bg-gray-700 rounded transition-colors"
+                                                    >
+                                                        <X size={16} />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-gray-300 text-lg">{editedAssessment?.role}</p>
+                                                    <button
+                                                        onClick={startEditingRole}
+                                                        className="p-1 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
+                                                    >
+                                                        <Edit3 size={14} />
+                                                    </button>
+                                                </div>
+                                            )}
                                             <button
-                                                onClick={saveName}
-                                                className="p-2 text-green-400 hover:text-green-300 hover:bg-gray-700 rounded transition-colors"
+                                                onClick={() => openRepository(selectedAssessment.repoLink)}
+                                                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors text-sm"
                                             >
-                                                <Check size={20} />
-                                            </button>
-                                            <button
-                                                onClick={cancelNameEdit}
-                                                className="p-2 text-red-400 hover:text-red-300 hover:bg-gray-700 rounded transition-colors"
-                                            >
-                                                <X size={20} />
+                                                <ExternalLink size={16} />
+                                                View Template Repository
                                             </button>
                                         </div>
-                                    ) : (
-                                        <div className="flex items-center gap-2">
-                                            <h1 className="text-3xl font-bold">{editedAssessment?.name}</h1>
+
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${selectedAssessment.status === 'active'
+                                                ? 'bg-green-600 text-white'
+                                                : 'bg-red-600 text-white'
+                                                }`}>
+                                                {selectedAssessment.status}
+                                            </span>
+                                            <span className="px-3 py-1 rounded-full text-sm font-medium capitalize bg-blue-600 text-white">
+                                                {selectedAssessment.type.replace('-', ' ')}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex items-center gap-6 text-sm text-gray-400">
+                                            <div className="flex items-center gap-2">
+                                                <Calendar size={16} />
+                                                <span>Created: {selectedAssessment.createdAt.toLocaleDateString()}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {selectedAssessment.type === 'live-coding' ? (
+                                                    <Clock size={16} />
+                                                ) : (
+                                                    <Calendar size={16} />
+                                                )}
+                                                <span>{formatDateRange(selectedAssessment)}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 my-5">
+                                            <Button variant="link" className="flex items-center">
+                                                <Link2 size={20} className="text-blue-400" />
+                                                <span className="text-blue-400">usedelphi.dev/invite/id</span>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mb-8">
+                                    <h3 className="text-xl font-semibold mb-4">Skills, Technologies, and Focus Areas</h3>
+                                    <p className="text-gray-300 leading-relaxed">{selectedAssessment.skills.join(', ')}</p>
+                                </div>
+
+                                <div className="mb-8">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <h3 className="text-xl font-semibold">Description</h3>
+                                        {!isEditingDescription && (
                                             <button
-                                                onClick={startEditingName}
+                                                onClick={startEditingDescription}
                                                 className="p-1 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
                                             >
                                                 <Edit3 size={16} />
                                             </button>
-                                        </div>
-                                    )}
-                                </div>
+                                        )}
+                                    </div>
 
-                                {/* Editable Role */}
-                                <div className="flex items-center justify-between mb-4">
-                                    {isEditingRole ? (
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                type="text"
-                                                value={tempRole}
-                                                onChange={(e) => setTempRole(e.target.value)}
-                                                className="text-lg bg-gray-700 text-gray-300 px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none flex-1"
+                                    {isEditingDescription ? (
+                                        <div className="space-y-4">
+                                            <textarea
+                                                value={tempDescription}
+                                                onChange={(e) => setTempDescription(e.target.value)}
+                                                className="w-full bg-gray-700 text-white px-4 py-3 rounded border border-gray-500 focus:border-blue-400 focus:outline-none resize-vertical min-h-[100px]"
                                                 autoFocus
                                             />
-                                            <button
-                                                onClick={saveRole}
-                                                className="p-2 text-green-400 hover:text-green-300 hover:bg-gray-700 rounded transition-colors"
-                                            >
-                                                <Check size={16} />
-                                            </button>
-                                            <button
-                                                onClick={cancelRoleEdit}
-                                                className="p-2 text-red-400 hover:text-red-300 hover:bg-gray-700 rounded transition-colors"
-                                            >
-                                                <X size={16} />
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={saveDescription}
+                                                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
+                                                >
+                                                    Save
+                                                </button>
+                                                <button
+                                                    onClick={cancelDescriptionEdit}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
                                         </div>
                                     ) : (
-                                        <div className="flex items-center gap-2">
-                                            <p className="text-gray-300 text-lg">{editedAssessment?.role}</p>
-                                            <button
-                                                onClick={startEditingRole}
-                                                className="p-1 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
-                                            >
-                                                <Edit3 size={14} />
-                                            </button>
-                                        </div>
+                                        <p className="text-gray-300 leading-relaxed">{editedAssessment?.description}</p>
                                     )}
-                                    <button
-                                        onClick={() => openRepository(selectedAssessment.repoLink)}
-                                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors text-sm"
-                                    >
-                                        <ExternalLink size={16} />
-                                        View Template Repository
-                                    </button>
                                 </div>
 
-                                {/* Status and Type labels */}
-                                <div className="flex items-center gap-3 mb-4">
-                                    <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${selectedAssessment.status === 'active'
-                                        ? 'bg-green-600 text-white'
-                                        : 'bg-red-600 text-white'
-                                        }`}>
-                                        {selectedAssessment.status}
-                                    </span>
-                                    <span className="px-3 py-1 rounded-full text-sm font-medium capitalize bg-blue-600 text-white">
-                                        {selectedAssessment.type.replace('-', ' ')}
-                                    </span>
-                                </div>
-
-                                {/* Created date and duration/date range */}
-                                <div className="flex items-center gap-6 text-sm text-gray-400">
-                                    <div className="flex items-center gap-2">
-                                        <Calendar size={16} />
-                                        <span>Created: {selectedAssessment.createdAt.toLocaleDateString()}</span>
+                                <div className="mb-8 border-t border-b border-slate-600 pt-8 pb-8">
+                                    <div className="flex items-center justify-between mb-8">
+                                        <h3 className="text-xl font-semibold">Candidates</h3>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="default" className="w-1/12 p-2 hover:bg-slate-700 hover:text-white rounded-lg border border-slate-700 transition-colors">
+                                                    Add
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
+                                                <DropdownMenuGroup>
+                                                    <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                        Add candidate to assessment
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                        Bulk import from CSV
+                                                    </DropdownMenuItem>
+                                                    
+                                                </DropdownMenuGroup>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        {selectedAssessment.type === 'live-coding' ? (
-                                            <Clock size={16} />
-                                        ) : (
-                                            <Calendar size={16} />
-                                        )}
-                                        <span>{formatDateRange(selectedAssessment)}</span>
+
+                                    <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                                        <div className="flex-1">
+                                            <input
+                                                type="text"
+                                                placeholder="Search candidates by name or email..."
+                                                value={candidateSearchTerm}
+                                                onChange={(e) => setCandidateSearchTerm(e.target.value)}
+                                                className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-400 focus:outline-none placeholder-gray-400"
+                                            />
+                                        </div>
+
+                                        <div className="sm:w-48">
+                                            <select
+                                                value={candidateStatusFilter}
+                                                onChange={(e) => setCandidateStatusFilter(e.target.value)}
+                                                className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-400 focus:outline-none"
+                                            >
+                                                <option value="all">All Statuses</option>
+                                                <option value="invited">Invited</option>
+                                                <option value="started">Started</option>
+                                                <option value="submitted">Submitted</option>
+                                                <option value="evaluated">Evaluated</option>
+                                            </select>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="flex items-center gap-2 my-5">
-                                    <Button variant="link" className="flex items-center">
-                                        <Link2 size={20} className="text-blue-400" />
-                                        <span className="text-blue-400">usedelphi.dev/invite/id</span>
-                                    </Button>
-                                </div>
-                            </div>
-
-
-                        </div>
-
-                        <div className="mb-8">
-                            <h3 className="text-xl font-semibold mb-4">Skills, Technologies, and Focus Areas</h3>
-                            <p className="text-gray-300 leading-relaxed">{selectedAssessment.skills.join(', ')}</p>
-                        </div>
-
-                        {/* Editable Description */}
-                        <div className="mb-8">
-                            <div className="flex items-center gap-2 mb-4">
-                                <h3 className="text-xl font-semibold">Description</h3>
-                                {!isEditingDescription && (
-                                    <button
-                                        onClick={startEditingDescription}
-                                        className="p-1 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
-                                    >
-                                        <Edit3 size={16} />
-                                    </button>
-                                )}
-                            </div>
-
-                            {isEditingDescription ? (
-                                <div className="space-y-4">
-                                    <textarea
-                                        value={tempDescription}
-                                        onChange={(e) => setTempDescription(e.target.value)}
-                                        className="w-full bg-gray-700 text-white px-4 py-3 rounded border border-gray-500 focus:border-blue-400 focus:outline-none resize-vertical min-h-[100px]"
-                                        autoFocus
-                                    />
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={saveDescription}
-                                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
-                                        >
-                                            Save
-                                        </button>
-                                        <button
-                                            onClick={cancelDescriptionEdit}
-                                            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
-                                        >
-                                            Cancel
-                                        </button>
+                                    <div className="mb-4">
+                                        <p className="text-sm text-gray-400">
+                                            Showing {filteredCandidates.length} of {candidates.length} candidates
+                                        </p>
                                     </div>
-                                </div>
-                            ) : (
-                                <p className="text-gray-300 leading-relaxed">{editedAssessment?.description}</p>
-                            )}
-                        </div>
 
-                        {/* Candidates Section */}
-                        <div className="mb-8">
-                            <h3 className="text-xl font-semibold mb-6">Candidates</h3>
-
-                            {/* Search Bar and Filters */}
-                            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                                {/* Search Bar */}
-                                <div className="flex-1">
-                                    <input
-                                        type="text"
-                                        placeholder="Search candidates by name or email..."
-                                        value={candidateSearchTerm}
-                                        onChange={(e) => setCandidateSearchTerm(e.target.value)}
-                                        className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-400 focus:outline-none placeholder-gray-400"
-                                    />
-                                </div>
-
-                                {/* Status Filter */}
-                                <div className="sm:w-48">
-                                    <select
-                                        value={candidateStatusFilter}
-                                        onChange={(e) => setCandidateStatusFilter(e.target.value)}
-                                        className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-400 focus:outline-none"
-                                    >
-                                        <option value="all">All Statuses</option>
-                                        <option value="invited">Invited</option>
-                                        <option value="started">Started</option>
-                                        <option value="submitted">Submitted</option>
-                                        <option value="evaluated">Evaluated</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* Results Summary */}
-                            <div className="mb-4">
-                                <p className="text-sm text-gray-400">
-                                    Showing {filteredCandidates.length} of {candidates.length} candidates
-                                </p>
-                            </div>
-
-                            {/* Candidates List */}
-                            <div className="space-y-3">
-                                {paginatedCandidates.length > 0 ? (
-                                    paginatedCandidates.map((candidate) => (
-                                        <div
-                                            key={candidate.id}
-                                            className="bg-gray-700 rounded-lg p-4 flex items-center justify-between hover:bg-gray-650 transition-colors"
-                                        >
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-4">
-                                                    <div>
-                                                        <h4 className="font-medium text-white">{candidate.name}</h4>
-                                                        <p className="text-sm text-gray-400">{candidate.email}</p>
+                                    <div className="space-y-3">
+                                        {paginatedCandidates.length > 0 ? (
+                                            paginatedCandidates.map((candidate) => (
+                                                <div
+                                                    key={candidate.id}
+                                                    className="bg-gray-700 rounded-lg p-4 flex items-center justify-between hover:bg-gray-650 transition-colors"
+                                                >
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-4">
+                                                            <div>
+                                                                <h4 className="font-medium text-white">{candidate.name}</h4>
+                                                                <p className="text-sm text-gray-400">{candidate.email}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-4">
+                                                        <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize text-white ${getStatusColor(candidate.status)}`}>
+                                                            {candidate.status}
+                                                        </span>
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="ghost" className="p-2 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
+                                                                    <MoreHorizontal size={20} />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
+                                                                <DropdownMenuLabel>More Actions</DropdownMenuLabel>
+                                                                <DropdownMenuGroup>
+                                                                    <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                                        Send email
+                                                                    </DropdownMenuItem>
+                                                                    {(candidate.status.toLowerCase() === "submitted" || candidate.status.toLowerCase() === "evaluated") && (
+                                                                        <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                                            View Pull Request on GitHub
+                                                                        </DropdownMenuItem>
+                                                                    )}
+                                                                    {candidate.status.toLowerCase() === "started" && (
+                                                                        <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                                            View Repository on GitHub
+                                                                        </DropdownMenuItem>
+                                                                    )}
+                                                                    <DropdownMenuSeparator className="bg-slate-700" />
+                                                                </DropdownMenuGroup>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
                                                     </div>
                                                 </div>
+                                            ))
+                                        ) : (
+                                            <div className="bg-gray-700 rounded-lg p-8 text-center">
+                                                <p className="text-gray-400">No candidates found matching your search criteria.</p>
                                             </div>
-                                            <div className="flex items-center gap-4">
-                                                {/* <span className="text-sm text-gray-400">
-                                                    Applied: {candidate.appliedAt.toLocaleDateString()}
-                                                </span> */}
-                                                <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize text-white ${getStatusColor(candidate.status)}`}>
-                                                    {candidate.status}
+                                        )}
+                                    </div>
+
+                                    {totalCandidatePages > 1 && (
+                                        <div className="flex items-center justify-between mt-6">
+                                            <p className="text-sm text-gray-400">
+                                                Showing {((currentCandidatePage - 1) * candidatesPerPage) + 1} to{' '}
+                                                {Math.min(currentCandidatePage * candidatesPerPage, filteredCandidates.length)} of{' '}
+                                                {filteredCandidates.length} filtered candidates
+                                            </p>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => setCurrentCandidatePage(prev => Math.max(prev - 1, 1))}
+                                                    disabled={currentCandidatePage === 1}
+                                                    className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <ChevronLeft size={16} />
+                                                </button>
+                                                <span className="text-sm text-gray-300">
+                                                    {currentCandidatePage} of {totalCandidatePages}
                                                 </span>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" className="p-2 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
-                                                            <MoreHorizontal size={20} />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
-                                                        <DropdownMenuLabel>More Actions</DropdownMenuLabel>
-                                                        <DropdownMenuGroup>
-                                                            <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                                                                Send email
-                                                            </DropdownMenuItem>
-                                                            {(candidate.status.toLowerCase() === "submitted" || candidate.status.toLowerCase() === "evaluated") && (
-                                                                <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                                                                    View Pull Request on GitHub
-                                                                </DropdownMenuItem>
-                                                            )}
-                                                            {candidate.status.toLowerCase() === "started" && (
-                                                                <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                                                                    View Repository on GitHub
-                                                                </DropdownMenuItem>
-                                                            )}
-                                                            <DropdownMenuSeparator className="bg-slate-700" />
-                                                            {/* <DropdownMenuItem className="hover:bg-slate-700 text-red-400 transition-colors hover:text-white">
-                                                    Delete Assessment
-                                                </DropdownMenuItem> */}
-                                                        </DropdownMenuGroup>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
+                                                <button
+                                                    onClick={() => setCurrentCandidatePage(prev => Math.min(prev + 1, totalCandidatePages))}
+                                                    disabled={currentCandidatePage === totalCandidatePages}
+                                                    className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <ChevronRight size={16} />
+                                                </button>
                                             </div>
                                         </div>
-                                    ))
-                                ) : (
-                                    <div className="bg-gray-700 rounded-lg p-8 text-center">
-                                        <p className="text-gray-400">No candidates found matching your search criteria.</p>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Candidates Pagination */}
-                            {totalCandidatePages > 1 && (
-                                <div className="flex items-center justify-between mt-6">
-                                    <p className="text-sm text-gray-400">
-                                        Showing {((currentCandidatePage - 1) * candidatesPerPage) + 1} to{' '}
-                                        {Math.min(currentCandidatePage * candidatesPerPage, filteredCandidates.length)} of{' '}
-                                        {filteredCandidates.length} filtered candidates
-                                    </p>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => setCurrentCandidatePage(prev => Math.max(prev - 1, 1))}
-                                            disabled={currentCandidatePage === 1}
-                                            className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <ChevronLeft size={16} />
-                                        </button>
-                                        <span className="text-sm text-gray-300">
-                                            {currentCandidatePage} of {totalCandidatePages}
-                                        </span>
-                                        <button
-                                            onClick={() => setCurrentCandidatePage(prev => Math.min(prev + 1, totalCandidatePages))}
-                                            disabled={currentCandidatePage === totalCandidatePages}
-                                            className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <ChevronRight size={16} />
-                                        </button>
-                                    </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
 
-                        <div className="mb-8">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-xl font-semibold">Metadata</h3>
-                            </div>
+                                <div className="mb-8">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-xl font-semibold">Metadata</h3>
+                                    </div>
 
-                            <div className="space-y-4 mb-6">
-                                {editedAssessment && Object.entries(editedAssessment?.metadata || {}).map(([key, value]) => (
-                                    <div key={key} className="bg-gray-700 rounded-lg p-4 flex items-center gap-4">
+                                    <div className="space-y-4 mb-6">
+                                        {editedAssessment && Object.entries(editedAssessment?.metadata || {}).map(([key, value]) => (
+                                            <div key={key} className="bg-gray-700 rounded-lg p-4 flex items-center gap-4">
+                                                <div className="flex-1 grid grid-cols-2 gap-4">
+                                                    <input
+                                                        type="text"
+                                                        value={key}
+                                                        onChange={(e) => updateMetadataField(key, e.target.value, value)}
+                                                        className="bg-gray-600 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
+                                                        placeholder="Field name"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={value}
+                                                        onChange={(e) => updateMetadataField(key, key, e.target.value)}
+                                                        className="bg-gray-600 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
+                                                        placeholder="Field value"
+                                                    />
+                                                </div>
+                                                <button
+                                                    onClick={() => deleteMetadataField(key)}
+                                                    className="p-2 text-red-400 hover:text-red-300 hover:bg-gray-600 rounded transition-colors"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="bg-gray-700 rounded-lg p-4 flex items-center gap-4">
                                         <div className="flex-1 grid grid-cols-2 gap-4">
                                             <input
                                                 type="text"
-                                                value={key}
-                                                onChange={(e) => updateMetadataField(key, e.target.value, value)}
-                                                className="bg-gray-600 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
-                                                placeholder="Field name"
+                                                value={newMetadataKey}
+                                                onChange={(e) => setNewMetadataKey(e.target.value)}
+                                                className="bg-gray-600 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none"
+                                                placeholder="New field name"
                                             />
                                             <input
                                                 type="text"
-                                                value={value}
-                                                onChange={(e) => updateMetadataField(key, key, e.target.value)}
-                                                className="bg-gray-600 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
-                                                placeholder="Field value"
+                                                value={newMetadataValue}
+                                                onChange={(e) => setNewMetadataValue(e.target.value)}
+                                                className="bg-gray-600 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none"
+                                                placeholder="New field value"
                                             />
                                         </div>
                                         <button
-                                            onClick={() => deleteMetadataField(key)}
-                                            className="p-2 text-red-400 hover:text-red-300 hover:bg-gray-600 rounded transition-colors"
+                                            onClick={addMetadataField}
+                                            disabled={!newMetadataKey || !newMetadataValue}
+                                            className="p-2 text-green-400 hover:text-green-300 hover:bg-gray-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            <Trash2 size={16} />
+                                            <Plus size={16} />
                                         </button>
                                     </div>
-                                ))}
-                            </div>
-
-                            {/* Add new metadata field */}
-                            <div className="bg-gray-700 rounded-lg p-4 flex items-center gap-4">
-                                <div className="flex-1 grid grid-cols-2 gap-4">
-                                    <input
-                                        type="text"
-                                        value={newMetadataKey}
-                                        onChange={(e) => setNewMetadataKey(e.target.value)}
-                                        className="bg-gray-600 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none"
-                                        placeholder="New field name"
-                                    />
-                                    <input
-                                        type="text"
-                                        value={newMetadataValue}
-                                        onChange={(e) => setNewMetadataValue(e.target.value)}
-                                        className="bg-gray-600 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none"
-                                        placeholder="New field value"
-                                    />
                                 </div>
-                                <button
-                                    onClick={addMetadataField}
-                                    disabled={!newMetadataKey || !newMetadataValue}
-                                    className="p-2 text-green-400 hover:text-green-300 hover:bg-gray-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <Plus size={16} />
-                                </button>
+
+                                {(isEditingDescription || JSON.stringify(selectedAssessment) !== JSON.stringify(editedAssessment)) && (
+                                    <div className="flex justify-end">
+                                        <button
+                                            onClick={saveChanges}
+                                            className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors font-medium"
+                                        >
+                                            Save Changes
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
-                        {/* Save button - only show when description is being edited or other changes need saving */}
-                        {(isEditingDescription || JSON.stringify(selectedAssessment) !== JSON.stringify(editedAssessment)) && (
-                            <div className="flex justify-end">
-                                <button
-                                    onClick={saveChanges}
-                                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors font-medium"
-                                >
-                                    Save Changes
-                                </button>
+                        <div className="lg:col-span-1">
+                            <div className="h-full">
+                                <ChatMessageListExample />
                             </div>
-                        )}
+                        </div>
                     </div>
                 </div>
             </div>

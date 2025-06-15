@@ -22,13 +22,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.delphi.delphi.components.GithubClient;
 import com.delphi.delphi.dtos.FetchAssessmentDto;
 import com.delphi.delphi.dtos.NewAssessmentDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.User;
+import com.delphi.delphi.entities.UserChatHistory;
 import com.delphi.delphi.services.AssessmentService;
+import com.delphi.delphi.services.UserChatService;
 import com.delphi.delphi.services.UserService;
-import com.delphi.delphi.services.agent.GithubClient;
 import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.AssessmentType;
 import com.delphi.delphi.utils.DelphiGithubConstants;
@@ -42,11 +44,13 @@ public class AssessmentController {
     private final AssessmentService assessmentService;
     private final UserService userService;
     private final GithubClient githubClient;
+    private final UserChatService chatHistoryService;
 
-    public AssessmentController(AssessmentService assessmentService, UserService userService, GithubClient githubClient) {
+    public AssessmentController(AssessmentService assessmentService, UserService userService, GithubClient githubClient, UserChatService chatHistoryService) {
         this.assessmentService = assessmentService;
         this.userService = userService;
         this.githubClient = githubClient;
+        this.chatHistoryService = chatHistoryService;
     }
     
     // Create a new assessment
@@ -65,7 +69,6 @@ public class AssessmentController {
             assessment.setDuration(newAssessmentDto.getDuration());
             assessment.setSkills(newAssessmentDto.getSkills());
             assessment.setLanguageOptions(newAssessmentDto.getLanguageOptions());
-            assessment.setGithubRepoName(assessment.getName().replace(' ', '-'));
             
             // Set user relationship
             User user = userService.getUserById(userId)
@@ -73,11 +76,20 @@ public class AssessmentController {
             
             assessment.setUser(user);
 
+            // create chat history
+            UserChatHistory chatHistory = new UserChatHistory(List.of(), assessment);
+            assessment.setChatHistory(chatHistory);
+            
             // create github repo and add Delphi as a contributor
-            githubClient.createRepo(user.getGithubAccessToken(), assessment.getName().replace(' ', '-'));
+            githubClient.createRepo(user.getGithubAccessToken(), assessment.getGithubRepoName());
             githubClient.addContributor(user.getGithubAccessToken(), DelphiGithubConstants.DELPHI_GITHUB_NAME, assessment.getName(), user.getGithubUsername());
             
+            chatHistoryService.createChatHistory(chatHistory);
             Assessment createdAssessment = assessmentService.createAssessment(assessment);
+
+            // agent loop
+
+
             return ResponseEntity.status(HttpStatus.CREATED).body(new FetchAssessmentDto(createdAssessment));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error creating assessment: " + e.getMessage());

@@ -137,6 +137,7 @@ public class Assessment {
     private UserChatHistory chatHistory;
 
     public Assessment() {
+        this.githubRepoName = name.replace(' ', '-');
     }
 
     public Assessment(String name, String description, String roleName, AssessmentType assessmentType, LocalDateTime startDate, LocalDateTime endDate, Integer duration, String githubRepositoryLink, User user, List<String> skills, List<String> languageOptions, Map<String, String> metadata) {
