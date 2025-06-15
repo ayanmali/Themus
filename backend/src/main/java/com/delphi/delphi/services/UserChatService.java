@@ -2,7 +2,9 @@ package com.delphi.delphi.services;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,11 +27,35 @@ import com.delphi.delphi.repositories.UserChatMessageRepository;
  */
 public class UserChatService {
 
-    @Autowired
-    private UserChatHistoryRepository chatHistoryRepository;
+    private final UserChatHistoryRepository chatHistoryRepository;
 
-    @Autowired
-    private UserChatMessageRepository chatMessageRepository;
+    private final UserChatMessageRepository chatMessageRepository;
+
+    private final ChatModel chatModel;
+
+    private static final Logger log = LoggerFactory.getLogger(UserChatService.class);
+
+    public UserChatService(UserChatHistoryRepository chatHistoryRepository, UserChatMessageRepository chatMessageRepository, ChatModel chatModel) {
+        this.chatHistoryRepository = chatHistoryRepository;
+        this.chatMessageRepository = chatMessageRepository;
+        this.chatModel = chatModel;
+        log.info("UserChatService initialized with Spring AI ChatModel, targeting OpenRouter.");
+    }
+
+    /**
+     * Method to call the AI model.
+     */
+    
+     public String getChatCompletion(String userMessage) {
+        log.info("Sending prompt to OpenRouter model: '{}'", userMessage.substring(0, Math.min(userMessage.length(), 100)) + "...");
+        try {
+            // The Spring AI ChatModel handles the call to OpenRouter based on application.properties
+            return this.chatModel.call(userMessage);
+        } catch (Exception e) {
+            log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to get completion from AI service: " + e.getMessage(), e);
+        }
+    }
 
     public UserChatHistory createChatHistory(UserChatHistory chatHistory) {
         return chatHistoryRepository.save(chatHistory);

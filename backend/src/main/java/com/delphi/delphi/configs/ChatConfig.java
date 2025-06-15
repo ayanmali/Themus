@@ -1,6 +1,7 @@
 package com.delphi.delphi.configs;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,5 +30,10 @@ public class ChatConfig {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(List.of(MediaType.valueOf("application/vnd.github+json")));
         return headers;
+    }
+
+    @Bean
+    public Map<String, String> committer() {
+        return Map.of("name", "Delphi", "email", "zainjdantes@gmail.com");
     }
 }

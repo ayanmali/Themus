@@ -25,5 +25,5 @@ export type Candidate = {
     email: string;
     status: 'invited' | 'started' | 'submitted' | 'evaluated';
     appliedAt: Date;
-    startedAt: Date | null;
+    // startedAt?: Date | null;
 }

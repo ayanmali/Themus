@@ -1,4 +1,4 @@
-package com.delphi.delphi.services;
+package com.delphi.delphi.components;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -11,6 +11,9 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+
+import com.delphi.delphi.entities.UserChatMessage;
+import com.delphi.delphi.services.UserChatService;
 
 @Component
 /*
@@ -25,10 +28,14 @@ import org.springframework.web.client.RestTemplate;
 public class GithubClient {
     private final RestTemplate restTemplate;
     private final HttpHeaders headers;
-
-    public GithubClient(RestTemplate restTemplate, HttpHeaders githubClientheaders) {
+    private final Map<String, String> committer;
+    private final UserChatService chatService;
+    
+    public GithubClient(RestTemplate restTemplate, HttpHeaders githubClientheaders, Map<String, String> committer, UserChatService chatService) {
         this.restTemplate = restTemplate;
         this.headers = githubClientheaders;
+        this.committer = committer;
+        this.chatService = chatService;
     }
 
     public ResponseEntity<String> createRepo(String accessToken, String repoName) {
@@ -46,7 +53,16 @@ public class GithubClient {
         return restTemplate.postForEntity(url, entity, String.class);
     }
 
-    public ResponseEntity<String> addFileToRepo(String accessToken, String owner, String repo, String path, String content, String commitMessage) {
+    public ResponseEntity<?> addContributor(String accessToken, String owner, String repo, String username) {
+        String url = String.format("https://api.github.com/repos/%s/%s/collaborators/%s", owner, repo, username);
+        
+        headers.setBearerAuth(accessToken);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(headers);
+        return restTemplate.exchange(url, HttpMethod.PUT, entity, String.class);
+    }
+
+    public ResponseEntity<String> addFileToRepo(String accessToken, String owner, String repo, String path, String branch, String content, String commitMessage) {
         String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
     
         headers.setBearerAuth(accessToken);
@@ -56,7 +72,9 @@ public class GithubClient {
     
         Map<String, Object> body = Map.of(
             "message", commitMessage,
-            "content", base64Content
+            "content", base64Content,
+            "branch", branch,
+            "committer", committer
         );
     
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
@@ -121,7 +139,8 @@ public class GithubClient {
         Map<String, Object> body = Map.of(
             "message", commitMessage,
             "content", base64Content,
-            "sha", sha
+            "sha", sha,
+            "committer", committer
         );
         
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
@@ -136,7 +155,8 @@ public class GithubClient {
         
         Map<String, Object> body = Map.of(
             "message", commitMessage,
-            "sha", sha
+            "sha", sha,
+            "committer", committer
         );
         
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
@@ -150,6 +170,24 @@ public class GithubClient {
         
         HttpEntity<?> entity = new HttpEntity<>(headers);
         return restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+    }
+
+    public ResponseEntity<Map> getCommitDetails(String accessToken, String owner, String repo, String commit) {
+        String url = String.format("https://api.github.com/repos/%s/%s/commits/%s", owner, repo, commit);
+        
+        headers.setBearerAuth(accessToken);
+        
+        HttpEntity<?> entity = new HttpEntity<>(headers);
+        return restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+    }
+
+    public String sendMessageToUser(String message, Long chatHistoryId) {
+        try {
+            chatService.addMessageToChatHistory(message, chatHistoryId, UserChatMessage.MessageSender.AI);
+            return message;
+        } catch (Exception e) {
+            return "Error sending message: " + e.getMessage();
+        }
     }
 
     // Deprecated: Use getBranchDetails() instead for full response information

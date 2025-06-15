@@ -73,18 +73,18 @@ export default function EmployerAssessments() {
         },
         {
             id: '3',
-            role: 'Software Engineering Intern',
+            role: 'Quantitative Development Intern',
             employerId: '789',
-            description: 'Backend engineering assessment focusing on secure, performat REST API design. Candidates will build a scalable web application with proper testing and documentation.',
-            skills: ['Go', 'Kafka', 'Redis', 'Authentication & Authorization', 'Rate Limiting', 'Caching', 'API Design', 'Testing', 'Documentation'],
+            description: 'Quantitative Development Intern assessment focusing on performant backtesting engine design. Candidates will build a backtesting engine in C++ that can backtest a trading strategy on a given dataset.',
+            skills: ['C++', 'Backtesting', 'Performance Optimization', 'Algorithmic Trading', 'Data Structures', 'Object-Oriented Programming', 'Testing', 'Documentation'],
             createdAt: new Date('2024-01-25'),
             updatedAt: new Date('2024-01-25'),
-            name: 'Backend Engineering Intern Assessment',
+            name: 'Quant Development Intern Assessment',
             status: 'active',
             startDate: new Date('2024-03-01'),
             endDate: new Date('2024-03-10'),
             type: 'take-home',
-            repoLink: 'https://github.com/company/full-stack-engineering-assessment',
+            repoLink: 'https://github.com/company/quant-development-intern-assessment',
             metadata: {
                 'Duration': '7 days',
                 'Difficulty': 'Junior Level',
@@ -592,7 +592,7 @@ export default function EmployerAssessments() {
                             </div>
 
                             <div className="space-y-4 mb-6">
-                                {editedAssessment && Object.entries(editedAssessment.metadata).map(([key, value]) => (
+                                {editedAssessment && Object.entries(editedAssessment?.metadata || {}).map(([key, value]) => (
                                     <div key={key} className="bg-gray-700 rounded-lg p-4 flex items-center gap-4">
                                         <div className="flex-1 grid grid-cols-2 gap-4">
                                             <input

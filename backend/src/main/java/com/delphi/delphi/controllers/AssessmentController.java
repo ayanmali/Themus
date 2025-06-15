@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,17 +27,27 @@ import com.delphi.delphi.dtos.NewAssessmentDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.services.AssessmentService;
+import com.delphi.delphi.services.UserService;
+import com.delphi.delphi.services.agent.GithubClient;
 import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.AssessmentType;
+import com.delphi.delphi.utils.DelphiGithubConstants;
 
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/assessments")
 public class AssessmentController {
-    
-    @Autowired
-    private AssessmentService assessmentService;
+
+    private final AssessmentService assessmentService;
+    private final UserService userService;
+    private final GithubClient githubClient;
+
+    public AssessmentController(AssessmentService assessmentService, UserService userService, GithubClient githubClient) {
+        this.assessmentService = assessmentService;
+        this.userService = userService;
+        this.githubClient = githubClient;
+    }
     
     // Create a new assessment
     @PostMapping
@@ -56,11 +65,17 @@ public class AssessmentController {
             assessment.setDuration(newAssessmentDto.getDuration());
             assessment.setSkills(newAssessmentDto.getSkills());
             assessment.setLanguageOptions(newAssessmentDto.getLanguageOptions());
+            assessment.setGithubRepoName(assessment.getName().replace(' ', '-'));
             
             // Set user relationship
-            User user = new User();
-            user.setId(userId);
+            User user = userService.getUserById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+            
             assessment.setUser(user);
+
+            // create github repo and add Delphi as a contributor
+            githubClient.createRepo(user.getGithubAccessToken(), assessment.getName().replace(' ', '-'));
+            githubClient.addContributor(user.getGithubAccessToken(), DelphiGithubConstants.DELPHI_GITHUB_NAME, assessment.getName(), user.getGithubUsername());
             
             Assessment createdAssessment = assessmentService.createAssessment(assessment);
             return ResponseEntity.status(HttpStatus.CREATED).body(new FetchAssessmentDto(createdAssessment));
@@ -452,7 +467,7 @@ public class AssessmentController {
     }
     
     // Update metadata
-    @PutMapping("/{id}/metadata")
+    @PutMapping("/{id}/metadata/new")
     public ResponseEntity<?> updateMetadata(
             @PathVariable Long id,
             @RequestBody Map<String, String> metadata) {
@@ -466,4 +481,19 @@ public class AssessmentController {
                 .body("Error updating metadata: " + e.getMessage());
         }
     }
+
+    // @PutMapping("/{id}/metadata")
+    // public ResponseEntity<?> updateGithubRepo(
+    //         @PathVariable Long id,
+    //         @RequestBody String key, @RequestBody String value) {
+    //     try {
+    //         Assessment assessment = assessmentService.updateMetadata(id, Map.of(key, value));
+    //         return ResponseEntity.ok(new FetchAssessmentDto(assessment));
+    //     } catch (IllegalArgumentException e) {
+    //         return ResponseEntity.badRequest().body("Error updating metadata: " + e.getMessage());
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error updating metadata: " + e.getMessage());
+    //     }
+    // }
 } 

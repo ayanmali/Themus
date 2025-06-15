@@ -85,9 +85,12 @@ public class Assessment {
     @Column(nullable = false)
     private Integer duration; // in minutes
     
-    @NotBlank(message = "GitHub repository link is required")
+    //@NotBlank(message = "GitHub repository link is required")
     @Column(name = "github_repository_link", nullable = false, columnDefinition = "TEXT")
     private String githubRepositoryLink;
+
+    @Column(name = "github_repo_name", columnDefinition = "TEXT")
+    private String githubRepoName;
     
     @CreationTimestamp
     @Column(name = "created_date", nullable = false, updatable = false)
@@ -150,6 +153,7 @@ public class Assessment {
         this.languageOptions = languageOptions;
         this.metadata = metadata;
         this.status = AssessmentStatus.DRAFT;
+        this.githubRepoName = name.replace(' ', '-');
     }
     
     public Long getId() {
@@ -307,5 +311,13 @@ public class Assessment {
     @AssertTrue(message = "End date must be after start date")
     private boolean isEndDateAfterStartDate() {
         return startDate == null || endDate == null || endDate.isAfter(startDate);
+    }
+
+    public String getGithubRepoName() {
+        return githubRepoName;
+    }
+
+    public void setGithubRepoName(String githubRepoName) {
+        this.githubRepoName = githubRepoName;
     }
 }

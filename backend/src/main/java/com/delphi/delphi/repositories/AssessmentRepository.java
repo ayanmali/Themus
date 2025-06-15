@@ -20,6 +20,9 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
     
     // Find assessments by status with pagination
     Page<Assessment> findByStatus(AssessmentStatus status, Pageable pageable);
+
+    // Find assessments by github repo name with pagination
+    Page<Assessment> findByGithubRepoName(String repoName, Pageable pageable);
     
     // Find assessments by type with pagination
     Page<Assessment> findByAssessmentType(AssessmentType assessmentType, Pageable pageable);
