@@ -117,4 +117,36 @@ public class AssessmentCreationPrompts {
         - If user exclusively asked questions, answer the questions. Do not take additional actions
         </user_interaction>
         """;
+
+        public static final String USER_PROMPT = 
+        """
+        Here are the relevant details of the assessment:
+        <ROLE>
+        {ROLE}
+        </ROLE>
+
+        <ASSESSMENT_TYPE>
+        {ASSESSMENT_TYPE}
+        </ASSESSMENT_TYPE>
+
+        <DURATION>
+        {DURATION}
+        </DURATION>
+
+        <SKILLS>
+        {SKILLS}
+        </SKILLS>
+
+        <LANGUAGE_OPTIONS>
+        {LANGUAGE_OPTIONS}
+        </LANGUAGE_OPTIONS>
+
+        <OTHER_DETAILS>
+        {OTHER_DETAILS}
+        </OTHER_DETAILS>
+
+        If the information provided is not sufficient, please ask the user follow-up questions to clarify the details.
+
+        If the information provided is sufficient, please begin generating the repository based on the above details.
+        """;
 }

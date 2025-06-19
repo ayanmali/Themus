@@ -20,7 +20,7 @@ public class NewAssessmentDto {
     public NewAssessmentDto() {
     }
 
-    public NewAssessmentDto(String name, String description, String roleName, AssessmentType assessmentType, LocalDateTime startDate, LocalDateTime endDate, Integer duration, List<String> skills, List<String> languageOptions, String otherDetails) {
+    public NewAssessmentDto(String name, String description, String roleName, AssessmentType assessmentType, LocalDateTime startDate, LocalDateTime endDate, Integer duration, List<String> skills, List<String> languageOptions, String otherDetails, String model) {
         this.name = name;
         this.description = description;
         this.roleName = roleName;
@@ -96,7 +96,7 @@ public class NewAssessmentDto {
     public void setOtherDetails(String otherDetails) {
         this.otherDetails = otherDetails;
     }
-    
+
     public String getModel() {
         return model;
     }

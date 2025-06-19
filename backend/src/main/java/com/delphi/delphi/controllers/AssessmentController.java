@@ -40,8 +40,6 @@ public class AssessmentController {
     private final AssessmentService assessmentService;
     private final ChatService chatService;
 
-    private final String assessmentCreationSystemPromptMessage = AssessmentCreationPrompts.SYSTEM_PROMPT;
-
     public AssessmentController(AssessmentService assessmentService, ChatService chatService) {
         this.assessmentService = assessmentService;
         this.chatService = chatService;
@@ -55,7 +53,8 @@ public class AssessmentController {
         try {
             Assessment assessment = assessmentService.createAssessment(newAssessmentDto, userId);
 
-            chatService.getChatCompletion(assessmentCreationSystemPromptMessage, 
+            // get chat completion from the LLM
+            chatService.getChatCompletion(AssessmentCreationPrompts.USER_PROMPT, 
                                               Map.of("ROLE", newAssessmentDto.getRoleName(), 
                                                      "ASSESSMENT_TYPE", newAssessmentDto.getAssessmentType(), 
                                                      "DURATION", newAssessmentDto.getDuration(), 
@@ -63,8 +62,8 @@ public class AssessmentController {
                                                      "LANGUAGE_OPTIONS", newAssessmentDto.getLanguageOptions(), 
                                                      "OTHER_DETAILS", newAssessmentDto.getOtherDetails()
                                               ), 
-                                              newAssessmentDto.getOtherDetails(), 
-                                              newAssessmentDto.getModel());
+                                              newAssessmentDto.getModel(),
+                                              assessment.getChatHistory().getId());
             
             // agent loop
             // userChatService.getChatCompletion(assessmentCreationSystemPromptMessage, Map.of("role", newAssessmentDto.getRoleName(), "experienceLevel", newAssessmentDto.getExperienceLevel(), "languages", newAssessmentDto.getLanguages(), "libraries", newAssessmentDto.getLibraries(), "frameworks", newAssessmentDto.getFrameworks(), "tools", newAssessmentDto.getTools()), newAssessmentDto.getDescription(), "gpt-4o-mini");

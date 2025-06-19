@@ -18,7 +18,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "chat_history")
-public class UserChatHistory {
+public class ChatHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -30,10 +30,10 @@ public class UserChatHistory {
     @JoinColumn(name = "assessment_id", nullable = false, unique = true)
     private Assessment assessment;
 
-    public UserChatHistory() {
+    public ChatHistory() {
     }
 
-    public UserChatHistory(List<ChatMessage> messages, Assessment assessment) {
+    public ChatHistory(List<ChatMessage> messages, Assessment assessment) {
         this.messages = messages;
         this.assessment = assessment;
     }

@@ -13,8 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.delphi.delphi.components.GithubClient;
 import com.delphi.delphi.dtos.NewAssessmentDto;
 import com.delphi.delphi.entities.Assessment;
+import com.delphi.delphi.entities.ChatHistory;
 import com.delphi.delphi.entities.User;
-import com.delphi.delphi.entities.UserChatHistory;
 import com.delphi.delphi.repositories.AssessmentRepository;
 import com.delphi.delphi.utils.AssessmentCreationPrompts;
 import com.delphi.delphi.utils.AssessmentStatus;
@@ -77,7 +77,7 @@ public class AssessmentService {
         assessment.setLanguageOptions(newAssessmentDto.getLanguageOptions());
         assessment.setUser(user);
 
-        UserChatHistory chatHistory = new UserChatHistory();
+        ChatHistory chatHistory = new ChatHistory();
         chatHistory.setAssessment(assessment);
         chatHistory.setMessages(List.of());
 

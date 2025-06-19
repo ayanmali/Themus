@@ -9,7 +9,6 @@ import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.lang.NonNull;
 
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -27,7 +26,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "chat_message")
-public class ChatMessage implements Message {
+public class ChatMessage {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -41,10 +40,11 @@ public class ChatMessage implements Message {
 
     @Column(name = "model")
     private String model;
+    
 
     @ManyToOne
     @JoinColumn(name = "chat_history_id", nullable = false)
-    private UserChatHistory chatHistory;
+    private ChatHistory chatHistory;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "message_type", nullable = false)
@@ -64,11 +64,11 @@ public class ChatMessage implements Message {
     public ChatMessage() {
     }
 
-    public ChatMessage(String text, UserChatHistory chatHistory, MessageType messageType, String model) {
+    public ChatMessage(String text, ChatHistory chatHistory, MessageType messageType, String model) {
         this.text = text;
         this.chatHistory = chatHistory;
-        this.messageType = messageType; 
         this.model = model;
+        this.messageType = messageType;
     }
 
     public Long getId() {
@@ -87,7 +87,6 @@ public class ChatMessage implements Message {
         this.createdAt = createdAt;
     }
 
-    @Override
     public String getText() {
         return text;
     }
@@ -96,22 +95,12 @@ public class ChatMessage implements Message {
         this.text = text;
     }
 
-    public UserChatHistory getChatHistory() {
+    public ChatHistory getChatHistory() {
         return chatHistory;
     }
 
-    public void setChatHistory(UserChatHistory chatHistory) {
+    public void setChatHistory(ChatHistory chatHistory) {
         this.chatHistory = chatHistory;
-    }
-
-    @Override
-    @NonNull
-    public MessageType getMessageType() {
-        return messageType;
-    }
-
-    public void setMessageType(MessageType messageType) {
-        this.messageType = messageType;
     }
 
     public String getModel() {
@@ -122,9 +111,16 @@ public class ChatMessage implements Message {
         this.model = model;
     }
 
-    @Override
+    public MessageType getMessageType() {
+        return messageType;
+    }
+
+    public void setMessageType(MessageType messageType) {
+        this.messageType = messageType;
+    }
+
     public Map<String, Object> getMetadata() {
-        return this.metadata;
+        return metadata;
     }
 
     public void setMetadata(Map<String, Object> metadata) {
@@ -132,20 +128,19 @@ public class ChatMessage implements Message {
     }
 
     public Message toMessage() {
-        switch (this.messageType) {
+        switch (this.getMessageType()) {
             case USER -> {
-                return new UserMessage(this.text);
+                return new UserMessage(this.getText());
             }
             case ASSISTANT -> {
-                return new AssistantMessage(this.text, this.metadata);
+                return new AssistantMessage(this.getText(), this.getMetadata());
             }
             case SYSTEM -> {
-                return new SystemMessage(this.text);
+                return new SystemMessage(this.getText());
             }
-            default -> throw new IllegalArgumentException("Invalid message type: " + this.messageType);
+            default -> throw new IllegalArgumentException("Invalid message type: " + this.getMessageType());
         }
         // case TOOL:
-        //     return new ToolResponseMessage(this.text);
-            }
-    
+        //     return new ToolResponseMessage(this.getText());
+    }
 }

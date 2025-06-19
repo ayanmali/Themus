@@ -134,7 +134,7 @@ public class Assessment {
 
     // One-to-one relationship with ChatHistory
     @OneToOne(mappedBy = "assessment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private UserChatHistory chatHistory;
+    private ChatHistory chatHistory;
 
     public Assessment() {
         this.githubRepoName = name.replace(' ', '-');
@@ -301,11 +301,11 @@ public class Assessment {
         this.candidates = candidates;
     }
 
-    public UserChatHistory getChatHistory() {
+    public ChatHistory getChatHistory() {
         return chatHistory;
     }
 
-    public void setChatHistory(UserChatHistory chatHistory) {
+    public void setChatHistory(ChatHistory chatHistory) {
         this.chatHistory = chatHistory;
     }
 
