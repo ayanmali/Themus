@@ -1,0 +1,151 @@
+package com.delphi.delphi.entities;
+
+import java.time.LocalDateTime;
+import java.util.Map;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.MessageType;
+import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.lang.NonNull;
+
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapKeyColumn;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "chat_message")
+public class ChatMessage implements Message {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "text", nullable = false)
+    private String text;
+
+    @Column(name = "model")
+    private String model;
+
+    @ManyToOne
+    @JoinColumn(name = "chat_history_id", nullable = false)
+    private UserChatHistory chatHistory;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "message_type", nullable = false)
+    private MessageType messageType;
+
+    @ElementCollection
+    @CollectionTable(name = "message_metadata", joinColumns = @JoinColumn(name = "message_id"))
+    @MapKeyColumn(name = "metadata_key")
+    @Column(name = "metadata_value")
+    private Map<String, Object> metadata;
+
+    // @ElementCollection
+    // @CollectionTable(name = "message_tool_calls", joinColumns = @JoinColumn(name = "message_id"))
+    // @Column(name = "tool_call")
+    // private List<ToolCall> toolCalls;
+
+    public ChatMessage() {
+    }
+
+    public ChatMessage(String text, UserChatHistory chatHistory, MessageType messageType, String model) {
+        this.text = text;
+        this.chatHistory = chatHistory;
+        this.messageType = messageType; 
+        this.model = model;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    @Override
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
+
+    public UserChatHistory getChatHistory() {
+        return chatHistory;
+    }
+
+    public void setChatHistory(UserChatHistory chatHistory) {
+        this.chatHistory = chatHistory;
+    }
+
+    @Override
+    @NonNull
+    public MessageType getMessageType() {
+        return messageType;
+    }
+
+    public void setMessageType(MessageType messageType) {
+        this.messageType = messageType;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public void setModel(String model) {
+        this.model = model;
+    }
+
+    @Override
+    public Map<String, Object> getMetadata() {
+        return this.metadata;
+    }
+
+    public void setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+    }
+
+    public Message toMessage() {
+        switch (this.messageType) {
+            case USER -> {
+                return new UserMessage(this.text);
+            }
+            case ASSISTANT -> {
+                return new AssistantMessage(this.text, this.metadata);
+            }
+            case SYSTEM -> {
+                return new SystemMessage(this.text);
+            }
+            default -> throw new IllegalArgumentException("Invalid message type: " + this.messageType);
+        }
+        // case TOOL:
+        //     return new ToolResponseMessage(this.text);
+            }
+    
+}

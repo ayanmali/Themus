@@ -5,6 +5,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -12,8 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import com.delphi.delphi.entities.UserChatMessage;
-import com.delphi.delphi.services.UserChatService;
+import com.delphi.delphi.services.ChatService;
 
 @Component
 /*
@@ -29,9 +29,9 @@ public class GithubClient {
     private final RestTemplate restTemplate;
     private final HttpHeaders headers;
     private final Map<String, String> committer;
-    private final UserChatService chatService;
+    private final ChatService chatService;
     
-    public GithubClient(RestTemplate restTemplate, HttpHeaders githubClientheaders, Map<String, String> committer, UserChatService chatService) {
+    public GithubClient(RestTemplate restTemplate, HttpHeaders githubClientheaders, Map<String, String> committer, ChatService chatService) {
         this.restTemplate = restTemplate;
         this.headers = githubClientheaders;
         this.committer = committer;
@@ -183,7 +183,7 @@ public class GithubClient {
 
     public String sendMessageToUser(String message, Long chatHistoryId) {
         try {
-            chatService.addMessageToChatHistory(message, chatHistoryId, UserChatMessage.MessageSender.AI);
+            chatService.addMessageToChatHistory(message, chatHistoryId, MessageType.ASSISTANT);
             return message;
         } catch (Exception e) {
             return "Error sending message: " + e.getMessage();

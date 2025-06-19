@@ -5,28 +5,38 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.delphi.delphi.components.GithubClient;
+import com.delphi.delphi.dtos.NewAssessmentDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.User;
+import com.delphi.delphi.entities.UserChatHistory;
 import com.delphi.delphi.repositories.AssessmentRepository;
+import com.delphi.delphi.utils.AssessmentCreationPrompts;
 import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.AssessmentType;
+import com.delphi.delphi.utils.DelphiGithubConstants;
 
 @Service
 @Transactional
 public class AssessmentService {
-    
-    @Autowired
-    private AssessmentRepository assessmentRepository;
-    
-    @Autowired
-    private UserService userService;
-    
+
+    private final AssessmentRepository assessmentRepository;
+    private final UserService userService;
+    private final ChatService chatService;
+    private final GithubClient githubClient;
+
+    public AssessmentService(AssessmentRepository assessmentRepository, UserService userService, ChatService chatService, GithubClient githubClient) {
+        this.assessmentRepository = assessmentRepository;
+        this.userService = userService;
+        this.chatService = chatService;
+        this.githubClient = githubClient;
+    }
+
     // Create a new assessment
     public Assessment createAssessment(Assessment assessment) {
         // Validate that the associated user exists
@@ -34,45 +44,79 @@ public class AssessmentService {
             User user = userService.getUserByIdOrThrow(assessment.getUser().getId());
             assessment.setUser(user);
         }
-        
+
         // Set default status if not provided
         if (assessment.getStatus() == null) {
             assessment.setStatus(AssessmentStatus.DRAFT);
         }
-        
+
         // Validate date logic
         if (assessment.getStartDate() != null && assessment.getEndDate() != null) {
             if (!assessment.getEndDate().isAfter(assessment.getStartDate())) {
                 throw new IllegalArgumentException("End date must be after start date");
             }
         }
-        
+
         return assessmentRepository.save(assessment);
     }
-    
+
+    public Assessment createAssessment(NewAssessmentDto newAssessmentDto, Long userId) throws Exception {
+        // Set user relationship
+        User user = userService.getUserById(userId)
+        .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Assessment assessment = new Assessment();
+        assessment.setName(newAssessmentDto.getName());
+        assessment.setDescription(newAssessmentDto.getDescription());
+        assessment.setRoleName(newAssessmentDto.getRoleName());
+        assessment.setAssessmentType(newAssessmentDto.getAssessmentType());
+        assessment.setStartDate(newAssessmentDto.getStartDate());
+        assessment.setEndDate(newAssessmentDto.getEndDate());
+        assessment.setDuration(newAssessmentDto.getDuration());
+        assessment.setSkills(newAssessmentDto.getSkills());
+        assessment.setLanguageOptions(newAssessmentDto.getLanguageOptions());
+        assessment.setUser(user);
+
+        UserChatHistory chatHistory = new UserChatHistory();
+        chatHistory.setAssessment(assessment);
+        chatHistory.setMessages(List.of());
+
+        // create chat history and add system prompt
+        chatHistory = chatService.createChatHistory(chatHistory, AssessmentCreationPrompts.SYSTEM_PROMPT);
+
+        // set chat history to assessment
+        assessment.setChatHistory(chatHistory);
+
+        // create github repo and add Delphi as a contributor
+        githubClient.createRepo(user.getGithubAccessToken(), assessment.getGithubRepoName());
+        githubClient.addContributor(user.getGithubAccessToken(), DelphiGithubConstants.DELPHI_GITHUB_NAME, assessment.getName(), user.getGithubUsername());
+
+        return assessment;
+    }
+
     // Get assessment by ID
     @Transactional(readOnly = true)
     public Optional<Assessment> getAssessmentById(Long id) {
         return assessmentRepository.findById(id);
     }
-    
+
     // Get assessment by ID or throw exception
     @Transactional(readOnly = true)
     public Assessment getAssessmentByIdOrThrow(Long id) {
         return assessmentRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id));
     }
-    
+
     // Get all assessments with pagination
     @Transactional(readOnly = true)
     public Page<Assessment> getAllAssessments(Pageable pageable) {
         return assessmentRepository.findAll(pageable);
     }
-    
+
     // Update assessment
     public Assessment updateAssessment(Long id, Assessment assessmentUpdates) {
         Assessment existingAssessment = getAssessmentByIdOrThrow(id);
-        
+
         // Update fields if provided
         if (assessmentUpdates.getName() != null) {
             existingAssessment.setName(assessmentUpdates.getName());
@@ -110,17 +154,17 @@ public class AssessmentService {
         if (assessmentUpdates.getMetadata() != null) {
             existingAssessment.setMetadata(assessmentUpdates.getMetadata());
         }
-        
+
         // Validate date logic after updates
         if (existingAssessment.getStartDate() != null && existingAssessment.getEndDate() != null) {
             if (!existingAssessment.getEndDate().isAfter(existingAssessment.getStartDate())) {
                 throw new IllegalArgumentException("End date must be after start date");
             }
         }
-        
+
         return assessmentRepository.save(existingAssessment);
     }
-    
+
     // Delete assessment
     public void deleteAssessment(Long id) {
         if (!assessmentRepository.existsById(id)) {
@@ -128,105 +172,107 @@ public class AssessmentService {
         }
         assessmentRepository.deleteById(id);
     }
-    
+
     // Get assessments by user ID
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByUserId(Long userId, Pageable pageable) {
         return assessmentRepository.findByUserId(userId, pageable);
     }
-    
+
     // Get assessments by status
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByStatus(AssessmentStatus status, Pageable pageable) {
         return assessmentRepository.findByStatus(status, pageable);
     }
-    
+
     // Get assessments by type
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByType(AssessmentType assessmentType, Pageable pageable) {
         return assessmentRepository.findByAssessmentType(assessmentType, pageable);
     }
-    
+
     // Get assessments by user and status
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByUserAndStatus(Long userId, AssessmentStatus status, Pageable pageable) {
         return assessmentRepository.findByUserIdAndStatus(userId, status, pageable);
     }
-    
+
     // Search assessments by name
     @Transactional(readOnly = true)
     public Page<Assessment> searchAssessmentsByName(String name, Pageable pageable) {
         return assessmentRepository.findByNameContainingIgnoreCase(name, pageable);
     }
-    
+
     // Search assessments by role name
     @Transactional(readOnly = true)
     public Page<Assessment> searchAssessmentsByRoleName(String roleName, Pageable pageable) {
         return assessmentRepository.findByRoleNameContainingIgnoreCase(roleName, pageable);
     }
-    
+
     // Get assessments within date range
     @Transactional(readOnly = true)
-    public Page<Assessment> getAssessmentsInDateRange(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+    public Page<Assessment> getAssessmentsInDateRange(LocalDateTime startDate, LocalDateTime endDate,
+            Pageable pageable) {
         return assessmentRepository.findByDateRange(startDate, endDate, pageable);
     }
-    
+
     // Get active assessments within current date
     @Transactional(readOnly = true)
     public Page<Assessment> getActiveAssessmentsInDateRange(LocalDateTime currentDate, Pageable pageable) {
         return assessmentRepository.findActiveAssessmentsInDateRange(currentDate, pageable);
     }
-    
+
     // Get assessments by duration range
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByDurationRange(Integer minDuration, Integer maxDuration, Pageable pageable) {
         return assessmentRepository.findByDurationBetween(minDuration, maxDuration, pageable);
     }
-    
+
     // Get assessments by skill
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsBySkill(String skill, Pageable pageable) {
         return assessmentRepository.findBySkill(skill, pageable);
     }
-    
+
     // Get assessments by language option
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByLanguageOption(String language, Pageable pageable) {
         return assessmentRepository.findByLanguageOption(language, pageable);
     }
-    
+
     // Get assessments with attempt count
     @Transactional(readOnly = true)
     public Page<Object[]> getAssessmentsWithAttemptCount(Pageable pageable) {
         return assessmentRepository.findAssessmentsWithAttemptCount(pageable);
     }
-    
+
     // Get assessments created by user in date range
     @Transactional(readOnly = true)
-    public Page<Assessment> getAssessmentsByUserInDateRange(Long userId, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+    public Page<Assessment> getAssessmentsByUserInDateRange(Long userId, LocalDateTime startDate, LocalDateTime endDate,
+            Pageable pageable) {
         return assessmentRepository.findByUserIdAndCreatedDateBetween(userId, startDate, endDate, pageable);
     }
-    
+
     // Count assessments by status for a user
     @Transactional(readOnly = true)
     public Long countAssessmentsByUserAndStatus(Long userId, AssessmentStatus status) {
         return assessmentRepository.countByUserIdAndStatus(userId, status);
     }
-    
+
     // Activate assessment
     public Assessment activateAssessment(Long id) {
         Assessment assessment = getAssessmentByIdOrThrow(id);
         assessment.setStatus(AssessmentStatus.ACTIVE);
         return assessmentRepository.save(assessment);
     }
-    
+
     // Deactivate assessment
     public Assessment deactivateAssessment(Long id) {
         Assessment assessment = getAssessmentByIdOrThrow(id);
         assessment.setStatus(AssessmentStatus.INACTIVE);
         return assessmentRepository.save(assessment);
     }
-    
+
     // Publish assessment (change from draft to active)
     public Assessment publishAssessment(Long id) {
         Assessment assessment = getAssessmentByIdOrThrow(id);
@@ -236,7 +282,7 @@ public class AssessmentService {
         assessment.setStatus(AssessmentStatus.ACTIVE);
         return assessmentRepository.save(assessment);
     }
-    
+
     // Add skill to assessment
     public Assessment addSkill(Long id, String skill) {
         Assessment assessment = getAssessmentByIdOrThrow(id);
@@ -245,7 +291,7 @@ public class AssessmentService {
         }
         return assessmentRepository.save(assessment);
     }
-    
+
     // Remove skill from assessment
     public Assessment removeSkill(Long id, String skill) {
         Assessment assessment = getAssessmentByIdOrThrow(id);
@@ -254,21 +300,21 @@ public class AssessmentService {
         }
         return assessmentRepository.save(assessment);
     }
-    
+
     // Update skills
     public Assessment updateSkills(Long id, List<String> skills) {
         Assessment assessment = getAssessmentByIdOrThrow(id);
         assessment.setSkills(skills);
         return assessmentRepository.save(assessment);
     }
-    
+
     // Update language options
     public Assessment updateLanguageOptions(Long id, List<String> languageOptions) {
         Assessment assessment = getAssessmentByIdOrThrow(id);
         assessment.setLanguageOptions(languageOptions);
         return assessmentRepository.save(assessment);
     }
-    
+
     // Update metadata
     public Assessment updateMetadata(Long id, Map<String, String> metadata) {
         Assessment assessment = getAssessmentByIdOrThrow(id);

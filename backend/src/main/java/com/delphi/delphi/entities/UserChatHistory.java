@@ -1,6 +1,9 @@
 package com.delphi.delphi.entities;
 
 import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.ai.chat.messages.Message;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
@@ -21,7 +24,7 @@ public class UserChatHistory {
     private Long id;
 
     @OneToMany(mappedBy = "chatHistory", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<UserChatMessage> messages;
+    private List<ChatMessage> messages;
 
     @OneToOne
     @JoinColumn(name = "assessment_id", nullable = false, unique = true)
@@ -30,7 +33,7 @@ public class UserChatHistory {
     public UserChatHistory() {
     }
 
-    public UserChatHistory(List<UserChatMessage> messages, Assessment assessment) {
+    public UserChatHistory(List<ChatMessage> messages, Assessment assessment) {
         this.messages = messages;
         this.assessment = assessment;
     }
@@ -43,11 +46,11 @@ public class UserChatHistory {
         this.id = id;
     }
 
-    public List<UserChatMessage> getMessages() {
+    public List<ChatMessage> getMessages() {
         return messages;
     }
 
-    public void setMessages(List<UserChatMessage> messages) {
+    public void setMessages(List<ChatMessage> messages) {
         this.messages = messages;
     }
 
@@ -57,5 +60,9 @@ public class UserChatHistory {
 
     public void setAssessment(Assessment assessment) {
         this.assessment = assessment;
+    }
+
+    public List<Message> getMessagesAsSpringMessages() {
+        return this.messages.stream().map(ChatMessage::toMessage).collect(Collectors.toList());
     }
 }

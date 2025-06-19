@@ -7,19 +7,19 @@
 // import org.springframework.stereotype.Service;
 // import org.springframework.transaction.annotation.Transactional;
 
-// import com.delphi.delphi.entities.UserChatMessage;
-// import com.delphi.delphi.services.UserChatService;
+// import com.delphi.delphi.entities.ChatMessage;
+// import com.delphi.delphi.services.ChatService;
 
 // // @RestController
 // // @RequestMapping("/api/ai")
 // @Service
 // @Transactional
 // public class LLMService {
-//     private final UserChatService chatService;
+//     private final ChatService chatService;
 //     private final ChatModel chatModel; // Autowired via constructor injection
 //     private static final Logger log = LoggerFactory.getLogger(LLMService.class);
 
-//     public LLMService(ChatModel chatModel, UserChatService chatService) {
+//     public LLMService(ChatModel chatModel, ChatService chatService) {
 //         this.chatModel = chatModel;
 //         this.chatService = chatService;
 //         log.info("LLMService initialized with Spring AI ChatModel, targeting OpenRouter.");

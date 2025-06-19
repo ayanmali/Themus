@@ -5,7 +5,6 @@ import java.util.List;
 
 import com.delphi.delphi.utils.AssessmentType;
 
-
 public class NewAssessmentDto {
     private String name; // title
     private String description; // description
@@ -16,11 +15,12 @@ public class NewAssessmentDto {
     private Integer duration; // estimated duration/time limit
     private List<String> skills;
     private List<String> languageOptions;
-
+    private String otherDetails; // provided in the user in the text box
+    private String model; // model to use for the chat completion
     public NewAssessmentDto() {
     }
 
-    public NewAssessmentDto(String name, String description, String roleName, AssessmentType assessmentType, LocalDateTime startDate, LocalDateTime endDate, Integer duration, List<String> skills, List<String> languageOptions) {
+    public NewAssessmentDto(String name, String description, String roleName, AssessmentType assessmentType, LocalDateTime startDate, LocalDateTime endDate, Integer duration, List<String> skills, List<String> languageOptions, String otherDetails) {
         this.name = name;
         this.description = description;
         this.roleName = roleName;
@@ -30,6 +30,8 @@ public class NewAssessmentDto {
         this.duration = duration;
         this.skills = skills;
         this.languageOptions = languageOptions;
+        this.otherDetails = otherDetails;
+        this.model = model;
     }
 
     public String getName() {
@@ -86,6 +88,19 @@ public class NewAssessmentDto {
     public void setLanguageOptions(List<String> languageOptions) {
         this.languageOptions = languageOptions;
     }
+
+    public String getOtherDetails() {
+        return otherDetails;
+    }
+
+    public void setOtherDetails(String otherDetails) {
+        this.otherDetails = otherDetails;
+    }
+    
+    public String getModel() {
+        return model;
+    }
+    public void setModel(String model) {
+        this.model = model;
+    }
 }
-
-

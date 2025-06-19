@@ -22,18 +22,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.delphi.delphi.components.GithubClient;
 import com.delphi.delphi.dtos.FetchAssessmentDto;
 import com.delphi.delphi.dtos.NewAssessmentDto;
 import com.delphi.delphi.entities.Assessment;
-import com.delphi.delphi.entities.User;
-import com.delphi.delphi.entities.UserChatHistory;
 import com.delphi.delphi.services.AssessmentService;
-import com.delphi.delphi.services.UserChatService;
-import com.delphi.delphi.services.UserService;
+import com.delphi.delphi.services.ChatService;
+import com.delphi.delphi.utils.AssessmentCreationPrompts;
 import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.AssessmentType;
-import com.delphi.delphi.utils.DelphiGithubConstants;
 
 import jakarta.validation.Valid;
 
@@ -42,15 +38,13 @@ import jakarta.validation.Valid;
 public class AssessmentController {
 
     private final AssessmentService assessmentService;
-    private final UserService userService;
-    private final GithubClient githubClient;
-    private final UserChatService chatHistoryService;
+    private final ChatService chatService;
 
-    public AssessmentController(AssessmentService assessmentService, UserService userService, GithubClient githubClient, UserChatService chatHistoryService) {
+    private final String assessmentCreationSystemPromptMessage = AssessmentCreationPrompts.SYSTEM_PROMPT;
+
+    public AssessmentController(AssessmentService assessmentService, ChatService chatService) {
         this.assessmentService = assessmentService;
-        this.userService = userService;
-        this.githubClient = githubClient;
-        this.chatHistoryService = chatHistoryService;
+        this.chatService = chatService;
     }
     
     // Create a new assessment
@@ -59,38 +53,23 @@ public class AssessmentController {
             @Valid @RequestBody NewAssessmentDto newAssessmentDto,
             @RequestParam Long userId) {
         try {
-            Assessment assessment = new Assessment();
-            assessment.setName(newAssessmentDto.getName());
-            assessment.setDescription(newAssessmentDto.getDescription());
-            assessment.setRoleName(newAssessmentDto.getRoleName());
-            assessment.setAssessmentType(newAssessmentDto.getAssessmentType());
-            assessment.setStartDate(newAssessmentDto.getStartDate());
-            assessment.setEndDate(newAssessmentDto.getEndDate());
-            assessment.setDuration(newAssessmentDto.getDuration());
-            assessment.setSkills(newAssessmentDto.getSkills());
-            assessment.setLanguageOptions(newAssessmentDto.getLanguageOptions());
-            
-            // Set user relationship
-            User user = userService.getUserById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-            
-            assessment.setUser(user);
+            Assessment assessment = assessmentService.createAssessment(newAssessmentDto, userId);
 
-            // create chat history
-            UserChatHistory chatHistory = new UserChatHistory(List.of(), assessment);
-            assessment.setChatHistory(chatHistory);
+            chatService.getChatCompletion(assessmentCreationSystemPromptMessage, 
+                                              Map.of("ROLE", newAssessmentDto.getRoleName(), 
+                                                     "ASSESSMENT_TYPE", newAssessmentDto.getAssessmentType(), 
+                                                     "DURATION", newAssessmentDto.getDuration(), 
+                                                     "SKILLS", newAssessmentDto.getSkills(), 
+                                                     "LANGUAGE_OPTIONS", newAssessmentDto.getLanguageOptions(), 
+                                                     "OTHER_DETAILS", newAssessmentDto.getOtherDetails()
+                                              ), 
+                                              newAssessmentDto.getOtherDetails(), 
+                                              newAssessmentDto.getModel());
             
-            // create github repo and add Delphi as a contributor
-            githubClient.createRepo(user.getGithubAccessToken(), assessment.getGithubRepoName());
-            githubClient.addContributor(user.getGithubAccessToken(), DelphiGithubConstants.DELPHI_GITHUB_NAME, assessment.getName(), user.getGithubUsername());
-            
-            chatHistoryService.createChatHistory(chatHistory);
-            Assessment createdAssessment = assessmentService.createAssessment(assessment);
-
             // agent loop
+            // userChatService.getChatCompletion(assessmentCreationSystemPromptMessage, Map.of("role", newAssessmentDto.getRoleName(), "experienceLevel", newAssessmentDto.getExperienceLevel(), "languages", newAssessmentDto.getLanguages(), "libraries", newAssessmentDto.getLibraries(), "frameworks", newAssessmentDto.getFrameworks(), "tools", newAssessmentDto.getTools()), newAssessmentDto.getDescription(), "gpt-4o-mini");
 
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(new FetchAssessmentDto(createdAssessment));
+            return ResponseEntity.status(HttpStatus.CREATED).body(new FetchAssessmentDto(assessment));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error creating assessment: " + e.getMessage());
         } catch (Exception e) {

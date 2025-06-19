@@ -16,8 +16,8 @@
 // import org.springframework.web.bind.annotation.RestController;
 
 // import com.delphi.delphi.dtos.NewUserMessageDto;
-// import com.delphi.delphi.entities.UserChatMessage;
-// import com.delphi.delphi.services.UserChatService;
+// import com.delphi.delphi.entities.ChatMessage;
+// import com.delphi.delphi.services.ChatService;
 // import static com.delphi.delphi.utils.RepoGenSystemPrompt.REPO_GEN_SYSTEM_PROMPT;
 
 // @RestController
@@ -33,7 +33,7 @@
 //     */
 // public class ChatController {
 
-//     private final UserChatService chatService;
+//     private final ChatService chatService;
 //     private final ChatClient llmClient;
 
 //     private final SystemMessage SYSTEM_PROMPT = new SystemMessage(REPO_GEN_SYSTEM_PROMPT);
@@ -41,7 +41,7 @@
 //      * chatService - Service for managing chat histories and messages
 //      * llmClient - Client for managing LLM API calls
 //      */
-//     public ChatController(UserChatService chatService, ChatClient.Builder chatClientBuilder) {
+//     public ChatController(ChatService chatService, ChatClient.Builder chatClientBuilder) {
 //         this.chatService = chatService;
 //         this.llmClient = chatClientBuilder.build();
 //     }
@@ -60,7 +60,7 @@
 //             System.out.println(response.getMessages().get(0).getContent());
 
 //             // storing message in DB
-//             UserChatMessage createdMessage = chatService.addMessageToChatHistory(messageDto.getMessage(), messageDto.getChatHistoryId(), UserChatMessage.MessageSender.USER);
+//             ChatMessage createdMessage = chatService.addMessageToChatHistory(messageDto.getMessage(), messageDto.getChatHistoryId(), ChatMessage.MessageSender.USER);
 //             return ResponseEntity.ok(createdMessage);
 //         } catch (Exception e) {
 //             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -72,7 +72,7 @@
 //     @GetMapping("/messages/{chatMessageId}")
 //     public ResponseEntity<?> getMessage(@PathVariable Long chatMessageId) {
 //         try {
-//             UserChatMessage message = chatService.getMessageById(chatMessageId);
+//             ChatMessage message = chatService.getMessageById(chatMessageId);
 //             return ResponseEntity.ok(message);
 //         } catch (Exception e) {
 //             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -84,7 +84,7 @@
 //     @GetMapping("/messages/chat-history/{chatHistoryId}")
 //     public ResponseEntity<?> getMessagesByChatHistoryId(@PathVariable Long chatHistoryId) {
 //         try {
-//             List<UserChatMessage> messages = chatService.getMessagesByChatHistoryId(chatHistoryId);
+//             List<ChatMessage> messages = chatService.getMessagesByChatHistoryId(chatHistoryId);
 //             return ResponseEntity.ok(messages);
 //         } catch (Exception e) {
 //             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
