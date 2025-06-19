@@ -24,8 +24,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.delphi.delphi.dtos.FetchCandidateAttemptDto;
 import com.delphi.delphi.dtos.NewCandidateAttemptDto;
 import com.delphi.delphi.entities.Assessment;
-import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
+import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.CandidateAttemptService;
 import com.delphi.delphi.utils.AttemptStatus;
 
@@ -34,31 +34,36 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/candidate-attempts")
 public class CandidateAttemptController {
+    private final AssessmentService assessmentService;
     
     @Autowired
     private CandidateAttemptService candidateAttemptService;
+
+    public CandidateAttemptController(AssessmentService assessmentService) {
+        this.assessmentService = assessmentService;
+    }
     
     // Create a new candidate attempt
     @PostMapping
-    public ResponseEntity<?> createCandidateAttempt(@Valid @RequestBody NewCandidateAttemptDto newCandidateAttemptDto) {
+    public ResponseEntity<?> startCandidateAttempt(@Valid @RequestBody NewCandidateAttemptDto newCandidateAttemptDto) {
         try {
-            CandidateAttempt candidateAttempt = new CandidateAttempt();
-            candidateAttempt.setGithubRepositoryLink(newCandidateAttemptDto.getGithubRepositoryLink());
-            candidateAttempt.setLanguageChoice(newCandidateAttemptDto.getLanguageChoice());
-            candidateAttempt.setStatus(newCandidateAttemptDto.getStatus());
-            candidateAttempt.setStartedDate(newCandidateAttemptDto.getStartedDate());
-            
-            // Set candidate relationship
-            Candidate candidate = new Candidate();
-            candidate.setId(newCandidateAttemptDto.getCandidateId());
-            candidateAttempt.setCandidate(candidate);
-            
-            // Set assessment relationship
-            Assessment assessment = new Assessment();
-            assessment.setId(newCandidateAttemptDto.getAssessmentId());
-            candidateAttempt.setAssessment(assessment);
-            
-            CandidateAttempt createdAttempt = candidateAttemptService.createCandidateAttempt(candidateAttempt);
+            Assessment assessment = assessmentService.getAssessmentByIdOrThrow(newCandidateAttemptDto.getAssessmentId());
+            // return error if an invalid language choice is provided
+            if (!assessment.getLanguageOptions().isEmpty() && newCandidateAttemptDto.getLanguageChoice().isPresent() && !assessment.getLanguageOptions().contains(newCandidateAttemptDto.getLanguageChoice().get())) {
+                return ResponseEntity.badRequest().body("Language choice not supported for this assessment");
+            }
+
+            // return error if language choice is provided for an assessment that does not support it
+            if (assessment.getLanguageOptions().isEmpty() && newCandidateAttemptDto.getLanguageChoice().isPresent()) {
+                return ResponseEntity.badRequest().body("This assessment does not support language choice.");
+            }
+
+            CandidateAttempt createdAttempt = candidateAttemptService.startAttempt(
+                                                newCandidateAttemptDto.getCandidateId(), 
+                                                newCandidateAttemptDto.getAssessmentId(), 
+                                                newCandidateAttemptDto.getLanguageChoice(),
+                                                newCandidateAttemptDto.getStatus(),
+                                                newCandidateAttemptDto.getStartedDate());
             return ResponseEntity.status(HttpStatus.CREATED).body(new FetchCandidateAttemptDto(createdAttempt));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error creating candidate attempt: " + e.getMessage());
@@ -113,7 +118,7 @@ public class CandidateAttemptController {
         try {
             CandidateAttempt updateAttempt = new CandidateAttempt();
             updateAttempt.setGithubRepositoryLink(attemptUpdates.getGithubRepositoryLink());
-            updateAttempt.setLanguageChoice(attemptUpdates.getLanguageChoice());
+            updateAttempt.setLanguageChoice(attemptUpdates.getLanguageChoice().orElse(null));
             updateAttempt.setStatus(attemptUpdates.getStatus());
             
             CandidateAttempt updatedAttempt = candidateAttemptService.updateCandidateAttempt(id, updateAttempt);
@@ -379,20 +384,51 @@ public class CandidateAttemptController {
                 .body("Error retrieving attempt details: " + e.getMessage());
         }
     }
-    
-    // Start attempt
-    @PostMapping("/{id}/start")
-    public ResponseEntity<?> startAttempt(@PathVariable Long id) {
+
+    // TODO: when candidate starts the assessment, we need to authenticate them based on their email
+    @PostMapping("/{id}/authenticate_candidate")
+    public ResponseEntity<?> inviteCandidateToAssessment(@PathVariable Long id, @RequestBody String email) {
         try {
-            CandidateAttempt attempt = candidateAttemptService.startAttempt(id);
-            return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt));
-        } catch (IllegalStateException | IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Error starting attempt: " + e.getMessage());
+            Assessment assessment = assessmentService.getAssessmentByIdOrThrow(id);
+            if (assessment.getCandidates().stream().anyMatch(c -> c.getEmail().toLowerCase().equals(email.toLowerCase()))) {
+                return ResponseEntity.ok("Candidate authenticated");
+            } else {
+                return ResponseEntity.badRequest().body("Candidate not authorized to take this assessment");
+            }
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error starting attempt: " + e.getMessage());
+                .body("Error authenticating candidate: " + e.getMessage() + " " + email + " - is this candidate authorized to take this assessment?");
         }
     }
+    
+    // Start attempt
+    // @PostMapping("/{assessmentId}/start")
+    // public ResponseEntity<?> startAttempt(@PathVariable Long assessmentId, @RequestBody Long candidateId, @RequestBody Optional<String> languageChoice) {
+    //     try {
+    //         Assessment assessment = assessmentService.getAssessmentByIdOrThrow(assessmentId);
+    //         // return error if an invalid language choice is provided
+    //         if (!assessment.getLanguageOptions().isEmpty() && languageChoice.isPresent() && !assessment.getLanguageOptions().contains(languageChoice.get())) {
+    //             return ResponseEntity.badRequest().body("Language choice not supported for this assessment");
+    //         }
+
+    //         // return error if language choice is provided for an assessment that does not support it
+    //         if (assessment.getLanguageOptions().isEmpty() && languageChoice.isPresent()) {
+    //             return ResponseEntity.badRequest().body("This assessment does not support language choice.");
+    //         }
+
+    //         // return error if candidate is not found
+    //         // Candidate candidate = candidateService.getCandidateByIdOrThrow(candidateId);
+
+    //         // start the attempt
+    //         CandidateAttempt attempt = candidateAttemptService.startAttempt(candidateId, assessmentId, languageChoice);
+    //         return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt));
+    //     } catch (IllegalStateException | IllegalArgumentException e) {
+    //         return ResponseEntity.badRequest().body("Error starting attempt: " + e.getMessage());
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error starting attempt: " + e.getMessage());
+    //     }
+    // }
     
     // Submit attempt
     @PostMapping("/{id}/submit")

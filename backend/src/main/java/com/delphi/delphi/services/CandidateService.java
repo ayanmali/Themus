@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -18,11 +17,14 @@ import com.delphi.delphi.repositories.CandidateRepository;
 @Transactional
 public class CandidateService {
     
-    @Autowired
-    private CandidateRepository candidateRepository;
+    private final CandidateRepository candidateRepository;
     
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
+
+    public CandidateService(CandidateRepository candidateRepository, UserService userService) {
+        this.candidateRepository = candidateRepository;
+        this.userService = userService;
+    }
     
     // Create a new candidate
     public Candidate createCandidate(Candidate candidate) {
@@ -38,7 +40,15 @@ public class CandidateService {
         
         return candidateRepository.save(candidate);
     }
-    
+
+    public Candidate createCandidate(String firstName, String lastName, String email, User user) {
+        Candidate candidate = new Candidate();
+        candidate.setFirstName(firstName);
+        candidate.setLastName(lastName);
+        candidate.setEmail(email);
+        candidate.setUser(user);
+        return createCandidate(candidate);
+    }
     // Get candidate by ID
     @Transactional(readOnly = true)
     public Optional<Candidate> getCandidateById(Long id) {

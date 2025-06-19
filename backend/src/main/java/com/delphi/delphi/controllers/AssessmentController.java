@@ -82,7 +82,7 @@ public class AssessmentController {
     public ResponseEntity<?> getAssessmentById(@PathVariable Long id) {
         try {
             Optional<Assessment> assessment = assessmentService.getAssessmentById(id);
-            if (assessment.isPresent()) {
+            if (assessment.isPresent() && assessment.get().getStatus() == AssessmentStatus.ACTIVE) {
                 return ResponseEntity.ok(new FetchAssessmentDto(assessment.get()));
             } else {
                 return ResponseEntity.notFound().build();

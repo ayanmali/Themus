@@ -1,12 +1,13 @@
 package com.delphi.delphi.dtos;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import com.delphi.delphi.utils.AttemptStatus;
 
 public class NewCandidateAttemptDto {
     private String githubRepositoryLink;
-    private String languageChoice;
+    private Optional<String> languageChoice;
     private Long candidateId;
     private Long assessmentId;
     private AttemptStatus status;
@@ -15,7 +16,7 @@ public class NewCandidateAttemptDto {
     public NewCandidateAttemptDto() {
     }
 
-    public NewCandidateAttemptDto(String githubRepositoryLink, String languageChoice, Long candidateId, Long assessmentId) {
+    public NewCandidateAttemptDto(String githubRepositoryLink, Optional<String> languageChoice, Long candidateId, Long assessmentId) {
         this.githubRepositoryLink = githubRepositoryLink;
         this.languageChoice = languageChoice;
         this.candidateId = candidateId;
@@ -32,11 +33,11 @@ public class NewCandidateAttemptDto {
         this.githubRepositoryLink = githubRepositoryLink;
     }
 
-    public String getLanguageChoice() {
+    public Optional<String> getLanguageChoice() {
         return languageChoice;
     }
 
-    public void setLanguageChoice(String languageChoice) {
+    public void setLanguageChoice(Optional<String> languageChoice) {
         this.languageChoice = languageChoice;
     }
 

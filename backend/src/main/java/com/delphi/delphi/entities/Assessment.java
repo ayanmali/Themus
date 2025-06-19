@@ -301,6 +301,10 @@ public class Assessment {
         this.candidates = candidates;
     }
 
+    public void addCandidate(Candidate candidate) {
+        this.candidates.add(candidate);
+    }
+
     public ChatHistory getChatHistory() {
         return chatHistory;
     }

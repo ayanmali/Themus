@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.delphi.delphi.components.GithubClient;
 import com.delphi.delphi.dtos.NewAssessmentDto;
 import com.delphi.delphi.entities.Assessment;
+import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.ChatHistory;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.repositories.AssessmentRepository;
@@ -25,16 +26,19 @@ import com.delphi.delphi.utils.DelphiGithubConstants;
 @Transactional
 public class AssessmentService {
 
+    private final CandidateService candidateService;
+
     private final AssessmentRepository assessmentRepository;
     private final UserService userService;
     private final ChatService chatService;
     private final GithubClient githubClient;
 
-    public AssessmentService(AssessmentRepository assessmentRepository, UserService userService, ChatService chatService, GithubClient githubClient) {
+    public AssessmentService(AssessmentRepository assessmentRepository, UserService userService, ChatService chatService, GithubClient githubClient, CandidateService candidateService) {
         this.assessmentRepository = assessmentRepository;
         this.userService = userService;
         this.chatService = chatService;
         this.githubClient = githubClient;
+        this.candidateService = candidateService;
     }
 
     // Create a new assessment
@@ -289,6 +293,20 @@ public class AssessmentService {
         if (assessment.getSkills() != null && !assessment.getSkills().contains(skill)) {
             assessment.getSkills().add(skill);
         }
+        return assessmentRepository.save(assessment);
+    }
+
+    public Assessment addCandidateFromExisting(Long assessmentId, Long candidateId) {
+        Assessment assessment = getAssessmentByIdOrThrow(assessmentId);
+        Candidate candidate = candidateService.getCandidateByIdOrThrow(candidateId);
+        assessment.addCandidate(candidate);
+        return assessmentRepository.save(assessment);
+    }
+
+    public Assessment addCandidateFromNew(Long assessmentId, String firstName, String lastName, String email) {
+        Assessment assessment = getAssessmentByIdOrThrow(assessmentId);
+        Candidate candidate = candidateService.createCandidate(firstName, lastName, email, assessment.getUser());
+        assessment.addCandidate(candidate);
         return assessmentRepository.save(assessment);
     }
 
