@@ -181,10 +181,10 @@ public class GithubClient {
         return restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
     }
 
-    public String sendMessageToUser(String message, Long chatHistoryId) {
+    public String sendMessageToUser(String text, Long chatHistoryId) {
         try {
-            chatService.addMessageToChatHistory(message, chatHistoryId, MessageType.ASSISTANT);
-            return message;
+            chatService.addMessageToChatHistory(text, chatHistoryId, MessageType.ASSISTANT, "N/A", Map.of());
+            return text;
         } catch (Exception e) {
             return "Error sending message: " + e.getMessage();
         }
