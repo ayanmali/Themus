@@ -3,6 +3,7 @@ import { Clock, Code, BookOpen, Users, CheckCircle, AlertCircle, Play } from 'lu
 import { Assessment } from '@/lib/types/assessment';
 import { minutesToHours } from '@/lib/utils';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 
 // Mock data for the assessment
 const assessmentData: Assessment = {
@@ -52,6 +53,7 @@ const assessmentData: Assessment = {
 
 export default function CandidateAssessmentInvite() {
     const [selectedLanguage, setSelectedLanguage] = useState('');
+    const [email, setEmail] = useState('');
     const [isStarting, setIsStarting] = useState(false);
 
     const handleStart = () => {
@@ -164,7 +166,7 @@ export default function CandidateAssessmentInvite() {
                         {/* Language Selection */}
                         {assessmentData.languageOptions?.length && (
                             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                                <h3 className="text-lg font-semibold text-white mb-4">Choose Your Stack</h3>
+                                <h3 className="text-lg font-semibold text-white mb-4">Choose your stack</h3>
                                 <div className="space-y-2">
                                     {/* <label className="block text-sm font-medium text-gray-300 mb-2">
                                         Language/Framework Combination
@@ -201,6 +203,34 @@ export default function CandidateAssessmentInvite() {
                                     </Select>
                                 </div>
                             </div>)}
+
+                        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                            <h3 className="text-lg font-semibold text-white mb-4">Enter your email address</h3>
+                            <div className="space-y-2">
+                                {/* <label className="block text-sm font-medium text-gray-300 mb-2">
+                                        Language/Framework Combination
+                                    </label> */}
+                                {/* <select
+                                    value={selectedLanguage}
+                                    onChange={(e) => setSelectedLanguage(e.target.value)}
+                                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="">Select your preferred language...</option>
+                                    {assessmentData.languageOptions?.map((option) => (
+                                        <option key={option.replace(" ", "-").toLowerCase()} value={option}>
+                                            {option}
+                                        </option>
+                                    ))}
+                                </select> */}
+                                <Input
+                                    type="email"
+                                    placeholder="Enter your email address"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-11/12 bg-slate-700 text-gray-100"
+                                />
+                            </div>
+                        </div>
 
                         {/* Start Button */}
                         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">

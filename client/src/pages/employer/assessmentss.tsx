@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Calendar, Clock, ExternalLink, Link2, MoreHorizontal, Pause, Play, Plus, Trash2, X, Edit3, Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, ExternalLink, Link2, MoreHorizontal, Pause, Play, Plus, Trash2, X, Edit3, Check, ChevronLeft, ChevronRight, Smile, Calculator, User, CreditCard, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AppShell } from "@/components/layout/app-shell";
@@ -8,6 +8,10 @@ import { Link } from "wouter";
 import AssessmentPagination from "@/components/ui/AssessmentPagination";
 import { ChatMessageList } from "@/components/ui/chat-message-list";
 import { ChatMessageListExample } from "@/components/blocks/chat-msg-list";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, CommandShortcut } from "@/components/ui/command";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function EmployerAssessments() {
     const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
@@ -31,6 +35,12 @@ export default function EmployerAssessments() {
     // Add these state variables after your existing useState declarations
     const [candidateSearchTerm, setCandidateSearchTerm] = useState('');
     const [candidateStatusFilter, setCandidateStatusFilter] = useState<string>('all');
+
+    // Command open state
+    const [isCommandOpen, setIsCommandOpen] = useState(false);
+
+    // Add this state variable with your other useState declarations at the top of the component
+    const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([]);
 
     // Sample assessment data
     const assessments: Assessment[] = [
@@ -404,56 +414,20 @@ export default function EmployerAssessments() {
                                     </div>
                                 </div>
 
-                                <div className="mb-8">
+                                <div className="mb-8 bg-slate-700 rounded-lg p-4">
                                     <h3 className="text-xl font-semibold mb-4">Skills, Technologies, and Focus Areas</h3>
                                     <p className="text-gray-300 leading-relaxed">{selectedAssessment.skills.join(', ')}</p>
                                 </div>
 
-                                <div className="mb-8">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <h3 className="text-xl font-semibold">Description</h3>
-                                        {!isEditingDescription && (
-                                            <button
-                                                onClick={startEditingDescription}
-                                                className="p-1 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
-                                            >
-                                                <Edit3 size={16} />
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {isEditingDescription ? (
-                                        <div className="space-y-4">
-                                            <textarea
-                                                value={tempDescription}
-                                                onChange={(e) => setTempDescription(e.target.value)}
-                                                className="w-full bg-gray-700 text-white px-4 py-3 rounded border border-gray-500 focus:border-blue-400 focus:outline-none resize-vertical min-h-[100px]"
-                                                autoFocus
-                                            />
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={saveDescription}
-                                                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
-                                                >
-                                                    Save
-                                                </button>
-                                                <button
-                                                    onClick={cancelDescriptionEdit}
-                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
-                                                >
-                                                    Cancel
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <p className="text-gray-300 leading-relaxed">{editedAssessment?.description}</p>
-                                    )}
-                                </div>
-
-                                <div className="mb-8 border-t border-b border-slate-600 pt-8 pb-8">
+                                <div className="mb-8 bg-slate-700 rounded-lg p-4">
                                     <div className="flex items-center justify-between mb-8">
                                         <h3 className="text-xl font-semibold">Candidates</h3>
-                                        <DropdownMenu>
+                                        <Button variant="default" className="w-fit p-2 px-4 hover:bg-slate-700 hover:text-white rounded-lg border border-slate-700 transition-colors"
+                                            onClick={() => setIsCommandOpen(true)}>
+                                            <Plus size={16} />
+                                            <span>Add</span>
+                                        </Button>
+                                        {/* <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="default" className="w-1/12 p-2 hover:bg-slate-700 hover:text-white rounded-lg border border-slate-700 transition-colors">
                                                     Add
@@ -461,16 +435,18 @@ export default function EmployerAssessments() {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
                                                 <DropdownMenuGroup>
-                                                    <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                    <DropdownMenuItem
+                                                        className="hover:bg-slate-700 transition-colors hover:text-white"
+                                                        onClick={() => setIsCommandOpen(true)}
+                                                    >
                                                         Add candidate to assessment
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
                                                         Bulk import from CSV
                                                     </DropdownMenuItem>
-                                                    
                                                 </DropdownMenuGroup>
                                             </DropdownMenuContent>
-                                        </DropdownMenu>
+                                        </DropdownMenu> */}
                                     </div>
 
                                     <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -480,7 +456,7 @@ export default function EmployerAssessments() {
                                                 placeholder="Search candidates by name or email..."
                                                 value={candidateSearchTerm}
                                                 onChange={(e) => setCandidateSearchTerm(e.target.value)}
-                                                className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-400 focus:outline-none placeholder-gray-400"
+                                                className="w-full bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-400 focus:outline-none placeholder-gray-400"
                                             />
                                         </div>
 
@@ -488,7 +464,7 @@ export default function EmployerAssessments() {
                                             <select
                                                 value={candidateStatusFilter}
                                                 onChange={(e) => setCandidateStatusFilter(e.target.value)}
-                                                className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-400 focus:outline-none"
+                                                className="w-full bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-400 focus:outline-none"
                                             >
                                                 <option value="all">All Statuses</option>
                                                 <option value="invited">Invited</option>
@@ -510,7 +486,7 @@ export default function EmployerAssessments() {
                                             paginatedCandidates.map((candidate) => (
                                                 <div
                                                     key={candidate.id}
-                                                    className="bg-gray-700 rounded-lg p-4 flex items-center justify-between hover:bg-gray-650 transition-colors"
+                                                    className="bg-gray-800 rounded-lg p-4 flex items-center justify-between hover:bg-gray-650 transition-colors"
                                                 >
                                                     <div className="flex-1">
                                                         <div className="flex items-center gap-4">
@@ -590,27 +566,114 @@ export default function EmployerAssessments() {
                                     )}
                                 </div>
 
-                                <div className="mb-8">
+                                <Dialog open={isCommandOpen} onOpenChange={setIsCommandOpen}>
+                                    <DialogContent className="sm:max-w-[500px] p-0 bg-slate-800 text-white border-slate-500">
+                                        <DialogHeader className="px-6 pt-6">
+                                            <DialogTitle>Add candidates to assessment</DialogTitle>
+                                            <DialogDescription>
+                                                Search and select a candidate to add to the assessment.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        
+                                        <div className="px-6">
+                                            <Command className="rounded-lg border border-gray-600 bg-slate-800 text-white">
+                                                <CommandInput 
+                                                    placeholder="Search candidates by name or email..." 
+                                                    className="border-none focus:ring-0"
+                                                />
+                                                <Button variant="ghost" className="w-full p-2 pt-5 pb-5 justify-start font-light">
+                                                    <Plus size={16} />
+                                                    <span>Add new candidate</span>
+                                                </Button>
+
+                                                <CommandList className="max-h-[300px] overflow-y-auto">
+                                                    <CommandEmpty>No candidates found.</CommandEmpty>
+                                                    <CommandGroup heading="Available Candidates">
+                                                        {candidates.map((candidate) => (
+                                                            <CommandItem 
+                                                                key={candidate.id}
+                                                                className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-700"
+                                                                onSelect={() => {
+                                                                    setSelectedCandidateIds(prev => 
+                                                                        prev.includes(candidate.id) 
+                                                                            ? prev.filter(id => id !== candidate.id)
+                                                                            : [...prev, candidate.id]
+                                                                    );
+                                                                }}
+                                                            >
+                                                                <div className="flex items-center justify-center w-4 h-4 border border-gray-400 rounded">
+                                                                    {selectedCandidateIds.includes(candidate.id) && (
+                                                                        <Check size={12} className="text-blue-400" />
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex flex-col flex-1">
+                                                                    <span className="font-medium text-white">{candidate.name}</span>
+                                                                    <span className="text-sm text-gray-400">{candidate.email}</span>
+                                                                </div>
+                                                                <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize text-white ${getStatusColor(candidate.status)}`}>
+                                                                    {candidate.status}
+                                                                </span>
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </div>
+
+                                        <DialogFooter className="px-6 pb-6">
+                                            <div className="flex items-center justify-between w-full">
+                                                <span className="text-sm text-gray-400">
+                                                    {selectedCandidateIds.length} candidate{selectedCandidateIds.length !== 1 ? 's' : ''} selected
+                                                </span>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        variant="secondary"
+                                                        onClick={() => {
+                                                            setIsCommandOpen(false);
+                                                            setSelectedCandidateIds([]);
+                                                        }}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                    <Button 
+                                                        type="submit"
+                                                        disabled={selectedCandidateIds.length === 0}
+                                                        onClick={() => {
+                                                            console.log('Adding candidates:', selectedCandidateIds);
+                                                            // Handle adding selected candidates here
+                                                            setIsCommandOpen(false);
+                                                            setSelectedCandidateIds([]);
+                                                        }}
+                                                    >
+                                                        Add {selectedCandidateIds.length} Candidate{selectedCandidateIds.length !== 1 ? 's' : ''}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+
+                                <div className="mb-8 bg-gray-700 rounded-lg p-4">
                                     <div className="flex items-center justify-between mb-4">
                                         <h3 className="text-xl font-semibold">Metadata</h3>
                                     </div>
 
                                     <div className="space-y-4 mb-6">
                                         {editedAssessment && Object.entries(editedAssessment?.metadata || {}).map(([key, value]) => (
-                                            <div key={key} className="bg-gray-700 rounded-lg p-4 flex items-center gap-4">
+                                            <div key={key} className="bg-gray-800 rounded-lg p-4 flex items-center gap-4">
                                                 <div className="flex-1 grid grid-cols-2 gap-4">
                                                     <input
                                                         type="text"
                                                         value={key}
                                                         onChange={(e) => updateMetadataField(key, e.target.value, value)}
-                                                        className="bg-gray-600 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
+                                                        className="bg-gray-700 text-white px-3 py-2 border rounded-md border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
                                                         placeholder="Field name"
                                                     />
                                                     <input
                                                         type="text"
                                                         value={value}
                                                         onChange={(e) => updateMetadataField(key, key, e.target.value)}
-                                                        className="bg-gray-600 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
+                                                        className="bg-gray-700 text-white px-3 py-2 rounded-md border border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
                                                         placeholder="Field value"
                                                     />
                                                 </div>
@@ -630,14 +693,14 @@ export default function EmployerAssessments() {
                                                 type="text"
                                                 value={newMetadataKey}
                                                 onChange={(e) => setNewMetadataKey(e.target.value)}
-                                                className="bg-gray-600 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none"
+                                                className="bg-gray-700 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
                                                 placeholder="New field name"
                                             />
                                             <input
                                                 type="text"
                                                 value={newMetadataValue}
                                                 onChange={(e) => setNewMetadataValue(e.target.value)}
-                                                className="bg-gray-600 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none"
+                                                className="bg-gray-700 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
                                                 placeholder="New field value"
                                             />
                                         </div>

@@ -46,7 +46,7 @@ function Router() {
       {/* Candidate Routes */}
       {/* <Route path="/start-assessment/{assessment_id}" component={StartAssessment} /> */}
       {/* <Route path="/candidate/dashboard" component={CandidateDashboard} /> */}
-      <Route path="/invite/:assessment_id" component={CandidateAssessmentInvite} />
+      <Route path="/invite" component={CandidateAssessmentInvite} />
       <ProtectedRoute path="/candidate/assessments" component={CandidateAssessments} role="candidate" />
       <ProtectedRoute path="/candidate/profile" component={CandidateProfile} role="candidate" />
       
