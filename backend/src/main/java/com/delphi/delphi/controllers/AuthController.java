@@ -24,6 +24,7 @@ import com.delphi.delphi.services.UserService;
 @RequestMapping("/api/auth")
 public class AuthController {
 
+    // github client id and secret
     @Value("${spring.security.oauth2.client.registration.github.client-id}")
     private String clientId;
 
@@ -44,15 +45,9 @@ public class AuthController {
         this.githubClient = githubClient;
     }
 
-    // public void redirectToGitHub(HttpServletResponse response) throws IOException {
-    //     String redirectUri = URLEncoder.encode("http://localhost:8080/oauth/callback", StandardCharsets.UTF_8);
-    //     String githubAuthUrl = "https://github.com/login/oauth/authorize?client_id=" + clientId + "&redirect_uri="
-    //             + redirectUri + "&scope=repo,user";
-    //     response.sendRedirect(githubAuthUrl);
-    // }
-
     @GetMapping("/oauth/github/callback")
     /*
+     * This endpoint is automatically called by GitHub after the user has authenticated.
      * Sends a POST request to the GitHub API to get an access token.
      * The access token is used to authenticate the user with the GitHub API.
      * The access token is stored in the database.
