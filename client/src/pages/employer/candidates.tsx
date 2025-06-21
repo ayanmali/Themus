@@ -7,39 +7,40 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { CandidateCard } from "@/components/candidate-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Candidate } from "@/lib/types/assessment";
 
 export default function EmployerCandidates() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Mock candidates for demonstration
-  const candidates = [
+  const candidates: Candidate[] = [
     {
       id: 1,
       name: "John Doe",
       email: "john.doe@example.com",
-      profileImage: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-      currentAssessment: "Frontend Developer Assessment",
-      assessmentStatus: "completed",
-      completionDate: "Jan 15, 2023",
-      skills: ["React", "JavaScript", "Frontend"]
+      //profileImage: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
+      // currentAssessment: "Frontend Developer Assessment",
+      // assessmentStatus: "completed",
+      // completionDate: "Jan 15, 2023",
+      // skills: ["React", "JavaScript", "Frontend"]
     },
     {
       id: 2,
       name: "Alice Johnson",
       email: "alice.johnson@example.com",
-      profileImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-      currentAssessment: "Backend Developer Assessment",
-      assessmentStatus: "in_progress",
-      daysRemaining: 2,
-      skills: ["Node.js", "Express", "Backend"]
+      //profileImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
+      // currentAssessment: "Backend Developer Assessment",
+      // assessmentStatus: "in_progress",
+      // daysRemaining: 2,
+      // skills: ["Node.js", "Express", "Backend"]
     },
     {
       id: 3,
       name: "Michael Smith",
       email: "michael.smith@example.com",
-      profileImage: "https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-      assessmentStatus: "available",
-      skills: ["DevOps", "Docker", "CI/CD"]
+      //profileImage: "https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
+      // assessmentStatus: "available",
+      // skills: ["DevOps", "Docker", "CI/CD"]
     }
   ];
 
@@ -88,7 +89,7 @@ export default function EmployerCandidates() {
       </div>
 
       {/* Filters */}
-      <div className="bg-slate-600 text-gray-100 shadow-md px-4 py-5 sm:rounded-lg sm:p-6 mb-6">
+      <div className="bg-slate-800 text-gray-100 shadow-md px-4 py-5 sm:rounded-lg sm:p-6 mb-6 border border-slate-700">
         <div className="md:flex md:items-center md:justify-between">
           <div className="flex-1 min-w-0">
             <h2 className="text-lg leading-6 font-medium">Filters</h2>
@@ -171,12 +172,11 @@ export default function EmployerCandidates() {
               id={candidate.id}
               name={candidate.name}
               email={candidate.email}
-              profileImage={candidate.profileImage}
-              currentAssessment={candidate.currentAssessment}
-              assessmentStatus={candidate.assessmentStatus}
-              completionDate={candidate.completionDate}
-              daysRemaining={candidate.daysRemaining}
-              skills={candidate.skills}
+              // currentAssessment={candidate.currentAssessment}
+              // assessmentStatus={candidate.assessmentStatus}
+              // completionDate={candidate.completionDate}
+              // daysRemaining={candidate.daysRemaining}
+              // skills={candidate.skills}
             />
           ))
         )}

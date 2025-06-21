@@ -1,5 +1,5 @@
 export type Assessment = {
-    id: string;
+    id: number;
     role: string; // ex. Software Engineering Intern, Senior Data Scientist, etc.
     employerId: string; // ex. "Google", "Meta", "Amazon", etc.
     description: string; // job and/or assessment description
@@ -20,10 +20,20 @@ export type Assessment = {
 }
 
 export type Candidate = {
-    id: string;
+    id: number;
     name: string;
     email: string;
-    status: 'invited' | 'started' | 'submitted' | 'evaluated';
-    appliedAt: Date;
+    // status: 'invited' | 'started' | 'submitted' | 'evaluated';
+    appliedAt?: Date;
     // startedAt?: Date | null;
+}
+
+export type CandidateAttempt = {
+    id: number;
+    candidateId: number;
+    assessmentId: number;
+    status: 'started' | 'submitted' | 'evaluated';
+    startedAt?: Date | null;
+    submittedAt?: Date | null;
+    evaluatedAt?: Date | null;
 }

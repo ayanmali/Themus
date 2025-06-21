@@ -14,7 +14,7 @@ export function AppShell({ children, title }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
-    <div className="h-screen flex overflow-hidden bg-slate-700">
+    <div className="h-screen flex overflow-hidden bg-slate-800">
       {/* Sidebar for larger screens and mobile when open */}
       <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
 

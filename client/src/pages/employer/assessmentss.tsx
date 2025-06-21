@@ -3,7 +3,7 @@ import { ArrowLeft, Calendar, Clock, ExternalLink, Link2, MoreHorizontal, Pause,
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AppShell } from "@/components/layout/app-shell";
-import { Assessment, Candidate } from "@/lib/types/assessment";
+import { Assessment, Candidate, CandidateAttempt } from "@/lib/types/assessment";
 import { Link } from "wouter";
 import AssessmentPagination from "@/components/ui/AssessmentPagination";
 import { ChatMessageList } from "@/components/ui/chat-message-list";
@@ -45,7 +45,7 @@ export default function EmployerAssessments() {
     // Sample assessment data
     const assessments: Assessment[] = [
         {
-            id: '1',
+            id: 1,
             role: 'Senior Software Engineer',
             employerId: '123',
             description: 'Full-stack development assessment focusing on system design and microservices architecture. Candidates will build a scalable web application with proper testing and documentation.',
@@ -54,8 +54,8 @@ export default function EmployerAssessments() {
             updatedAt: new Date('2024-02-01'),
             name: 'Backend SWE Microservices Assessment',
             status: 'active',
-            startDate: new Date('2024-02-01'),
-            endDate: new Date('2024-02-15'),
+            startDate: new Date('2025-06-01'),
+            endDate: new Date('2025-06-15'),
             type: 'take-home',
             repoLink: 'https://github.com/company/backend-swe-assessment',
             metadata: {
@@ -65,7 +65,7 @@ export default function EmployerAssessments() {
             }
         },
         {
-            id: '2',
+            id: 2,
             role: 'Data Scientist Intern',
             employerId: '456',
             description: 'Machine learning assessment covering data analysis, model building, and statistical interpretation. Focus on real-world data processing and visualization.',
@@ -74,8 +74,8 @@ export default function EmployerAssessments() {
             updatedAt: new Date('2024-01-25'),
             name: 'ML Data Analysis Challenge',
             status: 'inactive',
-            startDate: new Date('2024-03-01'),
-            endDate: new Date('2024-03-10'),
+            startDate: new Date('2025-06-07'),
+            endDate: new Date('2025-06-14'),
             type: 'take-home',
             repoLink: 'https://github.com/company/ml-data-assessment',
             metadata: {
@@ -84,7 +84,7 @@ export default function EmployerAssessments() {
             }
         },
         {
-            id: '3',
+            id: 3,
             role: 'Quantitative Development Intern',
             employerId: '789',
             description: 'Quantitative Development Intern assessment focusing on performant backtesting engine design. Candidates will build a backtesting engine in C++ that can backtest a trading strategy on a given dataset.',
@@ -93,10 +93,30 @@ export default function EmployerAssessments() {
             updatedAt: new Date('2024-01-25'),
             name: 'Quant Development Intern Assessment',
             status: 'active',
-            startDate: new Date('2024-03-01'),
-            endDate: new Date('2024-03-10'),
+            startDate: new Date('2025-06-14'),
+            endDate: new Date('2025-06-21'),
             type: 'take-home',
             repoLink: 'https://github.com/company/quant-development-intern-assessment',
+            metadata: {
+                'Duration': '7 days',
+                'Difficulty': 'Junior Level',
+                'Focus Areas': 'System Design, API Development'
+            }
+        },
+        {
+            id: 4,
+            role: 'Backend SWE Intern',
+            employerId: '789',
+            description: 'Backend development Intern assessment focusing on proficiency in the Go programming language and concurrent programming.',
+            skills: ['Go', 'Mutexes', 'Goroutines', 'Concurrency', 'Multithreading'],
+            createdAt: new Date('2024-01-25'),
+            updatedAt: new Date('2024-01-25'),
+            name: 'Backend SWE Intern Assessment',
+            status: 'active',
+            startDate: new Date('2025-06-14'),
+            endDate: new Date('2025-06-21'),
+            type: 'take-home',
+            repoLink: 'https://github.com/company/backend-swe-intern-assessment',
             metadata: {
                 'Duration': '7 days',
                 'Difficulty': 'Junior Level',
@@ -107,21 +127,34 @@ export default function EmployerAssessments() {
 
     // Sample candidates data
     const candidates: Candidate[] = [
-        { id: '1', name: 'Alice Johnson', email: 'alice.johnson@email.com', status: 'evaluated', appliedAt: new Date('2024-02-01') },
-        { id: '2', name: 'Bob Smith', email: 'bob.smith@email.com', status: 'submitted', appliedAt: new Date('2024-02-02') },
-        { id: '3', name: 'Carol Davis', email: 'carol.davis@email.com', status: 'started', appliedAt: new Date('2024-02-03') },
-        { id: '4', name: 'David Wilson', email: 'david.wilson@email.com', status: 'invited', appliedAt: new Date('2024-02-04') },
-        { id: '5', name: 'Eva Brown', email: 'eva.brown@email.com', status: 'submitted', appliedAt: new Date('2024-02-05') },
-        { id: '6', name: 'Frank Miller', email: 'frank.miller@email.com', status: 'started', appliedAt: new Date('2024-02-06') },
-        { id: '7', name: 'Grace Lee', email: 'grace.lee@email.com', status: 'invited', appliedAt: new Date('2024-02-07') },
-        { id: '8', name: 'Henry Taylor', email: 'henry.taylor@email.com', status: 'evaluated', appliedAt: new Date('2024-02-08') },
+        { id: 1, name: 'Alice Johnson', email: 'alice.johnson@email.com', appliedAt: new Date('2024-02-01') },
+        { id: 2, name: 'Bob Smith', email: 'bob.smith@email.com', appliedAt: new Date('2024-02-02') },
+        { id: 3, name: 'Carol Davis', email: 'carol.davis@email.com', appliedAt: new Date('2024-02-03') },
+        { id: 4, name: 'David Wilson', email: 'david.wilson@email.com', appliedAt: new Date('2024-02-04') },
+        { id: 5, name: 'Eva Brown', email: 'eva.brown@email.com', appliedAt: new Date('2024-02-05') },
+        { id: 6, name: 'Frank Miller', email: 'frank.miller@email.com', appliedAt: new Date('2024-02-06') },
+        { id: 7, name: 'Grace Lee', email: 'grace.lee@email.com', appliedAt: new Date('2024-02-07') },
+        { id: 8, name: 'Henry Taylor', email: 'henry.taylor@email.com', appliedAt: new Date('2024-02-08') },
+    ];
+
+    const candidateAttempts: CandidateAttempt[] = [
+        { id: 1, candidateId: 1, assessmentId: 1, status: 'evaluated', startedAt: new Date('2025-06-02'), submittedAt: new Date('2024-02-02'), evaluatedAt: new Date('2024-02-03') },
+        { id: 2, candidateId: 2, assessmentId: 2, status: 'submitted', startedAt: new Date('2025-06-08'), submittedAt: new Date('2024-02-05') },
+        { id: 3, candidateId: 3, assessmentId: 3, status: 'started', startedAt: new Date('2025-06-17') },
+        { id: 4, candidateId: 4, assessmentId: 4, status: 'evaluated', startedAt: new Date('2025-06-20'), submittedAt: new Date('2024-02-11'), evaluatedAt: new Date('2024-02-12') },
+        { id: 5, candidateId: 5, assessmentId: 1, status: 'submitted', startedAt: new Date('2025-06-04'), submittedAt: new Date('2024-02-02') },
+        { id: 6, candidateId: 6, assessmentId: 2, status: 'submitted', startedAt: new Date('2025-06-09'), submittedAt: new Date('2024-02-05') },
+        { id: 7, candidateId: 7, assessmentId: 3, status: 'started', startedAt: new Date('2025-06-13')},
+        { id: 8, candidateId: 8, assessmentId: 4, status: 'evaluated', startedAt: new Date('2025-06-18'), submittedAt: new Date('2024-02-11'), evaluatedAt: new Date('2024-02-12') },
     ];
 
     // Add this filtering logic before the pagination logic
+    // TODO: after getting all candidates for an assessment from the API, set the status on the frontend to "INVITED" if there is no attempt under their name. Otherwise, use the curent attempt status
     const filteredCandidates = candidates.filter(candidate => {
-        const matchesSearch = candidate.name.toLowerCase().includes(candidateSearchTerm.toLowerCase()) ||
-            candidate.email.toLowerCase().includes(candidateSearchTerm.toLowerCase());
-        const matchesStatus = candidateStatusFilter === 'all' || candidate.status === candidateStatusFilter;
+        const candidateAttempt = candidateAttempts.find(a => a.candidateId === candidate.id);
+        const matchesSearch = candidate?.name.toLowerCase().includes(candidateSearchTerm.toLowerCase()) ||
+            candidate?.email.toLowerCase().includes(candidateSearchTerm.toLowerCase());
+        const matchesStatus = candidateStatusFilter === 'all' || candidateAttempt?.status === candidateStatusFilter;
         return matchesSearch && matchesStatus;
     });
 
@@ -275,6 +308,14 @@ export default function EmployerAssessments() {
         }
     };
 
+    // const formatTimeSpent = (startedAt: Date | null | undefined) => {
+    //     if (!startedAt) return '';
+    //     const now = new Date();
+    //     const timeDiff = now.getTime() - startedAt.getTime();
+    //     const minutes = Math.floor(timeDiff / (1000 * 60));
+    //     return `Time spent: ${minutes} minutes`;
+    // };
+
     if (selectedAssessment) {
         return (
             <div className="min-h-screen bg-gray-900 text-white p-6">
@@ -288,7 +329,7 @@ export default function EmployerAssessments() {
                             Back to Assessments
                         </button>
                         <button
-                            className="flex items-center gap-2 text-gray-200 hover:text-gray-100 mb-6 transition-colors bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg"
+                            className="flex items-center gap-2 text-gray-200 hover:text-gray-100 mb-6 transition-colors bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg"
                         >
                             Switch to Candidate View
                         </button>
@@ -371,7 +412,7 @@ export default function EmployerAssessments() {
                                             )}
                                             <button
                                                 onClick={() => openRepository(selectedAssessment.repoLink)}
-                                                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors text-sm"
+                                                className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg transition-colors text-sm"
                                             >
                                                 <ExternalLink size={16} />
                                                 View Template Repository
@@ -493,12 +534,16 @@ export default function EmployerAssessments() {
                                                             <div>
                                                                 <h4 className="font-medium text-white">{candidate.name}</h4>
                                                                 <p className="text-sm text-gray-400">{candidate.email}</p>
+                                                                <p className="text-sm text-gray-400">{candidateAttempts.find(a => a.candidateId === candidate.id)?.startedAt ? 'Started at: ' + candidateAttempts.find(a => a.candidateId === candidate.id)?.startedAt?.toLocaleString() : ''}</p>
+                                                                <p className="text-sm text-gray-400">{candidateAttempts.find(a => a.candidateId === candidate.id)?.submittedAt ? 'Submitted at: ' + candidateAttempts.find(a => a.candidateId === candidate.id)?.submittedAt?.toLocaleString() : ''}</p>
+                                                                <p className="text-sm text-gray-400">{candidateAttempts.find(a => a.candidateId === candidate.id)?.evaluatedAt ? 'Evaluated at: ' + candidateAttempts.find(a => a.candidateId === candidate.id)?.evaluatedAt?.toLocaleString() : ''}</p>
+                                                                {/* <p className="text-sm text-gray-400">{candidateAttempts.find(a => a.candidateId === candidate.id)?.startedAt ? formatTimeSpent(candidateAttempts.find(a => a.candidateId === candidate.id)?.startedAt) : ''}</p> */}
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-4">
-                                                        <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize text-white ${getStatusColor(candidate.status)}`}>
-                                                            {candidate.status}
+                                                        <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize text-white ${getStatusColor(candidateAttempts.find(a => a.candidateId === candidate.id)?.status || 'invited')}`}>
+                                                            {candidateAttempts.find(a => a.candidateId === candidate.id)?.status || 'Invited'}
                                                         </span>
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
@@ -512,15 +557,16 @@ export default function EmployerAssessments() {
                                                                     <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
                                                                         Send email
                                                                     </DropdownMenuItem>
-                                                                    {(candidate.status.toLowerCase() === "submitted" || candidate.status.toLowerCase() === "evaluated") && (
+                                                                    {(candidateAttempts.find(a => a.candidateId === candidate.id)?.status.toLowerCase() === "submitted" || candidateAttempts.find(a => a.candidateId === candidate.id)?.status.toLowerCase() === "evaluated") ? (
                                                                         <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
                                                                             View Pull Request on GitHub
                                                                         </DropdownMenuItem>
-                                                                    )}
-                                                                    {candidate.status.toLowerCase() === "started" && (
+                                                                    ) : candidateAttempts.find(a => a.candidateId === candidate.id)?.status.toLowerCase() === "started" ? (
                                                                         <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
                                                                             View Repository on GitHub
                                                                         </DropdownMenuItem>
+                                                                    ) : (
+                                                                        <></>
                                                                     )}
                                                                     <DropdownMenuSeparator className="bg-slate-700" />
                                                                 </DropdownMenuGroup>
@@ -595,14 +641,14 @@ export default function EmployerAssessments() {
                                                                 className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-700"
                                                                 onSelect={() => {
                                                                     setSelectedCandidateIds(prev => 
-                                                                        prev.includes(candidate.id) 
-                                                                            ? prev.filter(id => id !== candidate.id)
-                                                                            : [...prev, candidate.id]
+                                                                        prev.includes(candidate.id.toString()) 
+                                                                            ? prev.filter(id => id !== candidate.id.toString())
+                                                                            : [...prev, candidate.id.toString()]
                                                                     );
                                                                 }}
                                                             >
                                                                 <div className="flex items-center justify-center w-4 h-4 border border-gray-400 rounded">
-                                                                    {selectedCandidateIds.includes(candidate.id) && (
+                                                                    {selectedCandidateIds.includes(candidate.id.toString()) && (
                                                                         <Check size={12} className="text-blue-400" />
                                                                     )}
                                                                 </div>
@@ -610,9 +656,9 @@ export default function EmployerAssessments() {
                                                                     <span className="font-medium text-white">{candidate.name}</span>
                                                                     <span className="text-sm text-gray-400">{candidate.email}</span>
                                                                 </div>
-                                                                <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize text-white ${getStatusColor(candidate.status)}`}>
+                                                                {/* <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize text-white ${getStatusColor(candidate.status)}`}>
                                                                     {candidate.status}
-                                                                </span>
+                                                                </span> */}
                                                             </CommandItem>
                                                         ))}
                                                     </CommandGroup>
@@ -740,8 +786,7 @@ export default function EmployerAssessments() {
 
     return (
         <AppShell title="Assessments">
-            <div className="min-h-screen bg-gray-900 text-white p-6">
-                <div className="max-w-6xl mx-auto">
+                <div className="max-w-6xl mx-auto text-white">
                     <div className="flex justify-between items-center mb-6">
                         <h1 className="text-2xl font-medium text-gray-100">Assessments</h1>
                         <Link to="/assessments/new">
@@ -756,7 +801,7 @@ export default function EmployerAssessments() {
                         {assessments.map((assessment) => (
                             <div
                                 key={assessment.id}
-                                className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors cursor-pointer shadow-lg"
+                                className="bg-gray-800 border border-slate-700 rounded-lg p-6 hover:bg-gray-750 transition-colors cursor-pointer shadow-lg"
                                 onClick={() => handleAssessmentSelect(assessment)}
                             >
                                 <div className="flex items-center justify-between">
@@ -827,8 +872,6 @@ export default function EmployerAssessments() {
                     </div>
                 </div>
                 <AssessmentPagination />
-
-            </div>
         </AppShell>
     );
 }

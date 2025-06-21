@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 
 // Mock data for the assessment
 const assessmentData: Assessment = {
-    id: "1",
+    id: 5,
     employerId: "1",
     createdAt: new Date(),
     updatedAt: new Date(),
