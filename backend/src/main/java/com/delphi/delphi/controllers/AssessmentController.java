@@ -24,10 +24,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.dtos.FetchAssessmentDto;
+import com.delphi.delphi.dtos.FetchCandidateDto;
 import com.delphi.delphi.dtos.NewAssessmentDto;
 import com.delphi.delphi.dtos.NewUserMessageDto;
 import com.delphi.delphi.entities.Assessment;
+import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.services.AssessmentService;
+import com.delphi.delphi.services.CandidateService;
 import com.delphi.delphi.services.ChatService;
 import com.delphi.delphi.utils.AssessmentCreationPrompts;
 import com.delphi.delphi.utils.AssessmentStatus;
@@ -39,12 +42,15 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/assessments")
 public class AssessmentController {
 
+    private final CandidateService candidateService;
+
     private final AssessmentService assessmentService;
     private final ChatService chatService;
 
-    public AssessmentController(AssessmentService assessmentService, ChatService chatService) {
+    public AssessmentController(AssessmentService assessmentService, ChatService chatService, CandidateService candidateService) {
         this.assessmentService = assessmentService;
         this.chatService = chatService;
+        this.candidateService = candidateService;
     }
     
     // Create a new assessment
@@ -88,6 +94,19 @@ public class AssessmentController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error chatting with AI agent: " + e.getMessage());
+        }
+    }
+
+    // Add an existing candidate to an assessment
+    @PostMapping("/{id}/add-candidate/{candidateId}")
+    public ResponseEntity<?> addCandidate(@PathVariable Long id, @PathVariable Long candidateId) {
+        try {
+            Candidate candidate = candidateService.getCandidateByIdOrThrow(candidateId);
+            assessmentService.addCandidateFromExisting(id, candidateId);
+            return ResponseEntity.ok(new FetchCandidateDto(candidate));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error adding candidate: " + e.getMessage());
         }
     }
     

@@ -296,18 +296,22 @@ public class AssessmentService {
         return assessmentRepository.save(assessment);
     }
 
-    public Assessment addCandidateFromExisting(Long assessmentId, Long candidateId) {
+    // Add candidate from existing candidate
+    public Candidate addCandidateFromExisting(Long assessmentId, Long candidateId) {
         Assessment assessment = getAssessmentByIdOrThrow(assessmentId);
         Candidate candidate = candidateService.getCandidateByIdOrThrow(candidateId);
         assessment.addCandidate(candidate);
-        return assessmentRepository.save(assessment);
+        assessmentRepository.save(assessment);
+        return candidate;
     }
 
-    public Assessment addCandidateFromNew(Long assessmentId, String firstName, String lastName, String email) {
+    // Add a new candidate to the assessmentthat doesn't already exist in the database
+    public Candidate addCandidateFromNew(Long assessmentId, String firstName, String lastName, String email) {
         Assessment assessment = getAssessmentByIdOrThrow(assessmentId);
         Candidate candidate = candidateService.createCandidate(firstName, lastName, email, assessment.getUser());
         assessment.addCandidate(candidate);
-        return assessmentRepository.save(assessment);
+        assessmentRepository.save(assessment);
+        return candidate;
     }
 
     // Remove skill from assessment

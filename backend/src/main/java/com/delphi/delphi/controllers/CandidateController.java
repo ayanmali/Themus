@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,19 +25,29 @@ import com.delphi.delphi.dtos.FetchCandidateDto;
 import com.delphi.delphi.dtos.NewCandidateDto;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.User;
+import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.CandidateService;
+import com.delphi.delphi.services.UserService;
 
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/candidates")
 public class CandidateController {
+
+    private final AssessmentService assessmentService;
     
-    @Autowired
-    private CandidateService candidateService;
+    private final UserService userService;
+    private final CandidateService candidateService;
+
+    public CandidateController(CandidateService candidateService, UserService userService, AssessmentService assessmentService) {
+        this.candidateService = candidateService;
+        this.userService = userService;
+        this.assessmentService = assessmentService;
+    }
     
     // Create a new candidate
-    @PostMapping
+    @PostMapping("/new")
     public ResponseEntity<?> createCandidate(@Valid @RequestBody NewCandidateDto newCandidateDto) {
         try {
             Candidate candidate = new Candidate();
@@ -47,12 +56,27 @@ public class CandidateController {
             candidate.setEmail(newCandidateDto.getEmail());
             
             // Set user relationship
-            User user = new User();
-            user.setId(newCandidateDto.getUserId());
+            User user = userService.getUserByIdOrThrow(newCandidateDto.getUserId());
             candidate.setUser(user);
             
             Candidate createdCandidate = candidateService.createCandidate(candidate);
             return ResponseEntity.status(HttpStatus.CREATED).body(new FetchCandidateDto(createdCandidate));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Error creating candidate: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Internal server error: " + e.getMessage());
+        }
+    }
+
+    /*
+     * Add a new candidate and invite them to an assessment
+     */
+    @PostMapping("/add-and-invite/{assessmentId}")
+    public ResponseEntity<?> addAndInviteCandidate(@Valid @RequestBody NewCandidateDto newCandidateDto, @PathVariable Long assessmentId) {
+        try {
+            Candidate candidate = assessmentService.addCandidateFromNew(assessmentId, newCandidateDto.getFirstName(), newCandidateDto.getLastName(), newCandidateDto.getEmail());
+            return ResponseEntity.status(HttpStatus.CREATED).body(new FetchCandidateDto(candidate));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error creating candidate: " + e.getMessage());
         } catch (Exception e) {
