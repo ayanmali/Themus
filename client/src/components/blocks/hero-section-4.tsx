@@ -15,7 +15,7 @@ export function HeroSection() {
                     <div className="pb-24 pt-12 md:pb-32 lg:pb-56 lg:pt-44">
                         <div className="relative mx-auto flex max-w-6xl flex-col px-6 lg:grid lg:grid-cols-2">
                             <div className="mx-auto max-w-lg text-center lg:ml-0 lg:text-left">
-                                <h1 className="mt-8 max-w-2xl text-balance text-5xl font-medium md:text-6xl lg:mt-16 xl:text-7xl">Make Technical Hiring Great Again</h1>
+                                <h1 className="mt-8 max-w-2xl text-balance text-5xl font-medium md:text-6xl lg:mt-16 xl:text-7xl">Technical Hiring for the Modern Era</h1>
                                 <p className="mt-8 max-w-2xl text-pretty text-lg">Repository-based assessments for hiring technical talent based on practical skills and your team's needs.</p>
 
                                 <div className="mt-12 flex flex-col items-center justify-center gap-2 sm:flex-row lg:justify-start">
@@ -159,10 +159,10 @@ export function HeroSection() {
 }
 
 const menuItems = [
-    { name: 'Features', href: '#link' },
-    { name: 'Solution', href: '#link' },
-    { name: 'Pricing', href: '#link' },
-    { name: 'About', href: '#link' },
+    { name: 'Features', href: '#features' },
+    { name: 'Solution', href: '#solution' },
+    { name: 'Pricing', href: '/pricing' },
+    { name: 'About', href: '/about' },
 ]
 
 const HeroHeader = () => {
@@ -172,7 +172,7 @@ const HeroHeader = () => {
             <nav
                 data-state={menuState && 'active'}
                 className="group bg-background/50 fixed z-20 w-full border-b backdrop-blur-3xl">
-                <div className="mx-auto max-w-6xl px-6 transition-all duration-300">
+                <div className="mx-auto max-w-7xl px-6 transition-all duration-300">
                     <div className="relative flex flex-wrap items-center justify-between gap-6 py-3 lg:gap-0 lg:py-4">
                         <div className="flex w-full items-center justify-between gap-12 lg:w-auto">
                             <Link
@@ -180,7 +180,7 @@ const HeroHeader = () => {
                                 aria-label="home"
                                 className="flex items-center space-x-2">
                                 {/* <Logo /> */}
-                                <span className="text-xl font-semibold">Delphi</span>
+                                <span className="text-xl font-semibold pr-16">Delphi</span>
                             </Link>
 
                             <button

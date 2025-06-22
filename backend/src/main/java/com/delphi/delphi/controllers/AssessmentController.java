@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.dtos.FetchAssessmentDto;
 import com.delphi.delphi.dtos.NewAssessmentDto;
+import com.delphi.delphi.dtos.NewUserMessageDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.ChatService;
@@ -46,7 +48,7 @@ public class AssessmentController {
     }
     
     // Create a new assessment
-    @PostMapping
+    @PostMapping("/new")
     public ResponseEntity<?> createAssessment(
             @Valid @RequestBody NewAssessmentDto newAssessmentDto,
             @RequestParam Long userId) {
@@ -74,6 +76,18 @@ public class AssessmentController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Internal server error: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/{id}/chat")
+    public ResponseEntity<?> chat(@PathVariable Long id, @RequestBody NewUserMessageDto messageDto) {
+        try {
+            Assessment assessment = assessmentService.getAssessmentByIdOrThrow(id);
+            ChatResponse chatResponse = chatService.getChatCompletion(messageDto.getMessage(), messageDto.getModel(), assessment.getChatHistory().getId());
+            return ResponseEntity.ok(chatResponse);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error chatting with AI agent: " + e.getMessage());
         }
     }
     

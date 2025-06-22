@@ -39,12 +39,12 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
       icon: FileText,
       active: isActive("/assessments"),
     },
-    {
-      name: "Repositories",
-      href: "/repositories",
-      icon: Database,
-      active: isActive("/repositories"),
-    },
+    // {
+    //   name: "Repositories",
+    //   href: "/repositories",
+    //   icon: Database,
+    //   active: isActive("/repositories"),
+    // },
     {
       name: "Candidates",
       href: "/candidates",

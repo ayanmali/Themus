@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Calendar, Clock, ExternalLink, Link2, MoreHorizontal, Pause, Play, Plus, Trash2, X, Edit3, Check, ChevronLeft, ChevronRight, Smile, Calculator, User, CreditCard, Settings } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, ExternalLink, Link2, MoreHorizontal, Pause, Play, Plus, Trash2, X, Edit3, Check, ChevronLeft, ChevronRight, Smile, Calculator, User, CreditCard, Settings, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AppShell } from "@/components/layout/app-shell";
@@ -108,7 +108,7 @@ export default function EmployerAssessments() {
             role: 'Backend SWE Intern',
             employerId: '789',
             description: 'Backend development Intern assessment focusing on proficiency in the Go programming language and concurrent programming.',
-            skills: ['Go', 'Mutexes', 'Goroutines', 'Concurrency', 'Multithreading'],
+            skills: ['Go', 'Mutexes', 'Goroutines', 'Concurrency', 'Channels', 'Multithreading'],
             createdAt: new Date('2024-01-25'),
             updatedAt: new Date('2024-01-25'),
             name: 'Backend SWE Intern Assessment',
@@ -787,7 +787,7 @@ export default function EmployerAssessments() {
     return (
         <AppShell title="Assessments">
                 <div className="max-w-6xl mx-auto text-white">
-                    <div className="flex justify-between items-center mb-6">
+                    {/* <div className="flex justify-between items-center mb-6">
                         <h1 className="text-2xl font-medium text-gray-100">Assessments</h1>
                         <Link to="/assessments/new">
                             <Button className="flex items-center gap-2">
@@ -795,7 +795,26 @@ export default function EmployerAssessments() {
                                 New Assessment
                             </Button>
                         </Link>
-                    </div>
+                    </div> */}
+                    <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-2">Assessments</h1>
+              <p className="text-gray-400 flex items-center space-x-2">
+                {/* <Calendar className="w-4 h-4" /> */}
+                <span>View and manage your assessments</span>
+              </p>
+            </div>
+            <div className="flex space-x-3">
+              <button className="bg-slate-700 hover:bg-blue-700 text-gray-100 text-sm px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
+                <Plus className="w-4 h-4" />
+                <span>Create Assessment</span>
+              </button>
+              <button className="bg-slate-700 hover:bg-blue-700 text-gray-100 text-sm px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
+                <Eye className="w-4 h-4" />
+                <span>View All</span>
+              </button>
+            </div>
+          </div>
 
                     <div className="space-y-4">
                         {assessments.map((assessment) => (

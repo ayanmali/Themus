@@ -5,5 +5,5 @@
 
 // @Component
 // public class SecurityFilter implements Filter {
-    
+    // TODO: check for user agent and block if it's a bot
 // }

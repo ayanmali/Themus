@@ -7,7 +7,7 @@ import { Link } from "wouter";
 
 interface AppShellProps {
   children: React.ReactNode;
-  title: string;
+  title?: string;
 }
 
 export function AppShell({ children, title }: AppShellProps) {

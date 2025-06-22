@@ -6,13 +6,11 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 
 // Pages
-import HomePage from "@/pages/home-page";
 import NotFound from "@/pages/not-found";
 
 // Employer Pages
 import EmployerDashboard from "@/pages/employer/dashboard";
 import EmployerAssessments from "@/pages/employer/assessmentss";
-import EmployerRepositories from "@/pages/employer/repositories";
 import EmployerCandidates from "@/pages/employer/candidates";
 import EmployerReports from "@/pages/employer/reports";
 import CreateAssessment from "@/pages/employer/create-assessment";
@@ -38,7 +36,7 @@ function Router() {
       {/* Employer Routes */}
       {/* <ProtectedRoute path="/dashboard" component={EmployerDashboard} role="employer" /> */}
       <ProtectedRoute path="/assessments" component={EmployerAssessments} role="employer" />
-      <ProtectedRoute path="/repositories" component={EmployerRepositories} role="employer" />
+      {/* <ProtectedRoute path="/repositories" component={EmployerRepositories} role="employer" /> */}
       <ProtectedRoute path="/candidates" component={EmployerCandidates} role="employer" />
       <ProtectedRoute path="/reports" component={EmployerReports} role="employer" />
       <ProtectedRoute path="/assessments/new" component={CreateAssessment} role="employer" />

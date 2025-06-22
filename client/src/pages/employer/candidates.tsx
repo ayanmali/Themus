@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
+import { Calendar, Eye, Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -56,36 +56,24 @@ export default function EmployerCandidates() {
 
   return (
     <AppShell title="Candidates">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-medium text-gray-100 md:block hidden">
-          Candidates
-        </h1>
-
-        <h1 className="text-xl font-semibold text-gray-100 md:hidden">
-          Candidates
-        </h1>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button>
-              <Plus className="-ml-1 mr-2 h-5 w-5" />
-              Add
-            </Button>
-          </DropdownMenuTrigger>
-
-          <DropdownMenuContent className="w-56 bg-slate-700 text-gray-100 border-slate-500" align="start">
-            {/* <DropdownMenuLabel>My Account</DropdownMenuLabel> */}
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                Add new candidate
-                {/* <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut> */}
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                Bulk import from CSV
-                {/* <DropdownMenuShortcut>⌘B</DropdownMenuShortcut> */}
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Candidates</h1>
+          <p className="text-gray-400 flex items-center space-x-2">
+            {/* <Calendar className="w-4 h-4" /> */}
+            <span>Add, view, and manage your candidates</span>
+          </p>
+        </div>
+        <div className="flex space-x-3">
+              <button className="bg-slate-700 hover:bg-blue-700 text-gray-100 text-sm px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
+                <Plus className="w-4 h-4" />
+                <span>Add</span>
+              </button>
+              {/* <button className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
+                <Eye className="w-4 h-4" />
+                <span>View All</span>
+              </button> */}
+            </div>
       </div>
 
       {/* Filters */}
@@ -172,11 +160,11 @@ export default function EmployerCandidates() {
               id={candidate.id}
               name={candidate.name}
               email={candidate.email}
-              // currentAssessment={candidate.currentAssessment}
-              // assessmentStatus={candidate.assessmentStatus}
-              // completionDate={candidate.completionDate}
-              // daysRemaining={candidate.daysRemaining}
-              // skills={candidate.skills}
+            // currentAssessment={candidate.currentAssessment}
+            // assessmentStatus={candidate.assessmentStatus}
+            // completionDate={candidate.completionDate}
+            // daysRemaining={candidate.daysRemaining}
+            // skills={candidate.skills}
             />
           ))
         )}

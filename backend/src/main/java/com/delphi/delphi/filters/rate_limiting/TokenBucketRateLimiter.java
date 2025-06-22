@@ -4,7 +4,7 @@ import org.springframework.stereotype.Service;
 
 /*
  * Used for implementing API rate limiting using a Redis cache
- * By JWT/email/IP address
+ * By JWT/email
  */
 @Service
 public class TokenBucketRateLimiter {
