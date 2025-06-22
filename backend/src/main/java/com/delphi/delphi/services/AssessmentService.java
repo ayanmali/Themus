@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -328,6 +329,14 @@ public class AssessmentService {
         Assessment assessment = getAssessmentByIdOrThrow(id);
         assessment.setSkills(skills);
         return assessmentRepository.save(assessment);
+    }
+
+    public Candidate removeCandidateFromAssessment(Long assessmentId, Long candidateId) {
+        Assessment assessment = getAssessmentByIdOrThrow(assessmentId);
+        Candidate candidate = candidateService.getCandidateByIdOrThrow(candidateId);
+        assessment.setCandidates(assessment.getCandidates().stream().filter(c -> !c.getId().equals(candidateId)).collect(Collectors.toList()));
+        assessmentRepository.save(assessment);
+        return candidate;
     }
 
     // Update language options

@@ -109,6 +109,19 @@ public class AssessmentController {
                 .body("Error adding candidate: " + e.getMessage());
         }
     }
+
+    /* Remove a candidate from an assessment */
+    @DeleteMapping("/{assessmentId}/remove/{candidateId}")
+    public ResponseEntity<?> removeCandidateFromAssessment(@PathVariable Long assessmentId, @PathVariable Long candidateId) {
+        try {
+            Candidate candidate = assessmentService.removeCandidateFromAssessment(assessmentId, candidateId);
+            return ResponseEntity.ok(new FetchCandidateDto(candidate));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error removing candidate: " + e.getMessage());
+        }
+    }
+    
     
     // Get assessment by ID
     @GetMapping("/{id}")
