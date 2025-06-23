@@ -56,10 +56,9 @@ public class AssessmentController {
     // Create a new assessment
     @PostMapping("/new")
     public ResponseEntity<?> createAssessment(
-            @Valid @RequestBody NewAssessmentDto newAssessmentDto,
-            @RequestParam Long userId) {
+            @Valid @RequestBody NewAssessmentDto newAssessmentDto) {
         try {
-            Assessment assessment = assessmentService.createAssessment(newAssessmentDto, userId);
+            Assessment assessment = assessmentService.createAssessment(newAssessmentDto);
 
             // get chat completion from the LLM
             chatService.getChatCompletion(AssessmentCreationPrompts.USER_PROMPT, 
@@ -71,6 +70,8 @@ public class AssessmentController {
                                                      "OTHER_DETAILS", newAssessmentDto.getOtherDetails()
                                               ), 
                                               newAssessmentDto.getModel(),
+                                              assessment.getId(),
+                                              newAssessmentDto.getUserId(),
                                               assessment.getChatHistory().getId());
             
             // agent loop
@@ -85,11 +86,12 @@ public class AssessmentController {
         }
     }
 
-    @PostMapping("/{id}/chat")
-    public ResponseEntity<?> chat(@PathVariable Long id, @RequestBody NewUserMessageDto messageDto) {
+    // Chat with the AI agent
+    @PostMapping("/chat")
+    public ResponseEntity<?> chat(@RequestBody NewUserMessageDto messageDto) {
         try {
-            Assessment assessment = assessmentService.getAssessmentByIdOrThrow(id);
-            ChatResponse chatResponse = chatService.getChatCompletion(messageDto.getMessage(), messageDto.getModel(), assessment.getChatHistory().getId());
+            Assessment assessment = assessmentService.getAssessmentByIdOrThrow(messageDto.getAssessmentId());
+            ChatResponse chatResponse = chatService.getChatCompletion(messageDto.getMessage(), messageDto.getModel(), messageDto.getAssessmentId(), messageDto.getUserId(), assessment.getChatHistory().getId());
             return ResponseEntity.ok(chatResponse);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

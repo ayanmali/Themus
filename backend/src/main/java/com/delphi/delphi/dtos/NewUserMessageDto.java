@@ -2,16 +2,18 @@ package com.delphi.delphi.dtos;
 
 public class NewUserMessageDto {
     private String message;
-    private Long chatHistoryId;
+    private Long assessmentId;
+    private Long userId;
     private String model;
     // sender is USER
     
     public NewUserMessageDto() {
     }
 
-    public NewUserMessageDto(String message, Long chatHistoryId, String model) {
+    public NewUserMessageDto(String message, Long assessmentId, Long userId, String model) {
         this.message = message;
-        this.chatHistoryId = chatHistoryId;
+        this.assessmentId = assessmentId;
+        this.userId = userId;
         this.model = model;
     }
 
@@ -23,12 +25,20 @@ public class NewUserMessageDto {
         this.message = message;
     }
 
-    public Long getChatHistoryId() {
-        return chatHistoryId;
+    public Long getAssessmentId() {
+        return assessmentId;
     }
 
-    public void setChatHistoryId(Long chatHistoryId) {
-        this.chatHistoryId = chatHistoryId;
+    public void setAssessmentId(Long assessmentId) {
+        this.assessmentId = assessmentId;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
     public String getModel() {

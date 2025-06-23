@@ -65,10 +65,9 @@ public class AssessmentService {
         return assessmentRepository.save(assessment);
     }
 
-    public Assessment createAssessment(NewAssessmentDto newAssessmentDto, Long userId) throws Exception {
+    public Assessment createAssessment(NewAssessmentDto newAssessmentDto) throws Exception {
         // Set user relationship
-        User user = userService.getUserById(userId)
-        .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userService.getUserByIdOrThrow(newAssessmentDto.getUserId());
 
         Assessment assessment = new Assessment();
         assessment.setName(newAssessmentDto.getName());

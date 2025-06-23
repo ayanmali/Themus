@@ -12,11 +12,13 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.delphi.delphi.components.GithubTools;
 import com.delphi.delphi.entities.ChatHistory;
 import com.delphi.delphi.entities.ChatMessage;
 import com.delphi.delphi.repositories.ChatHistoryRepository;
@@ -42,13 +44,16 @@ public class ChatService {
 
     private final ChatModel chatModel;
 
+    private final GithubTools githubTools;
+
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
 
     public ChatService(ChatHistoryRepository chatHistoryRepository,
-            ChatMessageRepository chatMessageRepository, ChatModel chatModel) {
+            ChatMessageRepository chatMessageRepository, ChatModel chatModel, GithubTools githubTools) {
         this.chatHistoryRepository = chatHistoryRepository;
         this.chatMessageRepository = chatMessageRepository;
         this.chatModel = chatModel;
+        this.githubTools = githubTools;
         log.info("ChatService initialized with Spring AI ChatModel, targeting OpenRouter.");
     }    
 
@@ -59,7 +64,7 @@ public class ChatService {
     /*
      * Get a chat completion from the AI model
      */
-    public ChatResponse getChatCompletion(String userMessage, String model, Long chatHistoryId) {
+    public ChatResponse getChatCompletion(String userMessage, String model, Long assessmentId, Long userId, Long chatHistoryId) {
         log.info("Sending prompt to OpenRouter model '{}':\nUSER MESSAGE: '{}'", model, userMessage);
         try {
             // The Spring AI ChatModel handles the call to OpenRouter based on application.properties
@@ -88,6 +93,9 @@ public class ChatService {
                 messages,
                 OpenAiChatOptions.builder()
                     .model(model)
+                    .toolCallbacks(ToolCallbacks.from(githubTools))
+                    .toolContext(Map.of("assessmentId", assessmentId, "userId", userId, "chatHistoryId", chatHistoryId))
+                    //.internalToolExecutionEnabled(false) // disable framework-enabled tool execution
                     .temperature(0.75) // double between 0 and 1
                     .build()
             );
@@ -97,9 +105,10 @@ public class ChatService {
             //         .model(model)
             //         .build());
 
-            
-            
-            return chatModel.call(prompt);
+            // adding LLM response to chat history
+            ChatResponse response = chatModel.call(prompt);
+            addMessageToChatHistory(response.getResults().get(0).getOutput().getText(), chatHistoryId, MessageType.ASSISTANT, model, Map.of());
+            return response;
         } catch (Exception e) {
             log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to get completion from AI service: " + e.getMessage(), e);
@@ -109,7 +118,7 @@ public class ChatService {
     /*
      * Get a chat completion from the AI model using a user prompt template
      */
-    public ChatResponse getChatCompletion(String userPromptTemplateMessage, Map<String, Object> userPromptVariables, String model, Long chatHistoryId) {
+    public ChatResponse getChatCompletion(String userPromptTemplateMessage, Map<String, Object> userPromptVariables, String model, Long assessmentId, Long userId, Long chatHistoryId) {
         log.info("Sending prompt to OpenRouter model '{}':\nUSER MESSAGE: '{}'", model, userPromptTemplateMessage);
         try {
             // The Spring AI ChatModel handles the call to OpenRouter based on application.properties
@@ -142,6 +151,9 @@ public class ChatService {
                 messages,
                 OpenAiChatOptions.builder()
                     .model(model)
+                    .toolCallbacks(ToolCallbacks.from(githubTools))
+                    .toolContext(Map.of("assessmentId", assessmentId, "userId", userId, "chatHistoryId", chatHistoryId))
+                    //.internalToolExecutionEnabled(false) // disable framework-enabled tool execution
                     .temperature(0.75) // double between 0 and 1
                     .build()
             );
@@ -151,7 +163,10 @@ public class ChatService {
             //         .model(model)
             //         .build());
 
-            return chatModel.call(prompt);
+            // adding LLM response to chat history
+            ChatResponse response = chatModel.call(prompt);
+            addMessageToChatHistory(response.getResults().get(0).getOutput().getText(), chatHistoryId, MessageType.ASSISTANT, model, Map.of());
+            return response;
         } catch (Exception e) {
             log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to get completion from AI service: " + e.getMessage(), e);
@@ -266,6 +281,14 @@ public class ChatService {
                     .orElseThrow(() -> new Exception("Chat history not found with id: " + id));
         } catch (Exception e) {
             throw new Exception("Chat history not found with id: " + id);
+        }
+    }
+
+    public ChatHistory getChatHistoryByAssessmentId(Long assessmentId) throws Exception {
+        try {
+            return chatHistoryRepository.findByAssessmentId(assessmentId);
+        } catch (Exception e) {
+            throw new Exception("Chat history not found with assessment id: " + assessmentId);
         }
     }
 
