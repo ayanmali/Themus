@@ -19,7 +19,6 @@ public class OAuthService implements OAuth2UserService<OAuth2UserRequest, OAuth2
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
-        // TODO Auto-generated method stub
         OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate = new DefaultOAuth2UserService();
         OAuth2User user = delegate.loadUser(userRequest);
         // String email = user.getAttribute("email");

@@ -52,7 +52,18 @@ public class AssessmentController {
         this.chatService = chatService;
         this.candidateService = candidateService;
     }
-    
+
+    // TODO: add dashboard
+    @GetMapping("/{userId}/dashboard")
+    public ResponseEntity<?> getDashboard(@PathVariable Long userId) {
+        try {
+            // List<Assessment> assessments = assessmentService.getAssessmentsByUserId(userId);
+            // return ResponseEntity.ok(assessments);
+            return ResponseEntity.ok("Dashboard");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving assessments: " + e.getMessage());
+        }
+    }
     // Create a new assessment
     @PostMapping("/new")
     public ResponseEntity<?> createAssessment(

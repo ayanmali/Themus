@@ -417,6 +417,14 @@ export default function EmployerAssessments() {
                                                 <ExternalLink size={16} />
                                                 View Template Repository
                                             </button>
+
+                                            <button
+                                                onClick={() => openRepository(selectedAssessment.repoLink)}
+                                                className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg transition-colors text-sm"
+                                            >
+                                                <ExternalLink size={16} />
+                                                View analytics
+                                            </button>
                                         </div>
 
                                         <div className="flex items-center gap-3 mb-4">

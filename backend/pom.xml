@@ -54,8 +54,8 @@
         <!-- Redis -->
 
         <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
         </dependency>
 
         <dependency>
@@ -135,6 +135,14 @@
             <artifactId>stripe-java</artifactId>
             <version>29.2.0</version>
         </dependency> -->
+
+        <!-- Resend -->
+        <!-- https://mvnrepository.com/artifact/com.resend/resend-java -->
+        <dependency>
+            <groupId>com.resend</groupId>
+            <artifactId>resend-java</artifactId>
+            <version>4.4.0</version>
+        </dependency>
 
     </dependencies>
     <dependencyManagement>

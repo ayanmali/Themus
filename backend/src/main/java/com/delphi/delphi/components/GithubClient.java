@@ -26,6 +26,7 @@ import com.delphi.delphi.services.ChatService;
  * It is used to get branch SHA, and add branch.
  * TODO: adjust Github API responses to be more LLM-understandable
  */
+
 public class GithubClient {
     private final RestTemplate restTemplate;
     private final HttpHeaders headers;

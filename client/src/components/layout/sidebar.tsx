@@ -108,10 +108,10 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
             )}
             
             {/* Logo */}
-            <div className="flex items-center h-16 flex-shrink-0 px-4 bg-gray-900">
+            <div className="flex items-center h-16 flex-shrink-0 px-4 bg-slate-800">
               <div className="flex items-center">
-                <Code className="h-8 w-8 text-primary" />
-                <span className="ml-2 text-white text-xl font-semibold">Delphi</span>
+                {/* <Code className="h-8 w-8 text-primary" />
+                <span className="ml-2 text-white text-xl font-semibold">Delphi</span> */}
               </div>
             </div>
             
