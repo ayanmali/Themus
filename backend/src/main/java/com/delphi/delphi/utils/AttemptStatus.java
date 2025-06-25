@@ -1,5 +1,5 @@
 package com.delphi.delphi.utils;
 
 public enum AttemptStatus {
-    INVITED, STARTED, COMPLETED, EVALUATED
+    INVITED, STARTED, COMPLETED, EVALUATED, EXPIRED
 }

@@ -1,5 +1,6 @@
 package com.delphi.delphi.controllers;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -7,22 +8,38 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
 import com.delphi.delphi.components.GithubClient;
+import com.delphi.delphi.dtos.AuthResponseDto;
+import com.delphi.delphi.dtos.FetchUserDto;
+import com.delphi.delphi.dtos.NewUserDto;
+import com.delphi.delphi.dtos.PasswordLoginDto;
+import com.delphi.delphi.entities.RefreshToken;
+import com.delphi.delphi.entities.User;
+import com.delphi.delphi.services.JwtService;
+import com.delphi.delphi.services.RefreshTokenService;
 import com.delphi.delphi.services.UserService;
+import com.delphi.delphi.utils.exceptions.TokenRefreshException;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    private final RefreshTokenService refreshTokenService;
 
     // github client id and secret
     @Value("${spring.security.oauth2.client.registration.github.client-id}")
@@ -39,10 +56,14 @@ public class AuthController {
 
     private final RestTemplate restTemplate;
 
-    public AuthController(RestTemplate restTemplate, UserService userService, GithubClient githubClient) {
+    private final JwtService jwtService;
+
+    public AuthController(RestTemplate restTemplate, UserService userService, GithubClient githubClient, JwtService jwtService, RefreshTokenService refreshTokenService) {
         this.restTemplate = restTemplate;
         this.userService = userService;
         this.githubClient = githubClient;
+        this.jwtService = jwtService;
+        this.refreshTokenService = refreshTokenService;
     }
 
     @GetMapping("/oauth/github/callback")
@@ -107,6 +128,61 @@ public class AuthController {
     @GetMapping("/test")
     public ResponseEntity<?> test() {
         return githubClient.addFileToRepo("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", "ayanmali", "my-new-repo-from-delphi", "test2.txt", null, "\nHello, worldddd!\nballs", "third commit");
+    }
+
+    
+    @PostMapping("/register/email")
+    public ResponseEntity<?> registerEmail(@Valid @RequestBody NewUserDto newUserDto) {
+        User user = new User();
+        user.setName(newUserDto.getName());
+        user.setEmail(newUserDto.getEmail());
+        user.setOrganizationName(newUserDto.getOrganizationName());
+        user.setPassword(newUserDto.getPassword()); // sets the raw password -- sefvice method encrypts it
+        userService.createUser(user);
+
+        return ResponseEntity.ok(new FetchUserDto(user));
+    }
+
+    @PostMapping("/login/email")
+    public ResponseEntity<?> loginEmail(@RequestBody PasswordLoginDto passwordLoginDto) {
+        User user = userService.authenticate(passwordLoginDto.getEmail(), passwordLoginDto.getPassword());
+
+        String accessToken = jwtService.generateAccessToken(user.getEmail());
+        String refreshToken = jwtService.generateRefreshToken(user.getEmail());
+
+        return ResponseEntity.ok(new AuthResponseDto(accessToken, refreshToken, user.getName(), user.getEmail()));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@RequestBody String refreshToken) {
+        try {
+            // verify refresh token
+            RefreshToken refreshTokenEntity = refreshTokenService.verifyRefreshToken(refreshToken);
+            if (refreshTokenEntity.isUsed() || refreshTokenEntity.getExpiryDate().isBefore(Instant.now())) {
+                refreshTokenService.deleteRefreshToken(refreshToken);
+                throw new TokenRefreshException("Refresh token expired or used");
+            }
+
+            // Mark current token as used
+            refreshTokenEntity.setUsed(true);
+            refreshTokenService.save(refreshTokenEntity);
+
+            User user = refreshTokenEntity.getUser();
+            
+            // Generate new tokens
+            String newAccessToken = jwtService.generateAccessToken(user);
+            String newRefreshToken = jwtService.generateRefreshToken(user);
+
+            return ResponseEntity.ok(new AuthResponseDto(newAccessToken, newRefreshToken, user.getName(), user.getEmail()));
+        } catch (TokenRefreshException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestBody String refreshToken) {
+        refreshTokenService.deleteRefreshToken(refreshToken);
+        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
 
 }
