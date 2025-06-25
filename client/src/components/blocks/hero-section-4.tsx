@@ -5,12 +5,13 @@ import { InfiniteSlider } from '@/components/ui/infinite-slider'
 import { ProgressiveBlur } from '@/components/ui/progressive-blur'
 import { cn } from '@/lib/utils'
 import { Menu, X } from 'lucide-react'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 
 export function HeroSection() {
     return (
         <div className="bg-slate-800 text-white">
             <HeroHeader />
-            <main className="overflow-x-hidden">
+            <main className="overflow-x-hidden pb-10">
                 <section>
                     <div className="pb-24 pt-12 md:pb-32 lg:pb-56 lg:pt-44">
                         <div className="relative mx-auto flex max-w-6xl flex-col px-6 lg:grid lg:grid-cols-2">
@@ -23,11 +24,11 @@ export function HeroSection() {
                                         asChild
                                         size="lg"
                                         className="px-5 text-base">
-                                        <Link href="/dashboard">
-                                            <span className="text-nowrap">Dashboard</span>
+                                        <Link href="/signup">
+                                            <span className="text-nowrap">Sign up</span>
                                         </Link>
                                     </Button>
-                                    
+
                                     <Button
                                         key={2}
                                         asChild
@@ -153,6 +154,60 @@ export function HeroSection() {
                         </div>
                     </div>
                 </section> */}
+
+                {/* FAQ */}
+                <section className="bg-slate-800 text-gray-100 w-full mx-auto max-w-6xl px-6 border border-white/20 rounded-lg">
+                    <Accordion
+                        type="single"
+                        collapsible
+                        defaultValue="item-1"
+                        className="mb-8"
+                    >
+                        <AccordionItem value="item-1">
+                            <AccordionTrigger>Product Information</AccordionTrigger>
+                            <AccordionContent className="flex flex-col gap-4 text-balance">
+                                <p>
+                                    Our flagship product combines cutting-edge technology with sleek
+                                    design. Built with premium materials, it offers unparalleled
+                                    performance and reliability.
+                                </p>
+                                <p>
+                                    Key features include advanced processing capabilities, and an
+                                    intuitive user interface designed for both beginners and experts.
+                                </p>
+                            </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="item-2">
+                            <AccordionTrigger>Shipping Details</AccordionTrigger>
+                            <AccordionContent className="flex flex-col gap-4 text-balance">
+                                <p>
+                                    We offer worldwide shipping through trusted courier partners.
+                                    Standard delivery takes 3-5 business days, while express shipping
+                                    ensures delivery within 1-2 business days.
+                                </p>
+                                <p>
+                                    All orders are carefully packaged and fully insured. Track your
+                                    shipment in real-time through our dedicated tracking portal.
+                                </p>
+                            </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="item-3">
+                            <AccordionTrigger>Return Policy</AccordionTrigger>
+                            <AccordionContent className="flex flex-col gap-4 text-balance">
+                                <p>
+                                    We stand behind our products with a comprehensive 30-day return
+                                    policy. If you&apos;re not completely satisfied, simply return the
+                                    item in its original condition.
+                                </p>
+                                <p>
+                                    Our hassle-free return process includes free return shipping and
+                                    full refunds processed within 48 hours of receiving the returned
+                                    item.
+                                </p>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
+                </section>
             </main>
         </div>
     )

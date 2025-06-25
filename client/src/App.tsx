@@ -22,6 +22,7 @@ import LandingPage from "./pages/lander";
 import SignupPage from "./pages/auth/signup";
 import LoginPage from "./pages/auth/login";
 import CandidateAssessmentInvite from "./pages/candidate/assessment-invite";
+import CandidateDashboard from "./pages/candidate/assessments-overview";
 
 function Router() {
   return (
@@ -30,21 +31,26 @@ function Router() {
       <Route path="/login" component={LoginPage} />
       <Route path="/signup" component={SignupPage} />
       <Route path="/dashboard" component={EmployerDashboard}/>
+      <Route path="/assessments" component={EmployerAssessments} />
+      <Route path="/assessments/new" component={CreateAssessment} />
+      <Route path="/candidates" component={EmployerCandidates} />
+
       {/* <Route path="/auth" component={AuthPage} /> */}
       {/* <ProtectedRoute path="/" component={HomePage} /> */}
       
       {/* Employer Routes */}
       {/* <ProtectedRoute path="/dashboard" component={EmployerDashboard} role="employer" /> */}
-      <ProtectedRoute path="/assessments" component={EmployerAssessments} role="employer" />
+      {/* <ProtectedRoute path="/assessments" component={EmployerAssessments} role="employer" /> */}
       {/* <ProtectedRoute path="/repositories" component={EmployerRepositories} role="employer" /> */}
-      <ProtectedRoute path="/candidates" component={EmployerCandidates} role="employer" />
+      {/* <ProtectedRoute path="/candidates" component={EmployerCandidates} role="employer" /> */}
       <ProtectedRoute path="/reports" component={EmployerReports} role="employer" />
-      <ProtectedRoute path="/assessments/new" component={CreateAssessment} role="employer" />
+      {/* <ProtectedRoute path="/assessments/new" component={CreateAssessment} role="employer" /> */}
       
       {/* Candidate Routes */}
       {/* <Route path="/start-assessment/{assessment_id}" component={StartAssessment} /> */}
       {/* <Route path="/candidate/dashboard" component={CandidateDashboard} /> */}
       <Route path="/invite" component={CandidateAssessmentInvite} />
+      <Route path="/assessments-overview" component={CandidateDashboard} />
       <ProtectedRoute path="/candidate/assessments" component={CandidateAssessments} role="candidate" />
       <ProtectedRoute path="/candidate/profile" component={CandidateProfile} role="candidate" />
       

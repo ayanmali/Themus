@@ -17,16 +17,16 @@ export function SignupForm({
 }: React.ComponentProps<"div">) {
     return (
         <div className={cn("flex flex-col gap-6", className)} {...props}>
-            <Card>
+            <Card className="bg-slate-800 text-white border-white/20">
                 <CardHeader>
                     <CardTitle>Sign up</CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-muted/80">
                         Enter your email below to sign up for an account
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form>
-                        <div className="flex flex-col gap-6">
+                        <div className="flex flex-col gap-6 text-white">
                             <div className="grid gap-3">
                                 <Label htmlFor="name">Full Name</Label>
                                 <Input
@@ -34,15 +34,16 @@ export function SignupForm({
                                     type="name"
                                     placeholder="John Doe"
                                     required
+                                    className="bg-slate-700 border-white/20 placeholder:text-white/50"
                                 />
                             </div>
                             <div className="flex items-center gap-3">
                                 <Label htmlFor="roleLabel" className="w-full">I am a/an...</Label>
                                 <Select>
-                                    <SelectTrigger className="w-full">
+                                    <SelectTrigger className="w-full bg-slate-700 border-white/20">
                                         <SelectValue placeholder="Select a role" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent className="bg-slate-800 text-white border-white/20">
                                         <SelectGroup>
                                             <SelectItem value="employer">Employer</SelectItem>
                                             <SelectItem value="candidate">Job Applicant</SelectItem>
@@ -58,6 +59,7 @@ export function SignupForm({
                                     type="email"
                                     placeholder="m@example.com"
                                     required
+                                    className="bg-slate-700 border-white/20 placeholder:text-white/50"
                                 />
                             </div>
                             <div className="grid gap-3">
@@ -65,17 +67,17 @@ export function SignupForm({
                                     <Label htmlFor="password">Password</Label>
 
                                 </div>
-                                <Input id="password" type="password" required />
+                                <Input id="password" type="password" required className="bg-slate-700 border-white/20" />
                             </div>
                             <div className="flex flex-col gap-3">
-                                <Button type="submit" className="w-full">
+                                <Button variant="outline" type="submit" className="w-full bg-slate-700 border-white/20">
                                     Sign up
                                 </Button>
                                 <div className="text-center text-sm">or</div>
-                                <Button variant="outline" className="w-full">
+                                <Button variant="outline" className="w-full bg-slate-700 border-white/20">
                                     Continue with Google
                                 </Button>
-                                <Button variant="outline" className="w-full">
+                                <Button variant="outline" className="w-full bg-slate-700 border-white/20">
                                     Continue with GitHub
                                 </Button>
                             </div>
@@ -90,7 +92,7 @@ export function SignupForm({
 
 export default function SignupPage() {
     return (
-        <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+        <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10 bg-slate-800">
             <div className="w-full max-w-sm">
                 <SignupForm />
             </div>
