@@ -2,9 +2,11 @@ package com.delphi.delphi.services;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.model.ChatModel;
@@ -107,7 +109,8 @@ public class ChatService {
 
             // adding LLM response to chat history
             ChatResponse response = chatModel.call(prompt);
-            addMessageToChatHistory(response.getResults().get(0).getOutput().getText(), chatHistoryId, MessageType.ASSISTANT, model, Map.of());
+            log.info("Response: {}", response.getResults().stream().map(r -> r.getOutput().getText()).collect(Collectors.joining("\n")));
+            addMessageToChatHistory(response.getResults().get(0).getOutput(), chatHistoryId, model);
             return response;
         } catch (Exception e) {
             log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
@@ -165,7 +168,8 @@ public class ChatService {
 
             // adding LLM response to chat history
             ChatResponse response = chatModel.call(prompt);
-            addMessageToChatHistory(response.getResults().get(0).getOutput().getText(), chatHistoryId, MessageType.ASSISTANT, model, Map.of());
+            log.info("Response: {}", response.getResults().stream().map(r -> r.getOutput().getText()).collect(Collectors.joining("\n")));
+            addMessageToChatHistory(response.getResults().get(0).getOutput(), chatHistoryId, model);
             return response;
         } catch (Exception e) {
             log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
@@ -313,6 +317,13 @@ public class ChatService {
         chatHistoryRepository.save(existingChatHistory);
     }
 
+    public void addMessageToChatHistory(AssistantMessage message, Long chatHistoryId, String model) throws Exception {
+        // TODO: integrate message.getToolCalls()
+        ChatHistory existingChatHistory = getChatHistoryById(chatHistoryId);
+        existingChatHistory.getMessages().add(new ChatMessage(message, existingChatHistory, model));
+        chatHistoryRepository.save(existingChatHistory);
+    }
+
     public ChatMessage addMessageToChatHistory(String text, Long chatHistoryId, MessageType messageType, String model, Map<String, Object> metadata) throws Exception {
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setText(text);
@@ -321,6 +332,10 @@ public class ChatService {
         chatMessage.setModel(model);
         chatMessage.setMetadata(metadata);
         chatMessageRepository.save(chatMessage);
+
+        ChatHistory existingChatHistory = getChatHistoryById(chatHistoryId);
+        existingChatHistory.getMessages().add(chatMessage);
+        chatHistoryRepository.save(existingChatHistory);
         return chatMessage;
     }
 

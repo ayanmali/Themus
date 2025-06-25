@@ -41,7 +41,6 @@ public class ChatMessage {
     @Column(name = "model")
     private String model;
     
-
     @ManyToOne
     @JoinColumn(name = "chat_history_id", nullable = false)
     private ChatHistory chatHistory;
@@ -69,6 +68,14 @@ public class ChatMessage {
         this.chatHistory = chatHistory;
         this.model = model;
         this.messageType = messageType;
+    }
+
+    public ChatMessage(AssistantMessage message, ChatHistory chatHistory, String model) {
+        this.text = message.getText();
+        this.chatHistory = chatHistory;
+        this.messageType = message.getMessageType();
+        this.model = model;
+        this.metadata = message.getMetadata();
     }
 
     public Long getId() {
