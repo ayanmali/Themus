@@ -1,5 +1,12 @@
 package com.delphi.delphi.messaging;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.stereotype.Component;
+
+import com.delphi.delphi.configs.RabbitMQConfig;
+
 // import java.util.concurrent.TimeUnit;
 
 // import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -25,3 +32,21 @@ package com.delphi.delphi.messaging;
 //   }
 
 // }
+
+@Component
+public class MessageSender {
+
+    private static final Logger log = LoggerFactory.getLogger(MessageSender.class);
+
+    private final RabbitTemplate rabbitTemplate;
+
+    public MessageSender(RabbitTemplate rabbitTemplate) {
+        this.rabbitTemplate = rabbitTemplate;
+    }
+
+    public void sendChatMessage(String message) {
+        rabbitTemplate.convertAndSend(RabbitMQConfig.QUEUE_NAME, message);
+        log.info("Sent message: {}", message);
+    }
+}
+

@@ -55,6 +55,7 @@ public class ChatMessage {
     @Column(name = "metadata_value")
     private Map<String, Object> metadata;
 
+    // TODO: store tool calls in message entities
     // @ElementCollection
     // @CollectionTable(name = "message_tool_calls", joinColumns = @JoinColumn(name = "message_id"))
     // @Column(name = "tool_call")
@@ -76,6 +77,7 @@ public class ChatMessage {
         this.messageType = message.getMessageType();
         this.model = model;
         this.metadata = message.getMetadata();
+        // TODO: this.toolCalls = message.getToolCalls();
     }
 
     public Long getId() {

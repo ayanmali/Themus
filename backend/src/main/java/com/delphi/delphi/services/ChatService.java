@@ -318,7 +318,7 @@ public class ChatService {
     }
 
     public void addMessageToChatHistory(AssistantMessage message, Long chatHistoryId, String model) throws Exception {
-        // TODO: integrate message.getToolCalls()
+        // TODO: integrate message.getToolCalls() and store tool calls in message entities
         ChatHistory existingChatHistory = getChatHistoryById(chatHistoryId);
         existingChatHistory.getMessages().add(new ChatMessage(message, existingChatHistory, model));
         chatHistoryRepository.save(existingChatHistory);
