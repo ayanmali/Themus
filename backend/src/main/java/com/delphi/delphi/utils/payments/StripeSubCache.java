@@ -1,8 +1,8 @@
-package com.delphi.delphi.utils;
+package com.delphi.delphi.utils.payments;
 
 import com.stripe.model.Subscription;
 
-public class SubscriptionInternal {
+public class StripeSubCache {
     private String status;
     private String priceId;
     private String customerId;
@@ -14,11 +14,11 @@ public class SubscriptionInternal {
     private Boolean cancelAtPeriodEnd;
     private PaymentMethodInternal paymentMethod;
 
-    public SubscriptionInternal() {
+    public StripeSubCache() {
         this.status = "none";
     }
 
-    public SubscriptionInternal(Subscription subscription) {
+    public StripeSubCache(Subscription subscription) {
         this.subscriptionId = subscription.getId();
         this.status = subscription.getStatus();
         this.priceId = subscription.getItems().getData().getFirst().getPrice().getId();

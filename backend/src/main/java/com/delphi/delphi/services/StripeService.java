@@ -1,15 +1,24 @@
 package com.delphi.delphi.services;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.delphi.delphi.utils.SubscriptionInternal;
+import com.delphi.delphi.utils.payments.StripeSubCache;
 import com.stripe.Stripe;
+import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
+import com.stripe.model.Event;
+import com.stripe.model.Invoice;
+import com.stripe.model.PaymentIntent;
+import com.stripe.model.StripeObject;
 import com.stripe.model.Subscription;
 import com.stripe.model.SubscriptionCollection;
 import com.stripe.model.checkout.Session;
+import com.stripe.net.Webhook;
 import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.SubscriptionListParams;
 import com.stripe.param.checkout.SessionCreateParams;
@@ -21,8 +30,32 @@ import com.stripe.param.checkout.SessionCreateParams;
  */
 public class StripeService {
 
-    public StripeService(@Value("${stripe.api.key}") String stripeApiKey) {
+    private final String stripeWebhookSecret;
+
+    public static final List<String> EVENT_TYPES = List.of(
+            "checkout.session.completed",
+            "customer.subscription.created",
+            "customer.subscription.updated",
+            "customer.subscription.deleted",
+            "customer.subscription.paused",
+            "customer.subscription.resumed",
+            "customer.subscription.pending_update_applied",
+            "customer.subscription.pending_update_expired",
+            "customer.subscription.trial_will_end",
+            "invoice.paid",
+            "invoice.payment_failed",
+            "invoice.payment_action_required",
+            "invoice.upcoming",
+            "invoice.marked_uncollectible",
+            "invoice.payment_succeeded",
+            "payment_intent.succeeded",
+            "payment_intent.payment_failed",
+            "payment_intent.canceled");
+
+    public StripeService(@Value("${stripe.api.key}") String stripeApiKey, @Value("${stripe.webhook.secret}") String stripeWebhookSecret) {
         Stripe.apiKey = stripeApiKey;
+        Stripe.setAppInfo("Delphi", "0.0.1", "https://usedelphi.dev");
+        this.stripeWebhookSecret = stripeWebhookSecret;
     }
 
     public Customer createCustomer(Long userId, String email, String name) {
@@ -63,7 +96,7 @@ public class StripeService {
         }
     }
 
-    public SubscriptionInternal syncStripeDataToKV(String customerId) {
+    public StripeSubCache syncStripeDataToKV(String customerId) {
         try {
             // get subscriptions for a customer
             SubscriptionListParams params = SubscriptionListParams.builder()
@@ -74,11 +107,11 @@ public class StripeService {
             if (!subscriptions.getData().isEmpty()) {
                 // TODO: store the subscriptions in redis
                 // await kv.set(`stripe:customer:${customerId}`, subData);
-                return new SubscriptionInternal();
+                return new StripeSubCache();
             }
 
             Subscription subscription = subscriptions.getData().getFirst();
-            SubscriptionInternal subData = new SubscriptionInternal(subscription);
+            StripeSubCache subData = new StripeSubCache(subscription);
             // TODO: store the subscription in redis
             // await kv.set(`stripe:customer:${customerId}`, subData);
             return subData;
@@ -86,5 +119,61 @@ public class StripeService {
             throw new RuntimeException("Failed to get subscriptions", e);
         }
     }
-    
+
+    public void doEventProcessing(String signature, String body) {
+        try {
+            Event event = Webhook.constructEvent(body, signature, stripeWebhookSecret);
+            processEvent(event);
+        } catch (SignatureVerificationException e) {
+            throw new RuntimeException("Invalid signature", e);
+        }
+    }
+
+    private StripeSubCache processEvent(Event event) {
+        if (!EVENT_TYPES.contains(event.getType())) {
+            return null;
+        }
+
+        // Extract the object from the event and get customer ID based on event type
+        Optional<StripeObject> dataObjectOptional = event.getDataObjectDeserializer().getObject();
+        if (dataObjectOptional.isEmpty()) {
+            throw new RuntimeException("No data object in the event");
+        }
+
+        StripeObject dataObject = dataObjectOptional.get();
+
+        String customerId = null;
+
+        if (event.getType().startsWith("customer.subscription")) {
+            if (dataObject instanceof Subscription subscription) {
+                customerId = subscription.getCustomer();
+            }
+        }
+
+        if (event.getType().startsWith("invoice")) {
+            if (dataObject instanceof Invoice invoice) {
+                customerId = invoice.getCustomer();
+            }
+        }
+
+        if (event.getType().startsWith("payment_intent")) {
+            if (dataObject instanceof PaymentIntent paymentIntent) {
+                customerId = paymentIntent.getCustomer();
+            }
+        }
+
+        if (event.getType().startsWith("checkout.session")) {
+            if (dataObject instanceof Session session) {
+                customerId = session.getCustomer();
+            }
+        }
+
+        if (customerId == null) {
+            throw new RuntimeException("No customer ID found for this event");
+        }
+
+        // sync stripe data to redis
+        return syncStripeDataToKV(customerId);
+    }
+
 }
