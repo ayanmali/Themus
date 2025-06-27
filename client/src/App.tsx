@@ -23,6 +23,7 @@ import SignupPage from "./pages/auth/signup";
 import LoginPage from "./pages/auth/login";
 import CandidateAssessmentInvite from "./pages/candidate/assessment-invite";
 import CandidateDashboard from "./pages/candidate/assessments-overview";
+import PricingPage from "./pages/employer/pricing";
 
 function Router() {
   return (
@@ -34,6 +35,7 @@ function Router() {
       <Route path="/assessments" component={EmployerAssessments} />
       <Route path="/assessments/new" component={CreateAssessment} />
       <Route path="/candidates" component={EmployerCandidates} />
+      <Route path="/pricing" component={PricingPage} />
 
       {/* <Route path="/auth" component={AuthPage} /> */}
       {/* <ProtectedRoute path="/" component={HomePage} /> */}

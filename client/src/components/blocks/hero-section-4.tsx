@@ -214,13 +214,13 @@ export function HeroSection() {
 }
 
 const menuItems = [
-    { name: 'Features', href: '#features' },
-    { name: 'Solution', href: '#solution' },
+    { name: 'Features', href: '/#features' },
+    { name: 'Solution', href: '/#solution' },
     { name: 'Pricing', href: '/pricing' },
     { name: 'About', href: '/about' },
 ]
 
-const HeroHeader = () => {
+export const HeroHeader = () => {
     const [menuState, setMenuState] = React.useState(false)
     return (
         <header>
