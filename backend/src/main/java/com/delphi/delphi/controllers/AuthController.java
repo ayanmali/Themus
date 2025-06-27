@@ -11,6 +11,11 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,6 +44,8 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/auth")
 public class AuthController {
 
+    private final AuthenticationManager authenticationManager;
+
     private final RefreshTokenService refreshTokenService;
 
     // github client id and secret
@@ -58,12 +65,13 @@ public class AuthController {
 
     private final JwtService jwtService;
 
-    public AuthController(RestTemplate restTemplate, UserService userService, GithubClient githubClient, JwtService jwtService, RefreshTokenService refreshTokenService) {
+    public AuthController(RestTemplate restTemplate, UserService userService, GithubClient githubClient, JwtService jwtService, RefreshTokenService refreshTokenService, AuthenticationManager authenticationManager) {
         this.restTemplate = restTemplate;
         this.userService = userService;
         this.githubClient = githubClient;
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
+        this.authenticationManager = authenticationManager;
     }
 
     @GetMapping("/oauth/github/callback")
@@ -142,12 +150,19 @@ public class AuthController {
 
     @PostMapping("/login/email")
     public ResponseEntity<?> loginEmail(@RequestBody PasswordLoginDto passwordLoginDto) {
-        User user = userService.authenticate(passwordLoginDto.getEmail(), passwordLoginDto.getPassword());
-
-        String accessToken = jwtService.generateAccessToken(user.getEmail());
-        String refreshToken = jwtService.generateRefreshToken(user.getEmail());
-
-        return ResponseEntity.ok(new AuthResponseDto(accessToken, refreshToken, user.getName(), user.getEmail()));
+        Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(passwordLoginDto.getEmail(), passwordLoginDto.getPassword())
+        );
+        
+        // Set the authentication in the security context
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        
+        // Generate tokens
+        String accessToken = jwtService.generateAccessToken(userDetails);
+        String refreshToken = jwtService.generateRefreshToken(userDetails);
+        
+        return ResponseEntity.ok(new AuthResponseDto(accessToken, refreshToken, userDetails.getUsername()));
     }
 
     @PostMapping("/refresh")
@@ -165,12 +180,15 @@ public class AuthController {
             refreshTokenService.save(refreshTokenEntity);
 
             User user = refreshTokenEntity.getUser();
+            UserDetails userDetails = userService.getUserByEmail(user.getEmail())
+                                        .orElseThrow(() -> new RuntimeException("User not found"));
             
             // Generate new tokens
-            String newAccessToken = jwtService.generateAccessToken(user);
-            String newRefreshToken = jwtService.generateRefreshToken(user);
-
-            return ResponseEntity.ok(new AuthResponseDto(newAccessToken, newRefreshToken, user.getName(), user.getEmail()));
+            String newAccessToken = jwtService.generateAccessToken(userDetails);
+            // String newRefreshToken = jwtService.generateRefreshToken(userDetails);
+            RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
+            
+            return ResponseEntity.ok(new AuthResponseDto(newAccessToken, newRefreshToken.getToken(), userDetails.getUsername()));
         } catch (TokenRefreshException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         }

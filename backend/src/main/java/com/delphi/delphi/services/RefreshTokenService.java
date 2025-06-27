@@ -2,7 +2,6 @@ package com.delphi.delphi.services;
 
 import java.time.Instant;
 import java.util.Optional;
-import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -13,17 +12,20 @@ import com.delphi.delphi.repositories.RefreshTokenRepository;
 
 @Service
 public class RefreshTokenService {
+
+    private final JwtService jwtService;
     private final RefreshTokenRepository refreshTokenRepository;
     private final Long refreshTokenExpiration;
 
-    public RefreshTokenService(RefreshTokenRepository refreshTokenRepository, @Value("${jwt.refresh.expiration}") Long refreshTokenExpiration) {
+    public RefreshTokenService(RefreshTokenRepository refreshTokenRepository, @Value("${jwt.refresh.expiration}") Long refreshTokenExpiration, JwtService jwtService) {
         this.refreshTokenRepository = refreshTokenRepository;
         this.refreshTokenExpiration = refreshTokenExpiration;
+        this.jwtService = jwtService;
     }
 
     public RefreshToken createRefreshToken(User user) {
         RefreshToken refreshToken = new RefreshToken();
-        refreshToken.setToken(UUID.randomUUID().toString());
+        refreshToken.setToken(jwtService.generateRefreshToken(user));
         refreshToken.setUser(user);
         refreshToken.setExpiryDate(Instant.now().plusSeconds(refreshTokenExpiration));
         return refreshTokenRepository.save(refreshToken);

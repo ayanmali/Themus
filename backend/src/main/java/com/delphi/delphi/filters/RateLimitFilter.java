@@ -54,10 +54,10 @@ public class RateLimitFilter implements Filter {
             return;
         }
 
-        String userId = jwtService.extractId(jwt);
+        String email = jwtService.extractUsername(jwt);
         
         // Implement the rate limiting algorithm from pseudocode
-        if (!isRequestAllowed(userId)) {
+        if (!isRequestAllowed(email)) {
             // Line 3: Show error message and end connection
             res.setStatus(429); // HTTP 429 Too Many Requests
             res.setContentType("application/json");
@@ -69,10 +69,10 @@ public class RateLimitFilter implements Filter {
         chain.doFilter(request, response);
     }
 
-    private boolean isRequestAllowed(String userId) {
+    private boolean isRequestAllowed(String email) {
         // Get current minute number (timestamp divided by 60 seconds)
         long currentMinute = System.currentTimeMillis() / (60 * 1000);
-        String rateLimitKey = RATE_LIMIT_KEY_PREFIX + userId + ":" + currentMinute;
+        String rateLimitKey = RATE_LIMIT_KEY_PREFIX + email + ":" + currentMinute;
 
         // Line 1: GET [user-api-key]:[current minute number]
         Long currentCount = redisService.getLong(rateLimitKey);

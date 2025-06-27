@@ -7,12 +7,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.delphi.delphi.services.JwtService;
+import com.delphi.delphi.services.UserService;
 
-import io.jsonwebtoken.lang.Collections;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,15 +23,24 @@ import jakarta.servlet.http.HttpServletResponse;
 @Order(3)
 public class JwtAuthFilter extends OncePerRequestFilter {
 
+    private final UserService userService;
+
     private final JwtService jwtService;
 
-    public JwtAuthFilter(JwtService jwtService) {
+    public JwtAuthFilter(JwtService jwtService, UserService userService) {
         this.jwtService = jwtService;
+        this.userService = userService;
     }
 
     @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
+    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain)
             throws ServletException, IOException {
+
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         // Get the token from the request header
         String authHeader = request.getHeader("Authorization");
@@ -40,22 +50,21 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         String jwt = authHeader.substring(7);
-        String userId = jwtService.extractId(jwt);
+        String email = jwtService.extractUsername(jwt);
 
-        if (SecurityContextHolder.getContext().getAuthentication() != null) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        if (jwt == null || userId == null || !jwtService.validateToken(jwt)) {
+        if (jwt == null || email == null || !jwtService.validateToken(jwt)) {
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
             return;
         }
 
-        UsernamePasswordAuthenticationToken userIdAuthToken = new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
-        SecurityContextHolder.getContext().setAuthentication(userIdAuthToken);
+        UserDetails userDetails = userService.getUserByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        UsernamePasswordAuthenticationToken emailPasswordAuthToken = new UsernamePasswordAuthenticationToken(
+                userDetails, null, userDetails.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(emailPasswordAuthToken);
 
         filterChain.doFilter(request, response);
     }
-    
+
 }

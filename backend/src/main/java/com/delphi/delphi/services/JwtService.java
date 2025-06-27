@@ -6,10 +6,9 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Service;
-
-import com.delphi.delphi.entities.User;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -30,27 +29,38 @@ public class JwtService {
         this.refreshTokenExpiration = refreshTokenExpiration;
     }
 
-    public String generateAccessToken(String id) {
+    public String generateAccessToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, id, accessTokenExpiration);
+        return createToken(claims, userDetails.getUsername(), accessTokenExpiration);
     }
 
-    public String generateAccessToken(User user) {
+    // public String generateAccessToken(String id) {
+    //     Map<String, Object> claims = new HashMap<>();
+    //     return createToken(claims, id, accessTokenExpiration);
+    // }
+
+    // public String generateAccessToken(User user) {
+    //     Map<String, Object> claims = new HashMap<>();
+    //     return createToken(claims, user.getId().toString(), accessTokenExpiration);
+    // }
+
+    public String generateRefreshToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, user.getId().toString(), accessTokenExpiration);
+        claims.put("refresh", true);
+        return createToken(claims, userDetails.getUsername(), refreshTokenExpiration);
     }
     
-    public String generateRefreshToken(String id) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("refresh", true);
-        return createToken(claims, id, refreshTokenExpiration);
-    }
+    // public String generateRefreshToken(String id) {
+    //     Map<String, Object> claims = new HashMap<>();
+    //     claims.put("refresh", true);
+    //     return createToken(claims, id, refreshTokenExpiration);
+    // }
 
-    public String generateRefreshToken(User user) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("refresh", true);
-        return createToken(claims, user.getEmail(), refreshTokenExpiration);
-    }
+    // public String generateRefreshToken(User user) {
+    //     Map<String, Object> claims = new HashMap<>();
+    //     claims.put("refresh", true);
+    //     return createToken(claims, user.getEmail(), refreshTokenExpiration);
+    // }
     
     private String createToken(Map<String, Object> claims, String subject, Long expiration) {
         return Jwts.builder()
@@ -62,7 +72,7 @@ public class JwtService {
             .compact();
     }
     
-    public String extractId(String token) {
+    public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 

@@ -4,13 +4,13 @@ package com.delphi.delphi.dtos;
 public class AuthResponseDto {
     private String accessToken;
     private String refreshToken;
-    private String name;
+    // private String name;
     private String email;
 
-    public AuthResponseDto(String accessToken, String refreshToken, String name, String email) {
+    public AuthResponseDto(String accessToken, String refreshToken, String email) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
-        this.name = name;
+        // this.name = name;
         this.email = email;
     }
 
@@ -30,13 +30,13 @@ public class AuthResponseDto {
         this.refreshToken = refreshToken;
     }
 
-    public String getName() {
-        return name;
-    }
+    // public String getName() {
+    //     return name;
+    // }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    // public void setName(String name) {
+    //     this.name = name;
+    // }
 
     public String getEmail() {
         return email;
