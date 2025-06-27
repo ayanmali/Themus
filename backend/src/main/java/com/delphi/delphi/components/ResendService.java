@@ -1,7 +1,6 @@
-package com.delphi.delphi.services;
+package com.delphi.delphi.components;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import com.resend.Resend;
 import com.resend.core.exception.ResendException;
@@ -9,12 +8,12 @@ import com.resend.services.emails.model.CreateEmailOptions;
 import com.resend.services.emails.model.CreateEmailResponse;
 
 // For sending emails
-@Service
+@Component
 public class ResendService {
     private final Resend resend;
 
-    public ResendService(@Value("${resend.api.key}") String resendApiKey) {
-        this.resend = new Resend(resendApiKey);
+    public ResendService(Resend resend) {
+        this.resend = resend;
     }
 
     public void sendEmail(String from, String to, String subject, String text) {

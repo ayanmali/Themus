@@ -2,6 +2,7 @@ package com.delphi.delphi.filters;
 
 import java.io.IOException;
 
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import com.delphi.delphi.components.RedisService;
@@ -16,6 +17,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 // use redis to cache responses for GET requests
 @Component
+@Order(5)
 public class CachingFilter implements Filter {
 
     private final RedisService redisService;

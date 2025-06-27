@@ -5,9 +5,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-@Service
+@Component
 public class RedisService {
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -95,5 +95,63 @@ public class RedisService {
     // Remove elements from list
     public Long removeFromList(String key, Object value) {
         return redisTemplate.opsForList().remove(key, 0, value);
+    }
+
+    /* Transaction Operations */
+
+    // Increment a key and return the new value
+    public Long increment(String key) {
+        return redisTemplate.opsForValue().increment(key);
+    }
+
+    // Increment a key by a specific amount
+    public Long incrementBy(String key, long delta) {
+        return redisTemplate.opsForValue().increment(key, delta);
+    }
+
+    // Execute operations in a transaction (Redis MULTI/EXEC)
+    public void executeInTransaction(Runnable operations) {
+        redisTemplate.execute((org.springframework.data.redis.core.RedisCallback<Object>) connection -> {
+            connection.multi();
+            operations.run();
+            connection.exec();
+            return null;
+        });
+    }
+
+    // Get the current value as Long (useful for counters)
+    public Long getLong(String key) {
+        Object value = redisTemplate.opsForValue().get(key);
+        if (value == null) {
+            return 0L;
+        }
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        try {
+            return Long.valueOf(value.toString());
+        } catch (NumberFormatException e) {
+            return 0L;
+        }
+    }
+
+    // Atomic rate limiting operation - implements the exact pseudocode MULTI/INCR/EXPIRE/EXEC
+    public Long incrementAndExpire(String key, long expireSeconds) {
+        return redisTemplate.execute((org.springframework.data.redis.core.RedisCallback<Long>) connection -> {
+            // Start transaction
+            connection.multi();
+            // Queue INCR command
+            connection.stringCommands().incr(key.getBytes());
+            // Queue EXPIRE command
+            connection.keyCommands().expire(key.getBytes(), expireSeconds);
+            // Execute transaction
+            java.util.List<Object> results = connection.exec();
+            
+            // Return the result of INCR (first command in the transaction)
+            if (results != null && !results.isEmpty() && results.get(0) instanceof Long) {
+                return (Long) results.get(0);
+            }
+            return 1L; // Default to 1 if something went wrong
+        });
     }
 } 

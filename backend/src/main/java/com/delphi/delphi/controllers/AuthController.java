@@ -114,9 +114,6 @@ public class AuthController {
         String name = (String) userBody.get("name");
         String email = (String) userBody.get("email");
         
-        // TODO: Store user information and access token securely in database
-        // You can now use your UserService to create or update the user
-        
         return ResponseEntity.ok(Map.of(
             "access_token", accessToken,
             "username", githubUsername,

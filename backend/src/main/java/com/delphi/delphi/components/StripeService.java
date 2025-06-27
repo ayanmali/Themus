@@ -1,10 +1,10 @@
-package com.delphi.delphi.services;
+package com.delphi.delphi.components;
 
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import com.delphi.delphi.utils.payments.StripeSubCache;
 import com.stripe.Stripe;
@@ -23,7 +23,7 @@ import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.SubscriptionListParams;
 import com.stripe.param.checkout.SessionCreateParams;
 
-@Service
+@Component
 /*
  * Customers use this link to manage their subscriptions:
  * https://billing.stripe.com/p/login/00wcN50UWfN6c1D4Vc6Ri00
@@ -50,7 +50,8 @@ public class StripeService {
             "invoice.payment_succeeded",
             "payment_intent.succeeded",
             "payment_intent.payment_failed",
-            "payment_intent.canceled");
+            "payment_intent.canceled"
+    );
 
     public StripeService(@Value("${stripe.api.key}") String stripeApiKey, @Value("${stripe.webhook.secret}") String stripeWebhookSecret) {
         Stripe.apiKey = stripeApiKey;

@@ -1,4 +1,4 @@
-package com.delphi.delphi.utils;
+package com.delphi.delphi.utils.payments;
 
 import com.stripe.model.PaymentMethod;
 
