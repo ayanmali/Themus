@@ -1,5 +1,4 @@
 package com.delphi.delphi.controllers;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,17 +11,33 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.components.StripeService;
+import com.delphi.delphi.entities.User;
+import com.delphi.delphi.services.UserService;
+import com.delphi.delphi.utils.payments.StripeSubCache;
+import com.stripe.model.Customer;
+import com.stripe.model.checkout.Session;
 
 @RestController
 @RequestMapping("/api/payments")
 public class PaymentController {
 
+    private final UserService userService;
+
     private final StripeService stripeService;
     private final RedisService redisService;
 
-    public PaymentController(StripeService stripeService, RedisService redisService) {
+    public PaymentController(StripeService stripeService, RedisService redisService, UserService userService) {
         this.stripeService = stripeService;
         this.redisService = redisService;
+        this.userService = userService;
+    }
+
+    @GetMapping("/{userId}/initiate-checkout")
+    public ResponseEntity<?> initiateStripeCheckout(@PathVariable Long userId) {
+        User user = userService.getUserById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+        Customer customer = stripeService.createCustomer(user);
+        Session session = stripeService.createCheckoutSession(customer.getId());
+        return ResponseEntity.ok(session.getUrl());
     }
 
     @PostMapping("/stripe/webhook")
@@ -41,7 +56,7 @@ public class PaymentController {
     @GetMapping("/{userId}/checkout/success")
     public ResponseEntity<?> checkoutSuccess(@PathVariable Long userId) {
         // get stripe customer id from redis
-        String stripeCustomerId = redisService.get("stripe:user:" + userId).toString();
+        String stripeCustomerId = (String)redisService.get("stripe:user:" + userId);
 
         // if stripe customer id is not found, return redirect to home page
         if (stripeCustomerId == null) {
@@ -55,6 +70,18 @@ public class PaymentController {
         // return redirect to home page
         // redirect("/");
         return ResponseEntity.ok("Checkout success");
+    }
+
+    @GetMapping("/{userId}/subscription")
+    public ResponseEntity<?> getSubscription(@PathVariable Long userId) {
+        try {
+            StripeSubCache subData = stripeService.getSubscription(userId);
+            return ResponseEntity.ok(subData);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+        
     }
     
 }

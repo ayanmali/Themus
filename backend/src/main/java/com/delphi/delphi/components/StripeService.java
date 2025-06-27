@@ -1,11 +1,13 @@
 package com.delphi.delphi.components;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.delphi.delphi.entities.User;
 import com.delphi.delphi.utils.payments.StripeSubCache;
 import com.stripe.Stripe;
 import com.stripe.exception.SignatureVerificationException;
@@ -31,6 +33,7 @@ import com.stripe.param.checkout.SessionCreateParams;
 public class StripeService {
 
     private final String stripeWebhookSecret;
+    private final RedisService redisService;
 
     public static final List<String> EVENT_TYPES = List.of(
             "checkout.session.completed",
@@ -50,35 +53,43 @@ public class StripeService {
             "invoice.payment_succeeded",
             "payment_intent.succeeded",
             "payment_intent.payment_failed",
-            "payment_intent.canceled"
-    );
+            "payment_intent.canceled");
 
-    public StripeService(@Value("${stripe.api.key}") String stripeApiKey, @Value("${stripe.webhook.secret}") String stripeWebhookSecret) {
+    public StripeService(@Value("${stripe.api.key}") String stripeApiKey,
+            @Value("${stripe.webhook.secret}") String stripeWebhookSecret, RedisService redisService) {
         Stripe.apiKey = stripeApiKey;
         Stripe.setAppInfo("Delphi", "0.0.1", "https://usedelphi.dev");
         this.stripeWebhookSecret = stripeWebhookSecret;
+        this.redisService = redisService;
     }
 
-    public Customer createCustomer(Long userId, String email, String name) {
+    public Customer createCustomer(User user) {
         try {
             // TODO: check if the user ID has a customer ID in redis
+            String customerId = (String) redisService.get("stripe:user:" + user.getId());
 
-            // if the user ID has a customer ID in redis, use it
-            // if the user ID does not have a customer ID in redis, create a new customer
+            // if the user ID has a customer ID in redis, return it
+            if (customerId != null) {
+                return Customer.retrieve(customerId);
+            }
+            // if the user ID does not have a stripe customer ID in redis, create a new customer
             CustomerCreateParams params = CustomerCreateParams.builder()
-                    .setName(name)
-                    .setEmail(email)
+                    .setName(user.getName())
+                    .setEmail(user.getEmail())
+                    .setMetadata(Map.of("userId", user.getId().toString()))
                     .build();
-            return Customer.create(params);
-            // store user ID and customer ID in redis
-            // customer.getId();
+            Customer customer = Customer.create(params);
+
+            redisService.set("stripe:user:" + user.getId(), customer.getId());
+
+            return customer;
 
         } catch (StripeException e) {
             throw new RuntimeException("Failed to create customer", e);
         }
     }
 
-    public Session createCheckoutSession(String customerId, String priceId) {
+    public Session createCheckoutSession(String customerId) {
         try {
             SessionCreateParams params = SessionCreateParams.builder()
                     .setCustomer(customerId)
@@ -106,15 +117,13 @@ public class StripeService {
             SubscriptionCollection subscriptions = Subscription.list(params);
 
             if (!subscriptions.getData().isEmpty()) {
-                // TODO: store the subscriptions in redis
-                // await kv.set(`stripe:customer:${customerId}`, subData);
-                return new StripeSubCache();
+                StripeSubCache subData = new StripeSubCache();
+                redisService.set("stripe:customer:" + customerId, subData);
+                return subData;
             }
 
-            Subscription subscription = subscriptions.getData().getFirst();
-            StripeSubCache subData = new StripeSubCache(subscription);
-            // TODO: store the subscription in redis
-            // await kv.set(`stripe:customer:${customerId}`, subData);
+            StripeSubCache subData = new StripeSubCache(subscriptions.getData().getFirst());
+            redisService.set("stripe:customer:" + customerId, subData);
             return subData;
         } catch (StripeException e) {
             throw new RuntimeException("Failed to get subscriptions", e);
@@ -175,6 +184,18 @@ public class StripeService {
 
         // sync stripe data to redis
         return syncStripeDataToKV(customerId);
+    }
+
+    public StripeSubCache getSubscription(Long userId) {
+        String stripeCustomerId = (String) redisService.get("stripe:user:" + userId);
+        if (stripeCustomerId == null) {
+            throw new RuntimeException("No Stripe customer ID found for this user");
+        }
+        return getSubscription(stripeCustomerId);
+    }
+
+    public StripeSubCache getSubscription(String customerId) {
+        return (StripeSubCache) redisService.get("stripe:customer:" + customerId);
     }
 
 }

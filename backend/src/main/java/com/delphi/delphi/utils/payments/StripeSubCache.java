@@ -12,7 +12,7 @@ public class StripeSubCache {
     private Long currentPeriodEnd;
     private Long currentPeriodStart;
     private Boolean cancelAtPeriodEnd;
-    private PaymentMethodInternal paymentMethod;
+    private StripePaymentMethod paymentMethod;
 
     public StripeSubCache() {
         this.status = "none";
@@ -26,7 +26,7 @@ public class StripeSubCache {
         this.currentPeriodStart = subscription.getItems().getData().getFirst().getCurrentPeriodStart(); 
         this.cancelAtPeriodEnd = subscription.getCancelAtPeriodEnd();
         if (subscription.getDefaultPaymentMethodObject() != null && subscription.getDefaultPaymentMethodObject().getCard() != null) {
-            this.paymentMethod = new PaymentMethodInternal(subscription.getDefaultPaymentMethodObject());
+            this.paymentMethod = new StripePaymentMethod(subscription.getDefaultPaymentMethodObject());
         }
     }
 
@@ -102,11 +102,11 @@ public class StripeSubCache {
         this.cancelAtPeriodEnd = cancelAtPeriodEnd;
     }
 
-    public PaymentMethodInternal getPaymentMethod() {
+    public StripePaymentMethod getPaymentMethod() {
         return paymentMethod;
     }
 
-    public void setPaymentMethod(PaymentMethodInternal paymentMethod) {
+    public void setPaymentMethod(StripePaymentMethod paymentMethod) {
         this.paymentMethod = paymentMethod;
     }
     

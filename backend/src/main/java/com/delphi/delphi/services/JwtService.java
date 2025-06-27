@@ -30,20 +30,20 @@ public class JwtService {
         this.refreshTokenExpiration = refreshTokenExpiration;
     }
 
-    public String generateAccessToken(String email) {
+    public String generateAccessToken(String id) {
         Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, email, accessTokenExpiration);
+        return createToken(claims, id, accessTokenExpiration);
     }
 
     public String generateAccessToken(User user) {
         Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, user.getEmail(), accessTokenExpiration);
+        return createToken(claims, user.getId().toString(), accessTokenExpiration);
     }
     
-    public String generateRefreshToken(String email) {
+    public String generateRefreshToken(String id) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("refresh", true);
-        return createToken(claims, email, refreshTokenExpiration);
+        return createToken(claims, id, refreshTokenExpiration);
     }
 
     public String generateRefreshToken(User user) {
@@ -62,7 +62,7 @@ public class JwtService {
             .compact();
     }
     
-    public String extractEmail(String token) {
+    public String extractId(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 

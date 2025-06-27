@@ -3,6 +3,7 @@ package com.delphi.delphi.filters;
 import java.io.IOException;
 
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -34,20 +35,25 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         // Get the token from the request header
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
             return;
         }
 
         String jwt = authHeader.substring(7);
-        String email = jwtService.extractEmail(jwt);
+        String userId = jwtService.extractId(jwt);
 
-        if (jwt == null || email == null || SecurityContextHolder.getContext().getAuthentication() != null || !jwtService.validateToken(jwt)) {
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        UsernamePasswordAuthenticationToken emailPasswordAuthToken = new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
-        SecurityContextHolder.getContext().setAuthentication(emailPasswordAuthToken);
+        if (jwt == null || userId == null || !jwtService.validateToken(jwt)) {
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            return;
+        }
+
+        UsernamePasswordAuthenticationToken userIdAuthToken = new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
+        SecurityContextHolder.getContext().setAuthentication(userIdAuthToken);
 
         filterChain.doFilter(request, response);
     }

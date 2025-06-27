@@ -2,11 +2,11 @@ package com.delphi.delphi.utils.payments;
 
 import com.stripe.model.PaymentMethod;
 
-public class PaymentMethodInternal {
+public class StripePaymentMethod {
     private String brand;
     private String last4;
 
-    public PaymentMethodInternal(PaymentMethod paymentMethod) {
+    public StripePaymentMethod(PaymentMethod paymentMethod) {
         if (paymentMethod.getCard() != null) {
             this.brand = paymentMethod.getCard().getBrand();
             this.last4 = paymentMethod.getCard().getLast4();

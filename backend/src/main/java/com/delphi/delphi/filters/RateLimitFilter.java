@@ -40,7 +40,8 @@ public class RateLimitFilter implements Filter {
         String authHeader = req.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             // No auth header, skip rate limiting (or apply different rules)
-            chain.doFilter(request, response);
+            res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            res.getWriter().write("{\"error\":\"No auth token provided\"}");
             return;
         }
 
@@ -53,10 +54,10 @@ public class RateLimitFilter implements Filter {
             return;
         }
 
-        String userEmail = jwtService.extractEmail(jwt);
+        String userId = jwtService.extractId(jwt);
         
         // Implement the rate limiting algorithm from pseudocode
-        if (!isRequestAllowed(userEmail)) {
+        if (!isRequestAllowed(userId)) {
             // Line 3: Show error message and end connection
             res.setStatus(429); // HTTP 429 Too Many Requests
             res.setContentType("application/json");
@@ -68,10 +69,10 @@ public class RateLimitFilter implements Filter {
         chain.doFilter(request, response);
     }
 
-    private boolean isRequestAllowed(String userEmail) {
+    private boolean isRequestAllowed(String userId) {
         // Get current minute number (timestamp divided by 60 seconds)
         long currentMinute = System.currentTimeMillis() / (60 * 1000);
-        String rateLimitKey = RATE_LIMIT_KEY_PREFIX + userEmail + ":" + currentMinute;
+        String rateLimitKey = RATE_LIMIT_KEY_PREFIX + userId + ":" + currentMinute;
 
         // Line 1: GET [user-api-key]:[current minute number]
         Long currentCount = redisService.getLong(rateLimitKey);

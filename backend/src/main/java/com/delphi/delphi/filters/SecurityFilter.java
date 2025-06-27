@@ -40,7 +40,7 @@ public class SecurityFilter implements Filter {
 
         // check for user agent and block if it's a bot
         String userAgent = req.getHeader("User-Agent");
-        if (userAgent != null && Arrays.stream(BOT_AGENTS).anyMatch(userAgent::contains)) {
+        if (userAgent == null || Arrays.stream(BOT_AGENTS).anyMatch(userAgent::contains)) {
             res.setStatus(HttpStatus.FORBIDDEN.value());
             return;
         }
