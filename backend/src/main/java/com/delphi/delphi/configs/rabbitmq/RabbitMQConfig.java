@@ -1,4 +1,4 @@
-package com.delphi.delphi.configs;
+package com.delphi.delphi.configs.rabbitmq;
 
 import org.springframework.amqp.core.Queue;
 import org.springframework.context.annotation.Bean;
