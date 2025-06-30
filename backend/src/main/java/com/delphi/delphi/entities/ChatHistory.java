@@ -55,6 +55,10 @@ public class ChatHistory {
         this.messages = messages;
     }
 
+    public void addMessage(ChatMessage message) {
+        this.messages.add(message);
+    }
+
     public Assessment getAssessment() {
         return assessment;
     }

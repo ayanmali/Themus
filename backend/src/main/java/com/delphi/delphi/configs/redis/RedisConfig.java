@@ -40,7 +40,7 @@ public class RedisConfig implements CachingConfigurer {
     private final int REDIS_MAX_WAIT;
     private final int REDIS_TIMEOUT;
 
-    public RedisConfig(@Value("${spring.data.redis.host}") String redisHost, @Value("${spring.data.redis.port}") int redisPort, @Value("${spring.data.redis.database}") int redisDatabase, @Value("${spring.data.redis.password}") String redisPassword, @Value("${spring.data.redis.lettuce.pool.max-active}") int redisMaxActive, @Value("${spring.data.redis.lettuce.pool.max-idle}") int redisMaxIdle, @Value("${spring.data.redis.lettuce.pool.min-idle}") int redisMinIdle, @Value("${spring.data.redis.lettuce.pool.max-wait}") int redisMaxWait, @Value("${spring.data.redis.lettuce.pool.time-between-eviction-runs-ms}") int redisTimeout) {
+    public RedisConfig(@Value("${spring.data.redis.host}") String redisHost, @Value("${spring.data.redis.port}") int redisPort, @Value("${spring.data.redis.database}") int redisDatabase, @Value("${spring.data.redis.password}") String redisPassword, @Value("${spring.data.redis.lettuce.pool.max-active}") int redisMaxActive, @Value("${spring.data.redis.lettuce.pool.max-idle}") int redisMaxIdle, @Value("${spring.data.redis.lettuce.pool.min-idle}") int redisMinIdle, @Value("${spring.data.redis.lettuce.pool.max-wait}") int redisMaxWait, @Value("${spring.data.redis.lettuce.shutdown-timeout}") int redisTimeout) {
         this.REDIS_HOST = redisHost;
         this.REDIS_PORT = redisPort;
         this.REDIS_DATABASE = redisDatabase;
@@ -71,13 +71,6 @@ public class RedisConfig implements CachingConfigurer {
     //     return RedisCacheManager.create(redisConnectionFactory);
     // }
 
-    @Bean
-    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory) {
-        RedisTemplate<String, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(redisConnectionFactory);
-        return template;
-    }
-
     // @Override
     // public CacheResolver cacheResolver() {
     //     return new SimpleCacheResolver(cacheManager(redisConnectionFactory()));
@@ -88,8 +81,8 @@ public class RedisConfig implements CachingConfigurer {
     //     return new SimpleCacheErrorHandler();
     // }
 
-    @Bean(name = "redisTemplate")
-    public RedisTemplate<Object, Object> redisTemplate() {
+    @Bean
+    public RedisTemplate<String, Object> redisTemplate() {
         return getTemplate(redisConnectionFactory());
     }
 
@@ -146,8 +139,8 @@ public class RedisConfig implements CachingConfigurer {
      * @param factory
      * @return
      */
-    private RedisTemplate<Object, Object> getTemplate(RedisConnectionFactory factory) {
-        RedisTemplate<Object, Object> template = new RedisTemplate<>();
+    private RedisTemplate<String, Object> getTemplate(RedisConnectionFactory factory) {
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
         template.setValueSerializer(jackson2JsonRedisSerializer(new ObjectMapper()));
         template.setKeySerializer(new StringRedisSerializer());

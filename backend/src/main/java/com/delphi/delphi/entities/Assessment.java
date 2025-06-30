@@ -137,7 +137,7 @@ public class Assessment {
     private ChatHistory chatHistory;
 
     public Assessment() {
-        this.githubRepoName = name.replace(' ', '-');
+        // Empty constructor for Hibernate
     }
 
     public Assessment(String name, String description, String roleName, AssessmentType assessmentType, LocalDateTime startDate, LocalDateTime endDate, Integer duration, String githubRepositoryLink, User user, List<String> skills, List<String> languageOptions, Map<String, String> metadata) {

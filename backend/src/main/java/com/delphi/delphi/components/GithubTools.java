@@ -11,7 +11,8 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
-import com.delphi.delphi.services.AssessmentService;
+import com.delphi.delphi.entities.ChatMessage;
+import com.delphi.delphi.repositories.AssessmentRepository;
 import com.delphi.delphi.services.UserService;
 
 @Component
@@ -21,16 +22,16 @@ import com.delphi.delphi.services.UserService;
  */
 public class GithubTools {
 
-    private final AssessmentService assessmentService;
+    private final AssessmentRepository assessmentRepository;
     private final UserService userService; // for getting user info (PAT, username)
     private final GithubClient githubClient; // for making GitHub API calls
     private final Base64.Encoder base64Encoder; // for encoding content to base64 for GitHub API
 
-    public GithubTools(UserService userService, GithubClient githubClient, AssessmentService assessmentService) {
+    public GithubTools(UserService userService, GithubClient githubClient, AssessmentRepository assessmentRepository) {
         this.userService = userService;
         this.githubClient = githubClient;
         this.base64Encoder = Base64.getEncoder();
-        this.assessmentService = assessmentService;
+        this.assessmentRepository = assessmentRepository;
     }
 
     /* Helper methods */
@@ -51,7 +52,7 @@ public class GithubTools {
     private String getCurrentRepoName(Object assessmentIdObj) {
         try {
             Long assessmentId = (Long) assessmentIdObj;
-            return assessmentService.getAssessmentById(assessmentId)
+            return assessmentRepository.findById(assessmentId)
                     .orElseThrow(() -> new RuntimeException("Assessment not found"))
                     .getGithubRepoName();
         } catch (NullPointerException e) {
@@ -176,10 +177,10 @@ public class GithubTools {
     }
 
     @Tool(description = "Sends a message to the user after applying changes to the repository.", returnDirect=true)
-    public String sendMessageToUser(
+    public ChatMessage sendMessageToUser(
         @ToolParam(required = true, description = "The message to send to the user") String message,
         ToolContext toolContext) {
-        return githubClient.sendMessageToUser(message, getCurrentChatHistoryId(toolContext.getContext().get("chatHistoryId")));
+        return githubClient.sendMessageToUser(message, getCurrentChatHistoryId(toolContext.getContext().get("chatHistoryId")), (String) toolContext.getContext().get("model"));
     }
 
 }

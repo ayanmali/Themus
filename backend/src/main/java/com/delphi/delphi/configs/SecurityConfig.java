@@ -1,5 +1,4 @@
 package com.delphi.delphi.configs;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -9,12 +8,15 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.delphi.delphi.filters.JwtAuthFilter;
+import com.delphi.delphi.repositories.UserRepository;
+import com.delphi.delphi.services.JwtService;
 
 @Configuration
 @EnableWebSecurity
@@ -25,14 +27,19 @@ import com.delphi.delphi.filters.JwtAuthFilter;
  */
 public class SecurityConfig {
 
-    private final JwtAuthFilter jwtAuthFilter;
+    private final UserRepository userRepository;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
-        this.jwtAuthFilter = jwtAuthFilter;
+    public SecurityConfig(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public JwtAuthFilter jwtAuthFilter(JwtService jwtService, UserDetailsService userDetailsService) {
+        return new JwtAuthFilter(jwtService, userDetailsService);
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter) throws Exception {
         http
             .cors(Customizer.withDefaults()) // enables CORS using the bean defined in CorsConfig
             .csrf(csrf -> csrf.disable())
@@ -102,4 +109,10 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
     }
+
+    @Bean
+    UserDetailsService userDetailsService() {
+        return username -> userRepository.findByEmail(username).orElseThrow();
+    }
 }
+

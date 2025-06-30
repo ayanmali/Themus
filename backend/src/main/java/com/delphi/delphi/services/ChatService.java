@@ -75,7 +75,7 @@ public class ChatService {
             // SystemPromptTemplate systemPromptTemplate = new SystemPromptTemplate("Tell me a {adjective} joke about {topic}");
             // Message systemMessage = systemPromptTemplate.createMessage(Map.of("adjective", "offensive", "topic", "old people"));
 
-            addMessageToChatHistory(userMessage, chatHistoryId, MessageType.USER, model, Map.of());
+            addMessageToChatHistory(userMessage, chatHistoryId, MessageType.USER, model);
             // add the user message to the messages list
             //messages.add(new ChatMessage(userMessage, chatHistory, MessageType.USER, model));
 
@@ -96,7 +96,7 @@ public class ChatService {
                 OpenAiChatOptions.builder()
                     .model(model)
                     .toolCallbacks(ToolCallbacks.from(githubTools))
-                    .toolContext(Map.of("assessmentId", assessmentId, "userId", userId, "chatHistoryId", chatHistoryId))
+                    .toolContext(Map.of("assessmentId", assessmentId, "userId", userId, "chatHistoryId", chatHistoryId, "model", model))
                     //.internalToolExecutionEnabled(false) // disable framework-enabled tool execution
                     .temperature(0.75) // double between 0 and 1
                     .build()
@@ -134,7 +134,7 @@ public class ChatService {
             PromptTemplate userPromptTemplate = new PromptTemplate(userPromptTemplateMessage);
             Message userMessage = userPromptTemplate.createMessage(userPromptVariables);
 
-            addMessageToChatHistory(userMessage.getText(), chatHistoryId, MessageType.USER, model, Map.of());
+            addMessageToChatHistory(userMessage.getText(), chatHistoryId, MessageType.USER, model);
             // add the user message to the messages list
             //messages.add(new ChatMessage(userMessage, chatHistory, MessageType.USER, model));
 
@@ -155,7 +155,7 @@ public class ChatService {
                 OpenAiChatOptions.builder()
                     .model(model)
                     .toolCallbacks(ToolCallbacks.from(githubTools))
-                    .toolContext(Map.of("assessmentId", assessmentId, "userId", userId, "chatHistoryId", chatHistoryId))
+                    .toolContext(Map.of("assessmentId", assessmentId, "userId", userId, "chatHistoryId", chatHistoryId, "model", model))
                     //.internalToolExecutionEnabled(false) // disable framework-enabled tool execution
                     .temperature(0.75) // double between 0 and 1
                     .build()
@@ -274,7 +274,7 @@ public class ChatService {
 
     public ChatHistory createChatHistory(ChatHistory chatHistory, String systemMessage) throws Exception {
         // adding system prompt to chat history
-        addMessageToChatHistory(systemMessage, chatHistory.getId(), MessageType.SYSTEM, "N/A", Map.of());
+        addMessageToChatHistory(systemMessage, chatHistory.getId(), MessageType.SYSTEM, "N/A");
         // save chat history
         return chatHistoryRepository.save(chatHistory);
     }
@@ -324,13 +324,13 @@ public class ChatService {
         chatHistoryRepository.save(existingChatHistory);
     }
 
-    public ChatMessage addMessageToChatHistory(String text, Long chatHistoryId, MessageType messageType, String model, Map<String, Object> metadata) throws Exception {
+    public ChatMessage addMessageToChatHistory(String text, Long chatHistoryId, MessageType messageType, String model) throws Exception {
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setText(text);
         chatMessage.setChatHistory(getChatHistoryById(chatHistoryId));
         chatMessage.setMessageType(messageType);
         chatMessage.setModel(model);
-        chatMessage.setMetadata(metadata);
+        // chatMessage.setMetadata(metadata);
         chatMessageRepository.save(chatMessage);
 
         ChatHistory existingChatHistory = getChatHistoryById(chatHistoryId);
@@ -361,7 +361,7 @@ public class ChatService {
         ChatMessage existingMessage = getMessageById(id);
         existingMessage.setText(message.getText());
         existingMessage.setMessageType(message.getMessageType());
-        existingMessage.setMetadata(message.getMetadata());
+        // existingMessage.setMetadata(message.getMetadata());
         return chatMessageRepository.save(existingMessage);
     }
 

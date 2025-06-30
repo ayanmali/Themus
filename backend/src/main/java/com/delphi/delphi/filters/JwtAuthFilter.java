@@ -8,28 +8,26 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Component;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.delphi.delphi.services.JwtService;
-import com.delphi.delphi.services.UserService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-@Component
 @Order(3)
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    private final UserService userService;
+    private final UserDetailsService userDetailsService;
 
     private final JwtService jwtService;
 
-    public JwtAuthFilter(JwtService jwtService, UserService userService) {
+    public JwtAuthFilter(JwtService jwtService, UserDetailsService userDetailsService) {
         this.jwtService = jwtService;
-        this.userService = userService;
+        this.userDetailsService = userDetailsService;
     }
 
     @Override
@@ -57,8 +55,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        UserDetails userDetails = userService.getUserByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
         UsernamePasswordAuthenticationToken emailPasswordAuthToken = new UsernamePasswordAuthenticationToken(
                 userDetails, null, userDetails.getAuthorities());

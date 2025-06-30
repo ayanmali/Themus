@@ -1,7 +1,6 @@
 package com.delphi.delphi.entities;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -10,9 +9,7 @@ import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 
-import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -21,7 +18,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.MapKeyColumn;
 import jakarta.persistence.Table;
 
 @Entity
@@ -49,11 +45,11 @@ public class ChatMessage {
     @Column(name = "message_type", nullable = false)
     private MessageType messageType;
 
-    @ElementCollection
-    @CollectionTable(name = "message_metadata", joinColumns = @JoinColumn(name = "message_id"))
-    @MapKeyColumn(name = "metadata_key")
-    @Column(name = "metadata_value")
-    private Map<String, Object> metadata;
+    // @ElementCollection
+    // @CollectionTable(name = "message_metadata", joinColumns = @JoinColumn(name = "message_id"))
+    // @MapKeyColumn(name = "metadata_key")
+    // @Column(name = "metadata_value")
+    // private Map<String, String> metadata;
 
     // TODO: store tool calls in message entities
     // @ElementCollection
@@ -76,7 +72,7 @@ public class ChatMessage {
         this.chatHistory = chatHistory;
         this.messageType = message.getMessageType();
         this.model = model;
-        this.metadata = message.getMetadata();
+        // this.metadata = message.getMetadata();
         // TODO: this.toolCalls = message.getToolCalls();
     }
 
@@ -128,13 +124,13 @@ public class ChatMessage {
         this.messageType = messageType;
     }
 
-    public Map<String, Object> getMetadata() {
-        return metadata;
-    }
+    // public Map<String, String> getMetadata() {
+    //     return metadata;
+    // }
 
-    public void setMetadata(Map<String, Object> metadata) {
-        this.metadata = metadata;
-    }
+    // public void setMetadata(Map<String, String> metadata) {
+    //     this.metadata = metadata;
+    // }
 
     public Message toMessage() {
         switch (this.getMessageType()) {
@@ -142,7 +138,7 @@ public class ChatMessage {
                 return new UserMessage(this.getText());
             }
             case ASSISTANT -> {
-                return new AssistantMessage(this.getText(), this.getMetadata());
+                return new AssistantMessage(this.getText());
             }
             case SYSTEM -> {
                 return new SystemMessage(this.getText());
