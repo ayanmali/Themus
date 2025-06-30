@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class TopicConfig {
     public static final String CHAT_TOPIC_EXCHANGE_NAME = "chatTopicExchange";
+    public static final String CHAT_TOPIC_QUEUE_NAME = "chatTopicQueue";
 
     /* CHAT TOPIC */
     @Bean
@@ -19,7 +20,7 @@ public class TopicConfig {
 
     @Bean
     public Queue chatTopicQueue() {
-        return new Queue("chatTopicQueue");
+        return new Queue(CHAT_TOPIC_QUEUE_NAME);
     }
 
     /*

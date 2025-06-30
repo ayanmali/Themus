@@ -6,13 +6,14 @@ import org.springframework.amqp.rabbit.annotation.RabbitHandler;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
+import com.delphi.delphi.configs.rabbitmq.TopicConfig;
 import com.delphi.delphi.entities.ChatMessage;
 
 /*
  * Listens for chat messages from the topic exchange
  */
 @Component
-@RabbitListener(queues = "chatTopicQueue")
+@RabbitListener(queues = TopicConfig.CHAT_TOPIC_QUEUE_NAME)
 public class ChatMessageSubscriber {
 
     private static final Logger log = LoggerFactory.getLogger(ChatMessageSubscriber.class);

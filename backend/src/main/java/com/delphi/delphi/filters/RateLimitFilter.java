@@ -18,6 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 @Order(4)
+// Token bucket rate limiting
 public class RateLimitFilter implements Filter {
 
     private static final int RATE_LIMIT_PER_MINUTE = 20;
