@@ -6,6 +6,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,6 +28,7 @@ import com.delphi.delphi.utils.DelphiGithubConstants;
 
 @Service
 @Transactional
+// TODO: add cache annotations for other entity caches
 public class AssessmentService {
 
     private final CandidateService candidateService;
@@ -43,6 +47,7 @@ public class AssessmentService {
     }
 
     // Create a new assessment
+    @CachePut(value = "assessments", key = "#assessment.id")
     public Assessment createAssessment(Assessment assessment) {
         // Validate that the associated user exists
         if (assessment.getUser() != null && assessment.getUser().getId() != null) {
@@ -99,12 +104,14 @@ public class AssessmentService {
     }
 
     // Get assessment by ID
+    @Cacheable(value = "assessments", key = "#id")
     @Transactional(readOnly = true)
     public Optional<Assessment> getAssessmentById(Long id) {
         return assessmentRepository.findById(id);
     }
 
     // Get assessment by ID or throw exception
+    @Cacheable(value = "assessments", key = "#id")
     @Transactional(readOnly = true)
     public Assessment getAssessmentByIdOrThrow(Long id) {
         return assessmentRepository.findById(id)
@@ -112,6 +119,7 @@ public class AssessmentService {
     }
 
     // Get all assessments with pagination
+    @Cacheable(value = "assessments", key = "#pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Assessment> getAllAssessments(Pageable pageable) {
         return assessmentRepository.findAll(pageable);
@@ -170,6 +178,7 @@ public class AssessmentService {
     }
 
     // Delete assessment
+    @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
     public void deleteAssessment(Long id) {
         if (!assessmentRepository.existsById(id)) {
             throw new IllegalArgumentException("Assessment not found with id: " + id);
@@ -178,42 +187,49 @@ public class AssessmentService {
     }
 
     // Get assessments by user ID
+    @Cacheable(value = "assessments", key = "#userId + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByUserId(Long userId, Pageable pageable) {
         return assessmentRepository.findByUserId(userId, pageable);
     }
 
     // Get assessments by status
+    @Cacheable(value = "assessments", key = "#status + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByStatus(AssessmentStatus status, Pageable pageable) {
         return assessmentRepository.findByStatus(status, pageable);
     }
 
     // Get assessments by type
+    @Cacheable(value = "assessments", key = "#assessmentType + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByType(AssessmentType assessmentType, Pageable pageable) {
         return assessmentRepository.findByAssessmentType(assessmentType, pageable);
     }
 
     // Get assessments by user and status
+    @Cacheable(value = "assessments", key = "#userId + ':' + #status + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByUserAndStatus(Long userId, AssessmentStatus status, Pageable pageable) {
         return assessmentRepository.findByUserIdAndStatus(userId, status, pageable);
     }
 
     // Search assessments by name
+    @Cacheable(value = "assessments", key = "#name + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Assessment> searchAssessmentsByName(String name, Pageable pageable) {
         return assessmentRepository.findByNameContainingIgnoreCase(name, pageable);
     }
 
     // Search assessments by role name
+    @Cacheable(value = "assessments", key = "#roleName + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Assessment> searchAssessmentsByRoleName(String roleName, Pageable pageable) {
         return assessmentRepository.findByRoleNameContainingIgnoreCase(roleName, pageable);
     }
 
     // Get assessments within date range
+    @Cacheable(value = "assessments", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsInDateRange(LocalDateTime startDate, LocalDateTime endDate,
             Pageable pageable) {
@@ -221,36 +237,42 @@ public class AssessmentService {
     }
 
     // Get active assessments within current date
+    @Cacheable(value = "assessments", key = "#currentDate + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Assessment> getActiveAssessmentsInDateRange(LocalDateTime currentDate, Pageable pageable) {
         return assessmentRepository.findActiveAssessmentsInDateRange(currentDate, pageable);
     }
 
     // Get assessments by duration range
+    @Cacheable(value = "assessments", key = "#minDuration + ':' + #maxDuration + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByDurationRange(Integer minDuration, Integer maxDuration, Pageable pageable) {
         return assessmentRepository.findByDurationBetween(minDuration, maxDuration, pageable);
     }
 
     // Get assessments by skill
+    @Cacheable(value = "assessments", key = "#skill + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsBySkill(String skill, Pageable pageable) {
         return assessmentRepository.findBySkill(skill, pageable);
     }
 
     // Get assessments by language option
+    @Cacheable(value = "assessments", key = "#language + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByLanguageOption(String language, Pageable pageable) {
         return assessmentRepository.findByLanguageOption(language, pageable);
     }
 
     // Get assessments with attempt count
+    @Cacheable(value = "assessments", key = "#pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Object[]> getAssessmentsWithAttemptCount(Pageable pageable) {
         return assessmentRepository.findAssessmentsWithAttemptCount(pageable);
     }
 
     // Get assessments created by user in date range
+    @Cacheable(value = "assessments", key = "#userId + ':' + #startDate + ':' + #endDate + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByUserInDateRange(Long userId, LocalDateTime startDate, LocalDateTime endDate,
             Pageable pageable) {
@@ -258,12 +280,14 @@ public class AssessmentService {
     }
 
     // Count assessments by status for a user
+    @Cacheable(value = "assessments", key = "#userId + ':' + #status + ':' + count")
     @Transactional(readOnly = true)
     public Long countAssessmentsByUserAndStatus(Long userId, AssessmentStatus status) {
         return assessmentRepository.countByUserIdAndStatus(userId, status);
     }
 
     // Activate assessment
+    @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
     public Assessment activateAssessment(Long id) {
         Assessment assessment = getAssessmentByIdOrThrow(id);
         assessment.setStatus(AssessmentStatus.ACTIVE);
@@ -271,6 +295,7 @@ public class AssessmentService {
     }
 
     // Deactivate assessment
+    @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
     public Assessment deactivateAssessment(Long id) {
         Assessment assessment = getAssessmentByIdOrThrow(id);
         assessment.setStatus(AssessmentStatus.INACTIVE);
@@ -278,6 +303,7 @@ public class AssessmentService {
     }
 
     // Publish assessment (change from draft to active)
+    @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
     public Assessment publishAssessment(Long id) {
         Assessment assessment = getAssessmentByIdOrThrow(id);
         if (assessment.getStatus() != AssessmentStatus.DRAFT) {
@@ -288,6 +314,7 @@ public class AssessmentService {
     }
 
     // Add skill to assessment
+    @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
     public Assessment addSkill(Long id, String skill) {
         Assessment assessment = getAssessmentByIdOrThrow(id);
         if (assessment.getSkills() != null && !assessment.getSkills().contains(skill)) {
@@ -297,6 +324,7 @@ public class AssessmentService {
     }
 
     // Add candidate from existing candidate
+    @CacheEvict(value = "assessments", beforeInvocation = true, key = "#assessmentId")
     public Candidate addCandidateFromExisting(Long assessmentId, Long candidateId) {
         Assessment assessment = getAssessmentByIdOrThrow(assessmentId);
         Candidate candidate = candidateService.getCandidateByIdOrThrow(candidateId);
@@ -306,6 +334,7 @@ public class AssessmentService {
     }
 
     // Add a new candidate to the assessmentthat doesn't already exist in the database
+    @CacheEvict(value = "assessments", beforeInvocation = true, key = "#assessmentId")
     public Candidate addCandidateFromNew(Long assessmentId, String firstName, String lastName, String email) {
         Assessment assessment = getAssessmentByIdOrThrow(assessmentId);
         Candidate candidate = candidateService.createCandidate(firstName, lastName, email, assessment.getUser());
@@ -315,6 +344,7 @@ public class AssessmentService {
     }
 
     // Remove skill from assessment
+    @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
     public Assessment removeSkill(Long id, String skill) {
         Assessment assessment = getAssessmentByIdOrThrow(id);
         if (assessment.getSkills() != null) {
@@ -324,12 +354,14 @@ public class AssessmentService {
     }
 
     // Update skills
+    @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
     public Assessment updateSkills(Long id, List<String> skills) {
         Assessment assessment = getAssessmentByIdOrThrow(id);
         assessment.setSkills(skills);
         return assessmentRepository.save(assessment);
     }
 
+    @CacheEvict(value = "assessments", beforeInvocation = true, key = "#assessmentId")
     public Candidate removeCandidateFromAssessment(Long assessmentId, Long candidateId) {
         Assessment assessment = getAssessmentByIdOrThrow(assessmentId);
         Candidate candidate = candidateService.getCandidateByIdOrThrow(candidateId);
@@ -339,6 +371,7 @@ public class AssessmentService {
     }
 
     // Update language options
+    @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
     public Assessment updateLanguageOptions(Long id, List<String> languageOptions) {
         Assessment assessment = getAssessmentByIdOrThrow(id);
         assessment.setLanguageOptions(languageOptions);
@@ -346,6 +379,7 @@ public class AssessmentService {
     }
 
     // Update metadata
+    @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
     public Assessment updateMetadata(Long id, Map<String, String> metadata) {
         Assessment assessment = getAssessmentByIdOrThrow(id);
         assessment.setMetadata(metadata);

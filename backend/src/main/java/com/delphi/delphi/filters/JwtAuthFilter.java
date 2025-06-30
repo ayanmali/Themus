@@ -11,13 +11,14 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.delphi.delphi.services.JwtService;
+import com.delphi.delphi.components.JwtService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+// JWT authentication filter
 @Order(3)
 public class JwtAuthFilter extends OncePerRequestFilter {
 

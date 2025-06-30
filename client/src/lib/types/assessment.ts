@@ -18,22 +18,3 @@ export type Assessment = {
     repoLink: string; // link to the repository
     metadata?: Record<string, string>; // additional metadata
 }
-
-export type Candidate = {
-    id: number;
-    name: string;
-    email: string;
-    // status: 'invited' | 'started' | 'submitted' | 'evaluated';
-    appliedAt?: Date;
-    // startedAt?: Date | null;
-}
-
-export type CandidateAttempt = {
-    id: number;
-    candidateId: number;
-    assessmentId: number;
-    status: 'started' | 'submitted' | 'evaluated';
-    startedAt?: Date | null;
-    submittedAt?: Date | null;
-    evaluatedAt?: Date | null;
-}

@@ -4,6 +4,9 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -15,6 +18,7 @@ import com.delphi.delphi.repositories.CandidateRepository;
 
 @Service
 @Transactional
+// TODO: add cache annotations for other entity caches
 public class CandidateService {
     
     private final CandidateRepository candidateRepository;
@@ -27,6 +31,7 @@ public class CandidateService {
     }
     
     // Create a new candidate
+    @CachePut(value = "candidates", key = "#result.id")
     public Candidate createCandidate(Candidate candidate) {
         if (candidateRepository.existsByEmail(candidate.getEmail())) {
             throw new IllegalArgumentException("Candidate with email " + candidate.getEmail() + " already exists");
@@ -41,6 +46,7 @@ public class CandidateService {
         return candidateRepository.save(candidate);
     }
 
+    @CachePut(value = "candidates", key = "#result.id")
     public Candidate createCandidate(String firstName, String lastName, String email, User user) {
         Candidate candidate = new Candidate();
         candidate.setFirstName(firstName);
@@ -49,13 +55,16 @@ public class CandidateService {
         candidate.setUser(user);
         return createCandidate(candidate);
     }
+
     // Get candidate by ID
+    @Cacheable(value = "candidates", key = "#id")
     @Transactional(readOnly = true)
     public Optional<Candidate> getCandidateById(Long id) {
         return candidateRepository.findById(id);
     }
-    
+
     // Get candidate by ID or throw exception
+    @Cacheable(value = "candidates", key = "#id")
     @Transactional(readOnly = true)
     public Candidate getCandidateByIdOrThrow(Long id) {
         return candidateRepository.findById(id)
@@ -63,18 +72,21 @@ public class CandidateService {
     }
     
     // Get candidate by email
+    @Cacheable(value = "candidates", key = "#email")
     @Transactional(readOnly = true)
     public Optional<Candidate> getCandidateByEmail(String email) {
         return candidateRepository.findByEmail(email);
     }
     
     // Get all candidates with pagination
+    @Cacheable(value = "candidates", key = "#pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Candidate> getAllCandidates(Pageable pageable) {
         return candidateRepository.findAll(pageable);
     }
     
     // Update candidate
+    @CachePut(value = "candidates", key = "#result.id")
     public Candidate updateCandidate(Long id, Candidate candidateUpdates) {
         Candidate existingCandidate = getCandidateByIdOrThrow(id);
         
@@ -99,6 +111,7 @@ public class CandidateService {
     }
     
     // Delete candidate
+    @CacheEvict(value = "candidates", key = "#id")
     public void deleteCandidate(Long id) {
         if (!candidateRepository.existsById(id)) {
             throw new IllegalArgumentException("Candidate not found with id: " + id);
@@ -107,18 +120,21 @@ public class CandidateService {
     }
     
     // Check if email exists
+    @Cacheable(value = "candidates", key = "emailExists + ':' + #email")
     @Transactional(readOnly = true)
     public boolean emailExists(String email) {
         return candidateRepository.existsByEmail(email);
     }
     
     // Get candidates by user ID
+    @Cacheable(value = "candidates", key = "#userId + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Candidate> getCandidatesByUserId(Long userId, Pageable pageable) {
         return candidateRepository.findByUserId(userId, pageable);
     }
     
     // Search candidates by first name
+    @Cacheable(value = "candidates", key = "#firstName + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Candidate> searchCandidatesByFirstName(String firstName, Pageable pageable) {
         return candidateRepository.findByFirstNameContainingIgnoreCase(firstName, pageable);
@@ -131,24 +147,28 @@ public class CandidateService {
     }
     
     // Search candidates by full name
+    @Cacheable(value = "candidates", key = "#fullName + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Candidate> searchCandidatesByFullName(String fullName, Pageable pageable) {
         return candidateRepository.findByFullNameContainingIgnoreCase(fullName, pageable);
     }
     
     // Get candidates by email domain
+    @Cacheable(value = "candidates", key = "#domain + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Candidate> getCandidatesByEmailDomain(String domain, Pageable pageable) {
         return candidateRepository.findByEmailDomain(domain, pageable);
     }
     
     // Get candidates created within date range
+    @Cacheable(value = "candidates", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Candidate> getCandidatesCreatedBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
         return candidateRepository.findByCreatedDateBetween(startDate, endDate, pageable);
     }
     
     // Get candidates by assessment ID
+    @Cacheable(value = "candidates", key = "#assessmentId + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Candidate> getCandidatesByAssessmentId(Long assessmentId, Pageable pageable) {
         return candidateRepository.findByAssessmentId(assessmentId, pageable);
@@ -161,30 +181,35 @@ public class CandidateService {
     }
     
     // Get candidates with no attempts
+    @Cacheable(value = "candidates", key = "#pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Candidate> getCandidatesWithNoAttempts(Pageable pageable) {
         return candidateRepository.findCandidatesWithNoAttempts(pageable);
     }
     
     // Get candidates by user and assessment
+    @Cacheable(value = "candidates", key = "#userId + ':' + #assessmentId + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Candidate> getCandidatesByUserAndAssessment(Long userId, Long assessmentId, Pageable pageable) {
         return candidateRepository.findByUserIdAndAssessmentId(userId, assessmentId, pageable);
     }
     
     // Count candidates by user
+    @Cacheable(value = "candidates", key = "count + ':' + #userId")
     @Transactional(readOnly = true)
     public Long countCandidatesByUser(Long userId) {
         return candidateRepository.countByUserId(userId);
     }
     
     // Get candidates with attempt count
+    @Cacheable(value = "candidates", key = "#pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<Object[]> getCandidatesWithAttemptCount(Pageable pageable) {
         return candidateRepository.findCandidatesWithAttemptCount(pageable);
     }
     
     // Update candidate metadata
+    @CachePut(value = "candidates", key = "#result.id")
     public Candidate updateCandidateMetadata(Long id, Map<String, String> metadata) {
         Candidate candidate = getCandidateByIdOrThrow(id);
         candidate.setMetadata(metadata);
@@ -192,6 +217,7 @@ public class CandidateService {
     }
     
     // Add metadata entry
+    @CachePut(value = "candidates", key = "#result.id")
     public Candidate addMetadata(Long id, String key, String value) {
         Candidate candidate = getCandidateByIdOrThrow(id);
         if (candidate.getMetadata() == null) {
@@ -203,6 +229,7 @@ public class CandidateService {
     }
     
     // Remove metadata entry
+    @CachePut(value = "candidates", key = "#result.id")
     public Candidate removeMetadata(Long id, String key) {
         Candidate candidate = getCandidateByIdOrThrow(id);
         if (candidate.getMetadata() != null) {

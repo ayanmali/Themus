@@ -15,6 +15,7 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+// Security filter
 @Component
 @Order(2)
 public class SecurityFilter implements Filter {
@@ -31,7 +32,7 @@ public class SecurityFilter implements Filter {
         "python-httpcore",
         "python-httpx",
     };
-    // TODO: check for user agent and block if it's a bot
+    // check for user agent and block if it's a bot
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {

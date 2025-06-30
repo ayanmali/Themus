@@ -5,8 +5,8 @@ import java.io.IOException;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import com.delphi.delphi.components.JwtService;
 import com.delphi.delphi.components.RedisService;
-import com.delphi.delphi.services.JwtService;
 
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;

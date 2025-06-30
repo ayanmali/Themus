@@ -3,7 +3,9 @@ package com.delphi.delphi.services;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -15,18 +17,23 @@ import com.delphi.delphi.utils.AttemptStatus;
 
 @Service
 @Transactional
+// TODO: add cache annotations for other entity caches
 public class CandidateAttemptService {
 
-    @Autowired
-    private CandidateAttemptRepository candidateAttemptRepository;
+    private final CandidateAttemptRepository candidateAttemptRepository;
 
-    @Autowired
-    private CandidateService candidateService;
+    private final CandidateService candidateService;
 
-    @Autowired
-    private AssessmentService assessmentService;
+    private final AssessmentService assessmentService;
+
+    public CandidateAttemptService(CandidateAttemptRepository candidateAttemptRepository, CandidateService candidateService, AssessmentService assessmentService) {
+        this.candidateAttemptRepository = candidateAttemptRepository;
+        this.candidateService = candidateService;
+        this.assessmentService = assessmentService;
+    }
 
     // Create a new candidate attempt
+    @CachePut(value = "candidateAttempts", key = "#result.id")
     public CandidateAttempt startAttempt(Long candidateId, Long assessmentId, Optional<String> languageChoice, AttemptStatus status, LocalDateTime startedDate) {
         // Check if candidate already has an attempt for this assessment
         Optional<CandidateAttempt> existingAttempt = candidateAttemptRepository.findByCandidateIdAndAssessmentId(
@@ -52,6 +59,7 @@ public class CandidateAttemptService {
     }
 
     // Create a new candidate attempt
+    @CachePut(value = "candidateAttempts", key = "#result.id")
     public CandidateAttempt startAttempt(CandidateAttempt candidateAttempt) {
         // Check if candidate already has an attempt for this assessment
         Optional<CandidateAttempt> existingAttempt = candidateAttemptRepository.findByCandidateIdAndAssessmentId(
@@ -76,12 +84,14 @@ public class CandidateAttemptService {
     }
 
     // Get candidate attempt by ID
+    @Cacheable(value = "candidateAttempts", key = "#id")
     @Transactional(readOnly = true)
     public Optional<CandidateAttempt> getCandidateAttemptById(Long id) {
         return candidateAttemptRepository.findById(id);
     }
 
     // Get candidate attempt by ID or throw exception
+    @Cacheable(value = "candidateAttempts", key = "#id")
     @Transactional(readOnly = true)
     public CandidateAttempt getCandidateAttemptByIdOrThrow(Long id) {
         return candidateAttemptRepository.findById(id)
@@ -89,12 +99,14 @@ public class CandidateAttemptService {
     }
 
     // Get all candidate attempts with pagination
+    @Cacheable(value = "candidateAttempts", key = "#pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<CandidateAttempt> getAllCandidateAttempts(Pageable pageable) {
         return candidateAttemptRepository.findAll(pageable);
     }
 
     // Update candidate attempt
+    @CachePut(value = "candidateAttempts", key = "#id")
     public CandidateAttempt updateCandidateAttempt(Long id, CandidateAttempt attemptUpdates) {
         CandidateAttempt existingAttempt = getCandidateAttemptByIdOrThrow(id);
 
@@ -118,6 +130,7 @@ public class CandidateAttemptService {
     }
 
     // Delete candidate attempt
+    @CacheEvict(value = "candidateAttempts", key = "#id")
     public void deleteCandidateAttempt(Long id) {
         if (!candidateAttemptRepository.existsById(id)) {
             throw new IllegalArgumentException("CandidateAttempt not found with id: " + id);
@@ -126,30 +139,35 @@ public class CandidateAttemptService {
     }
 
     // Get attempts by candidate ID
+    @Cacheable(value = "candidateAttempts", key = "#candidateId + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<CandidateAttempt> getAttemptsByCandidateId(Long candidateId, Pageable pageable) {
         return candidateAttemptRepository.findByCandidateId(candidateId, pageable);
     }
 
     // Get attempts by assessment ID
+    @Cacheable(value = "candidateAttempts", key = "#assessmentId + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<CandidateAttempt> getAttemptsByAssessmentId(Long assessmentId, Pageable pageable) {
         return candidateAttemptRepository.findByAssessmentId(assessmentId, pageable);
     }
 
     // Get attempts by status
+    @Cacheable(value = "candidateAttempts", key = "#status + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<CandidateAttempt> getAttemptsByStatus(AttemptStatus status, Pageable pageable) {
         return candidateAttemptRepository.findByStatus(status, pageable);
     }
 
     // Get attempt by candidate and assessment
+    @Cacheable(value = "candidateAttempts", key = "#candidateId + ':' + #assessmentId")
     @Transactional(readOnly = true)
     public Optional<CandidateAttempt> getAttemptByCandidateAndAssessment(Long candidateId, Long assessmentId) {
         return candidateAttemptRepository.findByCandidateIdAndAssessmentId(candidateId, assessmentId);
     }
 
     // Get attempts by candidate and status
+    @Cacheable(value = "candidateAttempts", key = "#candidateId + ':' + #status + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<CandidateAttempt> getAttemptsByCandidateAndStatus(Long candidateId, AttemptStatus status,
             Pageable pageable) {
@@ -157,6 +175,7 @@ public class CandidateAttemptService {
     }
 
     // Get attempts by assessment and status
+    @Cacheable(value = "candidateAttempts", key = "#assessmentId + ':' + #status + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<CandidateAttempt> getAttemptsByAssessmentAndStatus(Long assessmentId, AttemptStatus status,
             Pageable pageable) {
@@ -164,12 +183,14 @@ public class CandidateAttemptService {
     }
 
     // Get attempts by language choice
+    @Cacheable(value = "candidateAttempts", key = "#languageChoice + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<CandidateAttempt> getAttemptsByLanguageChoice(String languageChoice, Pageable pageable) {
         return candidateAttemptRepository.findByLanguageChoiceIgnoreCase(languageChoice, pageable);
     }
 
     // Get attempts created within date range
+    @Cacheable(value = "candidateAttempts", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<CandidateAttempt> getAttemptsCreatedBetween(LocalDateTime startDate, LocalDateTime endDate,
             Pageable pageable) {
@@ -177,6 +198,7 @@ public class CandidateAttemptService {
     }
 
     // Get attempts started within date range
+    @Cacheable(value = "candidateAttempts", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<CandidateAttempt> getAttemptsStartedBetween(LocalDateTime startDate, LocalDateTime endDate,
             Pageable pageable) {
@@ -184,6 +206,7 @@ public class CandidateAttemptService {
     }
 
     // Get attempts submitted within date range
+    @Cacheable(value = "candidateAttempts", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<CandidateAttempt> getAttemptsSubmittedBetween(LocalDateTime startDate, LocalDateTime endDate,
             Pageable pageable) {
@@ -191,54 +214,63 @@ public class CandidateAttemptService {
     }
 
     // Get overdue attempts
+    @Cacheable(value = "candidateAttempts", key = "overdue + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<CandidateAttempt> getOverdueAttempts(Pageable pageable) {
         return candidateAttemptRepository.findOverdueAttempts(LocalDateTime.now(), pageable);
     }
 
     // Get attempts by user
+    @Cacheable(value = "candidateAttempts", key = "#userId + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<CandidateAttempt> getAttemptsByUserId(Long userId, Pageable pageable) {
         return candidateAttemptRepository.findByUserId(userId, pageable);
     }
 
     // Get attempts with evaluation
+    @Cacheable(value = "candidateAttempts", key = "withEvaluation + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<CandidateAttempt> getAttemptsWithEvaluation(Pageable pageable) {
         return candidateAttemptRepository.findAttemptsWithEvaluation(pageable);
     }
 
     // Get submitted attempts without evaluation
+    @Cacheable(value = "candidateAttempts", key = "submittedWithoutEvaluation + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<CandidateAttempt> getSubmittedAttemptsWithoutEvaluation(Pageable pageable) {
         return candidateAttemptRepository.findSubmittedAttemptsWithoutEvaluation(pageable);
     }
 
     // Count attempts by assessment and status
+    @Cacheable(value = "candidateAttempts", key = "count + ':' + #assessmentId + ':' + #status")
     @Transactional(readOnly = true)
     public Long countAttemptsByAssessmentAndStatus(Long assessmentId, AttemptStatus status) {
         return candidateAttemptRepository.countByAssessmentIdAndStatus(assessmentId, status);
     }
 
     // Count attempts by candidate
+    @Cacheable(value = "candidateAttempts", key = "count + ':' + #candidateId")
     @Transactional(readOnly = true)
     public Long countAttemptsByCandidate(Long candidateId) {
         return candidateAttemptRepository.countByCandidateId(candidateId);
     }
 
     // Get attempt with details
+    @Cacheable(value = "candidateAttempts", key = "withDetails + ':' + #attemptId")
     @Transactional(readOnly = true)
     public Optional<CandidateAttempt> getAttemptWithDetails(Long attemptId) {
         return candidateAttemptRepository.findByIdWithDetails(attemptId);
     }
 
     // Get recent attempts by user
+    @Cacheable(value = "candidateAttempts", key = "recent + ':' + #userId + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<CandidateAttempt> getRecentAttemptsByUserId(Long userId, Pageable pageable) {
         return candidateAttemptRepository.findRecentAttemptsByUserId(userId, pageable);
     }
 
     // Get attempts by assessment user
+    @Cacheable(value = "candidateAttempts", key = "byAssessmentUser + ':' + #userId + ':' + #pageable.pageNumber")
     @Transactional(readOnly = true)
     public Page<CandidateAttempt> getAttemptsByAssessmentUserId(Long userId, Pageable pageable) {
         return candidateAttemptRepository.findByAssessmentUserId(userId, pageable);
@@ -259,6 +291,7 @@ public class CandidateAttemptService {
     // }
 
     // Submit attempt
+    @CachePut(value = "candidateAttempts", key = "#result.id")
     public CandidateAttempt submitAttempt(Long id, String githubRepositoryLink) {
         CandidateAttempt attempt = getCandidateAttemptByIdOrThrow(id);
 
@@ -276,6 +309,7 @@ public class CandidateAttemptService {
     }
 
     // Mark as evaluated
+    @CachePut(value = "candidateAttempts", key = "#result.id")
     public CandidateAttempt markAsEvaluated(Long id) {
         CandidateAttempt attempt = getCandidateAttemptByIdOrThrow(id);
 
@@ -290,6 +324,7 @@ public class CandidateAttemptService {
     }
 
     // Check if attempt is overdue
+    @Cacheable(value = "candidateAttempts", key = "overdue + ':' + #id")
     @Transactional(readOnly = true)
     public boolean isAttemptOverdue(Long id) {
         CandidateAttempt attempt = getCandidateAttemptByIdOrThrow(id);

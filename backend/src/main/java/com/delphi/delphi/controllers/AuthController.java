@@ -27,13 +27,13 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
 import com.delphi.delphi.components.GithubClient;
+import com.delphi.delphi.components.JwtService;
 import com.delphi.delphi.dtos.AuthResponseDto;
 import com.delphi.delphi.dtos.FetchUserDto;
 import com.delphi.delphi.dtos.NewUserDto;
 import com.delphi.delphi.dtos.PasswordLoginDto;
 import com.delphi.delphi.entities.RefreshToken;
 import com.delphi.delphi.entities.User;
-import com.delphi.delphi.services.JwtService;
 import com.delphi.delphi.services.RefreshTokenService;
 import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.exceptions.TokenRefreshException;
@@ -171,7 +171,7 @@ public class AuthController {
             // verify refresh token
             RefreshToken refreshTokenEntity = refreshTokenService.verifyRefreshToken(refreshToken);
             if (refreshTokenEntity.isUsed() || refreshTokenEntity.getExpiryDate().isBefore(Instant.now())) {
-                refreshTokenService.deleteRefreshToken(refreshToken);
+                refreshTokenService.deleteRefreshToken(refreshTokenEntity);
                 throw new TokenRefreshException("Refresh token expired or used");
             }
 
@@ -196,7 +196,8 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@RequestBody String refreshToken) {
-        refreshTokenService.deleteRefreshToken(refreshToken);
+        RefreshToken refreshTokenEntity = refreshTokenService.verifyRefreshToken(refreshToken);
+        refreshTokenService.deleteRefreshToken(refreshTokenEntity);
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
 

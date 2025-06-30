@@ -65,7 +65,6 @@ public class StripeService {
 
     public Customer createCustomer(User user) {
         try {
-            // TODO: check if the user ID has a customer ID in redis
             String customerId = (String) redisService.get("stripe:user:" + user.getId());
 
             // if the user ID has a customer ID in redis, return it

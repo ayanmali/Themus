@@ -1,6 +1,11 @@
 services:
   postgres:
+      hostname: delphi-postgres
       image: 'postgres:latest'
+      environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: fkdnvi4fj8g33m0
+        POSTGRES_DB: delphi-postgres
       container_name: delphi-postgres
       env_file:
         - .env
@@ -14,24 +19,28 @@ services:
         timeout: 5s
         retries: 5
   redis:
+      hostname: delphi-redis
       image: 'redis:latest'
       container_name: delphi-redis
+      env_file:
+        - .env
       ports:
         - '6379:6379'
       volumes:
         - ./redis_data:/data
-  # rabbitmq:
-  #   # image: rabbitmq:3-management
-  #   image: rabbitmq:3-management
-  #   container_name: rabbitmq
-  #   env_file:
-  #     - .env
-  #   ports:
-  #     - 5672:5672
-  #     - 15672:15672
-  #     - 61613:61613
-  #   volumes:
-  #     - rabbitmq_data:/var/lib/rabbitmq
+  rabbitmq:
+    hostname: delphi-rabbitmq
+    # image: rabbitmq:3-management
+    image: rabbitmq:3-management
+    container_name: delphi-rabbitmq
+    env_file:
+      - .env
+    ports:
+      - 5672:5672
+      - 15672:15672
+      - 61613:61613
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
 
   backend:
     build:

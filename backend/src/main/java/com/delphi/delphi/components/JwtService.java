@@ -1,4 +1,4 @@
-package com.delphi.delphi.services;
+package com.delphi.delphi.components;
 
 import java.util.Date;
 import java.util.HashMap;

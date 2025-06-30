@@ -14,9 +14,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.delphi.delphi.components.JwtService;
 import com.delphi.delphi.filters.JwtAuthFilter;
 import com.delphi.delphi.repositories.UserRepository;
-import com.delphi.delphi.services.JwtService;
 
 @Configuration
 @EnableWebSecurity
