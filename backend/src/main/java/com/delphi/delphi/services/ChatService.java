@@ -16,6 +16,9 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.support.ToolCallbacks;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -60,7 +63,7 @@ public class ChatService {
         this.chatModel = chatModel;
         this.githubTools = githubTools;
         log.info("ChatService initialized with Spring AI ChatModel, targeting OpenRouter.");
-    }    
+    }
 
     /**
      * Spring AI Methods
@@ -69,6 +72,7 @@ public class ChatService {
     /*
      * Get a chat completion from the AI model
      */
+    @Cacheable(value = "chatCompletions", key = "#chatHistoryId")
     public ChatResponse getChatCompletion(String userMessage, String model, Long assessmentId, Long userId, Long chatHistoryId) {
         log.info("Sending prompt to OpenRouter model '{}':\nUSER MESSAGE: '{}'", model, userMessage);
         try {
@@ -127,6 +131,7 @@ public class ChatService {
     /*
      * Get a chat completion from the AI model using a user prompt template
      */
+    @Cacheable(value = "chatCompletions", key = "#chatHistoryId")
     public ChatResponse getChatCompletion(String userPromptTemplateMessage, Map<String, Object> userPromptVariables, String model, Long assessmentId, Long userId, Long chatHistoryId) {
         log.info("Sending prompt to OpenRouter model '{}':\nUSER MESSAGE: '{}'", model, userPromptTemplateMessage);
         try {
@@ -280,6 +285,7 @@ public class ChatService {
      * Database Repository Methods
      */
 
+    @Cacheable(value = "chatHistories", key = "#chatHistory.id")
     public ChatHistory createChatHistory(ChatHistory chatHistory, String systemMessage) throws Exception {
         // adding system prompt to chat history
         addMessageToChatHistory(systemMessage, MessageType.SYSTEM, List.of(), chatHistory.getId(), "N/A");
@@ -287,6 +293,7 @@ public class ChatService {
         return chatHistoryRepository.save(chatHistory);
     }
 
+    @Cacheable(value = "chatHistories", key = "#id")
     public ChatHistory getChatHistoryById(Long id) throws Exception {
         try {
             return chatHistoryRepository.findById(id)
@@ -296,6 +303,7 @@ public class ChatService {
         }
     }
 
+    @Cacheable(value = "chatHistories", key = "#assessmentId")
     public ChatHistory getChatHistoryByAssessmentId(Long assessmentId) throws Exception {
         try {
             return chatHistoryRepository.findByAssessmentId(assessmentId);
@@ -304,42 +312,52 @@ public class ChatService {
         }
     }
 
+    @CachePut(value = "chatHistories", key = "#result.id")
     public ChatHistory updateChatHistory(Long id, ChatHistory chatHistory) throws Exception {
         ChatHistory existingChatHistory = getChatHistoryById(id);
         existingChatHistory.setAssessment(chatHistory.getAssessment());
         return chatHistoryRepository.save(existingChatHistory);
     }
 
+    @CachePut(value = "chatHistories", key = "#result.id")
     public ChatHistory updateChatHistory(Long id, Assessment assessment) throws Exception {
         ChatHistory existingChatHistory = getChatHistoryById(id);
         existingChatHistory.setAssessment(assessment);
         return chatHistoryRepository.save(existingChatHistory);
     }
 
+    @CacheEvict(value = "chatHistories", key = "#id")
     public void deleteChatHistory(Long id) throws Exception {
         ChatHistory existingChatHistory = getChatHistoryById(id);
         chatHistoryRepository.delete(existingChatHistory);
     }
 
+    @Cacheable(value = "chatHistories")
     public List<ChatHistory> getAllChatHistories() {
         return chatHistoryRepository.findAll();
     }
 
-    public void addMessageToChatHistory(ChatMessage message) throws Exception {
+    @CachePut(value = "chatHistories", key = "#result.id")
+    public ChatMessage addMessageToChatHistory(ChatMessage message) throws Exception {
         ChatHistory existingChatHistory = getChatHistoryById(message.getChatHistory().getId());
         existingChatHistory.addMessage(message);
         // existingChatHistory.getMessages().add(message);
         chatHistoryRepository.save(existingChatHistory);
+        return message;
     }
 
-    public void addMessageToChatHistory(AssistantMessage message, Long chatHistoryId, String model) throws Exception {
+    @CachePut(value = "chatHistories", key = "#result.id")
+    public ChatMessage addMessageToChatHistory(AssistantMessage message, Long chatHistoryId, String model) throws Exception {
         // TODO: integrate message.getToolCalls() and store tool calls in message entities
         ChatHistory existingChatHistory = getChatHistoryById(chatHistoryId);
-        existingChatHistory.addMessage(new ChatMessage(message, existingChatHistory, model));
+        ChatMessage chatMessage = new ChatMessage(message, existingChatHistory, model);
+        existingChatHistory.addMessage(chatMessage);
         // existingChatHistory.getMessages().add(new ChatMessage(message, existingChatHistory, model));
         chatHistoryRepository.save(existingChatHistory);
+        return chatMessage;
     }
 
+    @CachePut(value = "chatHistories", key = "#result.id")
     public ChatMessage addMessageToChatHistory(String text, MessageType messageType, List<OpenAiToolCall> toolCalls, Long chatHistoryId, String model) throws Exception {
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setText(text);
@@ -361,6 +379,7 @@ public class ChatService {
     /*
      * Get a message by message id
      */
+    @Cacheable(value = "chatMessages", key = "#id")
     public ChatMessage getMessageById(Long id) throws Exception {
         return chatMessageRepository.findById(id)
                 .orElseThrow(() -> new Exception("Chat message not found with id: " + id));
@@ -371,6 +390,7 @@ public class ChatService {
     // return chatMessageRepository.save(message);
     // }
 
+    @Cacheable(value = "chatMessages", key = "#chatHistoryId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<ChatMessage> getMessagesByChatId(Long chatHistoryId, Pageable pageable) {
         return chatMessageRepository.findByChatHistoryId(chatHistoryId, pageable);
@@ -384,6 +404,7 @@ public class ChatService {
     //     return chatMessageRepository.save(existingMessage);
     // }
 
+    @CacheEvict(value = "chatMessages", key = "#id")
     public void deleteMessage(Long id) throws Exception {
         ChatMessage existingMessage = getMessageById(id);
         chatMessageRepository.delete(existingMessage);
