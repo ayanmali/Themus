@@ -1,6 +1,8 @@
 package com.delphi.delphi.entities;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -9,7 +11,11 @@ import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 
+import com.delphi.delphi.utils.OpenAiToolCall;
+
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -51,20 +57,22 @@ public class ChatMessage {
     // @Column(name = "metadata_value")
     // private Map<String, String> metadata;
 
-    // TODO: store tool calls in message entities
-    // @ElementCollection
-    // @CollectionTable(name = "message_tool_calls", joinColumns = @JoinColumn(name = "message_id"))
-    // @Column(name = "tool_call")
-    // private List<ToolCall> toolCalls;
+    @ElementCollection
+    @CollectionTable(name = "message_tool_calls", joinColumns = @JoinColumn(name = "message_id"))
+    @Column(name = "tool_call")
+    private List<OpenAiToolCall> toolCalls;
 
     public ChatMessage() {
     }
 
-    public ChatMessage(String text, ChatHistory chatHistory, MessageType messageType, String model) {
+    public ChatMessage(String text, List<OpenAiToolCall> toolCalls, ChatHistory chatHistory, MessageType messageType, String model) {
         this.text = text;
         this.chatHistory = chatHistory;
         this.model = model;
         this.messageType = messageType;
+        if (!toolCalls.isEmpty()) {
+            this.toolCalls = toolCalls;
+        }
     }
 
     public ChatMessage(AssistantMessage message, ChatHistory chatHistory, String model) {
@@ -72,8 +80,11 @@ public class ChatMessage {
         this.chatHistory = chatHistory;
         this.messageType = message.getMessageType();
         this.model = model;
-        // this.metadata = message.getMetadata();
-        // TODO: this.toolCalls = message.getToolCalls();
+        if (!message.getToolCalls().isEmpty()) {
+            this.toolCalls = message.getToolCalls().stream().map(
+                toolCall -> new OpenAiToolCall(toolCall))
+            .collect(Collectors.toList());
+        }
     }
 
     public Long getId() {
@@ -147,5 +158,13 @@ public class ChatMessage {
         }
         // case TOOL:
         //     return new ToolResponseMessage(this.getText());
+    }
+
+    public List<OpenAiToolCall> getToolCalls() {
+        return toolCalls;
+    }
+
+    public void setToolCalls(List<OpenAiToolCall> toolCalls) {
+        this.toolCalls = toolCalls;
     }
 }

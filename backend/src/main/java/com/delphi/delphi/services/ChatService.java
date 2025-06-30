@@ -11,6 +11,7 @@ import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.openai.OpenAiChatOptions;
@@ -21,10 +22,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.delphi.delphi.components.GithubTools;
+import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.ChatHistory;
 import com.delphi.delphi.entities.ChatMessage;
 import com.delphi.delphi.repositories.ChatHistoryRepository;
 import com.delphi.delphi.repositories.ChatMessageRepository;
+import com.delphi.delphi.utils.OpenAiToolCall;
 
 @Service
 @Transactional
@@ -75,7 +78,8 @@ public class ChatService {
             // SystemPromptTemplate systemPromptTemplate = new SystemPromptTemplate("Tell me a {adjective} joke about {topic}");
             // Message systemMessage = systemPromptTemplate.createMessage(Map.of("adjective", "offensive", "topic", "old people"));
 
-            addMessageToChatHistory(userMessage, chatHistoryId, MessageType.USER, model);
+            // add the user message to the chat history
+            addMessageToChatHistory(userMessage, MessageType.USER, List.of(), chatHistoryId, model);
             // add the user message to the messages list
             //messages.add(new ChatMessage(userMessage, chatHistory, MessageType.USER, model));
 
@@ -110,7 +114,9 @@ public class ChatService {
             // adding LLM response to chat history
             ChatResponse response = chatModel.call(prompt);
             log.info("Response: {}", response.getResults().stream().map(r -> r.getOutput().getText()).collect(Collectors.joining("\n")));
-            addMessageToChatHistory(response.getResults().get(0).getOutput(), chatHistoryId, model);
+            for (Generation generation : response.getResults()) {
+                addMessageToChatHistory(generation.getOutput(), chatHistoryId, model);
+            }
             return response;
         } catch (Exception e) {
             log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
@@ -134,7 +140,7 @@ public class ChatService {
             PromptTemplate userPromptTemplate = new PromptTemplate(userPromptTemplateMessage);
             Message userMessage = userPromptTemplate.createMessage(userPromptVariables);
 
-            addMessageToChatHistory(userMessage.getText(), chatHistoryId, MessageType.USER, model);
+            addMessageToChatHistory(userMessage.getText(), MessageType.USER, List.of(), chatHistoryId, model);
             // add the user message to the messages list
             //messages.add(new ChatMessage(userMessage, chatHistory, MessageType.USER, model));
 
@@ -169,7 +175,9 @@ public class ChatService {
             // adding LLM response to chat history
             ChatResponse response = chatModel.call(prompt);
             log.info("Response: {}", response.getResults().stream().map(r -> r.getOutput().getText()).collect(Collectors.joining("\n")));
-            addMessageToChatHistory(response.getResults().get(0).getOutput(), chatHistoryId, model);
+            for (Generation generation : response.getResults()) {
+                addMessageToChatHistory(generation.getOutput(), chatHistoryId, model);
+            }
             return response;
         } catch (Exception e) {
             log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
@@ -274,7 +282,7 @@ public class ChatService {
 
     public ChatHistory createChatHistory(ChatHistory chatHistory, String systemMessage) throws Exception {
         // adding system prompt to chat history
-        addMessageToChatHistory(systemMessage, chatHistory.getId(), MessageType.SYSTEM, "N/A");
+        addMessageToChatHistory(systemMessage, MessageType.SYSTEM, List.of(), chatHistory.getId(), "N/A");
         // save chat history
         return chatHistoryRepository.save(chatHistory);
     }
@@ -302,6 +310,12 @@ public class ChatService {
         return chatHistoryRepository.save(existingChatHistory);
     }
 
+    public ChatHistory updateChatHistory(Long id, Assessment assessment) throws Exception {
+        ChatHistory existingChatHistory = getChatHistoryById(id);
+        existingChatHistory.setAssessment(assessment);
+        return chatHistoryRepository.save(existingChatHistory);
+    }
+
     public void deleteChatHistory(Long id) throws Exception {
         ChatHistory existingChatHistory = getChatHistoryById(id);
         chatHistoryRepository.delete(existingChatHistory);
@@ -313,23 +327,28 @@ public class ChatService {
 
     public void addMessageToChatHistory(ChatMessage message) throws Exception {
         ChatHistory existingChatHistory = getChatHistoryById(message.getChatHistory().getId());
-        existingChatHistory.getMessages().add(message);
+        existingChatHistory.addMessage(message);
+        // existingChatHistory.getMessages().add(message);
         chatHistoryRepository.save(existingChatHistory);
     }
 
     public void addMessageToChatHistory(AssistantMessage message, Long chatHistoryId, String model) throws Exception {
         // TODO: integrate message.getToolCalls() and store tool calls in message entities
         ChatHistory existingChatHistory = getChatHistoryById(chatHistoryId);
-        existingChatHistory.getMessages().add(new ChatMessage(message, existingChatHistory, model));
+        existingChatHistory.addMessage(new ChatMessage(message, existingChatHistory, model));
+        // existingChatHistory.getMessages().add(new ChatMessage(message, existingChatHistory, model));
         chatHistoryRepository.save(existingChatHistory);
     }
 
-    public ChatMessage addMessageToChatHistory(String text, Long chatHistoryId, MessageType messageType, String model) throws Exception {
+    public ChatMessage addMessageToChatHistory(String text, MessageType messageType, List<OpenAiToolCall> toolCalls, Long chatHistoryId, String model) throws Exception {
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setText(text);
         chatMessage.setChatHistory(getChatHistoryById(chatHistoryId));
         chatMessage.setMessageType(messageType);
         chatMessage.setModel(model);
+        if (!toolCalls.isEmpty()) {
+            chatMessage.setToolCalls(toolCalls);
+        }
         // chatMessage.setMetadata(metadata);
         chatMessageRepository.save(chatMessage);
 
@@ -357,13 +376,13 @@ public class ChatService {
         return chatMessageRepository.findByChatHistoryId(chatHistoryId, pageable);
     }
 
-    public ChatMessage updateMessage(Long id, ChatMessage message) throws Exception {
-        ChatMessage existingMessage = getMessageById(id);
-        existingMessage.setText(message.getText());
-        existingMessage.setMessageType(message.getMessageType());
-        // existingMessage.setMetadata(message.getMetadata());
-        return chatMessageRepository.save(existingMessage);
-    }
+    // public ChatMessage updateMessage(Long id, ChatMessage message) throws Exception {
+    //     ChatMessage existingMessage = getMessageById(id);
+    //     existingMessage.setText(message.getText());
+    //     existingMessage.setMessageType(message.getMessageType());
+    //     // existingMessage.setMetadata(message.getMetadata());
+    //     return chatMessageRepository.save(existingMessage);
+    // }
 
     public void deleteMessage(Long id) throws Exception {
         ChatMessage existingMessage = getMessageById(id);
