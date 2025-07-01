@@ -79,7 +79,7 @@ public class CandidateService {
     }
     
     // Get all candidates with pagination
-    @Cacheable(value = "candidates", key = "#pageable.pageNumber")
+    @Cacheable(value = "candidates", key = "#pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Candidate> getAllCandidates(Pageable pageable) {
         return candidateRepository.findAll(pageable);
@@ -127,14 +127,14 @@ public class CandidateService {
     }
     
     // Get candidates by user ID
-    @Cacheable(value = "candidates", key = "#userId + ':' + #pageable.pageNumber")
+    @Cacheable(value = "candidates", key = "#userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Candidate> getCandidatesByUserId(Long userId, Pageable pageable) {
         return candidateRepository.findByUserId(userId, pageable);
     }
     
     // Search candidates by first name
-    @Cacheable(value = "candidates", key = "#firstName + ':' + #pageable.pageNumber")
+    @Cacheable(value = "candidates", key = "#firstName + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Candidate> searchCandidatesByFirstName(String firstName, Pageable pageable) {
         return candidateRepository.findByFirstNameContainingIgnoreCase(firstName, pageable);
@@ -147,48 +147,49 @@ public class CandidateService {
     }
     
     // Search candidates by full name
-    @Cacheable(value = "candidates", key = "#fullName + ':' + #pageable.pageNumber")
+    @Cacheable(value = "candidates", key = "#fullName + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Candidate> searchCandidatesByFullName(String fullName, Pageable pageable) {
         return candidateRepository.findByFullNameContainingIgnoreCase(fullName, pageable);
     }
     
     // Get candidates by email domain
-    @Cacheable(value = "candidates", key = "#domain + ':' + #pageable.pageNumber")
+    @Cacheable(value = "candidates", key = "#domain + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Candidate> getCandidatesByEmailDomain(String domain, Pageable pageable) {
         return candidateRepository.findByEmailDomain(domain, pageable);
     }
     
     // Get candidates created within date range
-    @Cacheable(value = "candidates", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber")
+    @Cacheable(value = "candidates", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Candidate> getCandidatesCreatedBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
         return candidateRepository.findByCreatedDateBetween(startDate, endDate, pageable);
     }
     
     // Get candidates by assessment ID
-    @Cacheable(value = "candidates", key = "#assessmentId + ':' + #pageable.pageNumber")
+    @Cacheable(value = "candidates", key = "#assessmentId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Candidate> getCandidatesByAssessmentId(Long assessmentId, Pageable pageable) {
         return candidateRepository.findByAssessmentId(assessmentId, pageable);
     }
     
     // Get candidates with attempts for specific assessment
+    @Cacheable(value = "candidates", key = "withAttempts + ':' + #assessmentId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Candidate> getCandidatesWithAttemptsForAssessment(Long assessmentId, Pageable pageable) {
         return candidateRepository.findCandidatesWithAttemptsForAssessment(assessmentId, pageable);
     }
     
     // Get candidates with no attempts
-    @Cacheable(value = "candidates", key = "#pageable.pageNumber")
+    @Cacheable(value = "candidates", key = "withNoAttempts + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Candidate> getCandidatesWithNoAttempts(Pageable pageable) {
         return candidateRepository.findCandidatesWithNoAttempts(pageable);
     }
     
     // Get candidates by user and assessment
-    @Cacheable(value = "candidates", key = "#userId + ':' + #assessmentId + ':' + #pageable.pageNumber")
+    @Cacheable(value = "candidates", key = "#userId + ':' + #assessmentId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Candidate> getCandidatesByUserAndAssessment(Long userId, Long assessmentId, Pageable pageable) {
         return candidateRepository.findByUserIdAndAssessmentId(userId, assessmentId, pageable);
@@ -202,7 +203,7 @@ public class CandidateService {
     }
     
     // Get candidates with attempt count
-    @Cacheable(value = "candidates", key = "#pageable.pageNumber")
+    @Cacheable(value = "candidates", key = "withAttemptCount + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Object[]> getCandidatesWithAttemptCount(Pageable pageable) {
         return candidateRepository.findCandidatesWithAttemptCount(pageable);

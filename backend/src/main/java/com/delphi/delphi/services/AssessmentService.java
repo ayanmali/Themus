@@ -119,7 +119,7 @@ public class AssessmentService {
     }
 
     // Get all assessments with pagination
-    @Cacheable(value = "assessments", key = "#pageable.pageNumber")
+    @Cacheable(value = "assessments", key = "#pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Assessment> getAllAssessments(Pageable pageable) {
         return assessmentRepository.findAll(pageable);
@@ -187,49 +187,49 @@ public class AssessmentService {
     }
 
     // Get assessments by user ID
-    @Cacheable(value = "assessments", key = "#userId + ':' + #pageable.pageNumber")
+    @Cacheable(value = "assessments", key = "#userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByUserId(Long userId, Pageable pageable) {
         return assessmentRepository.findByUserId(userId, pageable);
     }
 
     // Get assessments by status
-    @Cacheable(value = "assessments", key = "#status + ':' + #pageable.pageNumber")
+    @Cacheable(value = "assessments", key = "#status + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByStatus(AssessmentStatus status, Pageable pageable) {
         return assessmentRepository.findByStatus(status, pageable);
     }
 
     // Get assessments by type
-    @Cacheable(value = "assessments", key = "#assessmentType + ':' + #pageable.pageNumber")
+    @Cacheable(value = "assessments", key = "#assessmentType + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByType(AssessmentType assessmentType, Pageable pageable) {
         return assessmentRepository.findByAssessmentType(assessmentType, pageable);
     }
 
     // Get assessments by user and status
-    @Cacheable(value = "assessments", key = "#userId + ':' + #status + ':' + #pageable.pageNumber")
+    @Cacheable(value = "assessments", key = "#userId + ':' + #status + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByUserAndStatus(Long userId, AssessmentStatus status, Pageable pageable) {
         return assessmentRepository.findByUserIdAndStatus(userId, status, pageable);
     }
 
     // Search assessments by name
-    @Cacheable(value = "assessments", key = "#name + ':' + #pageable.pageNumber")
+    @Cacheable(value = "assessments", key = "#name + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Assessment> searchAssessmentsByName(String name, Pageable pageable) {
         return assessmentRepository.findByNameContainingIgnoreCase(name, pageable);
     }
 
     // Search assessments by role name
-    @Cacheable(value = "assessments", key = "#roleName + ':' + #pageable.pageNumber")
+    @Cacheable(value = "assessments", key = "#roleName + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Assessment> searchAssessmentsByRoleName(String roleName, Pageable pageable) {
         return assessmentRepository.findByRoleNameContainingIgnoreCase(roleName, pageable);
     }
 
     // Get assessments within date range
-    @Cacheable(value = "assessments", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber")
+    @Cacheable(value = "assessments", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsInDateRange(LocalDateTime startDate, LocalDateTime endDate,
             Pageable pageable) {
@@ -237,42 +237,42 @@ public class AssessmentService {
     }
 
     // Get active assessments within current date
-    @Cacheable(value = "assessments", key = "#currentDate + ':' + #pageable.pageNumber")
+    @Cacheable(value = "assessments", key = "#currentDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Assessment> getActiveAssessmentsInDateRange(LocalDateTime currentDate, Pageable pageable) {
         return assessmentRepository.findActiveAssessmentsInDateRange(currentDate, pageable);
     }
 
     // Get assessments by duration range
-    @Cacheable(value = "assessments", key = "#minDuration + ':' + #maxDuration + ':' + #pageable.pageNumber")
+    @Cacheable(value = "assessments", key = "#minDuration + ':' + #maxDuration + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByDurationRange(Integer minDuration, Integer maxDuration, Pageable pageable) {
         return assessmentRepository.findByDurationBetween(minDuration, maxDuration, pageable);
     }
 
     // Get assessments by skill
-    @Cacheable(value = "assessments", key = "#skill + ':' + #pageable.pageNumber")
+    @Cacheable(value = "assessments", key = "#skill + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsBySkill(String skill, Pageable pageable) {
         return assessmentRepository.findBySkill(skill, pageable);
     }
 
     // Get assessments by language option
-    @Cacheable(value = "assessments", key = "#language + ':' + #pageable.pageNumber")
+    @Cacheable(value = "assessments", key = "#language + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByLanguageOption(String language, Pageable pageable) {
         return assessmentRepository.findByLanguageOption(language, pageable);
     }
 
     // Get assessments with attempt count
-    @Cacheable(value = "assessments", key = "#pageable.pageNumber")
+    @Cacheable(value = "assessments", key = "#pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Object[]> getAssessmentsWithAttemptCount(Pageable pageable) {
         return assessmentRepository.findAssessmentsWithAttemptCount(pageable);
     }
 
     // Get assessments created by user in date range
-    @Cacheable(value = "assessments", key = "#userId + ':' + #startDate + ':' + #endDate + ':' + #pageable.pageNumber")
+    @Cacheable(value = "assessments", key = "#userId + ':' + #startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByUserInDateRange(Long userId, LocalDateTime startDate, LocalDateTime endDate,
             Pageable pageable) {
@@ -280,7 +280,7 @@ public class AssessmentService {
     }
 
     // Count assessments by status for a user
-    @Cacheable(value = "assessments", key = "#userId + ':' + #status + ':' + count")
+    @Cacheable(value = "assessments", key = "#userId + ':' + #status + ':' + #count")
     @Transactional(readOnly = true)
     public Long countAssessmentsByUserAndStatus(Long userId, AssessmentStatus status) {
         return assessmentRepository.countByUserIdAndStatus(userId, status);

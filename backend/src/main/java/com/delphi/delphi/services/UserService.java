@@ -76,7 +76,7 @@ public class UserService {
     }
     
     // Get all users with pagination
-    @Cacheable(value = "users", key = "#pageable.pageNumber")
+    @Cacheable(value = "users", key = "#pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<User> getAllUsers(Pageable pageable) {
         return userRepository.findAll(pageable);
@@ -124,28 +124,28 @@ public class UserService {
     }
     
     // Search users by organization name
-    @Cacheable(value = "users", key = "#organizationName + ':' + #pageable.pageNumber")
+    @Cacheable(value = "users", key = "#organizationName + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<User> searchUsersByOrganization(String organizationName, Pageable pageable) {
         return userRepository.findByOrganizationNameContainingIgnoreCase(organizationName, pageable);
     }
     
     // Search users by name
-    @Cacheable(value = "users", key = "#name + ':' + #pageable.pageNumber")
+    @Cacheable(value = "users", key = "#name + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<User> searchUsersByName(String name, Pageable pageable) {
         return userRepository.findByNameContainingIgnoreCase(name, pageable);
     }
     
     // Get users created within date range
-    @Cacheable(value = "users", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber")
+    @Cacheable(value = "users", key = "createdBetween + ':' + #startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<User> getUsersCreatedBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
         return userRepository.findByCreatedDateBetween(startDate, endDate, pageable);
     }
     
     // Get users with active assessments
-    @Cacheable(value = "users", key = "#pageable.pageNumber")
+    @Cacheable(value = "users", key = "activeAssessments + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<User> getUsersWithActiveAssessments(Pageable pageable) {
         return userRepository.findUsersWithActiveAssessments(pageable);

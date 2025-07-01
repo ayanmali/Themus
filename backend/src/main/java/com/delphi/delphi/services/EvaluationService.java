@@ -64,7 +64,7 @@ public class EvaluationService {
     }
     
     // Get all evaluations with pagination
-    @Cacheable(value = "evaluations", key = "#pageable.pageNumber")
+    @Cacheable(value = "evaluations", key = "#pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Evaluation> getAllEvaluations(Pageable pageable) {
         return evaluationRepository.findAll(pageable);
@@ -100,28 +100,28 @@ public class EvaluationService {
     }
     
     // Get evaluations created within date range
-    @Cacheable(value = "evaluations", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber")
+    @Cacheable(value = "evaluations", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Evaluation> getEvaluationsCreatedBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
         return evaluationRepository.findByCreatedDateBetween(startDate, endDate, pageable);
     }
     
     // Get evaluations by candidate ID
-    @Cacheable(value = "evaluations", key = "#candidateId + ':' + #pageable.pageNumber")
+    @Cacheable(value = "evaluations", key = "#candidateId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Evaluation> getEvaluationsByCandidateId(Long candidateId, Pageable pageable) {
         return evaluationRepository.findByCandidateId(candidateId, pageable);
     }
     
     // Get evaluations by assessment ID
-    @Cacheable(value = "evaluations", key = "#assessmentId + ':' + #pageable.pageNumber")
+    @Cacheable(value = "evaluations", key = "#assessmentId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
         @Transactional(readOnly = true)
     public Page<Evaluation> getEvaluationsByAssessmentId(Long assessmentId, Pageable pageable) {
         return evaluationRepository.findByAssessmentId(assessmentId, pageable);
     }
     
     // Get evaluations by user ID
-    @Cacheable(value = "evaluations", key = "#userId + ':' + #pageable.pageNumber")
+    @Cacheable(value = "evaluations", key = "#userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Evaluation> getEvaluationsByUserId(Long userId, Pageable pageable) {
         return evaluationRepository.findByUserId(userId, pageable);
@@ -142,7 +142,7 @@ public class EvaluationService {
     }
     
     // Get recent evaluations for a user
-    @Cacheable(value = "evaluations", key = "recent + ':' + #userId + ':' + #pageable.pageNumber")
+    @Cacheable(value = "evaluations", key = "recent + ':' + #userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<Evaluation> getRecentEvaluationsByUserId(Long userId, Pageable pageable) {
         return evaluationRepository.findRecentEvaluationsByUserId(userId, pageable);
