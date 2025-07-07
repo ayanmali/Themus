@@ -6,16 +6,14 @@ public class NewCandidateDto {
     private String firstName;
     private String lastName;
     private String email;
-    private Long userId;
 
     public NewCandidateDto() {
     }
 
-    public NewCandidateDto(String firstName, String lastName, String email, Long userId) {
+    public NewCandidateDto(String firstName, String lastName, String email) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
-        this.userId = userId;
     }
 
     public String getFirstName() {
@@ -42,13 +40,4 @@ public class NewCandidateDto {
         this.email = email;
     }
 
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
-    
 }

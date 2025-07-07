@@ -18,12 +18,10 @@ public class NewAssessmentDto {
     private String otherDetails; // provided in the user in the text box
     private String model; // model to use for the chat completion
 
-    private Long userId; // user id
-
     public NewAssessmentDto() {
     }
 
-    public NewAssessmentDto(String name, String description, String roleName, AssessmentType assessmentType, LocalDateTime startDate, LocalDateTime endDate, Integer duration, List<String> skills, List<String> languageOptions, String otherDetails, String model, Long userId) {
+    public NewAssessmentDto(String name, String description, String roleName, AssessmentType assessmentType, LocalDateTime startDate, LocalDateTime endDate, Integer duration, List<String> skills, List<String> languageOptions, String otherDetails, String model) {
         this.name = name;
         this.description = description;
         this.roleName = roleName;
@@ -35,7 +33,6 @@ public class NewAssessmentDto {
         this.languageOptions = languageOptions;
         this.otherDetails = otherDetails;
         this.model = model;
-        this.userId = userId;
     }
 
     public String getName() {
@@ -108,11 +105,4 @@ public class NewAssessmentDto {
         this.model = model;
     }
 
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
 }

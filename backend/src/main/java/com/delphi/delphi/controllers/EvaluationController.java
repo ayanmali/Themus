@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +11,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,7 +28,9 @@ import com.delphi.delphi.dtos.FetchEvaluationDto;
 import com.delphi.delphi.dtos.NewEvaluationDto;
 import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.entities.Evaluation;
+import com.delphi.delphi.entities.User;
 import com.delphi.delphi.services.EvaluationService;
+import com.delphi.delphi.services.UserService;
 
 import jakarta.validation.Valid;
 
@@ -34,9 +38,24 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/evaluations")
 public class EvaluationController {
     
-    @Autowired
-    private EvaluationService evaluationService;
+    private final EvaluationService evaluationService;
     
+    private final UserService userService;
+
+    public EvaluationController(EvaluationService evaluationService, UserService userService) {
+        this.evaluationService = evaluationService;
+        this.userService = userService;
+    }
+
+    private User getCurrentUser() {
+        return userService.getUserByEmail(getCurrentUserEmail()).orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    private String getCurrentUserEmail() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        return userDetails.getUsername();
+    }
     // Create a new evaluation
     @PostMapping
     public ResponseEntity<?> createEvaluation(@Valid @RequestBody NewEvaluationDto newEvaluationDto) {
@@ -200,14 +219,14 @@ public class EvaluationController {
     }
     
     // Get evaluations by user ID
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<?> getEvaluationsByUserId(
-            @PathVariable Long userId,
+    @GetMapping("/get")
+    public ResponseEntity<?> getEvaluationsByUser(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
+            User user = getCurrentUser();
             Pageable pageable = PageRequest.of(page, size);
-            Page<Evaluation> evaluations = evaluationService.getEvaluationsByUserId(userId, pageable);
+            Page<Evaluation> evaluations = evaluationService.getEvaluationsByUserId(user.getId(), pageable);
             Page<FetchEvaluationDto> evaluationDtos = evaluations.map(FetchEvaluationDto::new);
             
             return ResponseEntity.ok(evaluationDtos);
@@ -246,14 +265,14 @@ public class EvaluationController {
     }
     
     // Get recent evaluations for a user
-    @GetMapping("/recent/user/{userId}")
-    public ResponseEntity<?> getRecentEvaluationsByUserId(
-            @PathVariable Long userId,
+    @GetMapping("/recent")
+    public ResponseEntity<?> getRecentEvaluationsByUser(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
+            User user = getCurrentUser();
             Pageable pageable = PageRequest.of(page, size);
-            Page<Evaluation> evaluations = evaluationService.getRecentEvaluationsByUserId(userId, pageable);
+            Page<Evaluation> evaluations = evaluationService.getRecentEvaluationsByUserId(user.getId(), pageable);
             Page<FetchEvaluationDto> evaluationDtos = evaluations.map(FetchEvaluationDto::new);
             
             return ResponseEntity.ok(evaluationDtos);

@@ -21,7 +21,6 @@ public class FetchAssessmentDto {
     private String githubRepositoryLink;
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
-    private Long userId;
     private List<String> skills;
     private List<String> languageOptions;
     private Map<String, String> metadata;
@@ -39,7 +38,6 @@ public class FetchAssessmentDto {
         this.githubRepositoryLink = assessment.getGithubRepositoryLink();
         this.createdDate = assessment.getCreatedDate();
         this.updatedDate = assessment.getUpdatedDate();
-        this.userId = assessment.getUser().getId();
         this.skills = assessment.getSkills();
         this.languageOptions = assessment.getLanguageOptions();
         this.metadata = assessment.getMetadata();
@@ -48,7 +46,7 @@ public class FetchAssessmentDto {
     public FetchAssessmentDto() {
     }
 
-    public FetchAssessmentDto(AssessmentType assessmentType, LocalDateTime createdDate, String description, Integer duration, LocalDateTime endDate, String githubRepositoryLink, Long id, List<String> languageOptions, Map<String, String> metadata, String name, String roleName, List<String> skills, LocalDateTime startDate, AssessmentStatus status, LocalDateTime updatedDate, Long userId) {
+    public FetchAssessmentDto(AssessmentType assessmentType, LocalDateTime createdDate, String description, Integer duration, LocalDateTime endDate, String githubRepositoryLink, Long id, List<String> languageOptions, Map<String, String> metadata, String name, String roleName, List<String> skills, LocalDateTime startDate, AssessmentStatus status, LocalDateTime updatedDate) {
         this.assessmentType = assessmentType;
         this.createdDate = createdDate;
         this.description = description;
@@ -64,7 +62,6 @@ public class FetchAssessmentDto {
         this.startDate = startDate;
         this.status = status;
         this.updatedDate = updatedDate;
-        this.userId = userId;
     }
 
     public Long getId() {
@@ -161,14 +158,6 @@ public class FetchAssessmentDto {
 
     public void setUpdatedDate(LocalDateTime updatedDate) {
         this.updatedDate = updatedDate;
-    }
-
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
     }
 
     public List<String> getSkills() {

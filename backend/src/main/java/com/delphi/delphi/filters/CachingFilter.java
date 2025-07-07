@@ -15,7 +15,7 @@
 // import jakarta.servlet.http.HttpServletRequest;
 // import jakarta.servlet.http.HttpServletResponse;
 
-// // TODO: use redis to cache responses for GET requests
+// use redis to cache responses for GET requests 
 // @Component
 // @Order(5)
 // public class CachingFilter implements Filter {

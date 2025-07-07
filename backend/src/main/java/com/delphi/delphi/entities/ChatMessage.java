@@ -13,9 +13,8 @@ import org.springframework.ai.chat.messages.UserMessage;
 
 import com.delphi.delphi.utils.OpenAiToolCall;
 
-import jakarta.persistence.CollectionTable;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -24,6 +23,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Entity
@@ -57,9 +57,10 @@ public class ChatMessage {
     // @Column(name = "metadata_value")
     // private Map<String, String> metadata;
 
-    @ElementCollection
-    @CollectionTable(name = "message_tool_calls", joinColumns = @JoinColumn(name = "message_id"))
-    @Column(name = "tool_call")
+    // @ElementCollection
+    // @CollectionTable(name = "message_tool_calls", joinColumns = @JoinColumn(name = "message_id"))
+    // @Column(name = "tool_call")
+    @OneToMany(mappedBy = "chatMessage", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OpenAiToolCall> toolCalls;
 
     public ChatMessage() {

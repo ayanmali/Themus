@@ -2,10 +2,28 @@ package com.delphi.delphi.utils;
 
 import org.springframework.ai.chat.messages.AssistantMessage.ToolCall;
 
+import com.delphi.delphi.entities.ChatMessage;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+
+@Entity
 public class OpenAiToolCall {
-    private String toolName;
-    private String arguments;
+    @Id
     private String id;
+
+    @Column(name = "tool_name")
+    private String toolName;
+
+    @Column(name = "arguments")
+    private String arguments;
+
+    @ManyToOne
+    @JoinColumn(name = "message_id")
+    private ChatMessage chatMessage;
 
     public OpenAiToolCall() {
     }
@@ -44,6 +62,14 @@ public class OpenAiToolCall {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public ChatMessage getChatMessage() {
+        return chatMessage;
+    }
+
+    public void setChatMessage(ChatMessage chatMessage) {
+        this.chatMessage = chatMessage;
     }
     
 }

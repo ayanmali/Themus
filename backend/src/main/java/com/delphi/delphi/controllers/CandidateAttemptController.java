@@ -3,7 +3,6 @@ package com.delphi.delphi.controllers;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -36,11 +35,11 @@ import jakarta.validation.Valid;
 public class CandidateAttemptController {
     private final AssessmentService assessmentService;
     
-    @Autowired
-    private CandidateAttemptService candidateAttemptService;
+    private final CandidateAttemptService candidateAttemptService;
 
-    public CandidateAttemptController(AssessmentService assessmentService) {
+    public CandidateAttemptController(CandidateAttemptService candidateAttemptService, AssessmentService assessmentService) {
         this.assessmentService = assessmentService;
+        this.candidateAttemptService = candidateAttemptService;
     }
     
     // Create a new candidate attempt

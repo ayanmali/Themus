@@ -11,6 +11,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,6 +48,16 @@ public class CandidateController {
         this.userService = userService;
         this.assessmentService = assessmentService;
     }
+
+    private User getCurrentUser() {
+        return userService.getUserByEmail(getCurrentUserEmail()).orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    private String getCurrentUserEmail() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        return userDetails.getUsername();
+    }
     
     // Create a new candidate
     @PostMapping("/new")
@@ -56,7 +69,7 @@ public class CandidateController {
             candidate.setEmail(newCandidateDto.getEmail());
             
             // Set user relationship
-            User user = userService.getUserByIdOrThrow(newCandidateDto.getUserId());
+            User user = getCurrentUser();
             candidate.setUser(user);
             
             Candidate createdCandidate = candidateService.createCandidate(candidate);
@@ -174,14 +187,14 @@ public class CandidateController {
     }
     
     // Get candidates by user ID
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<?> getCandidatesByUserId(
-            @PathVariable Long userId,
+    @GetMapping("/get")
+    public ResponseEntity<?> getCandidatesByUser(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
+            User user = getCurrentUser();
             Pageable pageable = PageRequest.of(page, size);
-            Page<Candidate> candidates = candidateService.getCandidatesByUserId(userId, pageable);
+            Page<Candidate> candidates = candidateService.getCandidatesByUserId(user.getId(), pageable);
             Page<FetchCandidateDto> candidateDtos = candidates.map(FetchCandidateDto::new);
             
             return ResponseEntity.ok(candidateDtos);
@@ -318,10 +331,11 @@ public class CandidateController {
     }
     
     // Count candidates by user
-    @GetMapping("/count/user/{userId}")
-    public ResponseEntity<?> countCandidatesByUser(@PathVariable Long userId) {
+    @GetMapping("/count")
+    public ResponseEntity<?> countCandidatesByUser() {
         try {
-            Long count = candidateService.countCandidatesByUser(userId);
+            User user = getCurrentUser();
+            Long count = candidateService.countCandidatesByUser(user.getId());
             return ResponseEntity.ok(count);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

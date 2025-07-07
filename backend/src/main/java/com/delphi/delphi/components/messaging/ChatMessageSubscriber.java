@@ -18,6 +18,7 @@ public class ChatMessageSubscriber {
     private static final Logger log = LoggerFactory.getLogger(ChatMessageSubscriber.class);
     
     private final ChatService chatService;
+    // to publish to the chat response queue
     private final ChatMessagePublisher chatMessagePublisher;
 
     public ChatMessageSubscriber(ChatService chatService, ChatMessagePublisher chatMessagePublisher) {

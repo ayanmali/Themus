@@ -12,6 +12,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,8 +32,10 @@ import com.delphi.delphi.dtos.NewAssessmentDto;
 import com.delphi.delphi.dtos.NewUserMessageDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
+import com.delphi.delphi.entities.User;
 import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.CandidateService;
+import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.AssessmentCreationPrompts;
 import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.AssessmentType;
@@ -41,21 +46,34 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/assessments")
 public class AssessmentController {
 
+    private final UserService userService;
+
     private final ChatMessagePublisher chatMessagePublisher;
 
     private final CandidateService candidateService;
 
     private final AssessmentService assessmentService;
 
-    public AssessmentController(AssessmentService assessmentService, CandidateService candidateService, ChatMessagePublisher chatMessagePublisher) {
+    public AssessmentController(AssessmentService assessmentService, CandidateService candidateService, ChatMessagePublisher chatMessagePublisher, UserService userService) {
         this.assessmentService = assessmentService;
         this.candidateService = candidateService;
         this.chatMessagePublisher = chatMessagePublisher;
+        this.userService = userService;
+    }
+
+    private User getCurrentUser() {
+        return userService.getUserByEmail(getCurrentUserEmail()).orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    private String getCurrentUserEmail() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        return userDetails.getUsername();
     }
 
     // TODO: add dashboard
-    @GetMapping("/{userId}/dashboard")
-    public ResponseEntity<?> getDashboard(@PathVariable Long userId) {
+    @GetMapping("/dashboard")
+    public ResponseEntity<?> getDashboard() {
         try {
             // List<Assessment> assessments =
             // assessmentService.getAssessmentsByUserId(userId);
@@ -112,7 +130,8 @@ public class AssessmentController {
     @PostMapping("/new")
     public ResponseEntity<?> createAssessment(@Valid @RequestBody NewAssessmentDto newAssessmentDto) {
         try {
-            Assessment assessment = assessmentService.createAssessment(newAssessmentDto);
+            User user = getCurrentUser();
+            Assessment assessment = assessmentService.createAssessment(newAssessmentDto, user);
 
             // Publish to chat message queue instead of direct call
             String requestId = chatMessagePublisher.publishChatCompletionRequest(
@@ -125,7 +144,7 @@ public class AssessmentController {
                             "OTHER_DETAILS", newAssessmentDto.getOtherDetails()),
                     newAssessmentDto.getModel(),
                     assessment.getId(),
-                    newAssessmentDto.getUserId(),
+                    user.getId(),
                     assessment.getChatHistory().getId());
 
             return ResponseEntity.status(HttpStatus.CREATED).body(
@@ -157,12 +176,13 @@ public class AssessmentController {
     @PostMapping("/chat")
     public ResponseEntity<?> chat(@RequestBody NewUserMessageDto messageDto) {
         try {
+            User user = getCurrentUser();
             // publish chat completion request to the chat message queue
             String requestId = chatMessagePublisher.publishChatCompletionRequest(
                     messageDto.getMessage(),
                     messageDto.getModel(),
                     messageDto.getAssessmentId(),
-                    messageDto.getUserId(),
+                    user.getId(),
                     assessmentService.getChatHistoryById(messageDto.getAssessmentId()).getId()
             );
 
@@ -280,14 +300,14 @@ public class AssessmentController {
     }
 
     // Get assessments by user ID
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<?> getAssessmentsByUserId(
-            @PathVariable Long userId,
+    @GetMapping("/get")
+    public ResponseEntity<?> getAssessmentsByUser(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
+            User user = getCurrentUser();
             Pageable pageable = PageRequest.of(page, size);
-            Page<Assessment> assessments = assessmentService.getAssessmentsByUserId(userId, pageable);
+            Page<Assessment> assessments = assessmentService.getAssessmentsByUserId(user.getId(), pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
 
             return ResponseEntity.ok(assessmentDtos);
@@ -463,12 +483,12 @@ public class AssessmentController {
     }
 
     // Count assessments by user and status
-    @GetMapping("/count/user/{userId}/status/{status}")
+    @GetMapping("/count/status/{status}")
     public ResponseEntity<?> countAssessmentsByUserAndStatus(
-            @PathVariable Long userId,
             @PathVariable AssessmentStatus status) {
         try {
-            Long count = assessmentService.countAssessmentsByUserAndStatus(userId, status);
+            User user = getCurrentUser();
+            Long count = assessmentService.countAssessmentsByUserAndStatus(user.getId(), status);
             return ResponseEntity.ok(count);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

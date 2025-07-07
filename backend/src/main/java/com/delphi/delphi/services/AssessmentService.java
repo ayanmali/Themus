@@ -70,10 +70,7 @@ public class AssessmentService {
         return assessmentRepository.save(assessment);
     }
 
-    public Assessment createAssessment(NewAssessmentDto newAssessmentDto) throws Exception {
-        // Set user relationship
-        User user = userService.getUserByIdOrThrow(newAssessmentDto.getUserId());
-
+    public Assessment createAssessment(NewAssessmentDto newAssessmentDto, User user) throws Exception {
         Assessment assessment = new Assessment();
         assessment.setName(newAssessmentDto.getName());
         assessment.setDescription(newAssessmentDto.getDescription());

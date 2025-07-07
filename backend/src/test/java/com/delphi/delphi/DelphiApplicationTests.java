@@ -1,13 +1,15 @@
-// package com.delphi.delphi;
+package com.delphi.delphi;
 
-// import org.junit.jupiter.api.Test;
-// import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
 
-// @SpringBootTest
-// class DelphiApplicationTests {
+// @RunWith(SpringRunner.class)
+@SpringBootTest
+public class DelphiApplicationTests {
 
-// 	@Test
-// 	void contextLoads() {
-// 	}
+	@Test
+	public void contextLoads() {
+		System.out.println("--- Application context loaded ---");
+	}
 
-// }
+}

@@ -12,7 +12,6 @@ public class FetchCandidateDto {
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
     private Map<String, String> metadata;
-    private Long userId;
 
     public FetchCandidateDto() {
     }
@@ -24,7 +23,6 @@ public class FetchCandidateDto {
         this.createdDate = candidate.getCreatedDate();
         this.updatedDate = candidate.getUpdatedDate();
         this.metadata = candidate.getMetadata();
-        this.userId = candidate.getUser().getId();
     }
 
     public Long getId() {
@@ -74,14 +72,5 @@ public class FetchCandidateDto {
     public void setMetadata(Map<String, String> metadata) {
         this.metadata = metadata;
     }
-
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
     
 }
