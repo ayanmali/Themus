@@ -110,6 +110,12 @@ public class AssessmentService {
         return assessmentRepository.findById(id);
     }
 
+    public ChatHistory getChatHistoryById(Long id) {
+        return assessmentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id))
+                .getChatHistory();
+    }
+
     // Get assessment by ID or throw exception
     @Cacheable(value = "assessments", key = "#id")
     @Transactional(readOnly = true)

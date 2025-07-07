@@ -72,7 +72,7 @@ public class ChatService {
     /*
      * Get a chat completion from the AI model
      */
-    @Cacheable(value = "chatCompletions", key = "#chatHistoryId")
+    //@Cacheable(value = "chatCompletions", key = "#chatHistoryId")
     public ChatResponse getChatCompletion(String userMessage, String model, Long assessmentId, Long userId, Long chatHistoryId) {
         log.info("Sending prompt to OpenRouter model '{}':\nUSER MESSAGE: '{}'", model, userMessage);
         try {
@@ -131,7 +131,7 @@ public class ChatService {
     /*
      * Get a chat completion from the AI model using a user prompt template
      */
-    @Cacheable(value = "chatCompletions", key = "#chatHistoryId")
+    //@Cacheable(value = "chatCompletions", key = "#chatHistoryId")
     public ChatResponse getChatCompletion(String userPromptTemplateMessage, Map<String, Object> userPromptVariables, String model, Long assessmentId, Long userId, Long chatHistoryId) {
         log.info("Sending prompt to OpenRouter model '{}':\nUSER MESSAGE: '{}'", model, userPromptTemplateMessage);
         try {
@@ -351,6 +351,7 @@ public class ChatService {
         // TODO: integrate message.getToolCalls() and store tool calls in message entities
         ChatHistory existingChatHistory = getChatHistoryById(chatHistoryId);
         ChatMessage chatMessage = new ChatMessage(message, existingChatHistory, model);
+
         existingChatHistory.addMessage(chatMessage);
         // existingChatHistory.getMessages().add(new ChatMessage(message, existingChatHistory, model));
         chatHistoryRepository.save(existingChatHistory);

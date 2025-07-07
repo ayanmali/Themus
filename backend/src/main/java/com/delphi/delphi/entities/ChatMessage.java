@@ -82,8 +82,8 @@ public class ChatMessage {
         this.model = model;
         if (!message.getToolCalls().isEmpty()) {
             this.toolCalls = message.getToolCalls().stream().map(
-                toolCall -> new OpenAiToolCall(toolCall))
-            .collect(Collectors.toList());
+                                toolCall -> new OpenAiToolCall(toolCall)
+                             ).collect(Collectors.toList());
         }
     }
 
@@ -162,6 +162,14 @@ public class ChatMessage {
 
     public List<OpenAiToolCall> getToolCalls() {
         return toolCalls;
+    }
+
+    public void addToolCall(String name, String arguments, String id) {
+        this.toolCalls.add(new OpenAiToolCall(name, arguments, id));
+    }
+
+    public void addToolCall(OpenAiToolCall toolCall) {
+        this.toolCalls.add(toolCall);
     }
 
     public void setToolCalls(List<OpenAiToolCall> toolCalls) {

@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.delphi.delphi.components.messaging.ChatMessagePublisher;
 import com.delphi.delphi.dtos.FetchAssessmentDto;
 import com.delphi.delphi.dtos.FetchCandidateDto;
 import com.delphi.delphi.dtos.NewAssessmentDto;
@@ -31,7 +31,6 @@ import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.CandidateService;
-import com.delphi.delphi.services.ChatService;
 import com.delphi.delphi.utils.AssessmentCreationPrompts;
 import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.AssessmentType;
@@ -42,71 +41,136 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/assessments")
 public class AssessmentController {
 
+    private final ChatMessagePublisher chatMessagePublisher;
+
     private final CandidateService candidateService;
 
     private final AssessmentService assessmentService;
-    private final ChatService chatService;
 
-    public AssessmentController(AssessmentService assessmentService, ChatService chatService, CandidateService candidateService) {
+    public AssessmentController(AssessmentService assessmentService, CandidateService candidateService, ChatMessagePublisher chatMessagePublisher) {
         this.assessmentService = assessmentService;
-        this.chatService = chatService;
         this.candidateService = candidateService;
+        this.chatMessagePublisher = chatMessagePublisher;
     }
 
     // TODO: add dashboard
     @GetMapping("/{userId}/dashboard")
     public ResponseEntity<?> getDashboard(@PathVariable Long userId) {
         try {
-            // List<Assessment> assessments = assessmentService.getAssessmentsByUserId(userId);
+            // List<Assessment> assessments =
+            // assessmentService.getAssessmentsByUserId(userId);
             // return ResponseEntity.ok(assessments);
             return ResponseEntity.ok("Dashboard");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving assessments: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error retrieving assessments: " + e.getMessage());
         }
     }
+
+    // Create a new assessment
+    // @PostMapping("/new")
+    // public ResponseEntity<?> createAssessment(@Valid @RequestBody
+    // NewAssessmentDto newAssessmentDto) {
+    // try {
+    // Assessment assessment = assessmentService.createAssessment(newAssessmentDto);
+
+    // // publish to chat message queue
+
+    // // get chat completion from the LLM
+    // chatService.getChatCompletion(AssessmentCreationPrompts.USER_PROMPT,
+    // Map.of("ROLE", newAssessmentDto.getRoleName(),
+    // "ASSESSMENT_TYPE", newAssessmentDto.getAssessmentType(),
+    // "DURATION", newAssessmentDto.getDuration(),
+    // "SKILLS", newAssessmentDto.getSkills(),
+    // "LANGUAGE_OPTIONS", newAssessmentDto.getLanguageOptions(),
+    // "OTHER_DETAILS", newAssessmentDto.getOtherDetails()),
+    // newAssessmentDto.getModel(),
+    // assessment.getId(),
+    // newAssessmentDto.getUserId(),
+    // assessment.getChatHistory().getId());
+
+    // // agent loop
+    // // userChatService.getChatCompletion(assessmentCreationSystemPromptMessage,
+    // // Map.of("role", newAssessmentDto.getRoleName(), "experienceLevel",
+    // // newAssessmentDto.getExperienceLevel(), "languages",
+    // // newAssessmentDto.getLanguages(), "libraries",
+    // // newAssessmentDto.getLibraries(), "frameworks",
+    // // newAssessmentDto.getFrameworks(), "tools", newAssessmentDto.getTools()),
+    // // newAssessmentDto.getDescription(), "gpt-4o-mini");
+
+    // return ResponseEntity.status(HttpStatus.CREATED).body(new
+    // FetchAssessmentDto(assessment));
+    // } catch (IllegalArgumentException e) {
+    // return ResponseEntity.badRequest().body("Error creating assessment: " +
+    // e.getMessage());
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Internal server error: " + e.getMessage());
+    // }
+    // }
     // Create a new assessment
     @PostMapping("/new")
-    public ResponseEntity<?> createAssessment(
-            @Valid @RequestBody NewAssessmentDto newAssessmentDto) {
+    public ResponseEntity<?> createAssessment(@Valid @RequestBody NewAssessmentDto newAssessmentDto) {
         try {
             Assessment assessment = assessmentService.createAssessment(newAssessmentDto);
 
-            // get chat completion from the LLM
-            chatService.getChatCompletion(AssessmentCreationPrompts.USER_PROMPT, 
-                                              Map.of("ROLE", newAssessmentDto.getRoleName(), 
-                                                     "ASSESSMENT_TYPE", newAssessmentDto.getAssessmentType(), 
-                                                     "DURATION", newAssessmentDto.getDuration(), 
-                                                     "SKILLS", newAssessmentDto.getSkills(), 
-                                                     "LANGUAGE_OPTIONS", newAssessmentDto.getLanguageOptions(), 
-                                                     "OTHER_DETAILS", newAssessmentDto.getOtherDetails()
-                                              ), 
-                                              newAssessmentDto.getModel(),
-                                              assessment.getId(),
-                                              newAssessmentDto.getUserId(),
-                                              assessment.getChatHistory().getId());
-            
-            // agent loop
-            // userChatService.getChatCompletion(assessmentCreationSystemPromptMessage, Map.of("role", newAssessmentDto.getRoleName(), "experienceLevel", newAssessmentDto.getExperienceLevel(), "languages", newAssessmentDto.getLanguages(), "libraries", newAssessmentDto.getLibraries(), "frameworks", newAssessmentDto.getFrameworks(), "tools", newAssessmentDto.getTools()), newAssessmentDto.getDescription(), "gpt-4o-mini");
+            // Publish to chat message queue instead of direct call
+            String requestId = chatMessagePublisher.publishChatCompletionRequest(
+                    AssessmentCreationPrompts.USER_PROMPT,
+                    Map.of("ROLE", newAssessmentDto.getRoleName(),
+                            "ASSESSMENT_TYPE", newAssessmentDto.getAssessmentType(),
+                            "DURATION", newAssessmentDto.getDuration(),
+                            "SKILLS", newAssessmentDto.getSkills(),
+                            "LANGUAGE_OPTIONS", newAssessmentDto.getLanguageOptions(),
+                            "OTHER_DETAILS", newAssessmentDto.getOtherDetails()),
+                    newAssessmentDto.getModel(),
+                    assessment.getId(),
+                    newAssessmentDto.getUserId(),
+                    assessment.getChatHistory().getId());
 
-            return ResponseEntity.status(HttpStatus.CREATED).body(new FetchAssessmentDto(assessment));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Error creating assessment: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.CREATED).body(
+                    Map.of("assessment", new FetchAssessmentDto(assessment),
+                            "chatRequestId", requestId));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Internal server error: " + e.getMessage());
+                    .body("Error creating assessment: " + e.getMessage());
         }
     }
 
     // Chat with the AI agent
+    // @PostMapping("/chat")
+    // public ResponseEntity<?> chat(@RequestBody NewUserMessageDto messageDto) {
+    // try {
+    // Assessment assessment =
+    // assessmentService.getAssessmentByIdOrThrow(messageDto.getAssessmentId());
+    // ChatResponse chatResponse =
+    // chatService.getChatCompletion(messageDto.getMessage(), messageDto.getModel(),
+    // messageDto.getAssessmentId(), messageDto.getUserId(),
+    // assessment.getChatHistory().getId());
+    // return ResponseEntity.ok(chatResponse);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error chatting with AI agent: " + e.getMessage());
+    // }
+    // }
+    // Chat with the AI agent
     @PostMapping("/chat")
     public ResponseEntity<?> chat(@RequestBody NewUserMessageDto messageDto) {
         try {
-            Assessment assessment = assessmentService.getAssessmentByIdOrThrow(messageDto.getAssessmentId());
-            ChatResponse chatResponse = chatService.getChatCompletion(messageDto.getMessage(), messageDto.getModel(), messageDto.getAssessmentId(), messageDto.getUserId(), assessment.getChatHistory().getId());
-            return ResponseEntity.ok(chatResponse);
+            // publish chat completion request to the chat message queue
+            String requestId = chatMessagePublisher.publishChatCompletionRequest(
+                    messageDto.getMessage(),
+                    messageDto.getModel(),
+                    messageDto.getAssessmentId(),
+                    messageDto.getUserId(),
+                    assessmentService.getChatHistoryById(messageDto.getAssessmentId()).getId()
+            );
+
+            // Return request ID for client to track the async response
+            return ResponseEntity.accepted().body(Map.of("requestId", requestId, "status", "processing"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error chatting with AI agent: " + e.getMessage());
+                    .body("Error submitting chat request: " + e.getMessage());
         }
     }
 
@@ -119,23 +183,23 @@ public class AssessmentController {
             return ResponseEntity.ok(new FetchCandidateDto(candidate));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error adding candidate: " + e.getMessage());
+                    .body("Error adding candidate: " + e.getMessage());
         }
     }
 
     /* Remove a candidate from an assessment */
     @DeleteMapping("/{assessmentId}/remove/{candidateId}")
-    public ResponseEntity<?> removeCandidateFromAssessment(@PathVariable Long assessmentId, @PathVariable Long candidateId) {
+    public ResponseEntity<?> removeCandidateFromAssessment(@PathVariable Long assessmentId,
+            @PathVariable Long candidateId) {
         try {
             Candidate candidate = assessmentService.removeCandidateFromAssessment(assessmentId, candidateId);
             return ResponseEntity.ok(new FetchCandidateDto(candidate));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error removing candidate: " + e.getMessage());
+                    .body("Error removing candidate: " + e.getMessage());
         }
     }
-    
-    
+
     // Get assessment by ID
     @GetMapping("/{id}")
     public ResponseEntity<?> getAssessmentById(@PathVariable Long id) {
@@ -148,10 +212,10 @@ public class AssessmentController {
             }
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving assessment: " + e.getMessage());
+                    .body("Error retrieving assessment: " + e.getMessage());
         }
     }
-    
+
     // Get all assessments with pagination
     @GetMapping
     public ResponseEntity<?> getAllAssessments(
@@ -160,24 +224,25 @@ public class AssessmentController {
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection) {
         try {
-            Sort sort = sortDirection.equalsIgnoreCase("desc") 
-                ? Sort.by(sortBy).descending() 
-                : Sort.by(sortBy).ascending();
-            
+            Sort sort = sortDirection.equalsIgnoreCase("desc")
+                    ? Sort.by(sortBy).descending()
+                    : Sort.by(sortBy).ascending();
+
             Pageable pageable = PageRequest.of(page, size, sort);
             Page<Assessment> assessments = assessmentService.getAllAssessments(pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
-            
+
             return ResponseEntity.ok(assessmentDtos);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving assessments: " + e.getMessage());
+                    .body("Error retrieving assessments: " + e.getMessage());
         }
     }
-    
+
     // Update assessment
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateAssessment(@PathVariable Long id, @Valid @RequestBody NewAssessmentDto assessmentUpdates) {
+    public ResponseEntity<?> updateAssessment(@PathVariable Long id,
+            @Valid @RequestBody NewAssessmentDto assessmentUpdates) {
         try {
             Assessment updateAssessment = new Assessment();
             updateAssessment.setName(assessmentUpdates.getName());
@@ -189,17 +254,17 @@ public class AssessmentController {
             updateAssessment.setDuration(assessmentUpdates.getDuration());
             updateAssessment.setSkills(assessmentUpdates.getSkills());
             updateAssessment.setLanguageOptions(assessmentUpdates.getLanguageOptions());
-            
+
             Assessment updatedAssessment = assessmentService.updateAssessment(id, updateAssessment);
             return ResponseEntity.ok(new FetchAssessmentDto(updatedAssessment));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error updating assessment: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error updating assessment: " + e.getMessage());
+                    .body("Error updating assessment: " + e.getMessage());
         }
     }
-    
+
     // Delete assessment
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteAssessment(@PathVariable Long id) {
@@ -210,10 +275,10 @@ public class AssessmentController {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error deleting assessment: " + e.getMessage());
+                    .body("Error deleting assessment: " + e.getMessage());
         }
     }
-    
+
     // Get assessments by user ID
     @GetMapping("/user/{userId}")
     public ResponseEntity<?> getAssessmentsByUserId(
@@ -224,14 +289,14 @@ public class AssessmentController {
             Pageable pageable = PageRequest.of(page, size);
             Page<Assessment> assessments = assessmentService.getAssessmentsByUserId(userId, pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
-            
+
             return ResponseEntity.ok(assessmentDtos);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving assessments: " + e.getMessage());
+                    .body("Error retrieving assessments: " + e.getMessage());
         }
     }
-    
+
     // Get assessments by status
     @GetMapping("/status/{status}")
     public ResponseEntity<?> getAssessmentsByStatus(
@@ -242,14 +307,14 @@ public class AssessmentController {
             Pageable pageable = PageRequest.of(page, size);
             Page<Assessment> assessments = assessmentService.getAssessmentsByStatus(status, pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
-            
+
             return ResponseEntity.ok(assessmentDtos);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving assessments: " + e.getMessage());
+                    .body("Error retrieving assessments: " + e.getMessage());
         }
     }
-    
+
     // Get assessments by type
     @GetMapping("/type/{type}")
     public ResponseEntity<?> getAssessmentsByType(
@@ -260,14 +325,14 @@ public class AssessmentController {
             Pageable pageable = PageRequest.of(page, size);
             Page<Assessment> assessments = assessmentService.getAssessmentsByType(type, pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
-            
+
             return ResponseEntity.ok(assessmentDtos);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving assessments: " + e.getMessage());
+                    .body("Error retrieving assessments: " + e.getMessage());
         }
     }
-    
+
     // Search assessments by name
     @GetMapping("/search/name")
     public ResponseEntity<?> searchAssessmentsByName(
@@ -278,14 +343,14 @@ public class AssessmentController {
             Pageable pageable = PageRequest.of(page, size);
             Page<Assessment> assessments = assessmentService.searchAssessmentsByName(name, pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
-            
+
             return ResponseEntity.ok(assessmentDtos);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error searching assessments: " + e.getMessage());
+                    .body("Error searching assessments: " + e.getMessage());
         }
     }
-    
+
     // Search assessments by role name
     @GetMapping("/search/role")
     public ResponseEntity<?> searchAssessmentsByRoleName(
@@ -296,14 +361,14 @@ public class AssessmentController {
             Pageable pageable = PageRequest.of(page, size);
             Page<Assessment> assessments = assessmentService.searchAssessmentsByRoleName(roleName, pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
-            
+
             return ResponseEntity.ok(assessmentDtos);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error searching assessments: " + e.getMessage());
+                    .body("Error searching assessments: " + e.getMessage());
         }
     }
-    
+
     // Get assessments within date range
     @GetMapping("/date-range")
     public ResponseEntity<?> getAssessmentsInDateRange(
@@ -315,14 +380,14 @@ public class AssessmentController {
             Pageable pageable = PageRequest.of(page, size);
             Page<Assessment> assessments = assessmentService.getAssessmentsInDateRange(startDate, endDate, pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
-            
+
             return ResponseEntity.ok(assessmentDtos);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving assessments: " + e.getMessage());
+                    .body("Error retrieving assessments: " + e.getMessage());
         }
     }
-    
+
     // Get active assessments
     @GetMapping("/active")
     public ResponseEntity<?> getActiveAssessments(
@@ -330,16 +395,17 @@ public class AssessmentController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<Assessment> assessments = assessmentService.getActiveAssessmentsInDateRange(LocalDateTime.now(), pageable);
+            Page<Assessment> assessments = assessmentService.getActiveAssessmentsInDateRange(LocalDateTime.now(),
+                    pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
-            
+
             return ResponseEntity.ok(assessmentDtos);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving active assessments: " + e.getMessage());
+                    .body("Error retrieving active assessments: " + e.getMessage());
         }
     }
-    
+
     // Get assessments by duration range
     @GetMapping("/duration-range")
     public ResponseEntity<?> getAssessmentsByDurationRange(
@@ -349,16 +415,17 @@ public class AssessmentController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<Assessment> assessments = assessmentService.getAssessmentsByDurationRange(minDuration, maxDuration, pageable);
+            Page<Assessment> assessments = assessmentService.getAssessmentsByDurationRange(minDuration, maxDuration,
+                    pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
-            
+
             return ResponseEntity.ok(assessmentDtos);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving assessments: " + e.getMessage());
+                    .body("Error retrieving assessments: " + e.getMessage());
         }
     }
-    
+
     // Get assessments by skill
     @GetMapping("/skill/{skill}")
     public ResponseEntity<?> getAssessmentsBySkill(
@@ -369,14 +436,14 @@ public class AssessmentController {
             Pageable pageable = PageRequest.of(page, size);
             Page<Assessment> assessments = assessmentService.getAssessmentsBySkill(skill, pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
-            
+
             return ResponseEntity.ok(assessmentDtos);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving assessments: " + e.getMessage());
+                    .body("Error retrieving assessments: " + e.getMessage());
         }
     }
-    
+
     // Get assessments by language option
     @GetMapping("/language/{language}")
     public ResponseEntity<?> getAssessmentsByLanguageOption(
@@ -387,14 +454,14 @@ public class AssessmentController {
             Pageable pageable = PageRequest.of(page, size);
             Page<Assessment> assessments = assessmentService.getAssessmentsByLanguageOption(language, pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
-            
+
             return ResponseEntity.ok(assessmentDtos);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving assessments: " + e.getMessage());
+                    .body("Error retrieving assessments: " + e.getMessage());
         }
     }
-    
+
     // Count assessments by user and status
     @GetMapping("/count/user/{userId}/status/{status}")
     public ResponseEntity<?> countAssessmentsByUserAndStatus(
@@ -405,10 +472,10 @@ public class AssessmentController {
             return ResponseEntity.ok(count);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error counting assessments: " + e.getMessage());
+                    .body("Error counting assessments: " + e.getMessage());
         }
     }
-    
+
     // Activate assessment
     @PostMapping("/{id}/activate")
     public ResponseEntity<?> activateAssessment(@PathVariable Long id) {
@@ -419,10 +486,10 @@ public class AssessmentController {
             return ResponseEntity.badRequest().body("Error activating assessment: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error activating assessment: " + e.getMessage());
+                    .body("Error activating assessment: " + e.getMessage());
         }
     }
-    
+
     // Deactivate assessment
     @PostMapping("/{id}/deactivate")
     public ResponseEntity<?> deactivateAssessment(@PathVariable Long id) {
@@ -433,10 +500,10 @@ public class AssessmentController {
             return ResponseEntity.badRequest().body("Error deactivating assessment: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error deactivating assessment: " + e.getMessage());
+                    .body("Error deactivating assessment: " + e.getMessage());
         }
     }
-    
+
     // Publish assessment
     @PostMapping("/{id}/publish")
     public ResponseEntity<?> publishAssessment(@PathVariable Long id) {
@@ -447,10 +514,10 @@ public class AssessmentController {
             return ResponseEntity.badRequest().body("Error publishing assessment: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error publishing assessment: " + e.getMessage());
+                    .body("Error publishing assessment: " + e.getMessage());
         }
     }
-    
+
     // Update skills
     @PutMapping("/{id}/skills")
     public ResponseEntity<?> updateSkills(
@@ -463,10 +530,10 @@ public class AssessmentController {
             return ResponseEntity.badRequest().body("Error updating skills: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error updating skills: " + e.getMessage());
+                    .body("Error updating skills: " + e.getMessage());
         }
     }
-    
+
     // Add skill
     @PostMapping("/{id}/skills")
     public ResponseEntity<?> addSkill(
@@ -479,10 +546,10 @@ public class AssessmentController {
             return ResponseEntity.badRequest().body("Error adding skill: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error adding skill: " + e.getMessage());
+                    .body("Error adding skill: " + e.getMessage());
         }
     }
-    
+
     // Remove skill
     @DeleteMapping("/{id}/skills/{skill}")
     public ResponseEntity<?> removeSkill(
@@ -495,10 +562,10 @@ public class AssessmentController {
             return ResponseEntity.badRequest().body("Error removing skill: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error removing skill: " + e.getMessage());
+                    .body("Error removing skill: " + e.getMessage());
         }
     }
-    
+
     // Update language options
     @PutMapping("/{id}/language-options")
     public ResponseEntity<?> updateLanguageOptions(
@@ -511,10 +578,10 @@ public class AssessmentController {
             return ResponseEntity.badRequest().body("Error updating language options: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error updating language options: " + e.getMessage());
+                    .body("Error updating language options: " + e.getMessage());
         }
     }
-    
+
     // Update metadata
     @PutMapping("/{id}/metadata/new")
     public ResponseEntity<?> updateMetadata(
@@ -527,22 +594,24 @@ public class AssessmentController {
             return ResponseEntity.badRequest().body("Error updating metadata: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error updating metadata: " + e.getMessage());
+                    .body("Error updating metadata: " + e.getMessage());
         }
     }
 
     // @PutMapping("/{id}/metadata")
     // public ResponseEntity<?> updateGithubRepo(
-    //         @PathVariable Long id,
-    //         @RequestBody String key, @RequestBody String value) {
-    //     try {
-    //         Assessment assessment = assessmentService.updateMetadata(id, Map.of(key, value));
-    //         return ResponseEntity.ok(new FetchAssessmentDto(assessment));
-    //     } catch (IllegalArgumentException e) {
-    //         return ResponseEntity.badRequest().body("Error updating metadata: " + e.getMessage());
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //             .body("Error updating metadata: " + e.getMessage());
-    //     }
+    // @PathVariable Long id,
+    // @RequestBody String key, @RequestBody String value) {
+    // try {
+    // Assessment assessment = assessmentService.updateMetadata(id, Map.of(key,
+    // value));
+    // return ResponseEntity.ok(new FetchAssessmentDto(assessment));
+    // } catch (IllegalArgumentException e) {
+    // return ResponseEntity.badRequest().body("Error updating metadata: " +
+    // e.getMessage());
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error updating metadata: " + e.getMessage());
     // }
-} 
+    // }
+}
