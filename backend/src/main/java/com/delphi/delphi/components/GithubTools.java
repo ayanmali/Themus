@@ -123,8 +123,10 @@ public class GithubTools {
         String username = getGithubUsername(toolContext.getContext().get("userId"));
         ResponseEntity<GithubFile> fileResponse = githubClient.addFileToRepo(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), filePath, branch=null, encodeToBase64(fileContent),
                 commitMessage);
-        if (fileResponse.getStatusCode().is2xxSuccessful()) {
-            return fileResponse.getBody();
+        if (fileResponse.getStatusCode().is2xxSuccessful() && fileResponse.getBody() != null) {
+            GithubFile file = fileResponse.getBody();
+            file.setContent(fileContent);
+            return file;
         } else {
             throw new RuntimeException("Error adding file to repo: " + fileResponse.getStatusCode() + " " + fileResponse.getBody());
         }
@@ -138,8 +140,12 @@ public class GithubTools {
         String pat = getPAT(toolContext.getContext().get("userId"));
         String username = getGithubUsername(toolContext.getContext().get("userId"));
         ResponseEntity<GithubRepoContents> repoContentsResponse = githubClient.getRepoContents(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), filePath, branch);
-        if (repoContentsResponse.getStatusCode().is2xxSuccessful()) {
-            return repoContentsResponse.getBody();
+        if (repoContentsResponse.getStatusCode().is2xxSuccessful() && repoContentsResponse.getBody() != null) {
+            GithubRepoContents repoContents = repoContentsResponse.getBody();
+            if (repoContents.getType().equals("file")) {
+                repoContents.setContent(decodeFromBase64(repoContents.getContent()));
+            }
+            return repoContents;
         } else {
             throw new RuntimeException("Error getting repo contents: " + repoContentsResponse.getStatusCode() + " " + repoContentsResponse.getBody());
         }
@@ -183,8 +189,10 @@ public class GithubTools {
         String username = getGithubUsername(toolContext.getContext().get("userId"));
         ResponseEntity<GithubFile> editFileResponse = githubClient.editFile(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), filePath, encodeToBase64(fileContent), commitMessage,
                 sha);
-        if (editFileResponse.getStatusCode().is2xxSuccessful()) {
-            return editFileResponse.getBody();
+        if (editFileResponse.getStatusCode().is2xxSuccessful() && editFileResponse.getBody() != null) {
+            GithubFile file = editFileResponse.getBody();
+            file.setContent(fileContent);
+            return file;
         } else {
             throw new RuntimeException("Error editing file: " + editFileResponse.getStatusCode() + " " + editFileResponse.getBody());
         }
