@@ -8,7 +8,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 // TODO: Enable async support?
 // @EnableAsync
 public class DelphiApplication {
-// TODO: use security context
+// TODO: add authorization to all endpoints
+// TODO: add more endpoints for data access
 	public static void main(String[] args) {
 		SpringApplication.run(DelphiApplication.class, args);
 	}

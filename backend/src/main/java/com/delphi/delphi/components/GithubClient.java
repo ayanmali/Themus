@@ -11,11 +11,18 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.core.ParameterizedTypeReference;
 
 import com.delphi.delphi.entities.ChatHistory;
 import com.delphi.delphi.entities.ChatMessage;
 import com.delphi.delphi.repositories.ChatHistoryRepository;
+import com.delphi.delphi.utils.git.GithubBranchDetails;
+import com.delphi.delphi.utils.git.GithubFile;
+import com.delphi.delphi.utils.git.GithubReference;
+import com.delphi.delphi.utils.git.GithubRepoContents;
+import com.delphi.delphi.utils.git.GithubRepoBranch;
 
 @Component
 /*
@@ -46,150 +53,198 @@ public class GithubClient {
         this.restTemplate = restTemplate;
         this.headers = githubClientheaders;
         this.committer = committer;
-        //this.chatMessageRepository = chatMessageRepository;
+        // this.chatMessageRepository = chatMessageRepository;
         this.chatHistoryRepository = chatHistoryRepository;
     }
 
-    public ResponseEntity<String> createRepo(String accessToken, String repoName) {
-        String url = "https://api.github.com/user/repos";
+    public ResponseEntity<GithubRepoContents> createRepo(String accessToken, String repoName) {
+        try {
+            String url = "https://api.github.com/user/repos";
 
-        headers.setBearerAuth(accessToken);
-        // headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(accessToken);
+            // headers.setContentType(MediaType.APPLICATION_JSON);
 
-        Map<String, Object> body = Map.of(
-                "name", repoName,
-                "private", true);
+            Map<String, Object> body = Map.of(
+                    "name", repoName,
+                    "private", true);
 
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-        return restTemplate.postForEntity(url, entity, String.class);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+            return restTemplate.postForEntity(url, entity, GithubRepoContents.class);
+        } catch (RestClientException e) {
+            throw new RuntimeException("Error creating repo: " + e.getMessage());
+        }
     }
 
     public ResponseEntity<?> addContributor(String accessToken, String owner, String repo, String username) {
-        String url = String.format("https://api.github.com/repos/%s/%s/collaborators/%s", owner, repo, username);
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/collaborators/%s", owner, repo, username);
 
-        headers.setBearerAuth(accessToken);
+            headers.setBearerAuth(accessToken);
 
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(headers);
-        return restTemplate.exchange(url, HttpMethod.PUT, entity, String.class);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(headers);
+            return restTemplate.exchange(url, HttpMethod.PUT, entity, String.class);
+        } catch (RestClientException e) {
+            throw new RuntimeException("Error adding contributor: " + e.getMessage());
+        }
     }
 
-    public ResponseEntity<String> addFileToRepo(String accessToken, String owner, String repo, String path,
+    public ResponseEntity<GithubFile> addFileToRepo(String accessToken, String owner, String repo, String path,
             String branch, String content, String commitMessage) {
-        String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
 
-        headers.setBearerAuth(accessToken);
-        // headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(accessToken);
+            // headers.setContentType(MediaType.APPLICATION_JSON);
 
-        String base64Content = Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
+            String base64Content = Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
 
-        Map<String, Object> body = Map.of(
-                "message", commitMessage,
-                "content", base64Content,
-                "branch", branch,
-                "committer", committer);
+            Map<String, Object> body = Map.of(
+                    "message", commitMessage,
+                    "content", base64Content,
+                    "branch", branch,
+                    "committer", committer);
 
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-        return restTemplate.exchange(url, HttpMethod.PUT, entity, String.class);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+            return restTemplate.exchange(url, HttpMethod.PUT, entity, GithubFile.class);
+        } catch (RestClientException e) {
+            throw new RuntimeException("Error adding file to repo: " + e.getMessage());
+        }
     }
 
-    public ResponseEntity<Map> getRepoContents(String accessToken, String owner, String repo, String path) {
-        String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
+    public ResponseEntity<GithubRepoContents> getRepoContents(String accessToken, String owner, String repo,
+            String path, String branch) {
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
+            if (branch != null) {
+                url += "?ref=" + branch;
+            }
 
-        headers.setBearerAuth(accessToken);
+            headers.setBearerAuth(accessToken);
 
-        HttpEntity<?> entity = new HttpEntity<>(headers);
-        return restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            HttpEntity<?> entity = new HttpEntity<>(headers);
+            return restTemplate.exchange(url, HttpMethod.GET, entity, GithubRepoContents.class);
+        } catch (RestClientException e) {
+            throw new RuntimeException("Error getting repo contents: " + e.getMessage());
+        }
     }
 
-    public ResponseEntity<List> getRepoBranches(String accessToken, String owner, String repo) {
-        String url = String.format("https://api.github.com/repos/%s/%s/branches", owner, repo);
+    public ResponseEntity<List<GithubRepoBranch>> getRepoBranches(String accessToken, String owner, String repo) {
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/branches", owner, repo);
 
-        headers.setBearerAuth(accessToken);
+            headers.setBearerAuth(accessToken);
 
-        HttpEntity<?> entity = new HttpEntity<>(headers);
-        return restTemplate.exchange(url, HttpMethod.GET, entity, List.class);
+            HttpEntity<?> entity = new HttpEntity<>(headers);
+            return restTemplate.exchange(
+                url, 
+                HttpMethod.GET, 
+                entity, 
+                new ParameterizedTypeReference<List<GithubRepoBranch>>() {}
+            );
+        } catch (RestClientException e) {
+            throw new RuntimeException("Error getting repo branches: " + e.getMessage());
+        }
     }
 
-    public ResponseEntity<String> addBranch(String accessToken, String owner, String repo, String branchName,
+    public ResponseEntity<GithubReference> addBranch(String accessToken, String owner, String repo, String branchName,
             String baseBranch) {
-        String url = String.format("https://api.github.com/repos/%s/%s/git/refs", owner, repo);
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/git/refs", owner, repo);
 
-        headers.setBearerAuth(accessToken);
-        // headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(accessToken);
+            // headers.setContentType(MediaType.APPLICATION_JSON);
 
-        // Get the SHA of the base branch first
-        ResponseEntity<Map> branchResponse = getBranchDetails(accessToken, owner, repo, baseBranch);
-        if (!branchResponse.getStatusCode().is2xxSuccessful()) {
-            throw new RuntimeException("Failed to get base branch SHA: " + branchResponse.getStatusCode());
+            // Get the SHA of the base branch first
+            ResponseEntity<GithubBranchDetails> branchResponse = getBranchDetails(accessToken, owner, repo, baseBranch);
+            if (!branchResponse.getStatusCode().is2xxSuccessful()) {
+                throw new RuntimeException("Failed to get base branch SHA: " + branchResponse.getStatusCode());
+            }
+
+            GithubBranchDetails branchBody = branchResponse.getBody();
+            if (branchBody == null) {
+                throw new RuntimeException("Failed to get base branch details");
+            }
+
+            String sha = branchBody.getCommit().getSha();
+
+            Map<String, Object> body = Map.of(
+                    "ref", "refs/heads/" + branchName,
+                    "sha", sha);
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+            return restTemplate.postForEntity(url, entity, GithubReference.class);
+        } catch (RestClientException e) {
+            throw new RuntimeException("Error adding branch: " + e.getMessage());
         }
-
-        Map<String, Object> branchBody = branchResponse.getBody();
-        if (branchBody == null) {
-            throw new RuntimeException("Failed to get base branch details");
-        }
-
-        Map<String, Object> commit = (Map<String, Object>) branchBody.get("commit");
-        String sha = (String) commit.get("sha");
-
-        Map<String, Object> body = Map.of(
-                "ref", "refs/heads/" + branchName,
-                "sha", sha);
-
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-        return restTemplate.postForEntity(url, entity, String.class);
     }
 
-    public ResponseEntity<String> editFile(String accessToken, String owner, String repo, String path, String content,
+    public ResponseEntity<GithubFile> editFile(String accessToken, String owner, String repo, String path, String content,
             String commitMessage, String sha) {
-        String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
 
-        headers.setBearerAuth(accessToken);
-        // headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(accessToken);
+            // headers.setContentType(MediaType.APPLICATION_JSON);
 
-        String base64Content = Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
+            String base64Content = Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
 
-        Map<String, Object> body = Map.of(
-                "message", commitMessage,
-                "content", base64Content,
-                "sha", sha,
-                "committer", committer);
+            Map<String, Object> body = Map.of(
+                    "message", commitMessage,
+                    "content", base64Content,
+                    "sha", sha,
+                    "committer", committer);
 
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-        return restTemplate.exchange(url, HttpMethod.PUT, entity, String.class);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+            return restTemplate.exchange(url, HttpMethod.PUT, entity, GithubFile.class);
+        } catch (RestClientException e) {
+            throw new RuntimeException("Error editing file: " + e.getMessage());
+        }
     }
 
     public ResponseEntity<String> deleteFile(String accessToken, String owner, String repo, String path,
             String commitMessage, String sha) {
-        String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
 
-        headers.setBearerAuth(accessToken);
-        // headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(accessToken);
+            // headers.setContentType(MediaType.APPLICATION_JSON);
 
-        Map<String, Object> body = Map.of(
-                "message", commitMessage,
-                "sha", sha,
-                "committer", committer);
+            Map<String, Object> body = Map.of(
+                    "message", commitMessage,
+                    "sha", sha,
+                    "committer", committer);
 
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-        return restTemplate.exchange(url, HttpMethod.DELETE, entity, String.class);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+            return restTemplate.exchange(url, HttpMethod.DELETE, entity, String.class);
+        } catch (RestClientException e) {
+            throw new RuntimeException("Error deleting file: " + e.getMessage());
+        }
     }
 
-    public ResponseEntity<Map> getBranchDetails(String accessToken, String owner, String repo, String branch) {
-        String url = String.format("https://api.github.com/repos/%s/%s/branches/%s", owner, repo, branch);
+    public ResponseEntity<GithubBranchDetails> getBranchDetails(String accessToken, String owner, String repo, String branch) {
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/branches/%s", owner, repo, branch);
 
-        headers.setBearerAuth(accessToken);
+            headers.setBearerAuth(accessToken);
 
-        HttpEntity<?> entity = new HttpEntity<>(headers);
-        return restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            HttpEntity<?> entity = new HttpEntity<>(headers);
+            return restTemplate.exchange(url, HttpMethod.GET, entity, GithubBranchDetails.class);
+        } catch (RestClientException e) {
+            throw new RuntimeException("Error getting branch details: " + e.getMessage());
+        }
     }
 
     public ResponseEntity<Map> getCommitDetails(String accessToken, String owner, String repo, String commit) {
-        String url = String.format("https://api.github.com/repos/%s/%s/commits/%s", owner, repo, commit);
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/commits/%s", owner, repo, commit);
 
-        headers.setBearerAuth(accessToken);
+            headers.setBearerAuth(accessToken);
 
-        HttpEntity<?> entity = new HttpEntity<>(headers);
-        return restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            HttpEntity<?> entity = new HttpEntity<>(headers);
+            return restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+        } catch (RestClientException e) {
+            throw new RuntimeException("Error getting commit details: " + e.getMessage());
+        }
     }
 
     public ChatMessage sendMessageToUser(String text, Long chatHistoryId, String model) {
@@ -201,13 +256,13 @@ public class GithubClient {
 
             chatMessage.setMessageType(MessageType.ASSISTANT);
             chatMessage.setModel(model);
-            // TODO: add this back? 
+            // TODO: add this back?
             // chatMessageRepository.save(chatMessage);
 
             ChatHistory existingChatHistory = chatHistoryRepository.findById(chatHistoryId)
                     .orElseThrow(() -> new Exception("Chat history not found with id: " + chatHistoryId));
 
-            // TODO: add this back? 
+            // TODO: add this back?
             // existingChatHistory.getMessages().add(chatMessage);
             existingChatHistory.addMessage(chatMessage);
             chatHistoryRepository.save(existingChatHistory);
