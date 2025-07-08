@@ -1,8 +1,10 @@
 package com.delphi.delphi.dtos.messaging;
 
+import java.io.Serializable;
 import java.util.Map;
 
-public class ChatCompletionRequestDto {
+public class ChatCompletionRequestDto implements Serializable {
+    private static final long serialVersionUID = 1L;
     private String userMessage;
     private String userPromptTemplate;
     private Map<String, Object> userPromptVariables;

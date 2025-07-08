@@ -50,9 +50,9 @@ public class TopicConfig {
         return BindingBuilder.bind(chatResponseTopicQueue).to(chatResponseTopicExchange).with("topic.chat.response");
     }
 
-    /* PAYMENTS TOPIC */
+    /* TODO: PAYMENTS TOPIC */
 
-    /* EMAIL TOPIC */
+    /* TODO: EMAIL TOPIC */
 
 
     // @Bean

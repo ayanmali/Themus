@@ -17,7 +17,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Component
-@Order(4)
+@Order(3)
 // Token bucket rate limiting
 public class RateLimitFilter implements Filter {
 
@@ -37,12 +37,19 @@ public class RateLimitFilter implements Filter {
             throws IOException, ServletException {
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
+        
+        // Skip JWT validation for permitted endpoints
+        String requestPath = req.getRequestURI();
+        if (requestPath.startsWith("/api/auth/") || requestPath.equals("/")) {
+            chain.doFilter(request, response);
+            return;
+        }
 
         String authHeader = req.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             // No auth header, skip rate limiting (or apply different rules)
             res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            res.getWriter().write("{\"error\":\"No auth token provided\"}");
+            res.getWriter().write("{\"error\":\"Error in rate limiting filter:No auth token provided\"}");
             return;
         }
 

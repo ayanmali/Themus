@@ -10,7 +10,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,7 +30,7 @@ import com.delphi.delphi.utils.AttemptStatus;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/candidate-attempts")
+@RequestMapping("/api/attempts")
 public class CandidateAttemptController {
     private final AssessmentService assessmentService;
     
@@ -43,7 +42,7 @@ public class CandidateAttemptController {
     }
     
     // Create a new candidate attempt
-    @PostMapping
+    @PostMapping("/start")
     public ResponseEntity<?> startCandidateAttempt(@Valid @RequestBody NewCandidateAttemptDto newCandidateAttemptDto) {
         try {
             Assessment assessment = assessmentService.getAssessmentByIdOrThrow(newCandidateAttemptDto.getAssessmentId());
@@ -89,7 +88,7 @@ public class CandidateAttemptController {
     }
     
     // Get all candidate attempts with pagination
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<?> getAllCandidateAttempts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -112,7 +111,7 @@ public class CandidateAttemptController {
     }
     
     // Update candidate attempt
-    @PutMapping("/{id}")
+    @PutMapping("/{id}/update")
     public ResponseEntity<?> updateCandidateAttempt(@PathVariable Long id, @Valid @RequestBody NewCandidateAttemptDto attemptUpdates) {
         try {
             CandidateAttempt updateAttempt = new CandidateAttempt();
@@ -131,21 +130,21 @@ public class CandidateAttemptController {
     }
     
     // Delete candidate attempt
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteCandidateAttempt(@PathVariable Long id) {
-        try {
-            candidateAttemptService.deleteCandidateAttempt(id);
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error deleting candidate attempt: " + e.getMessage());
-        }
-    }
+    // @DeleteMapping("/{id}/delete")
+    // public ResponseEntity<?> deleteCandidateAttempt(@PathVariable Long id) {
+    //     try {
+    //         candidateAttemptService.deleteCandidateAttempt(id);
+    //         return ResponseEntity.noContent().build();
+    //     } catch (IllegalArgumentException e) {
+    //         return ResponseEntity.notFound().build();
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error deleting candidate attempt: " + e.getMessage());
+    //     }
+    // }
     
     // Get attempts by candidate ID
-    @GetMapping("/candidate/{candidateId}")
+    @GetMapping("/candidate/{candidateId}/all")
     public ResponseEntity<?> getAttemptsByCandidateId(
             @PathVariable Long candidateId,
             @RequestParam(defaultValue = "0") int page,
@@ -163,7 +162,7 @@ public class CandidateAttemptController {
     }
     
     // Get attempts by assessment ID
-    @GetMapping("/assessment/{assessmentId}")
+    @GetMapping("/assessment/{assessmentId}/all")
     public ResponseEntity<?> getAttemptsByAssessmentId(
             @PathVariable Long assessmentId,
             @RequestParam(defaultValue = "0") int page,
@@ -181,7 +180,7 @@ public class CandidateAttemptController {
     }
     
     // Get attempts by status
-    @GetMapping("/status/{status}")
+    @GetMapping("/status/{status}/all")
     public ResponseEntity<?> getAttemptsByStatus(
             @PathVariable AttemptStatus status,
             @RequestParam(defaultValue = "0") int page,
@@ -199,7 +198,7 @@ public class CandidateAttemptController {
     }
     
     // Get attempt by candidate and assessment
-    @GetMapping("/candidate/{candidateId}/assessment/{assessmentId}")
+    @GetMapping("/candidate/{candidateId}/assessment/{assessmentId}/all")
     public ResponseEntity<?> getAttemptByCandidateAndAssessment(
             @PathVariable Long candidateId,
             @PathVariable Long assessmentId) {
@@ -217,7 +216,7 @@ public class CandidateAttemptController {
     }
     
     // Get attempts by language choice
-    @GetMapping("/language/{languageChoice}")
+    @GetMapping("/language/{languageChoice}/all")
     public ResponseEntity<?> getAttemptsByLanguageChoice(
             @PathVariable String languageChoice,
             @RequestParam(defaultValue = "0") int page,
@@ -235,7 +234,7 @@ public class CandidateAttemptController {
     }
     
     // Get attempts created within date range
-    @GetMapping("/created-between")
+    @GetMapping("/created-between/all")
     public ResponseEntity<?> getAttemptsCreatedBetween(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
@@ -254,7 +253,7 @@ public class CandidateAttemptController {
     }
     
     // Get attempts started within date range
-    @GetMapping("/started-between")
+    @GetMapping("/started-between/all")
     public ResponseEntity<?> getAttemptsStartedBetween(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
@@ -273,7 +272,7 @@ public class CandidateAttemptController {
     }
     
     // Get attempts completed within date range
-    @GetMapping("/completed-between")
+    @GetMapping("/completed-between/all")
     public ResponseEntity<?> getAttemptsCompletedBetween(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
@@ -292,7 +291,7 @@ public class CandidateAttemptController {
     }
     
     // Get overdue attempts
-    @GetMapping("/overdue")
+    @GetMapping("/overdue/all")
     public ResponseEntity<?> getOverdueAttempts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -309,7 +308,7 @@ public class CandidateAttemptController {
     }
     
     // Get attempts with evaluation
-    @GetMapping("/with-evaluation")
+    @GetMapping("/with-evaluation/all")
     public ResponseEntity<?> getAttemptsWithEvaluation(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -326,7 +325,7 @@ public class CandidateAttemptController {
     }
     
     // Get completed attempts without evaluation
-    @GetMapping("/completed-no-evaluation")
+    @GetMapping("/submitted/all")
     public ResponseEntity<?> getCompletedAttemptsWithoutEvaluation(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -385,7 +384,7 @@ public class CandidateAttemptController {
     }
 
     // TODO: when candidate starts the assessment, we need to authenticate them based on their email
-    @PostMapping("/{id}/authenticate_candidate")
+    @PostMapping("/{id}/authenticate-candidate")
     public ResponseEntity<?> inviteCandidateToAssessment(@PathVariable Long id, @RequestBody String email) {
         try {
             Assessment assessment = assessmentService.getAssessmentByIdOrThrow(id);

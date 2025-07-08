@@ -24,6 +24,8 @@ import com.delphi.delphi.repositories.UserRepository;
  /*
  * TODO: add Single sign on
  * TODO: add 2FA
+ * TODO: add confirm email
+ * TODO: add forgot/reset password
  */
 public class SecurityConfig {
 
@@ -44,12 +46,12 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults()) // enables CORS using the bean defined in CorsConfig
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/auth/**", "/").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            .httpBasic(Customizer.withDefaults());
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            //.httpBasic(Customizer.withDefaults());
 
         return http.build();
     }

@@ -44,7 +44,7 @@ public class PaymentController {
         return userDetails.getUsername();
     }
 
-    @GetMapping("/{initiate-checkout")
+    @GetMapping("/initiate-checkout")
     public ResponseEntity<?> initiateStripeCheckout() {
         User user = getCurrentUser();
         Customer customer = stripeService.createCustomer(user);

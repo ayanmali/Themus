@@ -1,8 +1,11 @@
 package com.delphi.delphi.dtos.messaging;
 
+import java.io.Serializable;
+
 import org.springframework.ai.chat.model.ChatResponse;
 
-public class ChatCompletionResponseDto {
+public class ChatCompletionResponseDto implements Serializable {
+    private static final long serialVersionUID = 1L;
     private String requestId;
     private ChatResponse chatResponse;
     private String error;
