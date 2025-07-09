@@ -60,7 +60,6 @@ public class TopicConfig {
     public static final String PAYMENT_WEBHOOK_TOPIC_EXCHANGE_NAME = "paymentWebhookTopicExchange";
     public static final String PAYMENT_WEBHOOK_TOPIC_QUEUE_NAME = "paymentWebhookTopicQueue";
 
-    /* PAYMENT TOPIC */
     @Bean
     public TopicExchange paymentTopicExchange() {
         return new TopicExchange(PAYMENT_TOPIC_EXCHANGE_NAME);
