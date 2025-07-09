@@ -38,6 +38,12 @@ public class TopicConfig {
     public static final String SUBSCRIPTION_UPDATE_ROUTING_KEY = "subscription.update";
     public static final String NOTIFICATION_ROUTING_KEY = "notification";
 
+    public static final String EMAIL_TOPIC_EXCHANGE_NAME = "email.exchange";
+    public static final String EMAIL_DLX = "email.dlx";
+    public static final String EMAIL_TOPIC_QUEUE_NAME = "email.queue";
+    public static final String EMAIL_ROUTING_KEY = "resend.email";
+    public static final String EMAIL_DLQ = "email.dlq";
+
     /* CHAT TOPIC */
     @Bean
     public TopicExchange chatTopicExchange() {
@@ -46,7 +52,7 @@ public class TopicConfig {
 
     @Bean
     public Queue chatTopicQueue() {
-        return new Queue(CHAT_TOPIC_QUEUE_NAME);
+        return QueueBuilder.durable(CHAT_TOPIC_QUEUE_NAME).build();
     }
 
     /*
@@ -65,7 +71,7 @@ public class TopicConfig {
 
     @Bean
     public Queue chatResponseTopicQueue() {
-        return new Queue(CHAT_RESPONSE_TOPIC_QUEUE_NAME);
+        return QueueBuilder.durable(CHAT_RESPONSE_TOPIC_QUEUE_NAME).build();
     }
 
     @Bean
@@ -73,7 +79,7 @@ public class TopicConfig {
         return BindingBuilder.bind(chatResponseTopicQueue).to(chatResponseTopicExchange).with("topic.chat.response");
     }
 
-    /* TODO: PAYMENTS TOPIC */
+    /* PAYMENTS TOPIC */
     // Main exchange for Stripe events
     @Bean
     public TopicExchange stripeExchange() {
@@ -82,7 +88,7 @@ public class TopicConfig {
 
     // Dead letter exchange
     @Bean
-    public DirectExchange deadLetterExchange() {
+    public DirectExchange stripeDeadLetterExchange() {
         return new DirectExchange(PAYMENT_DLX);
     }
 
@@ -111,7 +117,7 @@ public class TopicConfig {
     @Bean
     public Binding stripeWebhookDLQBinding() {
         return BindingBuilder.bind(stripeWebhookDLQ())
-                .to(deadLetterExchange())
+                .to(stripeDeadLetterExchange())
                 .with(STRIPE_WEBHOOK_DLQ);
     }
 
@@ -140,7 +146,7 @@ public class TopicConfig {
     @Bean
     public Binding paymentProcessingDLQBinding() {
         return BindingBuilder.bind(paymentProcessingDLQ())
-                .to(deadLetterExchange())
+                .to(stripeDeadLetterExchange())
                 .with(PAYMENT_PROCESSING_DLQ);
     }
 
@@ -169,7 +175,7 @@ public class TopicConfig {
     @Bean
     public Binding subscriptionUpdateDLQBinding() {
         return BindingBuilder.bind(subscriptionUpdateDLQ())
-                .to(deadLetterExchange())
+                .to(stripeDeadLetterExchange())
                 .with(SUBSCRIPTION_UPDATE_DLQ);
     }
 
@@ -186,12 +192,40 @@ public class TopicConfig {
                 .with(NOTIFICATION_ROUTING_KEY);
     }
 
-    /* TODO: EMAIL TOPIC */
+    /* EMAIL TOPIC */
+    @Bean
+    public TopicExchange emailTopicExchange() {
+        return new TopicExchange(EMAIL_TOPIC_EXCHANGE_NAME);
+    }
 
+    // Dead letter exchange
+    @Bean
+    public DirectExchange emailDeadLetterExchange() {
+        return new DirectExchange(EMAIL_DLX);
+    }
 
-    // @Bean
-    // public Binding bindingExchangeMessages(Queue chatTopicQueue, TopicExchange topicExchange) {
-    //     return BindingBuilder.bind(chatTopicQueue).to(topicExchange).with("topic.#");
-    // }
+    @Bean
+    public Queue emailTopicQueue() {
+        return QueueBuilder.durable(EMAIL_TOPIC_QUEUE_NAME)
+                .withArgument("x-dead-letter-exchange", EMAIL_DLX)
+                .withArgument("x-dead-letter-routing-key", EMAIL_DLQ)
+                .withArgument("x-message-ttl", 300000) // 5 minutes TTL
+        .build();
+    }
+
+    @Bean
+    public Binding emailTopicBinding() {
+        return BindingBuilder.bind(emailTopicQueue()).to(emailTopicExchange()).with(EMAIL_ROUTING_KEY);
+    }
+
+    @Bean
+    public Queue emailDLQ() {
+        return QueueBuilder.durable(EMAIL_DLQ).build();
+    }
+
+    @Bean
+    public Binding emailDLQBinding() {
+        return BindingBuilder.bind(emailDLQ()).to(emailDeadLetterExchange()).with(EMAIL_DLQ);
+    }
 
 }
