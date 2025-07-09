@@ -1,7 +1,15 @@
 package com.delphi.delphi;
 
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -9,28 +17,16 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
-
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.test.RabbitListenerTest;
-
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -53,6 +49,7 @@ import com.delphi.delphi.services.ChatService;
 public class RabbitMQTests {
 
     @Container
+    @SuppressWarnings("resource")
     static RabbitMQContainer rabbitMQContainer = new RabbitMQContainer("rabbitmq:3.11-management")
             .withExposedPorts(5672, 15672);
 
@@ -64,19 +61,19 @@ public class RabbitMQTests {
         registry.add("spring.rabbitmq.password", () -> "guest");
     }
 
-    @SpyBean
+    @MockitoSpyBean
     private ChatMessagePublisher chatMessagePublisher;
 
-    @SpyBean
+    @MockitoSpyBean
     private ChatMessageSubscriber chatMessageSubscriber;
 
-    @SpyBean
+    @MockitoSpyBean
     private ChatResponseSubscriber chatResponseSubscriber;
 
-    @MockBean
+    @MockitoSpyBean
     private ChatService chatService;
 
-    @SpyBean
+    @MockitoSpyBean
     private RabbitTemplate rabbitTemplate;
 
     @BeforeEach

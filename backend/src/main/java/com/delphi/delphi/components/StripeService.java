@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import com.delphi.delphi.components.messaging.chat.PaymentMessagePublisher;
+import com.delphi.delphi.components.messaging.payments.PaymentMessagePublisher;
 import com.delphi.delphi.dtos.messaging.payments.StripeWebhookMessage;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.utils.payments.StripeSubCache;
