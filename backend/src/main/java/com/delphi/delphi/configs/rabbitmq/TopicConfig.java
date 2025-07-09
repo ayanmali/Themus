@@ -51,6 +51,62 @@ public class TopicConfig {
     }
 
     /* TODO: PAYMENTS TOPIC */
+    public static final String PAYMENT_TOPIC_EXCHANGE_NAME = "paymentTopicExchange";
+    public static final String PAYMENT_TOPIC_QUEUE_NAME = "paymentTopicQueue";
+    
+    public static final String PAYMENT_RESPONSE_TOPIC_EXCHANGE_NAME = "paymentResponseTopicExchange";
+    public static final String PAYMENT_RESPONSE_TOPIC_QUEUE_NAME = "paymentResponseTopicQueue";
+    
+    public static final String PAYMENT_WEBHOOK_TOPIC_EXCHANGE_NAME = "paymentWebhookTopicExchange";
+    public static final String PAYMENT_WEBHOOK_TOPIC_QUEUE_NAME = "paymentWebhookTopicQueue";
+
+    /* PAYMENT TOPIC */
+    @Bean
+    public TopicExchange paymentTopicExchange() {
+        return new TopicExchange(PAYMENT_TOPIC_EXCHANGE_NAME);
+    }
+
+    @Bean
+    public Queue paymentTopicQueue() {
+        return new Queue(PAYMENT_TOPIC_QUEUE_NAME);
+    }
+
+    @Bean
+    public Binding bindingPaymentExchange(Queue paymentTopicQueue, TopicExchange paymentTopicExchange) {
+        return BindingBuilder.bind(paymentTopicQueue).to(paymentTopicExchange).with("topic.payment.#");
+    }
+
+    /* PAYMENT RESPONSE TOPIC */
+    @Bean
+    public TopicExchange paymentResponseTopicExchange() {
+        return new TopicExchange(PAYMENT_RESPONSE_TOPIC_EXCHANGE_NAME);
+    }
+
+    @Bean
+    public Queue paymentResponseTopicQueue() {
+        return new Queue(PAYMENT_RESPONSE_TOPIC_QUEUE_NAME);
+    }
+
+    @Bean
+    public Binding bindingPaymentResponseExchange(Queue paymentResponseTopicQueue, TopicExchange paymentResponseTopicExchange) {
+        return BindingBuilder.bind(paymentResponseTopicQueue).to(paymentResponseTopicExchange).with("topic.payment.response.#");
+    }
+
+    /* PAYMENT WEBHOOK TOPIC */
+    @Bean
+    public TopicExchange paymentWebhookTopicExchange() {
+        return new TopicExchange(PAYMENT_WEBHOOK_TOPIC_EXCHANGE_NAME);
+    }
+
+    @Bean
+    public Queue paymentWebhookTopicQueue() {
+        return new Queue(PAYMENT_WEBHOOK_TOPIC_QUEUE_NAME);
+    }
+
+    @Bean
+    public Binding bindingPaymentWebhookExchange(Queue paymentWebhookTopicQueue, TopicExchange paymentWebhookTopicExchange) {
+        return BindingBuilder.bind(paymentWebhookTopicQueue).to(paymentWebhookTopicExchange).with("topic.payment.webhook.#");
+    }
 
     /* TODO: EMAIL TOPIC */
 

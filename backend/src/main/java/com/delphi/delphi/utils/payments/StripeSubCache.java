@@ -1,8 +1,11 @@
 package com.delphi.delphi.utils.payments;
 
+import java.io.Serializable;
+
 import com.stripe.model.Subscription;
 
-public class StripeSubCache {
+public class StripeSubCache implements Serializable {
+    private static final long serialVersionUID = 1L;
     private String status;
     private String priceId;
     private String customerId;

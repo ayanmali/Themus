@@ -18,6 +18,11 @@ public class DelphiApplication {
 		return "Hello, World!";
 	}
 
+	@GetMapping("/welcome")
+	public String welcome() {
+		return "Welcome";
+	}
+
 	public static void main(String[] args) {
 		SpringApplication.run(DelphiApplication.class, args);
 	}
