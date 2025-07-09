@@ -7,8 +7,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.components.ResendService;
-import com.delphi.delphi.dtos.EmailRequestDto;
-import com.delphi.delphi.dtos.ScheduledEmailRequestDto;
+import com.delphi.delphi.dtos.messaging.emails.EmailRequestDto;
+import com.delphi.delphi.dtos.messaging.emails.ScheduledEmailRequestDto;
 
 @RestController
 @RequestMapping("/api/email")
@@ -23,14 +23,14 @@ public class EmailController {
     @PostMapping("/send")
     public ResponseEntity<EmailRequestDto> sendEmail(@RequestBody EmailRequestDto emailRequest) {
         // TODO: implement custom from address
-        resendService.sendEmail(emailRequest.getTo(), emailRequest.getSubject(), emailRequest.getText());
+        resendService.sendEmail(emailRequest.getTo().getEmail(), emailRequest.getSubject(), emailRequest.getText());
         return ResponseEntity.ok(emailRequest);
     }
 
     @PostMapping("/send-scheduled")
     public ResponseEntity<ScheduledEmailRequestDto> sendScheduledEmail(@RequestBody ScheduledEmailRequestDto emailRequest) {
         // TODO: implement custom from address
-        resendService.sendScheduledEmail(emailRequest.getTo(), emailRequest.getSubject(), emailRequest.getText(), emailRequest.getScheduledAt());
+        resendService.sendScheduledEmail(emailRequest.getTo().getEmail(), emailRequest.getSubject(), emailRequest.getText(), emailRequest.getScheduledAt());
         return ResponseEntity.ok(emailRequest);
     }
     

@@ -27,7 +27,6 @@ import com.stripe.model.checkout.Session;
 public class PaymentController {
 
     private final UserService userService;
-
     private final StripeService stripeService;
     private final RedisService redisService;
     private final Logger log = LoggerFactory.getLogger(PaymentController.class);
@@ -51,8 +50,10 @@ public class PaymentController {
     @GetMapping("/initiate-checkout")
     public ResponseEntity<?> initiateStripeCheckout() {
         User user = getCurrentUser();
+        log.info("Creating Stripe customer and initiating checkoutfor user: {}", user.getId());
         Customer customer = stripeService.createCustomer(user);
         Session session = stripeService.createCheckoutSession(customer.getId());
+        log.info("Checkout session created for user: {}", user.getId());
         return ResponseEntity.ok(session.getUrl());
     }
 
@@ -88,17 +89,21 @@ public class PaymentController {
     @GetMapping("/checkout/success")
     public ResponseEntity<?> checkoutSuccess() {
         User user = getCurrentUser();
+        log.info("Processing checkout success for user: {}", user.getId());
         // get stripe customer id from redis
         String stripeCustomerId = (String)redisService.get("stripe:user:" + user.getId());
 
         // if stripe customer id is not found, return redirect to home page
         if (stripeCustomerId == null) {
+            log.error("Stripe customer ID not found for user: {}", user.getId());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Stripe customer ID not found");
             // redirect to home page
         }
 
         // sync stripe data to redis
         stripeService.syncStripeDataToKV(stripeCustomerId);
+        log.info("Stripe data synced to Redis for user: {}", user.getId());
+        log.info("Checkout success for user: {}", user.getId());
 
         // return redirect to home page
         // redirect("/");
@@ -109,10 +114,19 @@ public class PaymentController {
     public ResponseEntity<?> getSubscription() {
         try {
             User user = getCurrentUser();
+            log.info("Getting subscription for user: {}", user.getId());
             StripeSubCache subData = stripeService.getSubscription(user.getId());
+            if (subData == null) {
+                log.error("No subscription found for user: {}", user.getId());
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("No subscription found");
+            }
+
+            log.info("Subscription data retrieved for user: {}", user.getId());
             return ResponseEntity.ok(subData);
 
         } catch (Exception e) {
+            log.error("Error getting subscription", e);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
         
@@ -137,6 +151,7 @@ public class PaymentController {
 
     /**
      * Get payment processing status - useful for debugging
+     * TODO: check for user role (admin or user)
      */
     @GetMapping("/status/{userId}")
     public ResponseEntity<?> getPaymentStatus(@PathVariable Long userId) {

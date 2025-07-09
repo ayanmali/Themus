@@ -1,22 +1,27 @@
-package com.delphi.delphi.dtos;
+package com.delphi.delphi.dtos.messaging.emails;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
-public class ScheduledEmailRequestDto {
+import com.delphi.delphi.entities.Candidate;
+
+public class ScheduledEmailRequestDto implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
     // private String from;
-    private String to;
+    private Candidate to;  
     private String subject;
     private String text;
     private LocalDateTime scheduledAt;
 
-    public ScheduledEmailRequestDto(String to, String subject, String text, LocalDateTime scheduledAt) {
+    public ScheduledEmailRequestDto(Candidate to, String subject, String text, LocalDateTime scheduledAt) {
         this.to = to;
         this.subject = subject;
         this.text = text;
         this.scheduledAt = scheduledAt;
     }
 
-    public String getTo() {
+    public Candidate getTo() {
         return to;
     }
 
@@ -32,7 +37,7 @@ public class ScheduledEmailRequestDto {
         return scheduledAt;
     }
 
-    public void setTo(String to) {
+    public void setTo(Candidate to) {
         this.to = to;
     }
 
