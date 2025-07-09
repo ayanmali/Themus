@@ -35,12 +35,12 @@ import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import com.delphi.delphi.components.messaging.ChatMessagePublisher;
-import com.delphi.delphi.components.messaging.ChatMessageSubscriber;
-import com.delphi.delphi.components.messaging.ChatResponseSubscriber;
+import com.delphi.delphi.components.messaging.chat.ChatMessagePublisher;
+import com.delphi.delphi.components.messaging.chat.ChatMessageSubscriber;
+import com.delphi.delphi.components.messaging.chat.ChatResponseSubscriber;
 import com.delphi.delphi.configs.rabbitmq.TopicConfig;
-import com.delphi.delphi.dtos.messaging.ChatCompletionRequestDto;
-import com.delphi.delphi.dtos.messaging.ChatCompletionResponseDto;
+import com.delphi.delphi.dtos.messaging.chat.ChatCompletionRequestDto;
+import com.delphi.delphi.dtos.messaging.chat.ChatCompletionResponseDto;
 import com.delphi.delphi.services.ChatService;
 
 @SpringBootTest

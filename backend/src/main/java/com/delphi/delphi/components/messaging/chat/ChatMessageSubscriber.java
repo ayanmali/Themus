@@ -1,4 +1,4 @@
-package com.delphi.delphi.components.messaging;
+package com.delphi.delphi.components.messaging.chat;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,7 +8,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 import com.delphi.delphi.configs.rabbitmq.TopicConfig;
-import com.delphi.delphi.dtos.messaging.ChatCompletionRequestDto;
+import com.delphi.delphi.dtos.messaging.chat.ChatCompletionRequestDto;
 import com.delphi.delphi.services.ChatService;
 
 @Component

@@ -1,10 +1,13 @@
 package com.delphi.delphi.controllers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -27,6 +30,7 @@ public class PaymentController {
 
     private final StripeService stripeService;
     private final RedisService redisService;
+    private final Logger log = LoggerFactory.getLogger(PaymentController.class);
 
     public PaymentController(StripeService stripeService, RedisService redisService, UserService userService) {
         this.stripeService = stripeService;
@@ -52,16 +56,32 @@ public class PaymentController {
         return ResponseEntity.ok(session.getUrl());
     }
 
+    /**
+     * Webhook endpoint for Stripe events
+     * This now queues events for asynchronous processing via RabbitMQ
+     */
     @PostMapping("/stripe/webhook")
     public ResponseEntity<?> stripeWebhook(
             @RequestHeader(name = "Stripe-Signature", required = true) String signature, 
             @RequestBody String body) {
         
         try {
+            log.info("Received Stripe webhook with signature: {}", signature.substring(0, 20) + "...");
+            
+            // This will validate the signature and queue the event for processing
             stripeService.doEventProcessing(signature, body);
-            return ResponseEntity.ok("Webhook processed successfully");
+            
+            log.info("Successfully queued webhook event for processing");
+            return ResponseEntity.ok("Webhook received and queued for processing");
+            
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body("Webhook processing failed: " + e.getMessage());
+            log.error("Webhook processing failed", e);
+            return ResponseEntity.badRequest()
+                    .body("Webhook processing failed: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error processing webhook", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Internal server error");
         }
     }
 
@@ -96,6 +116,51 @@ public class PaymentController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
         
+    }
+
+    /**
+     * Health check endpoint for payment system
+     */
+    // @GetMapping("/health")
+    // public ResponseEntity<?> healthCheck() {
+    //     try {
+    //         // You could add more comprehensive health checks here
+    //         // like checking RabbitMQ connectivity, Redis connectivity, etc.
+    //         return ResponseEntity.ok("Payment system is healthy");
+            
+    //     } catch (Exception e) {
+    //         log.error("Health check failed", e);
+    //         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+    //                 .body("Payment system is unhealthy: " + e.getMessage());
+    //     }
+    // }
+
+    /**
+     * Get payment processing status - useful for debugging
+     */
+    @GetMapping("/status/{userId}")
+    public ResponseEntity<?> getPaymentStatus(@PathVariable Long userId) {
+        try {
+            // Only allow users to check their own status or admin users
+            User currentUser = getCurrentUser();
+            if (!currentUser.getId().equals(userId) /*&& !isAdmin(currentUser)*/) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body("Access denied");
+            }
+            
+            String stripeCustomerId = (String) redisService.get("stripe:user:" + userId);
+            if (stripeCustomerId == null) {
+                return ResponseEntity.ok("No Stripe customer found");
+            }
+            
+            StripeSubCache subData = stripeService.getSubscription(stripeCustomerId);
+            return ResponseEntity.ok(subData);
+            
+        } catch (Exception e) {
+            log.error("Failed to get payment status for user: {}", userId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to get payment status: " + e.getMessage());
+        }
     }
     
 }

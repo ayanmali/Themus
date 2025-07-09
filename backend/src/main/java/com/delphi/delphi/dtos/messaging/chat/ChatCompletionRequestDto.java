@@ -1,4 +1,4 @@
-package com.delphi.delphi.dtos.messaging;
+package com.delphi.delphi.dtos.messaging.chat;
 
 import java.io.Serializable;
 import java.util.Map;

@@ -4,9 +4,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.delphi.delphi.components.messaging.chat.PaymentMessagePublisher;
+import com.delphi.delphi.dtos.messaging.payments.StripeWebhookMessage;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.utils.payments.StripeSubCache;
 import com.stripe.Stripe;
@@ -34,6 +38,8 @@ public class StripeService {
 
     private final String stripeWebhookSecret;
     private final RedisService redisService;
+    private final PaymentMessagePublisher paymentMessagePublisher;
+    private final Logger log = LoggerFactory.getLogger(StripeService.class);
 
     public static final List<String> EVENT_TYPES = List.of(
             "checkout.session.completed",
@@ -56,11 +62,14 @@ public class StripeService {
             "payment_intent.canceled");
 
     public StripeService(@Value("${stripe.api.key}") String stripeApiKey,
-            @Value("${stripe.webhook.secret}") String stripeWebhookSecret, RedisService redisService) {
+            @Value("${stripe.webhook.secret}") String stripeWebhookSecret, RedisService redisService,
+            PaymentMessagePublisher paymentMessagePublisher) {
         Stripe.apiKey = stripeApiKey;
         Stripe.setAppInfo("Delphi", "0.0.1", "https://usedelphi.dev");
+
         this.stripeWebhookSecret = stripeWebhookSecret;
         this.redisService = redisService;
+        this.paymentMessagePublisher = paymentMessagePublisher;
     }
 
     public Customer createCustomer(User user) {
@@ -71,7 +80,8 @@ public class StripeService {
             if (customerId != null) {
                 return Customer.retrieve(customerId);
             }
-            // if the user ID does not have a stripe customer ID in redis, create a new customer
+            // if the user ID does not have a stripe customer ID in redis, create a new
+            // customer
             CustomerCreateParams params = CustomerCreateParams.builder()
                     .setName(user.getName())
                     .setEmail(user.getEmail())
@@ -132,57 +142,85 @@ public class StripeService {
     public void doEventProcessing(String signature, String body) {
         try {
             Event event = Webhook.constructEvent(body, signature, stripeWebhookSecret);
-            processEvent(event);
+
+            // Create and publish webhook message to RabbitMQ
+            StripeWebhookMessage webhookMessage = new StripeWebhookMessage(
+                    event.getType(),
+                    signature,
+                    body,
+                    event.getId());
+
+            paymentMessagePublisher.publishStripeWebhookMessage(webhookMessage);
+
+            log.info("Successfully queued Stripe webhook event: {} ({})", event.getType(), event.getId());
         } catch (SignatureVerificationException e) {
+            log.error("Invalid webhook signature", e);
             throw new RuntimeException("Invalid signature", e);
+        } catch (Exception e) {
+            log.error("Failed to process webhook event", e);
+            throw new RuntimeException("Failed to process webhook event", e);
         }
     }
 
-    private StripeSubCache processEvent(Event event) {
-        if (!EVENT_TYPES.contains(event.getType())) {
-            return null;
+    /**
+     * Processes a validated Stripe event (called by message consumers)
+     */
+    public StripeSubCache processValidatedEvent(Event event) {
+        try {
+            if (!EVENT_TYPES.contains(event.getType())) {
+                log.warn("Received unsupported event type: {}", event.getType());
+                return null;
+            }
+
+            // Extract the object from the event and get customer ID based on event type
+            Optional<StripeObject> dataObjectOptional = event.getDataObjectDeserializer().getObject();
+            if (dataObjectOptional.isEmpty()) {
+                log.error("No data object in event: {}", event.getId());
+                throw new RuntimeException("No data object in the event");
+            }
+
+            StripeObject dataObject = dataObjectOptional.get();
+            String customerId = extractCustomerId(event.getType(), dataObject);
+
+            if (customerId == null) {
+                log.error("No customer ID found for event: {} ({})", event.getType(), event.getId());
+                throw new RuntimeException("No customer ID found for this event");
+            }
+
+            // Sync stripe data to redis
+            StripeSubCache result = syncStripeDataToKV(customerId);
+
+            log.info("Successfully processed event: {} for customer: {}", event.getType(), customerId);
+            return result;
+
+        } catch (RuntimeException e) {
+            log.error("Failed to process validated event: {} ({})", event.getType(), event.getId(), e);
+            throw new RuntimeException("Failed to process event", e);
         }
+    }
 
-        // Extract the object from the event and get customer ID based on event type
-        Optional<StripeObject> dataObjectOptional = event.getDataObjectDeserializer().getObject();
-        if (dataObjectOptional.isEmpty()) {
-            throw new RuntimeException("No data object in the event");
-        }
-
-        StripeObject dataObject = dataObjectOptional.get();
-
+    private String extractCustomerId(String eventType, StripeObject dataObject) {
         String customerId = null;
 
-        if (event.getType().startsWith("customer.subscription")) {
+        if (eventType.startsWith("customer.subscription")) {
             if (dataObject instanceof Subscription subscription) {
                 customerId = subscription.getCustomer();
             }
-        }
-
-        if (event.getType().startsWith("invoice")) {
+        } else if (eventType.startsWith("invoice")) {
             if (dataObject instanceof Invoice invoice) {
                 customerId = invoice.getCustomer();
             }
-        }
-
-        if (event.getType().startsWith("payment_intent")) {
+        } else if (eventType.startsWith("payment_intent")) {
             if (dataObject instanceof PaymentIntent paymentIntent) {
                 customerId = paymentIntent.getCustomer();
             }
-        }
-
-        if (event.getType().startsWith("checkout.session")) {
+        } else if (eventType.startsWith("checkout.session")) {
             if (dataObject instanceof Session session) {
                 customerId = session.getCustomer();
             }
         }
 
-        if (customerId == null) {
-            throw new RuntimeException("No customer ID found for this event");
-        }
-
-        // sync stripe data to redis
-        return syncStripeDataToKV(customerId);
+        return customerId;
     }
 
     public StripeSubCache getSubscription(Long userId) {
@@ -195,6 +233,20 @@ public class StripeService {
 
     public StripeSubCache getSubscription(String customerId) {
         return (StripeSubCache) redisService.get("stripe:customer:" + customerId);
+    }
+
+    /**
+     * Get user ID from Stripe customer ID
+     */
+    public Long getUserIdFromCustomerId(String customerId) {
+        try {
+            Customer customer = Customer.retrieve(customerId);
+            String userId = customer.getMetadata().get("userId");
+            return userId != null ? Long.valueOf(userId) : null;
+        } catch (StripeException e) {
+            log.error("Failed to retrieve customer: {}", customerId, e);
+            return null;
+        }
     }
 
 }

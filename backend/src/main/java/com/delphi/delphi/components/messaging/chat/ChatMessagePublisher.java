@@ -1,4 +1,4 @@
-package com.delphi.delphi.components.messaging;
+package com.delphi.delphi.components.messaging.chat;
 
 import java.util.Map;
 import java.util.UUID;
@@ -10,8 +10,8 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
 import com.delphi.delphi.configs.rabbitmq.TopicConfig;
-import com.delphi.delphi.dtos.messaging.ChatCompletionRequestDto;
-import com.delphi.delphi.dtos.messaging.ChatCompletionResponseDto;
+import com.delphi.delphi.dtos.messaging.chat.ChatCompletionRequestDto;
+import com.delphi.delphi.dtos.messaging.chat.ChatCompletionResponseDto;
 
 @Component
 // Publishes chat completion requests to the chat message queue
