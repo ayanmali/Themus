@@ -113,7 +113,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    UserDetailsService userDetailsService() {
+    public UserDetailsService userDetailsService() {
         return username -> userRepository.findByEmail(username).orElseThrow();
     }
 }

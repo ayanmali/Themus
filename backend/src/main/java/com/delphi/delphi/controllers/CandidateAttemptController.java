@@ -399,9 +399,9 @@ public class CandidateAttemptController {
             Assessment assessment = assessmentService.getAssessmentByIdOrThrow(id);
             if (assessment.getCandidates().stream().anyMatch(c -> c.getEmail().toLowerCase().equals(email.toLowerCase()))) {
                 return ResponseEntity.ok("Candidate authenticated");
-            } else {
-                return ResponseEntity.badRequest().body("Candidate not authorized to take this assessment");
             }
+            return ResponseEntity.badRequest().body("Candidate not authorized to take this assessment");
+            
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error authenticating candidate: " + e.getMessage() + " " + email + " - is this candidate authorized to take this assessment?");

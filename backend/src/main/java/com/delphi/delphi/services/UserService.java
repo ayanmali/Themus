@@ -18,14 +18,17 @@ import com.delphi.delphi.repositories.UserRepository;
 @Service
 @Transactional
 public class UserService {
+
+    private final EncryptionService encryptionService;
     
     private final UserRepository userRepository;
     
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, EncryptionService encryptionService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.encryptionService = encryptionService;
     }
     
     // Create a new user
@@ -230,21 +233,21 @@ public class UserService {
     public User updateGithubCredentials(Long userId, String githubAccessToken, String githubUsername) throws Exception {
         User user = getUserByIdOrThrow(userId);
         
-        // Check if GitHub username is already taken by another user
-        if (githubUsername != null && !githubUsername.equals(user.getGithubUsername())) {
-            if (userRepository.existsByGithubUsername(githubUsername)) {
-                throw new IllegalArgumentException("GitHub username " + githubUsername + " is already in use");
-            }
-        }
+        // // Check if GitHub username is already taken by another user
+        // if (githubUsername != null && !githubUsername.equals(user.getGithubUsername()) && userRepository.existsByGithubUsername(githubUsername)) {
+        //     throw new IllegalArgumentException("GitHub username " + githubUsername + " is already in use");
+        // }
         
-        // Check if GitHub access token is already taken by another user
-        if (githubAccessToken != null && !githubAccessToken.equals(user.getGithubAccessToken())) {
-            if (userRepository.existsByGithubAccessToken(githubAccessToken)) {
-                throw new IllegalArgumentException("GitHub access token is already in use");
-            }
-        }
+        // // Check if GitHub access token is already taken by another user
+        // if (githubAccessToken != null && !githubAccessToken.equals(user.getGithubAccessToken())) {
+        //     if (userRepository.existsByGithubAccessToken(githubAccessToken)) {
+        //         throw new IllegalArgumentException("GitHub access token is already in use");
+        //     }
+        // }
         
-        user.setGithubAccessToken(githubAccessToken);
+        // store the encrypted access token in the DB
+        String encryptedAccessToken = encryptionService.encrypt(githubAccessToken);
+        user.setGithubAccessToken(encryptedAccessToken);
         user.setGithubUsername(githubUsername);
         
         return userRepository.save(user);
@@ -295,4 +298,13 @@ public class UserService {
         
     //     return userRepository.save(newUser);
     // }
+
+    // Method to get decrypted token for GitHub operations
+    public String getDecryptedGithubToken(Long userId) {
+        User user = getUserByIdOrThrow(userId);
+        if (user.getGithubAccessToken() != null) {
+            return encryptionService.decrypt(user.getGithubAccessToken());
+        }
+        return null;
+    }
 }

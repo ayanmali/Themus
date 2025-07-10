@@ -1,16 +1,27 @@
 package com.delphi.delphi.controllers;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
 
 import com.delphi.delphi.dtos.FetchUserDto;
 import com.delphi.delphi.dtos.NewUserDto;
@@ -32,8 +44,33 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/users")
 public class UserController {
     
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
+
+     // github client id and secret
+     private final String clientId;
+ 
+     private final String clientSecret;
+
+     private final RestTemplate restTemplate;
+ 
+     private final String TOKEN_URL = "https://github.com/login/oauth/access_token";
+
+    public UserController(UserService userService, @Value("${spring.security.oauth2.client.registration.github.client-id}") String clientId, @Value("${spring.security.oauth2.client.registration.github.client-secret}") String clientSecret, RestTemplate restTemplate) {
+        this.userService = userService;
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
+        this.restTemplate = restTemplate;
+    }
+
+    private User getCurrentUser() {
+        return userService.getUserByEmail(getCurrentUserEmail()).orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    private String getCurrentUserEmail() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        return userDetails.getUsername();
+    }
     
     // Create a new user
     @PostMapping
@@ -273,6 +310,68 @@ public class UserController {
             return ResponseEntity.ok(exists);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(false);
+        }
+    }
+
+    @GetMapping("/oauth/github/callback")
+    /*
+     * This endpoint is automatically called by GitHub after the user has
+     * authenticated.
+     * Sends a POST request to the GitHub API to get an access token.
+     * The access token is used to authenticate the user with the GitHub API.
+     * The access token is stored in the database.
+     * The access token is used to authenticate the user with the GitHub API.
+     */
+    public ResponseEntity<?> githubCallback(@RequestParam String code) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("client_id", clientId);
+            params.add("client_secret", clientSecret);
+            params.add("code", code);
+
+            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+            ResponseEntity<Map> response = restTemplate.postForEntity(TOKEN_URL, request, Map.class);
+
+            Map<String, Object> body = response.getBody();
+            if (body == null) {
+                return ResponseEntity.badRequest().body("Failed to get access token");
+            }
+            String accessToken = (String) body.get("access_token");
+
+            // Get user information from GitHub API
+            HttpHeaders userHeaders = new HttpHeaders();
+            userHeaders.setBearerAuth(accessToken);
+            userHeaders.setAccept(List.of(MediaType.APPLICATION_JSON));
+
+            HttpEntity<?> userRequest = new HttpEntity<>(userHeaders);
+            ResponseEntity<Map> userResponse = restTemplate.exchange(
+                    "https://api.github.com/user",
+                    HttpMethod.GET,
+                    userRequest,
+                    Map.class);
+
+            Map<String, Object> userBody = userResponse.getBody();
+            if (userBody == null) {
+                return ResponseEntity.badRequest().body("Failed to get user information");
+            }
+
+            String githubUsername = (String) userBody.get("login");
+            String name = (String) userBody.get("name");
+            String email = (String) userBody.get("email");
+
+            // Updating user's github credentials in DB
+            User user = getCurrentUser();
+            userService.updateGithubCredentials(user.getId(), accessToken, githubUsername);
+
+            return ResponseEntity.ok(Map.of(
+                    "access_token", accessToken,
+                    "username", githubUsername,
+                    "name", name != null ? name : githubUsername,
+                    "email", email != null ? email : ""));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }
 } 
