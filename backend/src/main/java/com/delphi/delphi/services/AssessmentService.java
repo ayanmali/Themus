@@ -70,6 +70,7 @@ public class AssessmentService {
         return assessmentRepository.save(assessment);
     }
 
+    @CachePut(value = "assessments", key = "#result.id")
     public Assessment createAssessment(NewAssessmentDto newAssessmentDto, User user) throws Exception {
         Assessment assessment = new Assessment();
         assessment.setName(newAssessmentDto.getName());
@@ -97,7 +98,9 @@ public class AssessmentService {
         githubClient.createRepo(user.getGithubAccessToken(), assessment.getGithubRepoName());
         githubClient.addContributor(user.getGithubAccessToken(), DelphiGithubConstants.DELPHI_GITHUB_NAME, assessment.getName(), user.getGithubUsername());
 
-        return assessment;
+        // save assessment
+        return assessmentRepository.save(assessment);
+
     }
 
     // Get assessment by ID
@@ -107,6 +110,9 @@ public class AssessmentService {
         return assessmentRepository.findById(id);
     }
 
+    // Get chat history by assessment ID
+    //@Cacheable(value = "chatHistories", key = "#id")
+    @Transactional(readOnly = true)
     public ChatHistory getChatHistoryById(Long id) {
         return assessmentRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id))
@@ -126,6 +132,14 @@ public class AssessmentService {
     @Transactional(readOnly = true)
     public Page<Assessment> getAllAssessments(Pageable pageable) {
         return assessmentRepository.findAll(pageable);
+    }
+
+    // Get assessments with multiple filters
+    @Cacheable(value = "assessments", key = "#user.id + ':' + #status + ':' + #assessmentType + ':' + #startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Transactional(readOnly = true)
+    public Page<Assessment> getAssessmentsWithFilters(User user, AssessmentStatus status, AssessmentType assessmentType, 
+                                                     LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+        return assessmentRepository.findWithFilters(status, assessmentType, startDate, endDate, pageable);
     }
 
     // Update assessment
@@ -218,16 +232,16 @@ public class AssessmentService {
     }
 
     // Search assessments by name
-    @Cacheable(value = "assessments", key = "#name + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Cacheable(value = "assessments", key = "#user.id + ':' + #name + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<Assessment> searchAssessmentsByName(String name, Pageable pageable) {
+    public Page<Assessment> searchAssessmentsByName(User user, String name, Pageable pageable) {
         return assessmentRepository.findByNameContainingIgnoreCase(name, pageable);
     }
 
     // Search assessments by role name
-    @Cacheable(value = "assessments", key = "#roleName + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Cacheable(value = "assessments", key = "#user.id + ':' + #roleName + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<Assessment> searchAssessmentsByRoleName(String roleName, Pageable pageable) {
+    public Page<Assessment> searchAssessmentsByRoleName(User user, String roleName, Pageable pageable) {
         return assessmentRepository.findByRoleNameContainingIgnoreCase(roleName, pageable);
     }
 
@@ -254,9 +268,9 @@ public class AssessmentService {
     }
 
     // Get assessments by skill
-    @Cacheable(value = "assessments", key = "#skill + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Cacheable(value = "assessments", key = "#user.id + ':' + #skill + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<Assessment> getAssessmentsBySkill(String skill, Pageable pageable) {
+    public Page<Assessment> getAssessmentsBySkill(User user, String skill, Pageable pageable) {
         return assessmentRepository.findBySkill(skill, pageable);
     }
 
@@ -283,10 +297,10 @@ public class AssessmentService {
     }
 
     // Count assessments by status for a user
-    @Cacheable(value = "assessments", key = "#userId + ':' + #status + ':' + #count")
+    @Cacheable(value = "assessments", key = "#user.id + ':' + #status + ':' + #count")
     @Transactional(readOnly = true)
-    public Long countAssessmentsByUserAndStatus(Long userId, AssessmentStatus status) {
-        return assessmentRepository.countByUserIdAndStatus(userId, status);
+    public Long countAssessmentsByUserAndStatus(User user, AssessmentStatus status) {
+        return assessmentRepository.countByUserIdAndStatus(user.getId(), status);
     }
 
     // Activate assessment

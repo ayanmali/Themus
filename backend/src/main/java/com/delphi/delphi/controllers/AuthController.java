@@ -136,7 +136,7 @@ public class AuthController {
     }
 
     
-    @PostMapping("/register/email")
+    @PostMapping("/signup/email")
     public ResponseEntity<?> registerEmail(@Valid @RequestBody NewUserDto newUserDto) {
         User user = new User();
         user.setName(newUserDto.getName());

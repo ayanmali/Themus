@@ -74,4 +74,16 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
     // Count assessments by status for a user
     @Query("SELECT COUNT(a) FROM Assessment a WHERE a.user.id = :userId AND a.status = :status")
     Long countByUserIdAndStatus(@Param("userId") Long userId, @Param("status") AssessmentStatus status);
+    
+    // Find assessments with multiple optional filters
+    @Query("SELECT a FROM Assessment a WHERE " +
+           "(:status IS NULL OR a.status = :status) AND " +
+           "(:assessmentType IS NULL OR a.assessmentType = :assessmentType) AND " +
+           "(:startDate IS NULL OR a.createdDate >= :startDate) AND " +
+           "(:endDate IS NULL OR a.createdDate <= :endDate)")
+    Page<Assessment> findWithFilters(@Param("status") AssessmentStatus status,
+                                   @Param("assessmentType") AssessmentType assessmentType,
+                                   @Param("startDate") LocalDateTime startDate,
+                                   @Param("endDate") LocalDateTime endDate,
+                                   Pageable pageable);
 }

@@ -236,20 +236,27 @@ public class AssessmentController {
         }
     }
 
-    // Get all assessments with pagination
-    @GetMapping
+    // Get all assessments with pagination and filtering
+    @GetMapping("/filter")
     public ResponseEntity<?> getAllAssessments(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDirection) {
+            @RequestParam(defaultValue = "asc") String sortDirection,
+            @RequestParam(required = false) AssessmentStatus status,
+            @RequestParam(required = false) AssessmentType assessmentType,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
+            User user = getCurrentUser();
+
             Sort sort = sortDirection.equalsIgnoreCase("desc")
                     ? Sort.by(sortBy).descending()
                     : Sort.by(sortBy).ascending();
 
             Pageable pageable = PageRequest.of(page, size, sort);
-            Page<Assessment> assessments = assessmentService.getAllAssessments(pageable);
+            Page<Assessment> assessments = assessmentService.getAssessmentsWithFilters(
+                user, status, assessmentType, startDate, endDate, pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
 
             return ResponseEntity.ok(assessmentDtos);
@@ -300,58 +307,58 @@ public class AssessmentController {
     }
 
     // Get assessments by user ID
-    @GetMapping("/get")
-    public ResponseEntity<?> getAssessmentsByUser(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            User user = getCurrentUser();
-            Pageable pageable = PageRequest.of(page, size);
-            Page<Assessment> assessments = assessmentService.getAssessmentsByUserId(user.getId(), pageable);
-            Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
+    // @GetMapping("/get")
+    // public ResponseEntity<?> getAssessmentsByUser(
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         User user = getCurrentUser();
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         Page<Assessment> assessments = assessmentService.getAssessmentsByUserId(user.getId(), pageable);
+    //         Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
 
-            return ResponseEntity.ok(assessmentDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error retrieving assessments: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(assessmentDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error retrieving assessments: " + e.getMessage());
+    //     }
+    // }
 
     // Get assessments by status
-    @GetMapping("/status/{status}")
-    public ResponseEntity<?> getAssessmentsByStatus(
-            @PathVariable AssessmentStatus status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<Assessment> assessments = assessmentService.getAssessmentsByStatus(status, pageable);
-            Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
+    // @GetMapping("/status/{status}")
+    // public ResponseEntity<?> getAssessmentsByStatus(
+    //         @PathVariable AssessmentStatus status,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         Page<Assessment> assessments = assessmentService.getAssessmentsByStatus(status, pageable);
+    //         Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
 
-            return ResponseEntity.ok(assessmentDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error retrieving assessments: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(assessmentDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error retrieving assessments: " + e.getMessage());
+    //     }
+    // }
 
-    // Get assessments by type
-    @GetMapping("/type/{type}")
-    public ResponseEntity<?> getAssessmentsByType(
-            @PathVariable AssessmentType type,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<Assessment> assessments = assessmentService.getAssessmentsByType(type, pageable);
-            Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
+    // // Get assessments by type
+    // @GetMapping("/type/{type}")
+    // public ResponseEntity<?> getAssessmentsByType(
+    //         @PathVariable AssessmentType type,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         Page<Assessment> assessments = assessmentService.getAssessmentsByType(type, pageable);
+    //         Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
 
-            return ResponseEntity.ok(assessmentDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error retrieving assessments: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(assessmentDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error retrieving assessments: " + e.getMessage());
+    //     }
+    // }
 
     // Search assessments by name
     @GetMapping("/search/name")
@@ -360,8 +367,9 @@ public class AssessmentController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
+            User user = getCurrentUser();
             Pageable pageable = PageRequest.of(page, size);
-            Page<Assessment> assessments = assessmentService.searchAssessmentsByName(name, pageable);
+            Page<Assessment> assessments = assessmentService.searchAssessmentsByName(user, name, pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
 
             return ResponseEntity.ok(assessmentDtos);
@@ -378,8 +386,9 @@ public class AssessmentController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
+            User user = getCurrentUser();
             Pageable pageable = PageRequest.of(page, size);
-            Page<Assessment> assessments = assessmentService.searchAssessmentsByRoleName(roleName, pageable);
+            Page<Assessment> assessments = assessmentService.searchAssessmentsByRoleName(user, roleName, pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
 
             return ResponseEntity.ok(assessmentDtos);
@@ -390,61 +399,61 @@ public class AssessmentController {
     }
 
     // Get assessments within date range
-    @GetMapping("/date-range")
-    public ResponseEntity<?> getAssessmentsInDateRange(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<Assessment> assessments = assessmentService.getAssessmentsInDateRange(startDate, endDate, pageable);
-            Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
+    // @GetMapping("/date-range")
+    // public ResponseEntity<?> getAssessmentsInDateRange(
+    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         Page<Assessment> assessments = assessmentService.getAssessmentsInDateRange(startDate, endDate, pageable);
+    //         Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
 
-            return ResponseEntity.ok(assessmentDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error retrieving assessments: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(assessmentDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error retrieving assessments: " + e.getMessage());
+    //     }
+    // }
 
     // Get active assessments
-    @GetMapping("/active")
-    public ResponseEntity<?> getActiveAssessments(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<Assessment> assessments = assessmentService.getActiveAssessmentsInDateRange(LocalDateTime.now(),
-                    pageable);
-            Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
+    // @GetMapping("/active")
+    // public ResponseEntity<?> getActiveAssessments(
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         Page<Assessment> assessments = assessmentService.getActiveAssessmentsInDateRange(LocalDateTime.now(),
+    //                 pageable);
+    //         Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
 
-            return ResponseEntity.ok(assessmentDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error retrieving active assessments: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(assessmentDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error retrieving active assessments: " + e.getMessage());
+    //     }
+    // }
 
     // Get assessments by duration range
-    @GetMapping("/duration-range")
-    public ResponseEntity<?> getAssessmentsByDurationRange(
-            @RequestParam Integer minDuration,
-            @RequestParam Integer maxDuration,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<Assessment> assessments = assessmentService.getAssessmentsByDurationRange(minDuration, maxDuration,
-                    pageable);
-            Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
+    // @GetMapping("/duration-range")
+    // public ResponseEntity<?> getAssessmentsByDurationRange(
+    //         @RequestParam Integer minDuration,
+    //         @RequestParam Integer maxDuration,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         Page<Assessment> assessments = assessmentService.getAssessmentsByDurationRange(minDuration, maxDuration,
+    //                 pageable);
+    //         Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
 
-            return ResponseEntity.ok(assessmentDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error retrieving assessments: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(assessmentDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error retrieving assessments: " + e.getMessage());
+    //     }
+    // }
 
     // Get assessments by skill
     @GetMapping("/skill/{skill}")
@@ -453,8 +462,9 @@ public class AssessmentController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
+            User user = getCurrentUser();
             Pageable pageable = PageRequest.of(page, size);
-            Page<Assessment> assessments = assessmentService.getAssessmentsBySkill(skill, pageable);
+            Page<Assessment> assessments = assessmentService.getAssessmentsBySkill(user, skill, pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
 
             return ResponseEntity.ok(assessmentDtos);
@@ -465,22 +475,22 @@ public class AssessmentController {
     }
 
     // Get assessments by language option
-    @GetMapping("/language/{language}")
-    public ResponseEntity<?> getAssessmentsByLanguageOption(
-            @PathVariable String language,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<Assessment> assessments = assessmentService.getAssessmentsByLanguageOption(language, pageable);
-            Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
+    // @GetMapping("/language/{language}")
+    // public ResponseEntity<?> getAssessmentsByLanguageOption(
+    //         @PathVariable String language,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         Page<Assessment> assessments = assessmentService.getAssessmentsByLanguageOption(language, pageable);
+    //         Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
 
-            return ResponseEntity.ok(assessmentDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error retrieving assessments: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(assessmentDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error retrieving assessments: " + e.getMessage());
+    //     }
+    // }
 
     // Count assessments by user and status
     @GetMapping("/count/status/{status}")
@@ -488,7 +498,7 @@ public class AssessmentController {
             @PathVariable AssessmentStatus status) {
         try {
             User user = getCurrentUser();
-            Long count = assessmentService.countAssessmentsByUserAndStatus(user.getId(), status);
+            Long count = assessmentService.countAssessmentsByUserAndStatus(user, status);
             return ResponseEntity.ok(count);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

@@ -95,7 +95,7 @@ public class RedisConfig implements CachingConfigurer {
                 .entryTtl(Duration.ofMinutes(30)) // Default 30 minutes
                 .disableCachingNullValues()
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jackson2JsonRedisSerializer(new ObjectMapper())))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jackson2JsonRedisSerializer(createObjectMapper())))
                 .computePrefixWith(cacheName -> "cache:" + cacheName + ":");
 
         // Cache-specific configurations

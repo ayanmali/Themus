@@ -10,11 +10,17 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class TopicConfig {
-    public static final String CHAT_TOPIC_EXCHANGE_NAME = "chatTopicExchange";
-    public static final String CHAT_TOPIC_QUEUE_NAME = "chatTopicQueue";
+    public static final String CHAT_TOPIC_EXCHANGE_NAME = "chat.topic";
+    public static final String CHAT_TOPIC_QUEUE_NAME = "chat.queue";
 
-    public static final String CHAT_RESPONSE_TOPIC_EXCHANGE_NAME = "chatResponseTopicExchange";
-    public static final String CHAT_RESPONSE_TOPIC_QUEUE_NAME = "chatResponseTopicQueue";
+    // public static final String CHAT_TOPIC_DLX = "chat.topic.dlx";
+    // public static final String CHAT_TOPIC_DLQ = "chat.topic.dlq";
+
+    public static final String CHAT_RESPONSE_TOPIC_EXCHANGE_NAME = "chat.response.topic";
+    public static final String CHAT_RESPONSE_TOPIC_QUEUE_NAME = "chat.response.queue";
+
+    // public static final String CHAT_RESPONSE_TOPIC_DLX = "chat.response.topic.dlx";
+    // public static final String CHAT_RESPONSE_TOPIC_DLQ = "chat.response.topic.dlq";
 
     // // Exchange names
     // public static final String STRIPE_EXCHANGE = "stripe.exchange";
@@ -51,7 +57,11 @@ public class TopicConfig {
 
     @Bean
     public Queue chatTopicQueue() {
-        return QueueBuilder.durable(CHAT_TOPIC_QUEUE_NAME).build();
+        return QueueBuilder.durable(CHAT_TOPIC_QUEUE_NAME)
+        .deadLetterExchange(CHAT_TOPIC_EXCHANGE_NAME)
+        .deadLetterRoutingKey(CHAT_TOPIC_QUEUE_NAME)
+        .ttl(30000) // 5 minutes
+        .build();
     }
 
     /*
@@ -70,7 +80,8 @@ public class TopicConfig {
 
     @Bean
     public Queue chatResponseTopicQueue() {
-        return QueueBuilder.durable(CHAT_RESPONSE_TOPIC_QUEUE_NAME).build();
+        return QueueBuilder.durable(CHAT_RESPONSE_TOPIC_QUEUE_NAME)
+        .build();
     }
 
     @Bean
