@@ -87,20 +87,24 @@ public class UserController {
         }
     }
     
-    // Get all users with pagination
-    @GetMapping
+    // Get all users with pagination and filtering
+    @GetMapping("/filter")
     public ResponseEntity<?> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDirection) {
+            @RequestParam(defaultValue = "asc") String sortDirection,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String organizationName,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAfter,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdBefore) {
         try {
             Sort sort = sortDirection.equalsIgnoreCase("desc") 
                 ? Sort.by(sortBy).descending() 
                 : Sort.by(sortBy).ascending();
             
             Pageable pageable = PageRequest.of(page, size, sort);
-            Page<User> users = userService.getAllUsers(pageable);
+            Page<User> users = userService.getUsersWithFilters(name, organizationName, createdAfter, createdBefore, pageable);
             Page<FetchUserDto> userDtos = users.map(FetchUserDto::new);
             
             return ResponseEntity.ok(userDtos);

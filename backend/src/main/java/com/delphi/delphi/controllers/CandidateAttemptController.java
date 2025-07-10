@@ -87,20 +87,29 @@ public class CandidateAttemptController {
         }
     }
     
-    // Get all candidate attempts with pagination
-    @GetMapping("/all")
+    // Get all candidate attempts with pagination and filtering
+    @GetMapping("/filter")
     public ResponseEntity<?> getAllCandidateAttempts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDirection) {
+            @RequestParam(defaultValue = "asc") String sortDirection,
+            @RequestParam(required = false) Long candidateId,
+            @RequestParam(required = false) Long assessmentId,
+            @RequestParam(required = false) AttemptStatus status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startedAfter,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startedBefore,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime completedAfter,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime completedBefore) {
         try {
             Sort sort = sortDirection.equalsIgnoreCase("desc") 
                 ? Sort.by(sortBy).descending() 
                 : Sort.by(sortBy).ascending();
             
             Pageable pageable = PageRequest.of(page, size, sort);
-            Page<CandidateAttempt> attempts = candidateAttemptService.getAllCandidateAttempts(pageable);
+            Page<CandidateAttempt> attempts = candidateAttemptService.getCandidateAttemptsWithFilters(
+                candidateId, assessmentId, status, startedAfter, startedBefore, 
+                completedAfter, completedBefore, pageable);
             Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
             
             return ResponseEntity.ok(attemptDtos);
@@ -144,76 +153,76 @@ public class CandidateAttemptController {
     // }
     
     // Get attempts by candidate ID
-    @GetMapping("/candidate/{candidateId}/all")
-    public ResponseEntity<?> getAttemptsByCandidateId(
-            @PathVariable Long candidateId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsByCandidateId(candidateId, pageable);
-            Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
+    // @GetMapping("/candidate/{candidateId}/all")
+    // public ResponseEntity<?> getAttemptsByCandidateId(
+    //         @PathVariable Long candidateId,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsByCandidateId(candidateId, pageable);
+    //         Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
             
-            return ResponseEntity.ok(attemptDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving attempts: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(attemptDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error retrieving attempts: " + e.getMessage());
+    //     }
+    // }
     
     // Get attempts by assessment ID
-    @GetMapping("/assessment/{assessmentId}/all")
-    public ResponseEntity<?> getAttemptsByAssessmentId(
-            @PathVariable Long assessmentId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsByAssessmentId(assessmentId, pageable);
-            Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
+    // @GetMapping("/assessment/{assessmentId}/all")
+    // public ResponseEntity<?> getAttemptsByAssessmentId(
+    //         @PathVariable Long assessmentId,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsByAssessmentId(assessmentId, pageable);
+    //         Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
             
-            return ResponseEntity.ok(attemptDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving attempts: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(attemptDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error retrieving attempts: " + e.getMessage());
+    //     }
+    // }
     
     // Get attempts by status
-    @GetMapping("/status/{status}/all")
-    public ResponseEntity<?> getAttemptsByStatus(
-            @PathVariable AttemptStatus status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsByStatus(status, pageable);
-            Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
+    // @GetMapping("/status/{status}/all")
+    // public ResponseEntity<?> getAttemptsByStatus(
+    //         @PathVariable AttemptStatus status,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsByStatus(status, pageable);
+    //         Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
             
-            return ResponseEntity.ok(attemptDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving attempts: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(attemptDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error retrieving attempts: " + e.getMessage());
+    //     }
+    // }
     
     // Get attempt by candidate and assessment
-    @GetMapping("/candidate/{candidateId}/assessment/{assessmentId}/all")
-    public ResponseEntity<?> getAttemptByCandidateAndAssessment(
-            @PathVariable Long candidateId,
-            @PathVariable Long assessmentId) {
-        try {
-            Optional<CandidateAttempt> attempt = candidateAttemptService.getAttemptByCandidateAndAssessment(candidateId, assessmentId);
-            if (attempt.isPresent()) {
-                return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt.get()));
-            } else {
-                return ResponseEntity.notFound().build();
-            }
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving attempt: " + e.getMessage());
-        }
-    }
+    // @GetMapping("/candidate/{candidateId}/assessment/{assessmentId}/all")
+    // public ResponseEntity<?> getAttemptByCandidateAndAssessment(
+    //         @PathVariable Long candidateId,
+    //         @PathVariable Long assessmentId) {
+    //     try {
+    //         Optional<CandidateAttempt> attempt = candidateAttemptService.getAttemptByCandidateAndAssessment(candidateId, assessmentId);
+    //         if (attempt.isPresent()) {
+    //             return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt.get()));
+    //         } else {
+    //             return ResponseEntity.notFound().build();
+    //         }
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error retrieving attempt: " + e.getMessage());
+    //     }
+    // }
     
     // Get attempts by language choice
     @GetMapping("/language/{languageChoice}/all")
@@ -234,61 +243,61 @@ public class CandidateAttemptController {
     }
     
     // Get attempts created within date range
-    @GetMapping("/created-between/all")
-    public ResponseEntity<?> getAttemptsCreatedBetween(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsCreatedBetween(startDate, endDate, pageable);
-            Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
+    // @GetMapping("/created-between/all")
+    // public ResponseEntity<?> getAttemptsCreatedBetween(
+    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsCreatedBetween(startDate, endDate, pageable);
+    //         Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
             
-            return ResponseEntity.ok(attemptDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving attempts: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(attemptDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error retrieving attempts: " + e.getMessage());
+    //     }
+    // }
     
     // Get attempts started within date range
-    @GetMapping("/started-between/all")
-    public ResponseEntity<?> getAttemptsStartedBetween(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsStartedBetween(startDate, endDate, pageable);
-            Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
+    // @GetMapping("/started-between/all")
+    // public ResponseEntity<?> getAttemptsStartedBetween(
+    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsStartedBetween(startDate, endDate, pageable);
+    //         Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
             
-            return ResponseEntity.ok(attemptDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving attempts: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(attemptDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error retrieving attempts: " + e.getMessage());
+    //     }
+    // }
     
     // Get attempts completed within date range
-    @GetMapping("/completed-between/all")
-    public ResponseEntity<?> getAttemptsCompletedBetween(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsSubmittedBetween(startDate, endDate, pageable);
-            Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
+    // @GetMapping("/completed-between/all")
+    // public ResponseEntity<?> getAttemptsCompletedBetween(
+    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsSubmittedBetween(startDate, endDate, pageable);
+    //         Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
             
-            return ResponseEntity.ok(attemptDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving attempts: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(attemptDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error retrieving attempts: " + e.getMessage());
+    //     }
+    // }
     
     // Get overdue attempts
     @GetMapping("/overdue/all")
@@ -459,16 +468,16 @@ public class CandidateAttemptController {
     }
     
     // Check if attempt is overdue
-    @GetMapping("/{id}/is-overdue")
-    public ResponseEntity<?> isAttemptOverdue(@PathVariable Long id) {
-        try {
-            boolean isOverdue = candidateAttemptService.isAttemptOverdue(id);
-            return ResponseEntity.ok(isOverdue);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Error checking overdue status: " + e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error checking overdue status: " + e.getMessage());
-        }
-    }
+    // @GetMapping("/{id}/is-overdue")
+    // public ResponseEntity<?> isAttemptOverdue(@PathVariable Long id) {
+    //     try {
+    //         boolean isOverdue = candidateAttemptService.isAttemptOverdue(id);
+    //         return ResponseEntity.ok(isOverdue);
+    //     } catch (IllegalArgumentException e) {
+    //         return ResponseEntity.badRequest().body("Error checking overdue status: " + e.getMessage());
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error checking overdue status: " + e.getMessage());
+    //     }
+    // }
 } 

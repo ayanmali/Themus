@@ -105,6 +105,18 @@ public class CandidateAttemptService {
         return candidateAttemptRepository.findAll(pageable);
     }
 
+    // Get candidate attempts with multiple filters
+    @Cacheable(value = "candidateAttempts", key = "#candidateId + ':' + #assessmentId + ':' + #status + ':' + #startedAfter + ':' + #startedBefore + ':' + #completedAfter + ':' + #completedBefore + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Transactional(readOnly = true)
+    public Page<CandidateAttempt> getCandidateAttemptsWithFilters(Long candidateId, Long assessmentId, 
+                                                                 AttemptStatus status, LocalDateTime startedAfter, 
+                                                                 LocalDateTime startedBefore, LocalDateTime completedAfter, 
+                                                                 LocalDateTime completedBefore, Pageable pageable) {
+        return candidateAttemptRepository.findWithFilters(candidateId, assessmentId, status, 
+                                                         startedAfter, startedBefore, completedAfter, 
+                                                         completedBefore, pageable);
+    }
+
     // Update candidate attempt
     @CachePut(value = "candidateAttempts", key = "#id")
     public CandidateAttempt updateCandidateAttempt(Long id, CandidateAttempt attemptUpdates) {

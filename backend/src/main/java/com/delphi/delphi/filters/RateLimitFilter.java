@@ -47,12 +47,12 @@ public class RateLimitFilter implements Filter {
 
         String authHeader = req.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            // No auth header, skip rate limiting (or apply different rules)
             res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             res.getWriter().write("{\"error\":\"Error in rate limiting filter:No auth token provided\"}");
             return;
         }
 
+        // Extract JWT from auth header
         String jwt = authHeader.substring(7);
         
         // Validate JWT first
@@ -73,7 +73,7 @@ public class RateLimitFilter implements Filter {
             return;
         }
 
-        // Line 5: Do service stuff (continue to next filter)
+        // Line 5: Allow request - do service stuff (continue to next filter)
         chain.doFilter(request, response);
     }
 

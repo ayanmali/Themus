@@ -31,6 +31,7 @@ import com.delphi.delphi.entities.User;
 import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.CandidateService;
 import com.delphi.delphi.services.UserService;
+import com.delphi.delphi.utils.AttemptStatus;
 
 import jakarta.validation.Valid;
 
@@ -130,20 +131,31 @@ public class CandidateController {
         }
     }
     
-    // Get all candidates with pagination
-    @GetMapping
+    // Get all candidates with pagination and filtering
+    @GetMapping("/filter")
     public ResponseEntity<?> getAllCandidates(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDirection) {
+            @RequestParam(defaultValue = "asc") String sortDirection,
+            @RequestParam(required = false) Long assessmentId,
+            @RequestParam(required = false) AttemptStatus attemptStatus,
+            @RequestParam(required = false) String emailDomain,
+            @RequestParam(required = false) String firstName,
+            @RequestParam(required = false) String lastName,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAfter,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdBefore,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime attemptCompletedAfter,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime attemptCompletedBefore) {
         try {
             Sort sort = sortDirection.equalsIgnoreCase("desc") 
                 ? Sort.by(sortBy).descending() 
                 : Sort.by(sortBy).ascending();
             
             Pageable pageable = PageRequest.of(page, size, sort);
-            Page<Candidate> candidates = candidateService.getAllCandidates(pageable);
+            Page<Candidate> candidates = candidateService.getCandidatesWithFilters(
+                assessmentId, attemptStatus, emailDomain, firstName, lastName,
+                createdAfter, createdBefore, attemptCompletedAfter, attemptCompletedBefore, pageable);
             Page<FetchCandidateDto> candidateDtos = candidates.map(FetchCandidateDto::new);
             
             return ResponseEntity.ok(candidateDtos);
@@ -187,22 +199,22 @@ public class CandidateController {
     }
     
     // Get candidates by user ID
-    @GetMapping("/get")
-    public ResponseEntity<?> getCandidatesByUser(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            User user = getCurrentUser();
-            Pageable pageable = PageRequest.of(page, size);
-            Page<Candidate> candidates = candidateService.getCandidatesByUserId(user.getId(), pageable);
-            Page<FetchCandidateDto> candidateDtos = candidates.map(FetchCandidateDto::new);
+    // @GetMapping("/get")
+    // public ResponseEntity<?> getCandidatesByUser(
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         User user = getCurrentUser();
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         Page<Candidate> candidates = candidateService.getCandidatesByUserId(user.getId(), pageable);
+    //         Page<FetchCandidateDto> candidateDtos = candidates.map(FetchCandidateDto::new);
             
-            return ResponseEntity.ok(candidateDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving candidates: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(candidateDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error retrieving candidates: " + e.getMessage());
+    //     }
+    // }
     
     // Search candidates by first name
     @GetMapping("/search/first-name")
@@ -277,41 +289,41 @@ public class CandidateController {
     }
     
     // Get candidates created within date range
-    @GetMapping("/created-between")
-    public ResponseEntity<?> getCandidatesCreatedBetween(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<Candidate> candidates = candidateService.getCandidatesCreatedBetween(startDate, endDate, pageable);
-            Page<FetchCandidateDto> candidateDtos = candidates.map(FetchCandidateDto::new);
+    // @GetMapping("/created-between")
+    // public ResponseEntity<?> getCandidatesCreatedBetween(
+    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         Page<Candidate> candidates = candidateService.getCandidatesCreatedBetween(startDate, endDate, pageable);
+    //         Page<FetchCandidateDto> candidateDtos = candidates.map(FetchCandidateDto::new);
             
-            return ResponseEntity.ok(candidateDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving candidates: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(candidateDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error retrieving candidates: " + e.getMessage());
+    //     }
+    // }
     
     // Get candidates by assessment ID
-    @GetMapping("/assessment/{assessmentId}")
-    public ResponseEntity<?> getCandidatesByAssessmentId(
-            @PathVariable Long assessmentId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<Candidate> candidates = candidateService.getCandidatesByAssessmentId(assessmentId, pageable);
-            Page<FetchCandidateDto> candidateDtos = candidates.map(FetchCandidateDto::new);
+    // @GetMapping("/assessment/{assessmentId}")
+    // public ResponseEntity<?> getCandidatesByAssessmentId(
+    //         @PathVariable Long assessmentId,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         Page<Candidate> candidates = candidateService.getCandidatesByAssessmentId(assessmentId, pageable);
+    //         Page<FetchCandidateDto> candidateDtos = candidates.map(FetchCandidateDto::new);
             
-            return ResponseEntity.ok(candidateDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving candidates: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(candidateDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error retrieving candidates: " + e.getMessage());
+    //     }
+    // }
     
     // Get candidates with no attempts
     @GetMapping("/no-attempts")

@@ -55,4 +55,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Find users with assessments count
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.assessments WHERE u.id = :userId")
     Optional<User> findByIdWithAssessments(@Param("userId") Long userId);
+    
+    // Find users with multiple optional filters
+    @Query("SELECT u FROM User u WHERE " +
+           "(:name IS NULL OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))) AND " +
+           "(:organizationName IS NULL OR LOWER(u.organizationName) LIKE LOWER(CONCAT('%', :organizationName, '%'))) AND " +
+           "(:createdAfter IS NULL OR u.createdDate >= :createdAfter) AND " +
+           "(:createdBefore IS NULL OR u.createdDate <= :createdBefore)")
+    Page<User> findWithFilters(@Param("name") String name,
+                              @Param("organizationName") String organizationName,
+                              @Param("createdAfter") LocalDateTime createdAfter,
+                              @Param("createdBefore") LocalDateTime createdBefore,
+                              Pageable pageable);
 }

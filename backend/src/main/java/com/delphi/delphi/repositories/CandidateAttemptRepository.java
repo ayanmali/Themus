@@ -94,4 +94,22 @@ public interface CandidateAttemptRepository extends JpaRepository<CandidateAttem
     // Find attempts by assessment user (assessments created by specific user)
     @Query("SELECT ca FROM CandidateAttempt ca WHERE ca.assessment.user.id = :userId")
     Page<CandidateAttempt> findByAssessmentUserId(@Param("userId") Long userId, Pageable pageable);
+    
+    // Find candidate attempts with multiple optional filters
+    @Query("SELECT ca FROM CandidateAttempt ca WHERE " +
+           "(:candidateId IS NULL OR ca.candidate.id = :candidateId) AND " +
+           "(:assessmentId IS NULL OR ca.assessment.id = :assessmentId) AND " +
+           "(:status IS NULL OR ca.status = :status) AND " +
+           "(:startedAfter IS NULL OR ca.startedDate >= :startedAfter) AND " +
+           "(:startedBefore IS NULL OR ca.startedDate <= :startedBefore) AND " +
+           "(:completedAfter IS NULL OR ca.completedDate >= :completedAfter) AND " +
+           "(:completedBefore IS NULL OR ca.completedDate <= :completedBefore)")
+    Page<CandidateAttempt> findWithFilters(@Param("candidateId") Long candidateId,
+                                         @Param("assessmentId") Long assessmentId,
+                                         @Param("status") AttemptStatus status,
+                                         @Param("startedAfter") LocalDateTime startedAfter,
+                                         @Param("startedBefore") LocalDateTime startedBefore,
+                                         @Param("completedAfter") LocalDateTime completedAfter,
+                                         @Param("completedBefore") LocalDateTime completedBefore,
+                                         Pageable pageable);
 }

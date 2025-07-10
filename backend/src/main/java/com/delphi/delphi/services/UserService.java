@@ -81,6 +81,14 @@ public class UserService {
     public Page<User> getAllUsers(Pageable pageable) {
         return userRepository.findAll(pageable);
     }
+
+    // Get users with multiple filters
+    @Cacheable(value = "users", key = "#name + ':' + #organizationName + ':' + #createdAfter + ':' + #createdBefore + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Transactional(readOnly = true)
+    public Page<User> getUsersWithFilters(String name, String organizationName, LocalDateTime createdAfter, 
+                                         LocalDateTime createdBefore, Pageable pageable) {
+        return userRepository.findWithFilters(name, organizationName, createdAfter, createdBefore, pageable);
+    }
     
     // Update user
     @CacheEvict(value = "users", beforeInvocation = true, key = "#id" )
