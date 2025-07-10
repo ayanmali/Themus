@@ -301,10 +301,14 @@ public class UserService {
 
     // Method to get decrypted token for GitHub operations
     public String getDecryptedGithubToken(Long userId) {
-        User user = getUserByIdOrThrow(userId);
-        if (user.getGithubAccessToken() != null) {
+        try {
+            User user = getUserByIdOrThrow(userId);
+            if (user.getGithubAccessToken() == null) {
+                return null;
+            }
             return encryptionService.decrypt(user.getGithubAccessToken());
+        } catch (Exception e) {
+            throw new RuntimeException("Error decrypting GitHub access token", e);
         }
-        return null;
     }
 }

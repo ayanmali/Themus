@@ -41,13 +41,13 @@ public class GithubTools {
     }
 
     /* Helper methods */
+
+    // get the decrypted PAT from the user service
     private String getPAT(Object userIdObj) {
         try {
             Long userId = (Long) userIdObj;
             if (userId == null) throw new IllegalStateException("User not set in context");
-            return userService.getUserById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"))
-                .getGithubAccessToken();
+            return userService.getDecryptedGithubToken(userId);
         } catch (ClassCastException e) {
             throw new IllegalStateException("User ID must be a Long", e);
         } catch (NullPointerException e) {
