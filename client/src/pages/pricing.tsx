@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Check } from 'lucide-react';
-import { HeroHeader } from '@/components/blocks/hero-section-4';
+import { HeroHeader } from '@/components/layout/hero-header';
 
 interface FeatureItemProps {
     text: string;

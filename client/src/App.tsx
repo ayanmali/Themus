@@ -2,7 +2,7 @@ import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from "@/hooks/use-auth";
+//import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 
 // Pages
@@ -24,6 +24,7 @@ import LoginPage from "./pages/auth/login";
 import CandidateAssessmentInvite from "./pages/candidate/assessment-invite";
 import CandidateDashboard from "./pages/candidate/assessments-overview";
 import PricingPage from "./pages/pricing";
+import ForgotPassword from "./pages/auth/forgot-password";
 
 function Router() {
   return (
@@ -31,6 +32,8 @@ function Router() {
       <Route path="/" component={LandingPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/signup" component={SignupPage} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      
       <Route path="/dashboard" component={EmployerDashboard}/>
       <Route path="/assessments" component={EmployerAssessments} />
       <Route path="/assessments/new" component={CreateAssessment} />
@@ -65,10 +68,10 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router />
-        <Toaster />
-      </AuthProvider>
+      <Router />
+      <Toaster />
+      {/* <AuthProvider> */}
+      {/* </AuthProvider> */}
     </QueryClientProvider>
   );
 }

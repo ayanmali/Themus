@@ -14,6 +14,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useState } from "react"
+import { AuthPageHeader } from "@/components/layout/auth-page-header"
 
 // Zod validation schema
 const signupSchema = z.object({
@@ -84,24 +85,24 @@ export function SignupForm({
                     organizationName: data.organizationName
                 })
             });
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
+
             const result = await response.json();
             console.log("Signup successful:", result);
-            
+
             // Store the access token in cookie if signup returns one (auto-login)
             // if (result.accessToken) {
             //     authUtils.setAccessToken(result.accessToken);
             //     console.log("Access token stored successfully after signup");
-                
+
             //     // Redirect to dashboard or onboarding page after successful signup
             //     // window.location.href = '/dashboard'
             //     // Or if using a router: navigate('/dashboard')
             // }
-            
+
             // Handle successful signup (redirect, show success message, etc.)
         } catch (error) {
             console.error("Signup failed:", error);
@@ -110,7 +111,7 @@ export function SignupForm({
             setIsLoading(false)
         }
     }
-    
+
     return (
         <div className={cn("flex flex-col gap-6", className)} {...props}>
             <Card className="bg-slate-800 text-white border-white/20">
@@ -136,7 +137,7 @@ export function SignupForm({
                                     <p className="text-red-400 text-sm">{errors.name.message}</p>
                                 )}
                             </div>
-                            
+
                             <div className="flex items-center gap-3">
                                 <Label htmlFor="roleLabel" className="w-full">I am a/an...</Label>
                                 <Select onValueChange={(value: "employer" | "candidate") => setValue("role", value)}>
@@ -159,17 +160,17 @@ export function SignupForm({
                                 <div className="grid gap-3">
                                     <Label htmlFor="organizationName">
                                         Organization Name
-                                </Label>
-                                <Input
-                                    id="organizationName"
-                                    type="text"
-                                    placeholder={selectedRole === "employer" ? "Acme Corp" : ""}
-                                    {...register("organizationName")}
-                                    className="bg-slate-700 border-white/20 placeholder:text-white/50"
-                                />
-                                {errors.organizationName && (
-                                    <p className="text-red-400 text-sm">{errors.organizationName.message}</p>
-                                )}
+                                    </Label>
+                                    <Input
+                                        id="organizationName"
+                                        type="text"
+                                        placeholder={selectedRole === "employer" ? "Acme Corp" : ""}
+                                        {...register("organizationName")}
+                                        className="bg-slate-700 border-white/20 placeholder:text-white/50"
+                                    />
+                                    {errors.organizationName && (
+                                        <p className="text-red-400 text-sm">{errors.organizationName.message}</p>
+                                    )}
                                 </div>
                             )}
 
@@ -186,16 +187,16 @@ export function SignupForm({
                                     <p className="text-red-400 text-sm">{errors.email.message}</p>
                                 )}
                             </div>
-                            
+
                             <div className="grid gap-3">
                                 <div className="flex items-center">
                                     <Label htmlFor="password">Password</Label>
                                 </div>
-                                <Input 
-                                    id="password" 
-                                    type="password" 
+                                <Input
+                                    id="password"
+                                    type="password"
                                     {...register("password")}
-                                    className="bg-slate-700 border-white/20" 
+                                    className="bg-slate-700 border-white/20"
                                 />
                                 {errors.password && (
                                     <p className="text-red-400 text-sm">{errors.password.message}</p>
@@ -204,12 +205,12 @@ export function SignupForm({
                                     Password must be at least 8 characters with uppercase, lowercase, and number
                                 </p>
                             </div>
-                            
+
                             <div className="flex flex-col gap-3">
-                                <Button 
-                                    variant="outline" 
-                                    type="submit" 
-                                    className="w-full bg-slate-700 border-white/20" 
+                                <Button
+                                    variant="outline"
+                                    type="submit"
+                                    className="w-full bg-slate-700 border-white/20"
                                     disabled={isLoading}
                                 >
                                     {isLoading ? "Signing up..." : "Sign up"}
@@ -232,10 +233,13 @@ export function SignupForm({
 
 export default function SignupPage() {
     return (
+        <div>
+        <AuthPageHeader />
         <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10 bg-slate-800">
-            <div className="w-full max-w-sm">
-                <SignupForm />
-            </div>
+          <div className="w-full max-w-sm mt-10">
+            <SignupForm />
+          </div>
         </div>
+      </div>
     )
 }

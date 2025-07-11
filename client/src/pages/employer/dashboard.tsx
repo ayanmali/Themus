@@ -179,6 +179,22 @@ import {
   Filter
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
+import { API_URL } from '@/lib/utils';
+
+const getStats = async () => {
+  const response = await fetch(`${API_URL}/api/assessments/stats`, {
+    method: 'GET',
+    credentials: 'include'
+  });
+  return response.json();
+}
+
+const getRecentActivity = async () => {
+  const response = await fetch(`${API_URL}/api/assessments/recent-activity`);
+  return response.json();
+}
+
+
 
 const EmployerDashboard = () => {
   // Mock data - replace with actual API calls

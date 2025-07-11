@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export const API_URL = "http://localhost:8080"
+export const API_URL = import.meta.env.VITE_API_URL;
 
 export const isAuthenticated = async () => {
   const response = await fetch(`${API_URL}/api/auth/is-authenticated`, {

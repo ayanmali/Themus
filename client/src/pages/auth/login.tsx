@@ -13,6 +13,8 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useState } from "react"
+import { Link } from "wouter"
+import { AuthPageHeader } from "@/components/layout/auth-page-header"
 
 // Zod validation schema
 const loginSchema = z.object({
@@ -55,26 +57,26 @@ export function LoginForm({
           password: data.password
         })
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       console.log("Login successful:", result);
-      
+
       // Store the access token in cookie if login is successful
       // if (result.accessToken) {
       //   authUtils.setAccessToken(result.accessToken);
       //   console.log("Access token stored successfully");
-        
+
       //   // Redirect to dashboard or home page after successful login
       //   // window.location.href = '/dashboard'
       //   // Or if using a router: navigate('/dashboard')
       // } else {
       //   console.error("No access token received from server");
       // }
-      
+
     } catch (error) {
       console.error("Login failed:", error);
       // Handle error (show error message, etc.)
@@ -111,27 +113,24 @@ export function LoginForm({
               <div className="grid gap-3">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  <a
-                    href="#"
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                  >
+                  <Link href="/forgot-password">
                     Forgot your password?
-                  </a>
+                  </Link>
                 </div>
-                <Input 
-                  id="password" 
-                  type="password" 
+                <Input
+                  id="password"
+                  type="password"
                   {...register("password")}
-                  className="bg-slate-700 border-white/20" 
+                  className="bg-slate-700 border-white/20"
                 />
                 {errors.password && (
                   <p className="text-red-400 text-sm">{errors.password.message}</p>
                 )}
               </div>
               <div className="flex flex-col gap-3">
-                <Button 
-                  variant="outline" 
-                  type="submit" 
+                <Button
+                  variant="outline"
+                  type="submit"
                   className="w-full bg-slate-700 border-white/20"
                   disabled={isLoading}
                 >
@@ -161,9 +160,12 @@ export function LoginForm({
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10 bg-slate-800">
-      <div className="w-full max-w-sm">
-        <LoginForm />
+    <div>
+      <AuthPageHeader />
+      <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10 bg-slate-800">
+        <div className="w-full max-w-sm">
+          <LoginForm />
+        </div>
       </div>
     </div>
   )
