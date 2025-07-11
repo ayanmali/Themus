@@ -8,64 +8,72 @@ export function cn(...inputs: ClassValue[]) {
 
 export const API_URL = "http://localhost:8080"
 
-// Authentication token utilities
-export const authUtils = {
-  // Store access token in cookie
-  setAccessToken: (token: string, expiresInHours: number = 24) => {
-    const expirationDate = new Date()
-    expirationDate.setTime(expirationDate.getTime() + (expiresInHours * 60 * 60 * 1000))
-    document.cookie = `accessToken=${token}; expires=${expirationDate.toUTCString()}; path=/; secure; samesite=strict`
-  },
-
-  // Get access token from cookie
-  getAccessToken: (): string | null => {
-    const cookies = document.cookie.split(';')
-    const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('accessToken='))
-    return tokenCookie ? tokenCookie.split('=')[1] : null
-  },
-
-  // Remove access token (logout)
-  removeAccessToken: () => {
-    document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=strict'
-  },
-
-  // Check if user is authenticated
-  isAuthenticated: (): boolean => {
-    return !!authUtils.getAccessToken()
-  }
+export const isAuthenticated = async () => {
+  const response = await fetch(`${API_URL}/api/auth/is-authenticated`, {
+    method: 'GET',
+    credentials: 'include'
+  });
+  return response.ok;
 }
+
+// Authentication token utilities
+// export const authUtils = {
+//   // Store access token in cookie
+//   setAccessToken: (token: string, expiresInMinutes: number = import.meta.env.VITE_JWT_ACCESS_EXPIRATION) => {
+//     const expirationDate = new Date()
+//     expirationDate.setTime(expirationDate.getTime() + (expiresInMinutes * 60 * 1000))
+//     document.cookie = `accessToken=${token}; expires=${expirationDate.toUTCString()}; path=/; secure; samesite=strict`
+//   },
+
+//   // Get access token from cookie
+//   getAccessToken: (): string | null => {
+//     const cookies = document.cookie.split(';')
+//     const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('accessToken='))
+//     return tokenCookie ? tokenCookie.split('=')[1] : null
+//   },
+
+//   // Remove access token (logout)
+//   removeAccessToken: () => {
+//     document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=strict'
+//   },
+
+//   // Check if user is authenticated
+//   isAuthenticated: (): boolean => {
+//     return !!authUtils.getAccessToken()
+//   }
+// }
 
 // Authenticated fetch wrapper
-export const authenticatedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
-  const token = authUtils.getAccessToken();
+// export const authenticatedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+//   const token = authUtils.getAccessToken();
 
-  // if no access token, redirect to login
-  !token && navigate('/login');
+//   // if no access token, redirect to login
+//   !token && navigate('/login');
   
-  const defaultHeaders: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` })
-  }
+//   const defaultHeaders: HeadersInit = {
+//     'Content-Type': 'application/json',
+//     ...(token && { 'Authorization': `Bearer ${token}` })
+//   }
 
-  const mergedOptions: RequestInit = {
-    ...options,
-    headers: {
-      ...defaultHeaders,
-      ...options.headers
-    }
-  }
+//   const mergedOptions: RequestInit = {
+//     ...options,
+//     headers: {
+//       ...defaultHeaders,
+//       ...options.headers
+//     }
+//   }
 
-  const response = await fetch(url, mergedOptions)
+//   const response = await fetch(url, mergedOptions)
   
-  // If token is expired or invalid, remove it and potentially redirect to login
-  if (response.status === 401) {
-    authUtils.removeAccessToken()
-    // You might want to redirect to login page here
-    // window.location.href = '/login'
-  }
+//   // If token is expired or invalid, remove it and potentially redirect to login
+//   if (response.status === 401) {
+//     authUtils.removeAccessToken()
+//     // You might want to redirect to login page here
+//     // window.location.href = '/login'
+//   }
 
-  return response
-}
+//   return response
+// }
 
 // Example usage for authenticated API calls:
 /*

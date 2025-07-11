@@ -15,6 +15,7 @@ import com.delphi.delphi.components.JwtService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -36,6 +37,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain)
             throws ServletException, IOException {
 
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+
         // Skip JWT validation for permitted endpoints
         String requestPath = request.getRequestURI();
         if (requestPath.equals("/") || requestPath.startsWith("/api/auth/")) {
@@ -49,14 +52,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Get the token from the request header
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            response.setStatus(HttpStatus.UNAUTHORIZED.value());
-            return;
+        // Read token from cookie instead of Authorization header
+        String jwt = null;
+        if (httpRequest.getCookies() != null) {
+            for (Cookie cookie : httpRequest.getCookies()) {
+                if ("accessToken".equals(cookie.getName())) {
+                    jwt = cookie.getValue();
+                    break;
+                }
+            }
         }
 
-        String jwt = authHeader.substring(7);
+        //String jwt = authHeader.substring(7);
         String email = jwtService.extractUsername(jwt);
 
         if (jwt == null || email == null || !jwtService.validateToken(jwt)) {

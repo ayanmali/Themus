@@ -3,6 +3,7 @@ package com.delphi.delphi.controllers;
 import java.time.Instant;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,6 +30,8 @@ import com.delphi.delphi.services.RefreshTokenService;
 import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.exceptions.TokenRefreshException;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 @RestController
@@ -45,14 +48,24 @@ public class AuthController {
 
     private final JwtService jwtService;
 
+    private final long jwtAccessExpiration;
+
+    private final String appEnv;
+
+    private final String appDomain;
+
     public AuthController(RestTemplate restTemplate, UserService userService, GithubClient githubClient,
             JwtService jwtService, RefreshTokenService refreshTokenService,
-            AuthenticationManager authenticationManager) {
+            AuthenticationManager authenticationManager, @Value("${jwt.access.expiration}") long jwtAccessExpiration,
+            @Value("${app.env}") String appEnv, @Value("${app.domain}") String appDomain) {
         this.userService = userService;
         this.githubClient = githubClient;
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
         this.authenticationManager = authenticationManager;
+        this.jwtAccessExpiration = jwtAccessExpiration;
+        this.appEnv = appEnv;
+        this.appDomain = appDomain;
     }
 
     @GetMapping("/test")
@@ -74,7 +87,7 @@ public class AuthController {
     }
 
     @PostMapping("/login/email")
-    public ResponseEntity<?> loginEmail(@RequestBody PasswordLoginDto passwordLoginDto) {
+    public ResponseEntity<?> loginEmail(@RequestBody PasswordLoginDto passwordLoginDto, HttpServletResponse response) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(passwordLoginDto.getEmail(), passwordLoginDto.getPassword()));
 
@@ -85,6 +98,18 @@ public class AuthController {
         // Generate tokens
         String accessToken = jwtService.generateAccessToken(userDetails);
         String refreshToken = jwtService.generateRefreshToken(userDetails);
+
+        // Set the access token in the cookie
+        // create a cookie
+        Cookie authCookie = new Cookie("accessToken", accessToken);
+        authCookie.setMaxAge((int) (jwtAccessExpiration / 1000));
+        authCookie.setHttpOnly(true);
+        authCookie.setSecure(appEnv.equals("prod"));
+        authCookie.setPath("/");
+        authCookie.setDomain(appEnv.equals("prod") ? appDomain : "");
+        authCookie.setAttribute("SameSite", "Lax");
+        // add cookie to response
+        response.addCookie(authCookie);
 
         return ResponseEntity.ok(new AuthResponseDto(accessToken, refreshToken, userDetails.getUsername()));
     }

@@ -23,7 +23,7 @@ import SignupPage from "./pages/auth/signup";
 import LoginPage from "./pages/auth/login";
 import CandidateAssessmentInvite from "./pages/candidate/assessment-invite";
 import CandidateDashboard from "./pages/candidate/assessments-overview";
-import PricingPage from "./pages/employer/pricing";
+import PricingPage from "./pages/pricing";
 
 function Router() {
   return (

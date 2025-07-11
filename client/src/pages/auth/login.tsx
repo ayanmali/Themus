@@ -1,4 +1,4 @@
-import { cn, API_URL, authUtils } from "@/lib/utils"
+import { cn, API_URL } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -64,16 +64,16 @@ export function LoginForm({
       console.log("Login successful:", result);
       
       // Store the access token in cookie if login is successful
-      if (result.accessToken) {
-        authUtils.setAccessToken(result.accessToken);
-        console.log("Access token stored successfully");
+      // if (result.accessToken) {
+      //   authUtils.setAccessToken(result.accessToken);
+      //   console.log("Access token stored successfully");
         
-        // Redirect to dashboard or home page after successful login
-        // window.location.href = '/dashboard'
-        // Or if using a router: navigate('/dashboard')
-      } else {
-        console.error("No access token received from server");
-      }
+      //   // Redirect to dashboard or home page after successful login
+      //   // window.location.href = '/dashboard'
+      //   // Or if using a router: navigate('/dashboard')
+      // } else {
+      //   console.error("No access token received from server");
+      // }
       
     } catch (error) {
       console.error("Login failed:", error);

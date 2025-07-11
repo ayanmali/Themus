@@ -19,7 +19,8 @@ public class CorsConfig {
         // Allow specific methods; you can include GET, POST, PUT, DELETE, etc.
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         // Specify allowed headers
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
+        //configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
         // Allow credentials (cookies, authorization headers, TLS client certificates, etc.)
         configuration.setAllowCredentials(true);
         // Optionally set the max age (in seconds) to cache the CORS configuration

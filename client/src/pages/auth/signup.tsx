@@ -1,4 +1,4 @@
-import { API_URL, cn, authUtils } from "@/lib/utils"
+import { API_URL, cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
     Card,
@@ -93,14 +93,14 @@ export function SignupForm({
             console.log("Signup successful:", result);
             
             // Store the access token in cookie if signup returns one (auto-login)
-            if (result.accessToken) {
-                authUtils.setAccessToken(result.accessToken);
-                console.log("Access token stored successfully after signup");
+            // if (result.accessToken) {
+            //     authUtils.setAccessToken(result.accessToken);
+            //     console.log("Access token stored successfully after signup");
                 
-                // Redirect to dashboard or onboarding page after successful signup
-                // window.location.href = '/dashboard'
-                // Or if using a router: navigate('/dashboard')
-            }
+            //     // Redirect to dashboard or onboarding page after successful signup
+            //     // window.location.href = '/dashboard'
+            //     // Or if using a router: navigate('/dashboard')
+            // }
             
             // Handle successful signup (redirect, show success message, etc.)
         } catch (error) {
