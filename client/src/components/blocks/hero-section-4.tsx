@@ -3,7 +3,6 @@ import { Link } from 'wouter'
 import { Button } from '@/components/ui/button'
 import { InfiniteSlider } from '@/components/ui/infinite-slider'
 import { ProgressiveBlur } from '@/components/ui/progressive-blur'
-import { useAuth } from '@/hooks/use-auth'
 import { Menu, X } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { HeroHeader } from '../layout/hero-header'

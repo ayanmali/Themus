@@ -29,6 +29,7 @@ import com.delphi.delphi.entities.User;
 import com.delphi.delphi.services.RefreshTokenService;
 import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.exceptions.TokenRefreshException;
+import com.delphi.delphi.utils.git.GithubFile;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -68,10 +69,26 @@ public class AuthController {
         this.appDomain = appDomain;
     }
 
+    private User getCurrentUser() {
+        return userService.getUserByEmail(getCurrentUserEmail()).orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    private String getCurrentUserEmail() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        return userDetails.getUsername();
+    }
+
     @GetMapping("/test")
-    public ResponseEntity<?> test() {
+    public ResponseEntity<GithubFile> test() {
         return githubClient.addFileToRepo("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", "ayanmali",
                 "my-new-repo-from-delphi", "test2.txt", null, "\nHello, worldddd!\nballs", "third commit");
+    }
+
+    // for the client to check if it is authenticated
+    @GetMapping("/is-authenticated")
+    public ResponseEntity<User> isAuthenticated() {
+        return ResponseEntity.ok(getCurrentUser());
     }
 
     @PostMapping("/signup/email")

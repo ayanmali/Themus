@@ -7,10 +7,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { CandidateCard } from "@/components/candidate-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Candidate } from "@/lib/types/assessment";
+import { Candidate } from "@/lib/types/candidate";
+import { navigate } from "wouter/use-browser-location";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function EmployerCandidates() {
   const [searchQuery, setSearchQuery] = useState("");
+
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    navigate("/login");
+  }
 
   // Mock candidates for demonstration
   const candidates: Candidate[] = [

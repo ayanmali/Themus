@@ -1,9 +1,6 @@
 import { useState } from "react";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { Link } from "wouter";
 
 interface AppShellProps {
   children: React.ReactNode;

@@ -5,6 +5,9 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Check } from 'lucide-react';
 import { HeroHeader } from '@/components/layout/hero-header';
+import { useAuth } from '@/hooks/use-auth';
+import { navigate } from 'wouter/use-browser-location';
+import useApi from '@/hooks/useapi';
 
 interface FeatureItemProps {
     text: string;
@@ -60,6 +63,24 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
 const PricingPage: React.FC = () => {
     const [isAnnual, setIsAnnual] = useState(false);
+    const { apiCall } = useApi();
+
+    // generates a checkout session URL for the user
+    // user is redirected to "/success" after payment is successful
+    async function generateStripeCheckout() {
+        const response = await apiCall("api/payments/initiate-checkout");
+        const data = await response.json();
+        data.ok ? navigate(data.url) : alert("Error generating checkout");
+    }
+
+    async function onCheckoutSuccess() {
+        const response = await apiCall("api/payments/checkout/success", {
+            method: 'GET',
+        });
+        const data = await response.json();
+        data.ok ? navigate("/dashboard") : alert("Error generating checkout");
+        navigate("/");
+    }
 
     return (
 

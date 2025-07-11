@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { ChatMessageListExample } from "@/components/blocks/chat-msg-list";
+import { navigate } from "wouter/use-browser-location";
+import { useAuth } from "@/hooks/use-auth";
 
 interface AssessmentDetailsProps {
     assessment: Assessment;
@@ -44,6 +46,12 @@ export default function AssessmentDetails({ assessment, setSelectedAssessment, e
 
     // Add this state variable with your other useState declarations at the top of the component
     const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([]);
+
+    const { isAuthenticated } = useAuth();
+
+    if (!isAuthenticated) {
+        navigate("/login");
+    }
 
     // Sample candidates data
     const candidates: Candidate[] = [

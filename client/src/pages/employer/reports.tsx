@@ -2,8 +2,16 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileDown, FileText, Users, CheckCircle, Clock } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { navigate } from "wouter/use-browser-location";
 
 export default function EmployerReports() {
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    navigate("/login");
+  }
+
   return (
     <AppShell title="Reports">
       <div className="flex justify-between items-center mb-6">

@@ -15,6 +15,7 @@ import { z } from "zod"
 import { useState } from "react"
 import { Link } from "wouter"
 import { AuthPageHeader } from "@/components/layout/auth-page-header"
+import useApi from "@/hooks/useapi"
 
 // Zod validation schema
 const loginSchema = z.object({
@@ -43,11 +44,13 @@ export function LoginForm({
     resolver: zodResolver(loginSchema)
   })
 
+  const { apiCall } = useApi();
+
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true)
     try {
       console.log("Logging in with data:", data);
-      const response = await fetch(`${API_URL}/api/auth/login/email`, {
+      const response = await apiCall("/api/auth/login/email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -113,7 +116,7 @@ export function LoginForm({
               <div className="grid gap-3">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  <Link href="/forgot-password">
+                  <Link href="/forgot-password" className="text-sm text-white/50 ml-auto">
                     Forgot your password?
                   </Link>
                 </div>

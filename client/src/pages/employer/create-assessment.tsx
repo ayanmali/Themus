@@ -10,6 +10,8 @@
 
 import { AppShell } from "@/components/layout/app-shell";
 import { AnimatedAIChat } from "@/components/new-assessment/animated-ai-chat";
+import { useAuth } from "@/hooks/use-auth";
+import { navigate } from "wouter/use-browser-location";
 
 // import { AppShell } from "@/components/layout/app-shell";
 // import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -36,12 +38,12 @@ import { AnimatedAIChat } from "@/components/new-assessment/animated-ai-chat";
 // export default function CreateAssessment() {
 //   const { toast } = useToast();
 //   const [, navigate] = useLocation();
-  
+
 //   // Fetch repositories for the select input
 //   const { data: repositories, isLoading: isLoadingRepositories } = useQuery({
 //     queryKey: ["/api/repositories"],
 //   });
-  
+
 //   // Setup form
 //   const form = useForm<CreateAssessmentFormValues>({
 //     resolver: zodResolver(createAssessmentSchema),
@@ -106,7 +108,7 @@ import { AnimatedAIChat } from "@/components/new-assessment/animated-ai-chat";
 //                     </FormItem>
 //                   )}
 //                 />
-                
+
 //                 <FormField
 //                   control={form.control}
 //                   name="description"
@@ -125,7 +127,7 @@ import { AnimatedAIChat } from "@/components/new-assessment/animated-ai-chat";
 //                     </FormItem>
 //                   )}
 //                 />
-                
+
 //                 <FormField
 //                   control={form.control}
 //                   name="repositoryId"
@@ -163,7 +165,7 @@ import { AnimatedAIChat } from "@/components/new-assessment/animated-ai-chat";
 //                     </FormItem>
 //                   )}
 //                 />
-                
+
 //                 <FormField
 //                   control={form.control}
 //                   name="durationDays"
@@ -177,7 +179,7 @@ import { AnimatedAIChat } from "@/components/new-assessment/animated-ai-chat";
 //                     </FormItem>
 //                   )}
 //                 />
-                
+
 //                 <FormField
 //                   control={form.control}
 //                   name="status"
@@ -202,7 +204,7 @@ import { AnimatedAIChat } from "@/components/new-assessment/animated-ai-chat";
 //                     </FormItem>
 //                   )}
 //                 />
-                
+
 //                 <div className="flex justify-end space-x-3">
 //                   <Button
 //                     type="button"
@@ -228,7 +230,13 @@ import { AnimatedAIChat } from "@/components/new-assessment/animated-ai-chat";
 // }
 
 export default function CreateAssessment() {
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    navigate("/login");
+  }
+  
   return (
-    <AnimatedAIChat/>
+    <AnimatedAIChat />
   );
 }

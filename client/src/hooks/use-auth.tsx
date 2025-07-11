@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { API_URL } from '@/lib/utils'
+import { User } from '@/lib/types/user'
 
 export const useAuth = () => {
+  const [user, setUser] = useState<User | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(true)
 
@@ -11,9 +13,11 @@ export const useAuth = () => {
         method: 'GET',
         credentials: 'include'
       })
-      setIsAuthenticated(response.ok)
+      setIsAuthenticated(response.ok);
+      response.ok && setUser(await response.json());
     } catch (error) {
       setIsAuthenticated(false)
+      setUser(null);
     } finally {
       setIsLoading(false)
     }
@@ -33,10 +37,12 @@ export const useAuth = () => {
       console.error('Logout failed:', error)
     } finally {
       setIsAuthenticated(false)
+      setUser(null);
     }
   }
 
   return {
+    user,
     isAuthenticated,
     isLoading,
     checkAuth,

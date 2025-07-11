@@ -180,23 +180,39 @@ import {
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { API_URL } from '@/lib/utils';
-
-const getStats = async () => {
-  const response = await fetch(`${API_URL}/api/assessments/stats`, {
-    method: 'GET',
-    credentials: 'include'
-  });
-  return response.json();
-}
-
-const getRecentActivity = async () => {
-  const response = await fetch(`${API_URL}/api/assessments/recent-activity`);
-  return response.json();
-}
-
-
+import { navigate } from 'wouter/use-browser-location';
+import { useAuth } from '@/hooks/use-auth';
+import useApi from '@/hooks/useapi';
 
 const EmployerDashboard = () => {
+  const { isAuthenticated } = useAuth();
+  const { apiCall } = useApi();
+
+  if (!isAuthenticated) {
+    navigate("/login");
+  }
+
+  const getData = async () => {
+    const [stats, recentActivity] = await Promise.all(
+      [getStats(), getRecentActivity()]
+    );
+    return { stats, recentActivity };
+  }
+
+  const getStats = async () => {
+    const response = await apiCall("api/assessments/stats", {
+      method: 'GET',
+    });
+    return response.json();
+  }
+  
+  const getRecentActivity = async () => {
+    const response = await apiCall("api/assessments/recent-activity", {
+      method: 'GET',
+    });
+    return response.json();
+  }
+
   // Mock data - replace with actual API calls
   const stats = {
     activeAssessments: 12,

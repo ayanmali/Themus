@@ -1,4 +1,3 @@
-import { useAuth } from "@/hooks/use-auth"
 import { Menu, X } from "lucide-react"
 import React from "react"
 import { Button } from "react-day-picker"
@@ -6,7 +5,6 @@ import { Link } from "wouter"
 
 export const AuthPageHeader = () => {
     const [menuState, setMenuState] = React.useState(false)
-    const { isAuthenticated, isLoading } = useAuth()
     return (
         <header>
             <nav

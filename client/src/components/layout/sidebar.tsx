@@ -10,7 +10,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ open, setOpen }: SidebarProps) {
-  const { user, logoutMutation, isLoading } = useAuth();
+  const {/* user, */isAuthenticated, isLoading, logout } = useAuth();
 
   const [location] = useLocation();
 
@@ -20,11 +20,23 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
     return location === path;
   };
 
-  // if (isLoading) {
-  //   // Optionally show a sidebar skeleton or spinner
-  //   return <div className="w-64 bg-gray-800">Loading...</div>;
-  // }
-  if (!user) return null;
+  if (isLoading) {
+    // Show a sidebar skeleton while loading
+    return <div className="w-64 bg-gray-800">Loading...</div>;
+  }
+  
+  if (!isAuthenticated) return null;
+
+  // TODO: replace with actual user data
+  const user: User = {
+    id: "1",
+    email: "john.doe@example.com",
+    password: "password",
+    name: "Nefarious Joaquin",
+    role: "employer" as const,
+    orgName: "Delphi",
+    createdAt: new Date(),
+  };
 
   const employerNavItems = [
     {
@@ -153,7 +165,7 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                     <p className="text-xs font-medium text-gray-300 capitalize">{user.orgName ? user.orgName : ""}</p>
                   </div>
                   <button
-                    // onClick={() => logoutMutation.mutate()}
+                    onClick={() => logout()}
                     className="ml-auto text-gray-300 hover:text-white"
                   >
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

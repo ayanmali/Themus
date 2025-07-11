@@ -1,18 +1,16 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { navigate } from "wouter/use-browser-location"
+import useApi from "@/hooks/useapi"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+const { apiCall } = useApi();
 export const API_URL = import.meta.env.VITE_API_URL;
 
 export const isAuthenticated = async () => {
-  const response = await fetch(`${API_URL}/api/auth/is-authenticated`, {
-    method: 'GET',
-    credentials: 'include'
-  });
+  const response = await apiCall("api/auth/is-authenticated");
   return response.ok;
 }
 

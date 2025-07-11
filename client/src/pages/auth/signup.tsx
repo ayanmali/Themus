@@ -15,6 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useState } from "react"
 import { AuthPageHeader } from "@/components/layout/auth-page-header"
+import useApi from "@/hooks/useapi"
 
 // Zod validation schema
 const signupSchema = z.object({
@@ -66,13 +67,15 @@ export function SignupForm({
         resolver: zodResolver(signupSchema)
     })
 
+    const { apiCall } = useApi();
+
     const selectedRole = watch("role")
 
     const onSubmit = async (data: SignupFormData) => {
         setIsLoading(true)
         try {
             console.log("Signing up with data:", data);
-            const response = await fetch(`${API_URL}/api/auth/signup/email`, {
+            const response = await apiCall("/api/auth/signup/email", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
