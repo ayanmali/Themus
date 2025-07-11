@@ -3,7 +3,9 @@ import { ArrowLeft, Calendar, Clock, ExternalLink, Link2, MoreHorizontal, Pause,
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AppShell } from "@/components/layout/app-shell";
-import { Assessment, Candidate, CandidateAttempt } from "@/lib/types/assessment";
+import { Assessment } from "@/lib/types/assessment";
+import { Candidate } from "@/lib/types/candidate";
+import { CandidateAttempt } from "@/lib/types/candidate-attempt";
 import { Link } from "wouter";
 import AssessmentPagination from "@/components/ui/AssessmentPagination";
 import { ChatMessageList } from "@/components/ui/chat-message-list";

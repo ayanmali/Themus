@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils"
+import { cn, API_URL, authUtils } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -9,11 +9,80 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import { useState } from "react"
+
+// Zod validation schema
+const loginSchema = z.object({
+  email: z.string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address")
+    .max(255, "Email must be less than 255 characters"),
+  password: z.string()
+    .min(1, "Password is required")
+    .max(128, "Password must be less than 128 characters")
+})
+
+type LoginFormData = z.infer<typeof loginSchema>
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const [isLoading, setIsLoading] = useState(false)
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema)
+  })
+
+  const onSubmit = async (data: LoginFormData) => {
+    setIsLoading(true)
+    try {
+      console.log("Logging in with data:", data);
+      const response = await fetch(`${API_URL}/api/auth/login/email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log("Login successful:", result);
+      
+      // Store the access token in cookie if login is successful
+      if (result.accessToken) {
+        authUtils.setAccessToken(result.accessToken);
+        console.log("Access token stored successfully");
+        
+        // Redirect to dashboard or home page after successful login
+        // window.location.href = '/dashboard'
+        // Or if using a router: navigate('/dashboard')
+      } else {
+        console.error("No access token received from server");
+      }
+      
+    } catch (error) {
+      console.error("Login failed:", error);
+      // Handle error (show error message, etc.)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="bg-slate-800 text-white border-white/20">
@@ -24,7 +93,7 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={handleSubmit(onSubmit)}>
             <div className="flex flex-col gap-6 text-white">
               <div className="grid gap-3">
                 <Label htmlFor="email">Email</Label>
@@ -32,9 +101,12 @@ export function LoginForm({
                   id="email"
                   type="email"
                   placeholder="m@example.com"
-                  required
+                  {...register("email")}
                   className="bg-slate-700 border-white/20 placeholder:text-white/50"
                 />
+                {errors.email && (
+                  <p className="text-red-400 text-sm">{errors.email.message}</p>
+                )}
               </div>
               <div className="grid gap-3">
                 <div className="flex items-center">
@@ -46,17 +118,30 @@ export function LoginForm({
                     Forgot your password?
                   </a>
                 </div>
-                <Input id="password" type="password" required className="bg-slate-700 border-white/20" />
+                <Input 
+                  id="password" 
+                  type="password" 
+                  {...register("password")}
+                  className="bg-slate-700 border-white/20" 
+                />
+                {errors.password && (
+                  <p className="text-red-400 text-sm">{errors.password.message}</p>
+                )}
               </div>
               <div className="flex flex-col gap-3">
-                <Button variant="outline" type="submit" className="w-full bg-slate-700 border-white/20">
-                  Login
+                <Button 
+                  variant="outline" 
+                  type="submit" 
+                  className="w-full bg-slate-700 border-white/20"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Logging in..." : "Login"}
                 </Button>
                 <div className="text-center text-sm">or</div>
-                <Button variant="outline" className="w-full bg-slate-700 border-white/20">
+                <Button variant="outline" className="w-full bg-slate-700 border-white/20" type="button">
                   Continue with Google
                 </Button>
-                <Button variant="outline" className="w-full bg-slate-700 border-white/20">
+                <Button variant="outline" className="w-full bg-slate-700 border-white/20" type="button">
                   Continue with GitHub
                 </Button>
               </div>

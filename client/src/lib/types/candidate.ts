@@ -1,9 +1,8 @@
-export type CandidateAttempt = {
+export type Candidate = {
     id: number;
-    candidateId: number;
-    assessmentId: number;
-    status: 'started' | 'submitted' | 'evaluated';
-    startedAt?: Date | null;
-    submittedAt?: Date | null;
-    evaluatedAt?: Date | null;
+    name: string;
+    email: string;
+    // status: 'invited' | 'started' | 'submitted' | 'evaluated';
+    appliedAt?: Date;
+    // startedAt?: Date | null;
 }
