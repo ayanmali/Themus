@@ -12,7 +12,7 @@ export const useAuth = () => {
       const response = await fetch(`${API_URL}/api/auth/is-authenticated`, {
         method: 'GET',
         credentials: 'include'
-      })
+      });
       setIsAuthenticated(response.ok);
       response.ok && setUser(await response.json());
     } catch (error) {

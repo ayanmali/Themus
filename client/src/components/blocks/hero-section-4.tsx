@@ -1,9 +1,6 @@
 import React from 'react'
 import { Link } from 'wouter'
 import { Button } from '@/components/ui/button'
-import { InfiniteSlider } from '@/components/ui/infinite-slider'
-import { ProgressiveBlur } from '@/components/ui/progressive-blur'
-import { Menu, X } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { HeroHeader } from '../layout/hero-header'
 
@@ -17,7 +14,7 @@ export function HeroSection() {
                         <div className="relative mx-auto flex max-w-6xl flex-col px-6 lg:grid lg:grid-cols-2">
                             <div className="mx-auto max-w-lg text-center lg:ml-0 lg:text-left">
                                 <h1 className="mt-8 max-w-2xl text-balance text-5xl font-medium md:text-6xl lg:mt-16 xl:text-7xl">Technical Hiring for the Modern Era</h1>
-                                <p className="mt-8 max-w-2xl text-pretty text-lg">Repository-based assessments for hiring technical talent based on practical skills and your team's needs.</p>
+                                <p className="mt-8 max-w-2xl text-pretty text-lg">Assess candidates on debugging and enhancing AI-generated code.</p>
 
                                 <div className="mt-12 flex flex-col items-center justify-center gap-2 sm:flex-row lg:justify-start">
                                     <Button
@@ -25,7 +22,7 @@ export function HeroSection() {
                                         size="lg"
                                         className="px-5 text-base">
                                         <Link href="/signup">
-                                            <span className="text-nowrap">Sign up</span>
+                                            <span className="text-nowrap">Get started</span>
                                         </Link>
                                     </Button>
 
