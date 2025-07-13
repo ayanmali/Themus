@@ -10,7 +10,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ open, setOpen }: SidebarProps) {
-  const {/* user, */isAuthenticated, isLoading, logout } = useAuth();
+  const {user, isAuthenticated, isLoading, logout } = useAuth();
 
   const [location] = useLocation();
 
@@ -28,15 +28,15 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
   if (!isAuthenticated) return null;
 
   // TODO: replace with actual user data
-  const user: User = {
-    id: "1",
-    email: "john.doe@example.com",
-    password: "password",
-    name: "Nefarious Joaquin",
-    role: "employer" as const,
-    orgName: "Delphi",
-    createdAt: new Date(),
-  };
+  // const user: User = {
+  //   id: "1",
+  //   email: "john.doe@example.com",
+  //   password: "password",
+  //   name: "Nefarious Joaquin",
+  //   role: "employer" as const,
+  //   orgName: "Delphi",
+  //   createdAt: new Date(),
+  // };
 
   const employerNavItems = [
     {
@@ -86,7 +86,9 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
     },
   ];
 
-  const navItems = user.role === "employer" ? employerNavItems : candidateNavItems;
+  // const navItems = user.role === "employer" ? employerNavItems : candidateNavItems;
+  const navItems = employerNavItems;
+
 
   // Mobile overlay
   const overlay = open ? (
@@ -156,13 +158,13 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                   <div>
                     <img
                       className="inline-block h-9 w-9 rounded-full"
-                      src={`https://ui-avatars.com/api/?name=${user.name}&background=random`}
-                      alt={user.name}
+                      src={`https://ui-avatars.com/api/?name=${user?.name}&background=random`}
+                      alt={user?.name}
                     />
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-white">{user.name}</p>
-                    <p className="text-xs font-medium text-gray-300 capitalize">{user.orgName ? user.orgName : ""}</p>
+                    <p className="text-sm font-medium text-white">{user?.name}</p>
+                    <p className="text-xs font-medium text-gray-300 capitalize">{user?.orgName ? user?.orgName : ""}</p>
                   </div>
                   <button
                     onClick={() => logout()}

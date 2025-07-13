@@ -1,4 +1,3 @@
-import { UserSwitch } from "@/components/user-switch";
 import { Bell, Plus, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuPortal, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from "../ui/dropdown-menu";

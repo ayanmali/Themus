@@ -9,7 +9,7 @@ export const useAuth = () => {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/auth/is-authenticated`, {
+      const response = await fetch(`${API_URL}/api/users/is-authenticated`, {
         method: 'GET',
         credentials: 'include'
       });
@@ -22,6 +22,32 @@ export const useAuth = () => {
       setIsLoading(false)
     }
   }
+
+  const refreshToken = async (): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API_URL}/api/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        // Refresh successful, check auth status
+        await checkAuth();
+        return true;
+      }
+      
+      // Refresh failed, clear auth state
+      setIsAuthenticated(false);
+      setUser(null);
+      return false;
+      
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      setIsAuthenticated(false);
+      setUser(null);
+      return false;
+    }
+  };
 
   useEffect(() => {
     checkAuth()
@@ -46,6 +72,7 @@ export const useAuth = () => {
     isAuthenticated,
     isLoading,
     checkAuth,
+    refreshToken,
     logout
   }
 }

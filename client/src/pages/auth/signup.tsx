@@ -15,39 +15,39 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useState } from "react"
 import { AuthPageHeader } from "@/components/layout/auth-page-header"
-import useApi from "@/hooks/useapi"
+import { navigate } from "wouter/use-browser-location"
+import { useAuth } from "@/hooks/use-auth"
 
 // Zod validation schema
 const signupSchema = z.object({
     name: z.string()
         .min(1, "Full name is required")
-        .max(100, "Full name must be less than 100 characters")
-        .trim(),
-    role: z.enum(["employer", "candidate"], {
-        required_error: "Please select a role"
-    }),
-    organizationName: z.string()
-        .max(100, "Organization name must be less than 100 characters")
-        .trim()
-        .optional(),
+        .max(100, "Full name must be less than 100 characters"),
     email: z.string()
         .min(1, "Email is required")
         .email("Please enter a valid email address")
         .max(255, "Email must be less than 255 characters"),
     password: z.string()
         .min(8, "Password must be at least 8 characters")
-        .max(128, "Password must be less than 128 characters")
         .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Password must contain at least one uppercase letter, one lowercase letter, and one number")
+        .max(128, "Password must be less than 128 characters"),
+    role: z.enum(["employer", "candidate"], {
+        required_error: "Please select your role",
+    }),
+    organizationName: z.string()
+        .min(1, "Organization name is required")
+        .max(200, "Organization name must be less than 200 characters")
+        .optional()
+        .or(z.literal("")),
 }).refine((data) => {
-    // Make organizationName required only for employers
-    if (data.role === "employer" && (!data.organizationName || data.organizationName.trim() === "")) {
-        return false;
+    if (data.role === "employer") {
+        return data.organizationName && data.organizationName.trim().length > 0;
     }
     return true;
 }, {
     message: "Organization name is required for employers",
-    path: ["organizationName"] // This tells Zod which field the error belongs to
-})
+    path: ["organizationName"],
+});
 
 type SignupFormData = z.infer<typeof signupSchema>
 
@@ -56,6 +56,7 @@ export function SignupForm({
     ...props
 }: React.ComponentProps<"div">) {
     const [isLoading, setIsLoading] = useState(false)
+    const { checkAuth } = useAuth()
 
     const {
         register,
@@ -67,15 +68,13 @@ export function SignupForm({
         resolver: zodResolver(signupSchema)
     })
 
-    const { apiCall } = useApi();
-
     const selectedRole = watch("role")
 
     const onSubmit = async (data: SignupFormData) => {
         setIsLoading(true)
         try {
             console.log("Signing up with data:", data);
-            const response = await apiCall("/api/auth/signup/email", {
+            const response = await fetch(`${API_URL}/api/auth/signup/email`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -86,7 +85,8 @@ export function SignupForm({
                     password: data.password,
                     role: data.role,
                     organizationName: data.organizationName
-                })
+                }),
+                credentials: 'include'
             });
 
             if (!response.ok) {
@@ -95,20 +95,15 @@ export function SignupForm({
 
             const result = await response.json();
             console.log("Signup successful:", result);
+            
+            // Update authentication state after successful signup
+            await checkAuth();
+            
+            // Navigate to dashboard after auth state is updated
+            navigate("/dashboard");
 
-            // Store the access token in cookie if signup returns one (auto-login)
-            // if (result.accessToken) {
-            //     authUtils.setAccessToken(result.accessToken);
-            //     console.log("Access token stored successfully after signup");
-
-            //     // Redirect to dashboard or onboarding page after successful signup
-            //     // window.location.href = '/dashboard'
-            //     // Or if using a router: navigate('/dashboard')
-            // }
-
-            // Handle successful signup (redirect, show success message, etc.)
         } catch (error) {
-            console.error("Signup failed:", error);
+            console.error("Signup request failed:", error);
             // Handle error (show error message, etc.)
         } finally {
             setIsLoading(false)

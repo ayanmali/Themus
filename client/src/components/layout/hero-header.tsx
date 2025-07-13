@@ -1,4 +1,3 @@
-import { useAuth } from "@/hooks/use-auth"
 import { Menu, X } from "lucide-react"
 import React from "react"
 import { Button } from "@/components/ui/button"
@@ -13,7 +12,6 @@ const menuItems = [
 
 export const HeroHeader = () => {
     const [menuState, setMenuState] = React.useState(false)
-    const { isAuthenticated, isLoading } = useAuth()
     return (
         <header>
             <nav
@@ -74,7 +72,7 @@ export const HeroHeader = () => {
                                     size="sm"
                                     className="bg-slate-700 hover:bg-slate-600 border border-white/20">
                                     {/* className="text-muted hover:bg-slate-600 bg-slate-700 hover:text-white border-white/20" */}
-                                    <Link href={isAuthenticated ? '/dashboard' : '/login'}>
+                                    <Link href="/dashboard">
                                         <span>Dashboard</span>
                                     </Link>
                                 </Button>

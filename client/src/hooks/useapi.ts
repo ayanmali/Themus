@@ -1,4 +1,3 @@
-// hooks/useApi.js
 import { useCallback } from 'react';
 import { useAuth } from './use-auth';
 import { navigate } from 'wouter/use-browser-location';
@@ -20,19 +19,42 @@ const useApi = () => {
       ...options.headers,
     };
 
-    try {
+    const makeRequest = async (): Promise<Response> => {
       const fullUrl = `${API_URL}${url}`;
-      const response = await fetch(fullUrl, {
+      return await fetch(fullUrl, {
         ...options,
         credentials: 'include',
         headers,
       });
+    };
 
-      // Handle 401 responses
+    try {
+      let response = await makeRequest();
+
+      // Handle 401 responses with automatic token refresh
       if (response.status === 401) {
-        auth.logout();
-        navigate('/login');
-        throw new Error('Authentication failed');
+        console.log('Access token expired, attempting refresh...');
+        
+        // Try to refresh the token
+        const refreshSuccess = await auth.refreshToken();
+        
+        if (refreshSuccess) {
+          console.log('Token refresh successful, retrying original request...');
+          // Retry the original request with the new token
+          response = await makeRequest();
+          
+          // If still 401 after refresh, redirect to login
+          if (response.status === 401) {
+            auth.logout();
+            navigate('/login');
+            throw new Error('Authentication failed after token refresh');
+          }
+        } else {
+          // Refresh failed, redirect to login
+          auth.logout();
+          navigate('/login');
+          throw new Error('Token refresh failed');
+        }
       }
 
       if (!response.ok) {
@@ -44,7 +66,7 @@ const useApi = () => {
       console.error('API call failed:', error);
       throw error;
     }
-  }, [auth, navigate]);
+  }, [auth]);
 
   return { apiCall };
 };

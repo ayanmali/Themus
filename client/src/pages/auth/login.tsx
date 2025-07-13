@@ -15,7 +15,8 @@ import { z } from "zod"
 import { useState } from "react"
 import { Link } from "wouter"
 import { AuthPageHeader } from "@/components/layout/auth-page-header"
-import useApi from "@/hooks/useapi"
+import { navigate } from "wouter/use-browser-location"
+import { useAuth } from "@/hooks/use-auth"
 
 // Zod validation schema
 const loginSchema = z.object({
@@ -35,6 +36,7 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   const [isLoading, setIsLoading] = useState(false)
+  const { checkAuth } = useAuth()
 
   const {
     register,
@@ -44,13 +46,11 @@ export function LoginForm({
     resolver: zodResolver(loginSchema)
   })
 
-  const { apiCall } = useApi();
-
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true)
     try {
       console.log("Logging in with data:", data);
-      const response = await apiCall("/api/auth/login/email", {
+      const response = await fetch(`${API_URL}/api/auth/login/email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -58,7 +58,8 @@ export function LoginForm({
         body: JSON.stringify({
           email: data.email,
           password: data.password
-        })
+        }),
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -67,18 +68,12 @@ export function LoginForm({
 
       const result = await response.json();
       console.log("Login successful:", result);
-
-      // Store the access token in cookie if login is successful
-      // if (result.accessToken) {
-      //   authUtils.setAccessToken(result.accessToken);
-      //   console.log("Access token stored successfully");
-
-      //   // Redirect to dashboard or home page after successful login
-      //   // window.location.href = '/dashboard'
-      //   // Or if using a router: navigate('/dashboard')
-      // } else {
-      //   console.error("No access token received from server");
-      // }
+      
+      // Update authentication state after successful login
+      await checkAuth();
+      
+      // Navigate to dashboard after auth state is updated
+      navigate("/dashboard");
 
     } catch (error) {
       console.error("Login failed:", error);

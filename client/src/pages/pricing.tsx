@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Check } from 'lucide-react';
 import { HeroHeader } from '@/components/layout/hero-header';
-import { useAuth } from '@/hooks/use-auth';
 import { navigate } from 'wouter/use-browser-location';
 import useApi from '@/hooks/useapi';
 
@@ -28,6 +27,7 @@ interface PricingCardProps {
     features: string[];
     buttonText: string;
     isAnnual: boolean; // Prop to determine which price to show
+    onClick?: () => Promise<void> // function to call when the Subscribe button is clicked
 }
 
 const PricingCard: React.FC<PricingCardProps> = ({
@@ -38,6 +38,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
     features,
     buttonText,
     isAnnual,
+    onClick,
 }) => (
     <Card className="flex flex-col bg-gray-900 border border-gray-800 p-6 shadow-lg rounded-lg">
         <CardHeader className="p-0 mb-6">
@@ -54,14 +55,14 @@ const PricingCard: React.FC<PricingCardProps> = ({
                     <FeatureItem key={index} text={feature} />
                 ))}
             </div>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-200 font-semibold py-2 rounded-md transition-colors duration-200">
+            <Button className="w-full bg-white text-gray-900 hover:bg-gray-200 font-semibold py-2 rounded-md transition-colors duration-200" onClick={onClick ? onClick : () => { }}>
                 {buttonText}
             </Button>
         </CardContent>
     </Card>
 );
 
-const PricingPage: React.FC = () => {
+export const PricingPage: React.FC = () => {
     const [isAnnual, setIsAnnual] = useState(false);
     const { apiCall } = useApi();
 
@@ -77,10 +78,17 @@ const PricingPage: React.FC = () => {
         const response = await apiCall("api/payments/checkout/success", {
             method: 'GET',
         });
-        const data = await response.json();
-        data.ok ? navigate("/dashboard") : alert("Error generating checkout");
-        navigate("/");
+        return await response.json();
+        // data.ok ? navigate("/dashboard") : alert("Error generating checkout");
+        // navigate("/");
     }
+
+    useEffect(() => {
+        onCheckoutSuccess().then((data) => {
+            // handle the result here if needed
+            // e.g. if (data.ok) navigate("/dashboard");
+        });
+    }, []);
 
     return (
 
@@ -133,6 +141,7 @@ const PricingPage: React.FC = () => {
                         ]}
                         buttonText="Choose Pro"
                         isAnnual={isAnnual}
+                        onClick={generateStripeCheckout}
                     />
                     {/* <PricingCard
             title="Enterprise"
@@ -181,4 +190,35 @@ const PricingPage: React.FC = () => {
     );
 };
 
-export default PricingPage;
+export const SubscriptionSuccessPage: React.FC = () => {
+    const { apiCall } = useApi();
+
+    // checks if the checkout was successful and redirects to the dashboard
+    async function onCheckoutSuccess() {
+        const response = await apiCall("api/payments/checkout/success", {
+            method: 'GET',
+        });
+        return await response.json();
+        // data.ok ? navigate("/dashboard") : alert("Error generating checkout");
+        // navigate("/");
+    }
+
+    useEffect(() => {
+        onCheckoutSuccess().then((data) => {
+            // handle the result here if needed
+            // e.g. if (data.ok) navigate("/dashboard");
+            data.ok ? navigate("/dashboard") : alert("Error generating checkout");
+        });
+    }, []);
+
+    return (
+        <div className="bg-slate-800 text-white">
+            <div className="max-w-6xl mx-auto py-12 px-4 sm:px-6 lg:px-8 pt-32">
+                <h1 className="text-4xl font-bold mb-6 sm:mb-0">Subscription Success</h1>
+                <p className="text-gray-400">You are now a member of the Pro plan.</p>
+                <p className="text-gray-400">You can now access all the features of the Pro plan.</p>
+                <p className="text-gray-400">You can now access all the features of the Pro plan.</p>
+            </div>
+        </div>
+    );
+}
