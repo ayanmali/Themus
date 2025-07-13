@@ -9,7 +9,7 @@ const useApi = () => {
   const apiCall = useCallback(async (url: string, options: RequestInit = {}) => {
     // Check authentication before making request
     if (!auth.isAuthenticated) {
-      navigate('/login');
+       // navigate("/login")
       throw new Error('User not authenticated');
     }
 

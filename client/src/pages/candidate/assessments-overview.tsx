@@ -16,10 +16,12 @@ import {
     TrendingUp,
     Bell
 } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 
 const CandidateDashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const { user } = useAuth();
 
     // Mock candidate data
     const candidateInfo = {
@@ -192,7 +194,7 @@ const CandidateDashboard = () => {
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8">
                     <div>
                         <h1 className="text-3xl font-bold text-white mb-2">
-                            Welcome back, {candidateInfo.name}
+                            Welcome back, {user?.name}
                         </h1>
                         <p className="text-gray-400 flex items-center space-x-2">
                             <Calendar className="w-4 h-4" />

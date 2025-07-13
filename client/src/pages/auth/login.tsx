@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Link } from "wouter"
 import { AuthPageHeader } from "@/components/layout/auth-page-header"
 import { navigate } from "wouter/use-browser-location"
@@ -36,7 +36,9 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   const [isLoading, setIsLoading] = useState(false)
-  const { isAuthenticated, setIsAuthenticated, setUser } = useAuth()
+  const { isAuthenticated, setIsAuthenticated, setUser, isLoading: authLoading } = useAuth();
+
+  console.log("On login page");
 
   const {
     register,
@@ -46,7 +48,12 @@ export function LoginForm({
     resolver: zodResolver(loginSchema)
   })
 
-  isAuthenticated && navigate("/dashboard")
+  // Move navigation logic to useEffect to avoid render-time state updates
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, authLoading]);
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true)

@@ -6,17 +6,12 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Assessment } from "@/lib/types/assessment";
 import AssessmentPagination from "@/components/ui/AssessmentPagination";
 import AssessmentDetails from "./assessment-details";
-import { useAuth } from "@/hooks/use-auth";
-import { navigate } from "wouter/use-browser-location";
 
 export default function EmployerAssessments() {
     const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
     const [editedAssessment, setEditedAssessment] = useState<Assessment | null>(null);
-    const { isAuthenticated } = useAuth();
 
-    if (!isAuthenticated) {
-        navigate("/login");
-    }
+    console.log("On employer assessments page");
 
     // Sample assessment data
     const assessments: Assessment[] = [

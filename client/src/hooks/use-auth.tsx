@@ -7,6 +7,7 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [authStatus, setAuthStatus] = useState<number | null>(null);
 
   const checkAuth = async () => {
     console.log("Checking auth...")
@@ -15,12 +16,21 @@ export const useAuth = () => {
         method: 'GET',
         credentials: 'include'
       });
-      response.ok ? console.log("Auth check successful") : console.log("Auth check unsuccessful")
-      setIsAuthenticated(response.ok);
-      response.ok && setUser(await response.json());
+      
+      if (response.ok) {
+        console.log("Auth check successful")
+        const userData = await response.json();
+        setIsAuthenticated(true);
+        setUser(userData);
+      } else {
+        console.log("Auth check unsuccessful")
+        setIsAuthenticated(false);
+        setUser(null);
+        setAuthStatus(response.status);
+      }
     } catch (error) {
       console.log("Error checking auth:", error)
-      if (error instanceof Error && !error.message.includes("rate limit")) {
+      if (authStatus !== 429) {
         console.log("Auth check unsuccessful, setting auth to false")
         setIsAuthenticated(false)
         setUser(null);
@@ -73,12 +83,12 @@ export const useAuth = () => {
         method: 'POST',
         credentials: 'include'
       })
-      navigate("/login")
     } catch (error) {
       console.error('Logout failed:', error)
     } finally {
       setIsAuthenticated(false)
       setUser(null);
+      navigate("/login")
     }
   }
 
