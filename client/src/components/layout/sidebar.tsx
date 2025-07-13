@@ -10,7 +10,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ open, setOpen }: SidebarProps) {
-  const {user, isAuthenticated, isLoading, logout } = useAuth();
+  const {user, isAuthenticated, isLoading } = useAuth();
 
   const [location] = useLocation();
 
@@ -22,10 +22,14 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
 
   if (isLoading) {
     // Show a sidebar skeleton while loading
+    console.log("Loading sidebar...")
     return <div className="w-64 bg-gray-800">Loading...</div>;
   }
   
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated) {
+    console.log("Not authenticated, sidebar componentreturning null")
+    return null;
+  }
 
   // TODO: replace with actual user data
   // const user: User = {
@@ -164,9 +168,9 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                   </div>
                   <div className="ml-3">
                     <p className="text-sm font-medium text-white">{user?.name}</p>
-                    <p className="text-xs font-medium text-gray-300 capitalize">{user?.orgName ? user?.orgName : "Org Name Here"}</p>
+                    <p className="text-xs font-medium text-gray-300 capitalize">{user?.organizationName ? user?.organizationName : "Org Name Here"}</p>
                   </div>
-                  <button
+                  {/* <button
                     onClick={() => logout()}
                     className="ml-auto text-gray-300 hover:text-white"
                   >
@@ -178,7 +182,7 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                         d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                       />
                     </svg>
-                  </button>
+                  </button> */}
                 </div>
               </div>
             </div>

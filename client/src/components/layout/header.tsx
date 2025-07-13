@@ -1,12 +1,16 @@
 import { Bell, Plus, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuPortal, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from "../ui/dropdown-menu";
+import { Link } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 
 interface HeaderProps {
   setSidebarOpen: (open: boolean) => void;
 }
 
 export function Header({ setSidebarOpen }: HeaderProps) {
+  const { logout } = useAuth();
+  
   return (
     <div className="relative z-10 flex-shrink-0 flex h-16 bg-slate-800 shadow-lg">
       <div className="flex-1 px-4 flex justify-between">
@@ -60,18 +64,11 @@ export function Header({ setSidebarOpen }: HeaderProps) {
 
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
-              <DropdownMenuLabel>More Actions</DropdownMenuLabel>
               <DropdownMenuGroup>
                 <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                  Copy link
+                  New Assessment
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                  View Repository on GitHub
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-slate-700" />
-                <DropdownMenuItem className="hover:bg-slate-700 text-red-400 transition-colors hover:text-white">
-                  Delete Assessment
-                </DropdownMenuItem>
+                
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -114,14 +111,11 @@ export function Header({ setSidebarOpen }: HeaderProps) {
               <DropdownMenuLabel>More Actions</DropdownMenuLabel>
               <DropdownMenuGroup>
                 <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                  Copy link
-                </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                  View Repository on GitHub
+                  View Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-slate-700" />
-                <DropdownMenuItem className="hover:bg-slate-700 text-red-400 transition-colors hover:text-white">
-                  Delete Assessment
+                <DropdownMenuItem className="hover:bg-slate-700 text-red-400 transition-colors hover:text-white" onClick={() => logout()}>
+                  Log out
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>

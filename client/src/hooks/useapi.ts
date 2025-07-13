@@ -46,13 +46,11 @@ const useApi = () => {
           // If still 401 after refresh, redirect to login
           if (response.status === 401) {
             auth.logout();
-            navigate('/login');
             throw new Error('Authentication failed after token refresh');
           }
         } else {
           // Refresh failed, redirect to login
           auth.logout();
-          navigate('/login');
           throw new Error('Token refresh failed');
         }
       }

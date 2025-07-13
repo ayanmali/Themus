@@ -36,7 +36,7 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   const [isLoading, setIsLoading] = useState(false)
-  const { checkAuth } = useAuth()
+  const { isAuthenticated, setIsAuthenticated, setUser } = useAuth()
 
   const {
     register,
@@ -45,6 +45,8 @@ export function LoginForm({
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema)
   })
+
+  isAuthenticated && navigate("/dashboard")
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true)
@@ -70,7 +72,8 @@ export function LoginForm({
       console.log("Login successful:", result);
       
       // Update authentication state after successful login
-      await checkAuth();
+      setIsAuthenticated(true);
+      setUser(result);
       
       // Navigate to dashboard after auth state is updated
       navigate("/dashboard");

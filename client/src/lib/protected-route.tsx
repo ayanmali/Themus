@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
 import { Redirect, Route } from "wouter";
 
 export function ProtectedRoute({
@@ -11,7 +12,7 @@ export function ProtectedRoute({
   component: () => React.JSX.Element;
   role?: "employer" | "candidate";
 }) {
-  const { user, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -23,7 +24,7 @@ export function ProtectedRoute({
     );
   }
 
-  if (!user) {
+  if (!isAuthenticated || !user) {
     return (
       <Route path={path}>
         <Redirect to="/login" />

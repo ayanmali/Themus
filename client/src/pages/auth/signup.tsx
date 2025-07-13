@@ -56,7 +56,7 @@ export function SignupForm({
     ...props
 }: React.ComponentProps<"div">) {
     const [isLoading, setIsLoading] = useState(false)
-    const { checkAuth } = useAuth()
+    const { setIsAuthenticated, setUser } = useAuth()
 
     const {
         register,
@@ -97,7 +97,8 @@ export function SignupForm({
             console.log("Signup successful:", result);
             
             // Update authentication state after successful signup
-            await checkAuth();
+            setIsAuthenticated(true);
+            setUser(result);
             
             // Navigate to dashboard after auth state is updated
             navigate("/dashboard");

@@ -5,5 +5,5 @@ export type User = {
   password: string;
   id: string;
   createdAt?: Date;
-  orgName?: string;
+  organizationName?: string;
 }
