@@ -51,7 +51,7 @@ public class CandidateController {
     }
 
     private User getCurrentUser() {
-        return userService.getUserByEmail(getCurrentUserEmail()).orElseThrow(() -> new RuntimeException("User not found"));
+        return userService.getUserByEmail(getCurrentUserEmail());
     }
 
     private String getCurrentUserEmail() {

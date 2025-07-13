@@ -34,6 +34,7 @@ public class StripeService {
 
     private final String stripeWebhookSecret;
     private final RedisService redisService;
+    private final String STRIPE_SUCCESS_URL;
 
     public static final List<String> EVENT_TYPES = List.of(
             "checkout.session.completed",
@@ -56,11 +57,14 @@ public class StripeService {
             "payment_intent.canceled");
 
     public StripeService(@Value("${stripe.api.key}") String stripeApiKey,
-            @Value("${stripe.webhook.secret}") String stripeWebhookSecret, RedisService redisService) {
+            @Value("${stripe.webhook.secret}") String stripeWebhookSecret,
+            @Value("${stripe.success.url}") String stripeSuccessUrl,
+            RedisService redisService) {
         Stripe.apiKey = stripeApiKey;
         Stripe.setAppInfo("Delphi", "0.0.1", "https://usedelphi.dev");
         this.stripeWebhookSecret = stripeWebhookSecret;
         this.redisService = redisService;
+        this.STRIPE_SUCCESS_URL = stripeSuccessUrl;
     }
 
     public Customer createCustomer(User user) {
@@ -92,7 +96,7 @@ public class StripeService {
         try {
             SessionCreateParams params = SessionCreateParams.builder()
                     .setCustomer(customerId)
-                    .setSuccessUrl("https://usedelphi.dev/checkout/success")
+                    .setSuccessUrl(STRIPE_SUCCESS_URL)
                     // .addLineItem(
                     // SessionCreateParams.LineItem.builder()
                     // .setPrice("price_1MotwRLkdIwHu7ixYcPLm5uZ")

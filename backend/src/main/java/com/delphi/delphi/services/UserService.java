@@ -45,16 +45,16 @@ public class UserService {
     }
 
     // Authenticate user
-    public User authenticate(String email, String password) {
-        User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + email));
+    // public User authenticate(String email, String password) {
+    //     User user = userRepository.findByEmail(email)
+    //         .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + email));
         
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new IllegalArgumentException("Invalid password");
-        }
+    //     if (!passwordEncoder.matches(password, user.getPassword())) {
+    //         throw new IllegalArgumentException("Invalid password");
+    //     }
 
-        return user;
-    }
+    //     return user;
+    // }
     
     // Get user by ID
     @Cacheable(value = "users", key = "#id")
@@ -74,8 +74,8 @@ public class UserService {
     // Get user by email
     @Cacheable(value = "users", key = "#email")
     @Transactional(readOnly = true)
-    public Optional<User> getUserByEmail(String email) {
-        return userRepository.findByEmail(email);
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found with email: " + email));
     }
     
     // Get all users with pagination

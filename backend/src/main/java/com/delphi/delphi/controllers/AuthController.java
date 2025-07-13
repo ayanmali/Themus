@@ -70,13 +70,51 @@ public class AuthController {
     }
 
     private User getCurrentUser() {
-        return userService.getUserByEmail(getCurrentUserEmail()).orElseThrow(() -> new RuntimeException("User not found"));
+        return userService.getUserByEmail(getCurrentUserEmail());
     }
 
     private String getCurrentUserEmail() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Object principal = authentication.getPrincipal();
+        
+        switch (principal) {
+            case UserDetails userDetails -> {
+                return userDetails.getUsername();
+            }
+            case String string -> {
+                return string;
+            }
+            default -> throw new RuntimeException("Unknown principal type: " + principal.getClass());
+        }
+    }
+
+    private Cookie authenticateUser(String email, String password) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(email, password));
+
+        // Set the authentication in the security context
+        SecurityContextHolder.getContext().setAuthentication(authentication);
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        return userDetails.getUsername();
+
+        // Generate tokens
+        String accessToken = jwtService.generateAccessToken(userDetails);
+        jwtService.generateRefreshToken(userDetails);
+
+        // Set the access token in the cookie
+        Cookie authCookie = new Cookie("accessToken", accessToken);
+        authCookie.setMaxAge((int) (jwtAccessExpiration / 1000));
+        authCookie.setHttpOnly(true);
+        authCookie.setSecure(appEnv.equals("prod"));
+        authCookie.setPath("/");
+        
+        // Only set domain in production to avoid issues with empty domain
+        if (appEnv.equals("prod")) {
+            authCookie.setDomain(appDomain);
+        }
+        
+        authCookie.setAttribute("SameSite", "Lax");
+
+        return authCookie;
     }
 
     @GetMapping("/test")
@@ -85,14 +123,8 @@ public class AuthController {
                 "my-new-repo-from-delphi", "test2.txt", null, "\nHello, worldddd!\nballs", "third commit");
     }
 
-    // for the client to check if it is authenticated
-    @GetMapping("/is-authenticated")
-    public ResponseEntity<User> isAuthenticated() {
-        return ResponseEntity.ok(getCurrentUser());
-    }
-
     @PostMapping("/signup/email")
-    public ResponseEntity<?> registerEmail(@Valid @RequestBody NewUserDto newUserDto) {
+    public ResponseEntity<?> registerEmail(@Valid @RequestBody NewUserDto newUserDto, HttpServletResponse response) {
         User user = new User();
         user.setName(newUserDto.getName());
         user.setEmail(newUserDto.getEmail());
@@ -100,35 +132,20 @@ public class AuthController {
         user.setPassword(newUserDto.getPassword()); // sets the raw password -- sefvice method encrypts it
         userService.createUser(user);
 
+        // add auth cookie to response
+        Cookie authCookie = authenticateUser(newUserDto.getEmail(), newUserDto.getPassword());
+        response.addCookie(authCookie);
+
         return ResponseEntity.ok(new FetchUserDto(user));
     }
 
     @PostMapping("/login/email")
     public ResponseEntity<?> loginEmail(@RequestBody PasswordLoginDto passwordLoginDto, HttpServletResponse response) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(passwordLoginDto.getEmail(), passwordLoginDto.getPassword()));
-
-        // Set the authentication in the security context
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-
-        // Generate tokens
-        String accessToken = jwtService.generateAccessToken(userDetails);
-        String refreshToken = jwtService.generateRefreshToken(userDetails);
-
-        // Set the access token in the cookie
-        // create a cookie
-        Cookie authCookie = new Cookie("accessToken", accessToken);
-        authCookie.setMaxAge((int) (jwtAccessExpiration / 1000));
-        authCookie.setHttpOnly(true);
-        authCookie.setSecure(appEnv.equals("prod"));
-        authCookie.setPath("/");
-        authCookie.setDomain(appEnv.equals("prod") ? appDomain : "");
-        authCookie.setAttribute("SameSite", "Lax");
         // add cookie to response
+        Cookie authCookie = authenticateUser(passwordLoginDto.getEmail(), passwordLoginDto.getPassword());
         response.addCookie(authCookie);
 
-        return ResponseEntity.ok(new AuthResponseDto(accessToken, refreshToken, userDetails.getUsername()));
+        return ResponseEntity.ok(new FetchUserDto(getCurrentUser()));
     }
 
     @PostMapping("/refresh")
@@ -146,8 +163,7 @@ public class AuthController {
             refreshTokenService.save(refreshTokenEntity);
 
             User user = refreshTokenEntity.getUser();
-            UserDetails userDetails = userService.getUserByEmail(user.getEmail())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+            UserDetails userDetails = userService.getUserByEmail(user.getEmail());
 
             // Generate new tokens
             String newAccessToken = jwtService.generateAccessToken(userDetails);

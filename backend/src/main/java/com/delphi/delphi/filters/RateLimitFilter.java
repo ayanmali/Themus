@@ -2,6 +2,8 @@ package com.delphi.delphi.filters;
 
 import java.io.IOException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -13,11 +15,12 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Component
-@Order(3)
+@Order(4) // Run after JWT filter and Security filter
 // Token bucket rate limiting
 public class RateLimitFilter implements Filter {
 
@@ -26,6 +29,7 @@ public class RateLimitFilter implements Filter {
 
     private final RedisService redisService;
     private final JwtService jwtService;
+    private final Logger log = LoggerFactory.getLogger(RateLimitFilter.class);
 
     public RateLimitFilter(RedisService redisService, JwtService jwtService) {
         this.redisService = redisService;
@@ -38,35 +42,59 @@ public class RateLimitFilter implements Filter {
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
         
-        // Skip JWT validation for permitted endpoints
+        // Skip rate limiting for permitted endpoints
         String requestPath = req.getRequestURI();
         if (requestPath.startsWith("/api/auth/") || requestPath.equals("/")) {
+            log.info("RateLimitFilter - Skipping rate limiting for permitted endpoint: {}", requestPath);
             chain.doFilter(request, response);
             return;
         }
 
-        String authHeader = req.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            res.getWriter().write("{\"error\":\"Error in rate limiting filter:No auth token provided\"}");
-            return;
+        // Look for JWT token in cookies first (like JwtAuthFilter does)
+        String jwt = null;
+        Cookie[] cookies = req.getCookies();
+        
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("accessToken".equals(cookie.getName())) {
+                    jwt = cookie.getValue();
+                    log.info("RateLimitFilter - JWT token found in cookies");
+                    break;
+                }
+            }
+        }
+        
+        // If not found in cookies, check Authorization header
+        if (jwt == null) {
+            String authHeader = req.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                jwt = authHeader.substring(7);
+                log.info("RateLimitFilter - JWT token found in Authorization header");
+            }
         }
 
-        // Extract JWT from auth header
-        String jwt = authHeader.substring(7);
+        // If no JWT token found, skip rate limiting (let other filters handle authentication)
+        if (jwt == null) {
+            log.info("RateLimitFilter - No JWT token found, skipping rate limiting");
+            chain.doFilter(request, response);
+            return;
+        }
         
         // Validate JWT first
         if (!jwtService.validateToken(jwt)) {
+            log.warn("RateLimitFilter - Invalid JWT token provided");
             res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             res.getWriter().write("{\"error\":\"Invalid token\"}");
             return;
         }
 
         String email = jwtService.extractUsername(jwt);
+        log.info("RateLimitFilter - Checking rate limit for user: {}", email);
         
         // Implement the rate limiting algorithm from pseudocode
         if (!isRequestAllowed(email)) {
             // Line 3: Show error message and end connection
+            log.warn("RateLimitFilter - Rate limit exceeded for user: {}", email);
             res.setStatus(429); // HTTP 429 Too Many Requests
             res.setContentType("application/json");
             res.getWriter().write("{\"error\":\"Rate limit exceeded. Maximum " + RATE_LIMIT_PER_MINUTE + " requests per minute.\"}");
@@ -74,6 +102,7 @@ public class RateLimitFilter implements Filter {
         }
 
         // Line 5: Allow request - do service stuff (continue to next filter)
+        log.info("RateLimitFilter - Request allowed for user: {}", email);
         chain.doFilter(request, response);
     }
 
@@ -98,6 +127,7 @@ public class RateLimitFilter implements Filter {
             // Check if the new count exceeds the limit
             return newCount <= RATE_LIMIT_PER_MINUTE;
         } catch (Exception e) {
+            log.error("RateLimitFilter - Redis error, allowing request: {}", e.getMessage());
             // In case of Redis error, allow the request (fail open)
             return true;
         }

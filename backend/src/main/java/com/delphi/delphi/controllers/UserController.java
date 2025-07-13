@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -52,6 +54,8 @@ public class UserController {
      private final String clientSecret;
 
      private final RestTemplate restTemplate;
+
+     private final Logger log = LoggerFactory.getLogger(UserController.class);
  
      private final String TOKEN_URL = "https://github.com/login/oauth/access_token";
 
@@ -63,13 +67,20 @@ public class UserController {
     }
 
     private User getCurrentUser() {
-        return userService.getUserByEmail(getCurrentUserEmail()).orElseThrow(() -> new RuntimeException("User not found"));
+        return userService.getUserByEmail(getCurrentUserEmail());
     }
 
     private String getCurrentUserEmail() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         return userDetails.getUsername();
+    }
+
+    // for the client to check if it is authenticated
+    @GetMapping("/is-authenticated")
+    public ResponseEntity<FetchUserDto> isAuthenticated() {
+        log.info("Checking if user is authenticated");
+        return ResponseEntity.ok(new FetchUserDto(getCurrentUser()));
     }
     
     // Create a new user
@@ -112,12 +123,8 @@ public class UserController {
     @GetMapping("/email/{email}")
     public ResponseEntity<?> getUserByEmail(@PathVariable String email) {
         try {
-            Optional<User> user = userService.getUserByEmail(email);
-            if (user.isPresent()) {
-                return ResponseEntity.ok(new FetchUserDto(user.get()));
-            } else {
-                return ResponseEntity.notFound().build();
-            }
+            User user = userService.getUserByEmail(email);
+            return ResponseEntity.ok(new FetchUserDto(user));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error retrieving user: " + e.getMessage());

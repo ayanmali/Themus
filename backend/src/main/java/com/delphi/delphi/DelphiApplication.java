@@ -25,7 +25,7 @@ public class DelphiApplication {
 	// TODO: add authorization to all endpoints
 	// TODO: add more endpoints for data access
 	private User getCurrentUser() {
-        return userService.getUserByEmail(getCurrentUserEmail()).orElseThrow(() -> new RuntimeException("User not found"));
+        return userService.getUserByEmail(getCurrentUserEmail());
     }
 
     private String getCurrentUserEmail() {

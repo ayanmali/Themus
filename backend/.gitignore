@@ -33,5 +33,5 @@ build/
 .vscode/
 
 **application.properties
-**properties.prod
+**prod.properties
 **AssessmentCreationPrompts.java
