@@ -164,7 +164,7 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
                   </div>
                   <div className="ml-3">
                     <p className="text-sm font-medium text-white">{user?.name}</p>
-                    <p className="text-xs font-medium text-gray-300 capitalize">{user?.orgName ? user?.orgName : ""}</p>
+                    <p className="text-xs font-medium text-gray-300 capitalize">{user?.orgName ? user?.orgName : "Org Name Here"}</p>
                   </div>
                   <button
                     onClick={() => logout()}

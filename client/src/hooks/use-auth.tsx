@@ -35,7 +35,7 @@ export const useAuth = () => {
         await checkAuth();
         return true;
       }
-      
+
       // Refresh failed, clear auth state
       setIsAuthenticated(false);
       setUser(null);
@@ -54,6 +54,7 @@ export const useAuth = () => {
   }, [])
 
   const logout = async () => {
+    console.log("Logging out...");
     try {
       await fetch(`${API_URL}/api/auth/logout`, {
         method: 'POST',

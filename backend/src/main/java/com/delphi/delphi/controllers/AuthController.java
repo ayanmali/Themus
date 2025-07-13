@@ -3,6 +3,8 @@ package com.delphi.delphi.controllers;
 import java.time.Instant;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -55,6 +57,8 @@ public class AuthController {
 
     private final String appDomain;
 
+    private final Logger log = LoggerFactory.getLogger(AuthController.class);
+
     public AuthController(RestTemplate restTemplate, UserService userService, GithubClient githubClient,
             JwtService jwtService, RefreshTokenService refreshTokenService,
             AuthenticationManager authenticationManager, @Value("${jwt.access.expiration}") long jwtAccessExpiration,
@@ -96,6 +100,10 @@ public class AuthController {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         User user = userService.getUserByEmail(email);
+
+        // Delete any existing refresh token for this user before creating a new one
+        // This prevents the unique constraint violation since RefreshToken has @OneToOne with User
+        refreshTokenService.deleteRefreshToken(user);
 
         // Generate tokens
         String accessToken = jwtService.generateAccessToken(userDetails);
@@ -184,9 +192,8 @@ public class AuthController {
                 throw new TokenRefreshException("Refresh token expired or used");
             }
 
-            // Mark current token as used
-            refreshTokenEntity.setUsed(true);
-            refreshTokenService.save(refreshTokenEntity);
+            // Delete the old refresh token (implements token rotation)
+            refreshTokenService.deleteRefreshToken(refreshTokenEntity);
 
             User user = refreshTokenEntity.getUser();
             UserDetails userDetails = userService.getUserByEmail(user.getEmail());
@@ -228,6 +235,7 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
+        log.info("Logging out");
         try {
             // Get refresh token from cookies to delete it from database
             String refreshTokenValue = null;
@@ -255,6 +263,7 @@ public class AuthController {
             // Clear access token cookie
             Cookie accessCookie = new Cookie("accessToken", null);
             accessCookie.setMaxAge(0);
+            log.info("Cleared access token cookie");
             accessCookie.setHttpOnly(true);
             accessCookie.setSecure(appEnv.equals("prod"));
             accessCookie.setPath("/");
@@ -262,6 +271,7 @@ public class AuthController {
             // Clear refresh token cookie
             Cookie refreshCookie = new Cookie("refreshToken", null);
             refreshCookie.setMaxAge(0);
+            log.info("Cleared refresh token cookie");
             refreshCookie.setHttpOnly(true);
             refreshCookie.setSecure(appEnv.equals("prod"));
             refreshCookie.setPath("/");
