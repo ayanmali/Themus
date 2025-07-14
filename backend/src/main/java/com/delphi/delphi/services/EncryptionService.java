@@ -15,14 +15,14 @@ import org.springframework.stereotype.Service;
 public class EncryptionService {
 
     private final SecretKey secretKey;
-    private final String salt;
-    private static final int KEY_SIZE = 256; // 256 bits
+    // private final String salt;
+    // private static final int KEY_SIZE = 256; // 256 bits
     private static final int DATA_LENGTH = 128; // 128 bits
     private static final String ALGORITHM = "AES/GCM/NoPadding"; // AES/GCM/NoPadding
 
-    public EncryptionService(@Value("${encryption.secret-key}") String secretKey, @Value("${encryption.salt}") String salt) {
+    public EncryptionService(@Value("${encryption.secret-key}") String secretKey) {
         this.secretKey = new SecretKeySpec(secretKey.getBytes(), "AES");
-        this.salt = salt;
+        //this.salt = salt;
     }
 
     // Encrypt a string (github PAT) using AES/GCM

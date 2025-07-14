@@ -37,7 +37,9 @@ import org.springframework.web.client.RestTemplate;
 
 import com.delphi.delphi.dtos.FetchUserDto;
 import com.delphi.delphi.dtos.NewUserDto;
+import com.delphi.delphi.entities.GithubAppInstallation;
 import com.delphi.delphi.entities.User;
+import com.delphi.delphi.services.GithubAppService;
 import com.delphi.delphi.services.UserService;
 
 import jakarta.validation.Valid;
@@ -48,7 +50,7 @@ public class UserController {
     
     private final UserService userService;
 
-     // github client id and secret
+     // github client id and secret (for OAuth Apps)
      private final String clientId;
  
      private final String clientSecret;
@@ -59,11 +61,19 @@ public class UserController {
  
      private final String TOKEN_URL = "https://github.com/login/oauth/access_token";
 
-    public UserController(UserService userService, @Value("${spring.security.oauth2.client.registration.github.client-id}") String clientId, @Value("${spring.security.oauth2.client.registration.github.client-secret}") String clientSecret, RestTemplate restTemplate) {
+     // GitHub App service
+     private final GithubAppService githubAppService;
+
+    public UserController(UserService userService, 
+                         @Value("${spring.security.oauth2.client.registration.github.client-id}") String clientId, 
+                         @Value("${spring.security.oauth2.client.registration.github.client-secret}") String clientSecret, 
+                         RestTemplate restTemplate,
+                         GithubAppService githubAppService) {
         this.userService = userService;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.restTemplate = restTemplate;
+        this.githubAppService = githubAppService;
     }
 
     private User getCurrentUser() {
@@ -82,6 +92,8 @@ public class UserController {
         log.info("Checking if user is authenticated");
         return ResponseEntity.ok(new FetchUserDto(getCurrentUser()));
     }
+
+    @GetMapping("/dashboard")
     
     // Create a new user
     @PostMapping
@@ -320,7 +332,69 @@ public class UserController {
         }
     }
 
-    @GetMapping("/oauth/github/callback")
+    // Initiate GitHub OAuth flow
+    @GetMapping("/github/login")
+    public ResponseEntity<?> initiateGithubOAuth(@RequestParam(required = false) String redirectUri) {
+        try {
+            String scope = "user:email"; // Required scopes for user info and email access
+            String state = java.util.UUID.randomUUID().toString(); // CSRF protection
+            
+            // Build GitHub OAuth URL
+            String githubAuthUrl = String.format(
+                "https://github.com/login/oauth/authorize?client_id=%s&scope=%s&state=%s",
+                clientId, scope, state
+            );
+            
+            if (redirectUri != null && !redirectUri.isEmpty()) {
+                githubAuthUrl += "&redirect_uri=" + redirectUri;
+            }
+            
+            log.info("Initiating GitHub OAuth flow with URL: {}", githubAuthUrl);
+            
+            return ResponseEntity.ok(Map.of(
+                "authUrl", githubAuthUrl,
+                "state", state
+            ));
+        } catch (Exception e) {
+            log.error("Error initiating GitHub OAuth: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error initiating GitHub OAuth: " + e.getMessage());
+        }
+    }
+
+    // Test GitHub configuration
+    @GetMapping("/github/test-config")
+    public ResponseEntity<?> testGithubConfig() {
+        try {
+            // Check if client credentials are configured
+            if (clientId == null || clientId.isEmpty()) {
+                return ResponseEntity.badRequest().body("GitHub client ID is not configured");
+            }
+            if (clientSecret == null || clientSecret.isEmpty()) {
+                return ResponseEntity.badRequest().body("GitHub client secret is not configured");
+            }
+            
+            // Test with a dummy code to see what GitHub returns
+            log.info("GitHub OAuth configuration test:");
+            log.info("Client ID: {}", clientId.substring(0, Math.min(clientId.length(), 10)) + "...");
+            log.info("Client Secret configured: {}", !clientSecret.isEmpty());
+            log.info("Token URL: {}", TOKEN_URL);
+            
+            return ResponseEntity.ok(Map.of(
+                "clientIdConfigured", !clientId.isEmpty(),
+                "clientSecretConfigured", !clientSecret.isEmpty(),
+                "tokenUrl", TOKEN_URL,
+                "message", "GitHub OAuth configuration appears valid"
+            ));
+        } catch (Exception e) {
+            log.error("Error testing GitHub config: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error testing GitHub configuration: " + e.getMessage());
+        }
+    }
+
+    // @GetMapping("/oauth/github/callback")
+    @GetMapping("/github/callback")
     /*
      * This endpoint is automatically called by GitHub after the user has
      * authenticated.
@@ -329,23 +403,52 @@ public class UserController {
      * The access token is stored in the database.
      * The access token is used to authenticate the user with the GitHub API.
      */
-    public ResponseEntity<?> githubCallback(@RequestParam String code) {
+    public ResponseEntity<?> githubCallback(@RequestParam String code, @RequestParam(required = false) String state) {
         try {
+            log.info("Processing GitHub callback with code: {}", code.substring(0, Math.min(code.length(), 10)) + "...");
+            
+            // Exchange authorization code for access token
             HttpHeaders headers = new HttpHeaders();
             headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED); // GitHub expects form data
             MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
             params.add("client_id", clientId);
             params.add("client_secret", clientSecret);
             params.add("code", code);
 
             HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+            
+            log.info("Requesting access token from GitHub");
             ResponseEntity<Map> response = restTemplate.postForEntity(TOKEN_URL, request, Map.class);
+            
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                log.error("Failed to get access token. HTTP Status: {}", response.getStatusCode());
+                return ResponseEntity.badRequest().body("Failed to get access token from GitHub");
+            }
 
             Map<String, Object> body = response.getBody();
+            log.info("Token exchange response: {}", body);
+            
             if (body == null) {
-                return ResponseEntity.badRequest().body("Failed to get access token");
+                log.error("Token exchange response body is null");
+                return ResponseEntity.badRequest().body("Failed to get access token: empty response");
             }
+            
+            // Check for error in response
+            if (body.containsKey("error")) {
+                String error = (String) body.get("error");
+                String errorDescription = (String) body.get("error_description");
+                log.error("GitHub OAuth error: {} - {}", error, errorDescription);
+                return ResponseEntity.badRequest().body("GitHub OAuth error: " + error + " - " + errorDescription);
+            }
+            
             String accessToken = (String) body.get("access_token");
+            if (accessToken == null || accessToken.isEmpty()) {
+                log.error("Access token is null or empty. Response body: {}", body);
+                return ResponseEntity.badRequest().body("Failed to get access token: token is null or empty");
+            }
+            
+            log.info("Successfully obtained access token");
 
             // Get user information from GitHub API
             HttpHeaders userHeaders = new HttpHeaders();
@@ -353,24 +456,37 @@ public class UserController {
             userHeaders.setAccept(List.of(MediaType.APPLICATION_JSON));
 
             HttpEntity<?> userRequest = new HttpEntity<>(userHeaders);
+            
+            log.info("Requesting user information from GitHub API");
             ResponseEntity<Map> userResponse = restTemplate.exchange(
                     "https://api.github.com/user",
                     HttpMethod.GET,
                     userRequest,
                     Map.class);
 
+            if (!userResponse.getStatusCode().is2xxSuccessful()) {
+                log.error("Failed to get user information. HTTP Status: {}, Body: {}", 
+                         userResponse.getStatusCode(), userResponse.getBody());
+                return ResponseEntity.badRequest().body("Failed to get user information from GitHub API. Status: " + userResponse.getStatusCode());
+            }
+
             Map<String, Object> userBody = userResponse.getBody();
             if (userBody == null) {
-                return ResponseEntity.badRequest().body("Failed to get user information");
+                log.error("User information response body is null");
+                return ResponseEntity.badRequest().body("Failed to get user information: empty response");
             }
 
             String githubUsername = (String) userBody.get("login");
             String name = (String) userBody.get("name");
             String email = (String) userBody.get("email");
+            
+            log.info("Successfully retrieved user information for GitHub user: {}", githubUsername);
 
             // Updating user's github credentials in DB
             User user = getCurrentUser();
             userService.updateGithubCredentials(user.getId(), accessToken, githubUsername);
+            
+            log.info("Successfully updated GitHub credentials for user: {}", user.getEmail());
 
             return ResponseEntity.ok(Map.of(
                     "access_token", accessToken,
@@ -378,7 +494,235 @@ public class UserController {
                     "name", name != null ? name : githubUsername,
                     "email", email != null ? email : ""));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+            log.error("Error in GitHub callback: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error processing GitHub callback: " + e.getMessage());
+        }
+    }
+
+    // ============= GITHUB APP ENDPOINTS =============
+
+    // Get GitHub App installation URL
+    @GetMapping("/github-app/install")
+    public ResponseEntity<?> getGithubAppInstallUrl(@RequestParam(required = false) String redirectUri) {
+        try {
+            // GitHub App installation URL
+            String installUrl = String.format(
+                "https://github.com/apps/YOUR_APP_NAME/installations/new"
+            );
+            
+            if (redirectUri != null && !redirectUri.isEmpty()) {
+                installUrl += "?state=" + java.util.Base64.getEncoder().encodeToString(redirectUri.getBytes());
+            }
+            
+            log.info("Providing GitHub App installation URL: {}", installUrl);
+            
+            return ResponseEntity.ok(Map.of(
+                "installUrl", installUrl,
+                "message", "Redirect user to this URL to install the GitHub App"
+            ));
+        } catch (Exception e) {
+            log.error("Error generating GitHub App install URL: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error generating GitHub App install URL: " + e.getMessage());
+        }
+    }
+
+    // Handle GitHub App installation callback (webhook)
+    @PostMapping("/github-app/installation")
+    public ResponseEntity<?> handleGithubAppInstallation(@RequestBody Map<String, Object> payload) {
+        try {
+            log.info("Received GitHub App installation event: {}", payload);
+            
+            String action = (String) payload.get("action");
+            Map<String, Object> installation = (Map<String, Object>) payload.get("installation");
+            Map<String, Object> account = (Map<String, Object>) installation.get("account");
+            
+            Long installationId = ((Number) installation.get("id")).longValue();
+            String accountLogin = (String) account.get("login");
+            Long accountId = ((Number) account.get("id")).longValue();
+            String accountType = (String) account.get("type");
+            String repositorySelection = (String) installation.get("repository_selection");
+            
+            // For now, associate with the currently authenticated user
+            // In a real implementation, you might use a state parameter or separate flow
+            User currentUser = getCurrentUser();
+            
+            switch (action) {
+                case "created":
+                    // New installation
+                    GithubAppInstallation newInstallation = githubAppService.createOrUpdateInstallation(
+                        installationId, accountLogin, accountId, accountType, 
+                        repositorySelection, payload.toString(), currentUser
+                    );
+                    
+                    log.info("Created GitHub App installation for user {} and account {}", 
+                            currentUser.getEmail(), accountLogin);
+                    
+                    return ResponseEntity.ok(Map.of(
+                        "message", "GitHub App installed successfully",
+                        "installationId", installationId,
+                        "accountLogin", accountLogin
+                    ));
+                    
+                case "deleted":
+                    // Installation removed
+                    githubAppService.removeInstallation(installationId);
+                    log.info("Removed GitHub App installation {} for account {}", installationId, accountLogin);
+                    
+                    return ResponseEntity.ok(Map.of(
+                        "message", "GitHub App installation removed",
+                        "installationId", installationId
+                    ));
+                    
+                case "suspend":
+                    // Installation suspended
+                    githubAppService.suspendInstallation(installationId);
+                    log.info("Suspended GitHub App installation {} for account {}", installationId, accountLogin);
+                    
+                    return ResponseEntity.ok(Map.of(
+                        "message", "GitHub App installation suspended",
+                        "installationId", installationId
+                    ));
+                    
+                default:
+                    log.warn("Unhandled GitHub App installation action: {}", action);
+                    return ResponseEntity.ok(Map.of("message", "Event received but not handled"));
+            }
+            
+        } catch (Exception e) {
+            log.error("Error handling GitHub App installation: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error handling GitHub App installation: " + e.getMessage());
+        }
+    }
+
+    // Test GitHub App configuration
+    @GetMapping("/github-app/test-config")
+    public ResponseEntity<?> testGithubAppConfig() {
+        try {
+            boolean isValid = githubAppService.isConfigurationValid();
+            
+            if (!isValid) {
+                return ResponseEntity.badRequest().body("GitHub App configuration is invalid");
+            }
+            
+            // Get app info
+            Map<String, Object> appInfo = githubAppService.getAppInfo();
+            String appName = (String) appInfo.get("name");
+            String appSlug = (String) appInfo.get("slug");
+            
+            return ResponseEntity.ok(Map.of(
+                "configurationValid", true,
+                "appName", appName,
+                "appSlug", appSlug,
+                "message", "GitHub App configuration is valid"
+            ));
+        } catch (Exception e) {
+            log.error("Error testing GitHub App config: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error testing GitHub App configuration: " + e.getMessage());
+        }
+    }
+
+    // Get user's GitHub App installations
+    @GetMapping("/github-app/installations")
+    public ResponseEntity<?> getUserGithubAppInstallations() {
+        try {
+            User currentUser = getCurrentUser();
+            List<GithubAppInstallation> installations = githubAppService.getUserInstallations(currentUser);
+            
+            return ResponseEntity.ok(installations.stream().map(installation -> Map.of(
+                "installationId", installation.getInstallationId(),
+                "accountLogin", installation.getAccountLogin(),
+                "accountType", installation.getAccountType(),
+                "repositorySelection", installation.getRepositorySelection(),
+                "createdDate", installation.getCreatedDate(),
+                "suspended", installation.isSuspended()
+            )).toList());
+        } catch (Exception e) {
+            log.error("Error retrieving user GitHub App installations: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error retrieving GitHub App installations: " + e.getMessage());
+        }
+    }
+
+    // Get installation access token for GitHub API calls
+    @GetMapping("/github-app/installation/{installationId}/token")
+    public ResponseEntity<?> getInstallationToken(@PathVariable Long installationId) {
+        try {
+            User currentUser = getCurrentUser();
+            
+            // Verify that the user has access to this installation
+            List<GithubAppInstallation> userInstallations = githubAppService.getUserInstallations(currentUser);
+            boolean hasAccess = userInstallations.stream()
+                .anyMatch(inst -> inst.getInstallationId().equals(installationId));
+            
+            if (!hasAccess) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Access denied to installation " + installationId);
+            }
+            
+            String accessToken = githubAppService.getInstallationAccessToken(installationId);
+            
+            return ResponseEntity.ok(Map.of(
+                "accessToken", accessToken,
+                "installationId", installationId,
+                "message", "Installation token retrieved successfully"
+            ));
+        } catch (Exception e) {
+            log.error("Error retrieving installation token: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error retrieving installation token: " + e.getMessage());
+        }
+    }
+
+    // Manual installation setup (alternative to webhook)
+    @PostMapping("/github-app/setup")
+    public ResponseEntity<?> setupGithubAppInstallation(
+            @RequestParam Long installationId,
+            @RequestParam String accountLogin) {
+        try {
+            User currentUser = getCurrentUser();
+            
+            // Verify installation exists and get details from GitHub
+            List<Map<String, Object>> allInstallations = githubAppService.getAppInstallations();
+            
+            Optional<Map<String, Object>> installationOpt = allInstallations.stream()
+                .filter(inst -> ((Number) inst.get("id")).longValue() == installationId)
+                .findFirst();
+            
+            if (installationOpt.isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body("Installation " + installationId + " not found");
+            }
+            
+            Map<String, Object> installation = installationOpt.get();
+            Map<String, Object> account = (Map<String, Object>) installation.get("account");
+            
+            Long accountId = ((Number) account.get("id")).longValue();
+            String accountType = (String) account.get("type");
+            String repositorySelection = (String) installation.get("repository_selection");
+            
+            // Create the installation record
+            GithubAppInstallation appInstallation = githubAppService.createOrUpdateInstallation(
+                installationId, accountLogin, accountId, accountType, 
+                repositorySelection, installation.toString(), currentUser
+            );
+            
+            log.info("Manually set up GitHub App installation {} for user {}", 
+                    installationId, currentUser.getEmail());
+            
+            return ResponseEntity.ok(Map.of(
+                "message", "GitHub App installation set up successfully",
+                "installationId", installationId,
+                "accountLogin", accountLogin
+            ));
+            
+        } catch (Exception e) {
+            log.error("Error setting up GitHub App installation: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error setting up GitHub App installation: " + e.getMessage());
         }
     }
 } 

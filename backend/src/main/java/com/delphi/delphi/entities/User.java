@@ -74,6 +74,10 @@ public class User implements UserDetails {
     // One-to-many relationship with Candidate
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Candidate> candidates;
+    
+    // One-to-many relationship with GitHub App Installations
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<GithubAppInstallation> githubAppInstallations;
 
     public User() {
     }
@@ -174,6 +178,14 @@ public class User implements UserDetails {
 
     public void setCandidates(List<Candidate> candidates) {
         this.candidates = candidates;
+    }
+
+    public List<GithubAppInstallation> getGithubAppInstallations() {
+        return githubAppInstallations;
+    }
+
+    public void setGithubAppInstallations(List<GithubAppInstallation> githubAppInstallations) {
+        this.githubAppInstallations = githubAppInstallations;
     }
 
     @Override

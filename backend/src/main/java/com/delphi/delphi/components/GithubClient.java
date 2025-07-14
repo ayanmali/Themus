@@ -18,6 +18,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import com.delphi.delphi.entities.ChatHistory;
 import com.delphi.delphi.entities.ChatMessage;
 import com.delphi.delphi.repositories.ChatHistoryRepository;
+import com.delphi.delphi.services.GithubAppService;
 import com.delphi.delphi.utils.git.GithubBranchDetails;
 import com.delphi.delphi.utils.git.GithubFile;
 import com.delphi.delphi.utils.git.GithubReference;
@@ -45,15 +46,18 @@ public class GithubClient {
     private final RestTemplate restTemplate;
     private final HttpHeaders headers;
     private final Map<String, String> committer;
+    private final GithubAppService githubAppService;
 
     public GithubClient(RestTemplate restTemplate, HttpHeaders githubClientheaders, Map<String, String> committer,
             // ChatMessageRepository chatMessageRepository,
-            ChatHistoryRepository chatHistoryRepository) {
+            ChatHistoryRepository chatHistoryRepository,
+            GithubAppService githubAppService) {
         this.restTemplate = restTemplate;
         this.headers = githubClientheaders;
         this.committer = committer;
         // this.chatMessageRepository = chatMessageRepository;
         this.chatHistoryRepository = chatHistoryRepository;
+        this.githubAppService = githubAppService;
     }
 
     public ResponseEntity<GithubRepoContents> createRepo(String accessToken, String repoName) {
@@ -284,4 +288,127 @@ public class GithubClient {
     // }
     // throw new RuntimeException("Failed to get branch SHA");
     // }
+
+    // ============= GITHUB APP METHODS =============
+
+    /**
+     * Create repository using GitHub App installation token
+     */
+    public ResponseEntity<GithubRepoContents> createRepoWithInstallation(Long installationId, String repoName) {
+        try {
+            String url = "https://api.github.com/user/repos";
+            String installationToken = githubAppService.getInstallationAccessToken(installationId);
+
+            headers.setBearerAuth(installationToken);
+            headers.set("X-GitHub-Api-Version", "2022-11-28");
+
+            Map<String, Object> body = Map.of(
+                    "name", repoName,
+                    "private", true);
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+            return restTemplate.postForEntity(url, entity, GithubRepoContents.class);
+        } catch (RestClientException e) {
+            throw new RuntimeException("Error creating repo with GitHub App: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Add file to repository using GitHub App installation token
+     */
+    public ResponseEntity<GithubFile> addFileToRepoWithInstallation(Long installationId, String owner, String repo, 
+            String path, String branch, String content, String commitMessage) {
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
+            String installationToken = githubAppService.getInstallationAccessToken(installationId);
+
+            headers.setBearerAuth(installationToken);
+            headers.set("X-GitHub-Api-Version", "2022-11-28");
+
+            String base64Content = Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
+
+            Map<String, Object> body = Map.of(
+                    "message", commitMessage,
+                    "content", base64Content,
+                    "branch", branch,
+                    "committer", committer);
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+            return restTemplate.exchange(url, HttpMethod.PUT, entity, GithubFile.class);
+        } catch (RestClientException e) {
+            throw new RuntimeException("Error adding file to repo with GitHub App: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get repository contents using GitHub App installation token
+     */
+    public ResponseEntity<GithubRepoContents> getRepoContentsWithInstallation(Long installationId, String owner, 
+            String repo, String path, String branch) {
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
+            if (branch != null) {
+                url += "?ref=" + branch;
+            }
+
+            String installationToken = githubAppService.getInstallationAccessToken(installationId);
+            headers.setBearerAuth(installationToken);
+            headers.set("X-GitHub-Api-Version", "2022-11-28");
+
+            HttpEntity<?> entity = new HttpEntity<>(headers);
+            return restTemplate.exchange(url, HttpMethod.GET, entity, GithubRepoContents.class);
+        } catch (RestClientException e) {
+            throw new RuntimeException("Error getting repo contents with GitHub App: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get repository branches using GitHub App installation token
+     */
+    public ResponseEntity<List<GithubRepoBranch>> getRepoBranchesWithInstallation(Long installationId, String owner, String repo) {
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/branches", owner, repo);
+            String installationToken = githubAppService.getInstallationAccessToken(installationId);
+
+            headers.setBearerAuth(installationToken);
+            headers.set("X-GitHub-Api-Version", "2022-11-28");
+
+            HttpEntity<?> entity = new HttpEntity<>(headers);
+            return restTemplate.exchange(
+                url, 
+                HttpMethod.GET, 
+                entity, 
+                new ParameterizedTypeReference<List<GithubRepoBranch>>() {}
+            );
+        } catch (RestClientException e) {
+            throw new RuntimeException("Error getting repo branches with GitHub App: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Edit file using GitHub App installation token
+     */
+    public ResponseEntity<GithubFile> editFileWithInstallation(Long installationId, String owner, String repo, 
+            String path, String content, String commitMessage, String sha) {
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
+            String installationToken = githubAppService.getInstallationAccessToken(installationId);
+
+            headers.setBearerAuth(installationToken);
+            headers.set("X-GitHub-Api-Version", "2022-11-28");
+
+            String base64Content = Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
+
+            Map<String, Object> body = Map.of(
+                    "message", commitMessage,
+                    "content", base64Content,
+                    "sha", sha,
+                    "committer", committer);
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+            return restTemplate.exchange(url, HttpMethod.PUT, entity, GithubFile.class);
+        } catch (RestClientException e) {
+            throw new RuntimeException("Error editing file with GitHub App: " + e.getMessage());
+        }
+    }
 }
