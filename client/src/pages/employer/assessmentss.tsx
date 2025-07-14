@@ -6,12 +6,11 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Assessment } from "@/lib/types/assessment";
 import AssessmentPagination from "@/components/ui/AssessmentPagination";
 import AssessmentDetails from "./assessment-details";
+import { Link } from "wouter";
 
 export default function EmployerAssessments() {
     const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
     const [editedAssessment, setEditedAssessment] = useState<Assessment | null>(null);
-
-    console.log("On employer assessments page");
 
     // Sample assessment data
     const assessments: Assessment[] = [
@@ -147,10 +146,12 @@ export default function EmployerAssessments() {
                         </p>
                     </div>
                     <div className="flex space-x-3">
-                        <button className="bg-slate-700 hover:bg-blue-700 text-gray-100 text-sm px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
-                            <Plus className="w-4 h-4" />
-                            <span>Create Assessment</span>
-                        </button>
+                        <Link href="/assessments/new">
+                            <button className="bg-slate-700 hover:bg-blue-700 text-gray-100 text-sm px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
+                                <Plus className="w-4 h-4" />
+                                <span>Create Assessment</span>
+                            </button>
+                        </Link>
                         <button className="bg-slate-700 hover:bg-blue-700 text-gray-100 text-sm px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
                             <Eye className="w-4 h-4" />
                             <span>View All</span>

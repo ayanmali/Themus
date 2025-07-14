@@ -14,12 +14,6 @@ import { useAuth } from "@/hooks/use-auth";
 export default function EmployerCandidates() {
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { isAuthenticated } = useAuth();
-
-  if (!isAuthenticated) {
-    navigate("/login");
-  }
-
   // Mock candidates for demonstration
   const candidates: Candidate[] = [
     {

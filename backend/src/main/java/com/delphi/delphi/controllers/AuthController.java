@@ -189,7 +189,9 @@ public class AuthController {
             RefreshToken refreshTokenEntity = refreshTokenService.verifyRefreshToken(refreshTokenValue);
             if (refreshTokenEntity.isUsed() || refreshTokenEntity.getExpiryDate().isBefore(Instant.now())) {
                 refreshTokenService.deleteRefreshToken(refreshTokenEntity);
-                throw new TokenRefreshException("Refresh token expired or used");
+                // user must log in again
+                // throw new TokenRefreshException("Refresh token expired or used");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token expired or used");
             }
 
             // Delete the old refresh token (implements token rotation)
@@ -227,7 +229,7 @@ public class AuthController {
             response.addCookie(accessCookie);
             response.addCookie(refreshCookie);
 
-            return ResponseEntity.ok(Map.of("message", "Tokens refreshed successfully"));
+            return ResponseEntity.ok(new FetchUserDto(user));
         } catch (TokenRefreshException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         }

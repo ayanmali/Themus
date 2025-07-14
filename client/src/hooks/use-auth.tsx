@@ -7,45 +7,6 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(true)
-  const [authStatus, setAuthStatus] = useState<number | null>(null);
-
-  const checkAuth = async () => {
-    console.log("Checking auth...")
-    try {
-      const response = await fetch(`${API_URL}/api/users/is-authenticated`, {
-        method: 'GET',
-        credentials: 'include'
-      });
-      
-      if (response.ok) {
-        console.log("Auth check successful")
-        const userData = await response.json();
-        setIsAuthenticated(true);
-        setUser(userData);
-      } else {
-        console.log("Auth check unsuccessful")
-        setIsAuthenticated(false);
-        setUser(null);
-        setAuthStatus(response.status);
-      }
-    } catch (error) {
-      console.log("Error checking auth:", error)
-      if (authStatus !== 429) {
-        console.log("Auth check unsuccessful, setting auth to false")
-        setIsAuthenticated(false)
-        setUser(null);
-      }
-      else {
-        console.log("Rate limit exceeded")
-      }
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    checkAuth();
-  }, []);
 
   const refreshToken = async (): Promise<boolean> => {
     console.log("Refreshing token...")
@@ -56,9 +17,10 @@ export const useAuth = () => {
       });
       
       if (response.ok) {
-        // Refresh successful, check auth status
-        console.log("Refresh successful, checking auth status")
-        await checkAuth();
+        // Refresh successful, set auth state
+        console.log("Refresh successful, setting auth state")
+        setIsAuthenticated(true);
+        setUser(await response.json());
         return true;
       }
 
@@ -75,6 +37,50 @@ export const useAuth = () => {
       return false;
     }
   };
+
+  const checkAuth = async () => {
+    console.log("Checking auth...")
+    try {
+      const response = await fetch(`${API_URL}/api/users/is-authenticated`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        console.log("Auth check successful")
+        const userData = await response.json();
+        setIsAuthenticated(true);
+        setUser(userData);
+      } else if (response.status === 401) {
+        console.log("Access token expired, attempting refresh...")
+        // Try to refresh the token
+        const refreshSuccess = await refreshToken();
+        
+        if (!refreshSuccess) {
+          console.log("Refresh failed, user needs to log in")
+          setIsAuthenticated(false);
+          setUser(null);
+        }
+        // If refresh succeeds, auth state is already updated in refreshToken function
+      } else if (response.status === 429) {
+        console.log("Rate limit exceeded");
+      } else {
+        console.log("Auth check unsuccessful (non-401 error)")
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+    } catch (error) {
+      console.log("Error checking auth:", error)
+      setIsAuthenticated(false);
+      setUser(null);
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
   const logout = async () => {
     console.log("Logging out...");

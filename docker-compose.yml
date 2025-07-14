@@ -8,7 +8,7 @@ services:
         POSTGRES_DB: delphi-postgres
       container_name: delphi-postgres
       env_file:
-        - .env
+        - ./backend/.env
       ports:
         - '5432:5432'
       volumes:
@@ -23,7 +23,7 @@ services:
       image: 'redis:latest'
       container_name: delphi-redis
       env_file:
-        - .env
+        - ./backend/.env
       ports:
         - '6379:6379'
       volumes:
@@ -34,7 +34,7 @@ services:
     image: rabbitmq:3-management
     container_name: delphi-rabbitmq
     env_file:
-      - .env
+      - ./backend/.env
     ports:
       - 5672:5672
       - 15672:15672
@@ -49,7 +49,7 @@ services:
     ports:
       - "8080:8080"
     env_file:
-      - .env
+      - ./backend/.env
     volumes:
       - "./backend:/backend"
     # env_file:

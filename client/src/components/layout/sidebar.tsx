@@ -22,7 +22,6 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
 
   if (isLoading) {
     // Show a sidebar skeleton while loading
-    console.log("Loading sidebar...")
     return <div className="w-64 bg-gray-800">Loading...</div>;
   }
   

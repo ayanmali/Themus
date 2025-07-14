@@ -8,10 +8,6 @@ import { navigate } from "wouter/use-browser-location";
 export default function EmployerReports() {
   const { isAuthenticated } = useAuth();
 
-  if (!isAuthenticated) {
-    navigate("/login");
-  }
-
   return (
     <AppShell title="Reports">
       <div className="flex justify-between items-center mb-6">

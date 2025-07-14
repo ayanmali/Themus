@@ -181,8 +181,6 @@ import {
 import { AppShell } from '@/components/layout/app-shell';
 
 const EmployerDashboard = () => {
-  console.log("On employer dashboard page");
-
   // TODO: Add actual API calls when needed
   // const getData = async () => {
   //   const [stats, recentActivity] = await Promise.all(

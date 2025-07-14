@@ -38,8 +38,6 @@ export function LoginForm({
   const [isLoading, setIsLoading] = useState(false)
   const { isAuthenticated, setIsAuthenticated, setUser, isLoading: authLoading } = useAuth();
 
-  console.log("On login page");
-
   const {
     register,
     handleSubmit,

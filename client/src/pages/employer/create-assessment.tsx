@@ -230,12 +230,6 @@ import { navigate } from "wouter/use-browser-location";
 // }
 
 export default function CreateAssessment() {
-  const { isAuthenticated } = useAuth();
-
-  if (!isAuthenticated) {
-    navigate("/login");
-  }
-  
   return (
     <AnimatedAIChat />
   );
