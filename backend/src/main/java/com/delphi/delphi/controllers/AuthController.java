@@ -1,6 +1,7 @@
 package com.delphi.delphi.controllers;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -18,19 +19,18 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestTemplate;
 
-import com.delphi.delphi.components.GithubClient;
 import com.delphi.delphi.components.JwtService;
 import com.delphi.delphi.dtos.FetchUserDto;
 import com.delphi.delphi.dtos.NewUserDto;
 import com.delphi.delphi.dtos.PasswordLoginDto;
 import com.delphi.delphi.entities.RefreshToken;
 import com.delphi.delphi.entities.User;
+import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.RefreshTokenService;
 import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.exceptions.TokenRefreshException;
-import com.delphi.delphi.utils.git.GithubFile;
+import com.delphi.delphi.utils.git.GithubRepoContents;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -41,13 +41,13 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/auth")
 public class AuthController {
 
+    private final GithubService githubService;
+
     private final AuthenticationManager authenticationManager;
 
     private final RefreshTokenService refreshTokenService;
 
     private final UserService userService;
-
-    private final GithubClient githubClient;
 
     private final JwtService jwtService;
 
@@ -59,18 +59,18 @@ public class AuthController {
 
     private final Logger log = LoggerFactory.getLogger(AuthController.class);
 
-    public AuthController(RestTemplate restTemplate, UserService userService, GithubClient githubClient,
+    public AuthController(UserService userService,
             JwtService jwtService, RefreshTokenService refreshTokenService,
             AuthenticationManager authenticationManager, @Value("${jwt.access.expiration}") long jwtAccessExpiration,
-            @Value("${app.env}") String appEnv, @Value("${app.domain}") String appDomain) {
+            @Value("${app.env}") String appEnv, @Value("${app.domain}") String appDomain, GithubService githubService) {
         this.userService = userService;
-        this.githubClient = githubClient;
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
         this.authenticationManager = authenticationManager;
         this.jwtAccessExpiration = jwtAccessExpiration;
         this.appEnv = appEnv;
         this.appDomain = appDomain;
+        this.githubService = githubService;
     }
 
     private User getCurrentUser() {
@@ -137,9 +137,58 @@ public class AuthController {
     }
 
     @GetMapping("/test")
-    public ResponseEntity<GithubFile> test() {
-        return githubClient.addFileToRepo("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", "ayanmali",
-                "my-new-repo-from-delphi", "test2.txt", null, "\nHello, worldddd!\nballs", "third commit");
+    public ResponseEntity<Map<String, Object>> test() {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            // Test both OAuth and GitHub App flows
+            
+            // Option 1: Test OAuth flow (if you have OAuth App set up)
+            // String oauthToken = "YOUR_OAUTH_TOKEN_HERE"; // gho_ prefix for OAuth tokens
+            // if (!oauthToken.equals("YOUR_OAUTH_TOKEN_HERE")) {
+            //     log.info("Testing OAuth token...");
+            //     Map<String, Object> userInfo = githubService.validateToken(oauthToken).block();
+            //     result.put("oauth_user_info", userInfo);
+                
+            //     String scopes = githubService.getTokenScopes(oauthToken).block();
+            //     result.put("oauth_scopes", scopes);
+                
+            //     if (scopes != null && scopes.contains("repo")) {
+            //         GithubRepoContents repo = githubService.createRepo(oauthToken, "oauth-test-repo-" + System.currentTimeMillis()).block();
+            //         result.put("oauth_repository", repo);
+            //     }
+            // }
+            
+            // Option 2: Test GitHub App installation flow
+            String installationId = "75837596"; // Your installation ID
+            if (!installationId.equals("YOUR_INSTALLATION_ID")) {
+                log.info("Testing GitHub App installation token...");
+                
+                // First, get installation info
+                Map<String, Object> installationInfo = githubService.getInstallationInfo(installationId).block();
+                result.put("installation_info", installationInfo);
+                log.info("Installation info: {}", installationInfo);
+                
+                // Then get installation token
+                String installationToken = githubService.getInstallationToken(installationId);
+                result.put("installation_token_prefix", installationToken.substring(0, Math.min(10, installationToken.length())));
+                
+                // Try to create repository with installation token
+                GithubRepoContents repo = githubService.createRepo(installationToken, "app-test-repo-" + System.currentTimeMillis()).block();
+                result.put("app_repository", repo);
+            }
+            
+            result.put("message", "Check which authentication method worked");
+            result.put("success", true);
+            
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception e) {
+            log.error("Test failed", e);
+            result.put("error", e.getMessage());
+            result.put("success", false);
+            return ResponseEntity.status(500).body(result);
+        }
     }
 
     @PostMapping("/signup/email")

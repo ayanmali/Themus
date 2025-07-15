@@ -14,7 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.delphi.delphi.components.GithubClient;
 import com.delphi.delphi.dtos.NewAssessmentDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
@@ -36,13 +35,13 @@ public class AssessmentService {
     private final AssessmentRepository assessmentRepository;
     private final UserService userService;
     private final ChatService chatService;
-    private final GithubClient githubClient;
+    private final GithubService githubService;
 
-    public AssessmentService(AssessmentRepository assessmentRepository, UserService userService, ChatService chatService, GithubClient githubClient, CandidateService candidateService) {
+    public AssessmentService(AssessmentRepository assessmentRepository, UserService userService, ChatService chatService, GithubService githubService, CandidateService candidateService) {
         this.assessmentRepository = assessmentRepository;
         this.userService = userService;
         this.chatService = chatService;
-        this.githubClient = githubClient;
+        this.githubService = githubService;
         this.candidateService = candidateService;
     }
 
@@ -95,8 +94,8 @@ public class AssessmentService {
         assessment.setChatHistory(chatHistory);
 
         // create github repo and add Delphi as a contributor
-        githubClient.createRepo(user.getGithubAccessToken(), assessment.getGithubRepoName());
-        githubClient.addContributor(user.getGithubAccessToken(), DelphiGithubConstants.DELPHI_GITHUB_NAME, assessment.getName(), user.getGithubUsername());
+        githubService.createRepo(user.getGithubAccessToken(), assessment.getGithubRepoName());
+        githubService.addContributor(user.getGithubAccessToken(), DelphiGithubConstants.DELPHI_GITHUB_NAME, assessment.getName(), user.getGithubUsername());
 
         // save assessment
         return assessmentRepository.save(assessment);

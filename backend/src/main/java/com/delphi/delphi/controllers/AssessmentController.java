@@ -131,6 +131,7 @@ public class AssessmentController {
     public ResponseEntity<?> createAssessment(@Valid @RequestBody NewAssessmentDto newAssessmentDto) {
         try {
             User user = getCurrentUser();
+            
             Assessment assessment = assessmentService.createAssessment(newAssessmentDto, user);
 
             // Publish to chat message queue instead of direct call

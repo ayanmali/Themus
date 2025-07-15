@@ -7,11 +7,11 @@ import java.util.List;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import com.delphi.delphi.entities.ChatMessage;
 import com.delphi.delphi.repositories.AssessmentRepository;
+import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.git.GithubBranchDetails;
 import com.delphi.delphi.utils.git.GithubFile;
@@ -22,19 +22,19 @@ import com.delphi.delphi.utils.git.GithubRepoContents;
 @Component
 /*
  * Contains tool definitions for the LLM to make GitHub API calls
- * Uses the methods defined in the GithubClient class
+ * Uses the methods defined in the GithubService class
  */
 public class GithubTools {
 
     private final AssessmentRepository assessmentRepository;
     private final UserService userService; // for getting user info (PAT, username)
-    private final GithubClient githubClient; // for making GitHub API calls
+    private final GithubService githubService; // for making GitHub API calls
     private final Base64.Encoder base64Encoder; // for encoding content to base64 for GitHub API
     private final Base64.Decoder base64Decoder; // for decoding content from base64 for GitHub API
 
-    public GithubTools(UserService userService, GithubClient githubClient, AssessmentRepository assessmentRepository) {
+    public GithubTools(UserService userService, GithubService githubService, AssessmentRepository assessmentRepository) {
         this.userService = userService;
-        this.githubClient = githubClient;
+        this.githubService = githubService;
         this.base64Encoder = Base64.getEncoder();
         this.base64Decoder = Base64.getDecoder();
         this.assessmentRepository = assessmentRepository;
@@ -109,7 +109,7 @@ public class GithubTools {
     // @Tool(description = "Creates a Git repository in the user's GitHub account using the GitHub API.")
     // public ResponseEntity<String> createRepo(@ToolParam(required = true, description = "The name of the repository to create") String repoName) {
     //     String pat = getPAT();
-    //     return githubClient.createRepo(pat, repoName);
+    //     return githubService.createRepo(pat, repoName);
     // }
 
     @Tool(description = "Adds a file to a repository using the GitHub API.")
@@ -121,14 +121,14 @@ public class GithubTools {
         ToolContext toolContext) {
         String pat = getPAT(toolContext.getContext().get("userId"));
         String username = getGithubUsername(toolContext.getContext().get("userId"));
-        ResponseEntity<GithubFile> fileResponse = githubClient.addFileToRepo(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), filePath, branch=null, encodeToBase64(fileContent),
-                commitMessage);
-        if (fileResponse.getStatusCode().is2xxSuccessful() && fileResponse.getBody() != null) {
-            GithubFile file = fileResponse.getBody();
+        GithubFile fileResponse = githubService.addFileToRepo(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), filePath, branch=null, encodeToBase64(fileContent),
+                commitMessage).block();
+        if (fileResponse != null) {
+            GithubFile file = fileResponse;
             file.setContent(fileContent);
             return file;
         } else {
-            throw new RuntimeException("Error adding file to repo: " + fileResponse.getStatusCode() + " " + fileResponse.getBody());
+            throw new RuntimeException("Error adding file to repo");
         }
     }
 
@@ -139,15 +139,15 @@ public class GithubTools {
         ToolContext toolContext) {
         String pat = getPAT(toolContext.getContext().get("userId"));
         String username = getGithubUsername(toolContext.getContext().get("userId"));
-        ResponseEntity<GithubRepoContents> repoContentsResponse = githubClient.getRepoContents(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), filePath, branch);
-        if (repoContentsResponse.getStatusCode().is2xxSuccessful() && repoContentsResponse.getBody() != null) {
-            GithubRepoContents repoContents = repoContentsResponse.getBody();
+        GithubRepoContents repoContentsResponse = githubService.getRepoContents(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), filePath, branch).block();
+        if (repoContentsResponse != null) {
+            GithubRepoContents repoContents = repoContentsResponse;
             if (repoContents.getType().equals("file")) {
                 repoContents.setContent(decodeFromBase64(repoContents.getContent()));
             }
             return repoContents;
         } else {
-            throw new RuntimeException("Error getting repo contents: " + repoContentsResponse.getStatusCode() + " " + repoContentsResponse.getBody());
+            throw new RuntimeException("Error getting repo contents");
         }
     }
 
@@ -155,11 +155,11 @@ public class GithubTools {
     public List<GithubRepoBranch> getRepoBranches(ToolContext toolContext) {
         String pat = getPAT(toolContext.getContext().get("userId"));
         String username = getGithubUsername(toolContext.getContext().get("userId"));
-        ResponseEntity<List<GithubRepoBranch>> repoBranchesResponse = githubClient.getRepoBranches(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")));
-        if (repoBranchesResponse.getStatusCode().is2xxSuccessful()) {
-            return repoBranchesResponse.getBody();
+        List<GithubRepoBranch> repoBranchesResponse = githubService.getRepoBranches(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId"))).block();
+        if (repoBranchesResponse != null) {
+            return repoBranchesResponse;
         } else {
-            throw new RuntimeException("Error getting repo branches: " + repoBranchesResponse.getStatusCode() + " " + repoBranchesResponse.getBody());
+            throw new RuntimeException("Error getting repo branches");
         }
     }
 
@@ -170,11 +170,11 @@ public class GithubTools {
         ToolContext toolContext) {
         String pat = getPAT(toolContext.getContext().get("userId"));
         String username = getGithubUsername(toolContext.getContext().get("userId"));
-        ResponseEntity<GithubReference> addBranchResponse = githubClient.addBranch(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), branchName, baseBranch);
-        if (addBranchResponse.getStatusCode().is2xxSuccessful()) {
-            return addBranchResponse.getBody();
+        GithubReference addBranchResponse = githubService.addBranch(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), branchName, baseBranch).block();
+        if (addBranchResponse != null) {
+            return addBranchResponse;
         } else {
-            throw new RuntimeException("Error adding branch: " + addBranchResponse.getStatusCode() + " " + addBranchResponse.getBody());
+            throw new RuntimeException("Error adding branch");
         }
     }
 
@@ -187,14 +187,14 @@ public class GithubTools {
         ToolContext toolContext) {
         String pat = getPAT(toolContext.getContext().get("userId"));
         String username = getGithubUsername(toolContext.getContext().get("userId"));
-        ResponseEntity<GithubFile> editFileResponse = githubClient.editFile(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), filePath, encodeToBase64(fileContent), commitMessage,
-                sha);
-        if (editFileResponse.getStatusCode().is2xxSuccessful() && editFileResponse.getBody() != null) {
-            GithubFile file = editFileResponse.getBody();
+        GithubFile editFileResponse = githubService.editFile(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), filePath, encodeToBase64(fileContent), commitMessage,
+                sha).block();
+        if (editFileResponse != null) {
+            GithubFile file = editFileResponse;
             file.setContent(fileContent);
             return file;
         } else {
-            throw new RuntimeException("Error editing file: " + editFileResponse.getStatusCode() + " " + editFileResponse.getBody());
+            throw new RuntimeException("Error editing file");
         }
     }
 
@@ -206,11 +206,11 @@ public class GithubTools {
         ToolContext toolContext) {
         String pat = getPAT(toolContext.getContext().get("userId"));
         String username = getGithubUsername(toolContext.getContext().get("userId"));
-        ResponseEntity<String> deleteFileResponse = githubClient.deleteFile(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), filePath, commitMessage, sha);
-        if (deleteFileResponse.getStatusCode().is2xxSuccessful()) {
+        String deleteFileResponse = githubService.deleteFile(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), filePath, commitMessage, sha).block();
+        if (deleteFileResponse != null) {
             return "File: " + filePath + " deleted successfully";
         } else {
-            throw new RuntimeException("Error deleting file: " + deleteFileResponse.getStatusCode() + " " + deleteFileResponse.getBody());
+            throw new RuntimeException("Error deleting file");
         }
     }
 
@@ -220,11 +220,11 @@ public class GithubTools {
         ToolContext toolContext) {
         String pat = getPAT(toolContext.getContext().get("userId"));
         String username = getGithubUsername(toolContext.getContext().get("userId"));
-        ResponseEntity<GithubBranchDetails> branchDetailsResponse = githubClient.getBranchDetails(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), branchName);
-        if (branchDetailsResponse.getStatusCode().is2xxSuccessful()) {
-            return branchDetailsResponse.getBody();
+        GithubBranchDetails branchDetailsResponse = githubService.getBranchDetails(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), branchName).block();
+        if (branchDetailsResponse != null) {
+            return branchDetailsResponse;
         } else {
-            throw new RuntimeException("Error getting branch details: " + branchDetailsResponse.getStatusCode() + " " + branchDetailsResponse.getBody());
+            throw new RuntimeException("Error getting branch details");
         }
     }
 
@@ -232,7 +232,7 @@ public class GithubTools {
     public ChatMessage sendMessageToUser(
         @ToolParam(required = true, description = "The message to send to the user") String message,
         ToolContext toolContext) {
-        return githubClient.sendMessageToUser(message, getCurrentChatHistoryId(toolContext.getContext().get("chatHistoryId")), (String) toolContext.getContext().get("model"));
+        return githubService.sendMessageToUser(message, getCurrentChatHistoryId(toolContext.getContext().get("chatHistoryId")), (String) toolContext.getContext().get("model"));
     }
 
 }

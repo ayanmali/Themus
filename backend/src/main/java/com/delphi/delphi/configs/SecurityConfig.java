@@ -46,7 +46,7 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults()) // enables CORS using the bean defined in CorsConfig
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/").permitAll()
+                .requestMatchers("/api/auth/**", "/api/users/github/**", "/api/users/github-app/**", "/").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
