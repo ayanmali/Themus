@@ -23,7 +23,7 @@ public class ChatConfig {
     }
 
     @Bean
-    public Map<String, String> committer() {
-        return Map.of("name", "Delphi", "email", "zainjdantes@gmail.com");
+    public Map<String, String> author() {
+        return Map.of("name", "delphi-assessments[bot]", "email", "220768808+delphi-assessments[bot]@users.noreply.github.com");
     }
 }

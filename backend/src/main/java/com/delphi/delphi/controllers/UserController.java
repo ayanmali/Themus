@@ -333,17 +333,20 @@ public class UserController {
      * The access token is used to authenticate the user with the GitHub API.
      */
     public ResponseEntity<Map<String, String>> callback(@RequestParam String code) {
-        String accessToken = githubService.getAccessToken(code);
+        Map<String, String> accessToken = githubService.getAccessToken(code);
 
         Map<String, String> response = new HashMap<>();
-        response.put("access_token", accessToken);
+        response.put("access_token", accessToken.get("access_token"));
+        response.put("refresh_token", accessToken.get("refresh_token"));
+        response.put("token_type", accessToken.get("token_type"));
+        response.put("expires_in", accessToken.get("expires_in"));
         response.put("status", "success");
 
         return ResponseEntity.ok(response);
     }
 
     // Webhook endpoint
-    // @PostMapping("/webhook")
+    // @PostMapping("/github/webhook")
     // public ResponseEntity<String> handleWebhook(@RequestBody String payload,
     //         @RequestHeader("X-GitHub-Event") String event,
     //         @RequestHeader("X-Hub-Signature-256") String signature) {
@@ -375,6 +378,9 @@ public class UserController {
 
     // private void handleInstallationEvent(String payload) {
     //     // Process installation event
+    //     log.info("Installation event received: " + payload);
+    //     // TODO: Process installation event
+
     //     // System.out.println("Installation event received: " + payload);
     // }
 

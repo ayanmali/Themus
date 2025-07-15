@@ -62,7 +62,7 @@ public class GithubService {
     private final String githubScope;
 
     private final WebClient webClient;
-    private final Map<String, String> committer;
+    private final Map<String, String> author;
 
     private final String privateKeyRaw;
     private PrivateKey privateKey;
@@ -71,8 +71,8 @@ public class GithubService {
                         @Value("${github.app.client-id}") String clientId,
                         @Value("${github.app.client-secret}") String clientSecret,
                         @Value("${github.app.private-key}") String privateKeyRaw,
-                        @Value("${github.scope}") String githubScope,
-                        Map<String, String> committer,
+                        @Value("${spring.security.oauth2.client.registration.github.scope}") String githubScope,
+                        Map<String, String> author,
                         ChatHistoryRepository chatHistoryRepository) {
         this.appId = appId;
         this.clientId = clientId;
@@ -84,7 +84,7 @@ public class GithubService {
             .defaultHeader("Accept", "application/vnd.github.v3+json")
             .build();
 
-        this.committer = committer;
+        this.author = author;
 
         loadPrivateKey();
 
@@ -141,7 +141,7 @@ public class GithubService {
         } catch (IllegalArgumentException e) {
             log.error("Invalid Base64 encoding in private key", e);
             throw new RuntimeException("Invalid Base64 encoding in private key: " + e.getMessage(), e);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.error("Unexpected error loading private key", e);
             throw new RuntimeException("Failed to load private key: " + e.getMessage(), e);
         }
@@ -161,10 +161,12 @@ public class GithubService {
     
     // Get installation access token
     public String getInstallationToken(String installationId) {
+        // jwt token
         String appToken = generateAppToken();
         
         log.info("Getting installation token for installation ID: {}", installationId);
         
+        // generates the installation token
         Map<String, Object> response = webClient
             .post()
             .uri("/app/installations/{installationId}/access_tokens", installationId)
@@ -221,12 +223,16 @@ public class GithubService {
         );
     }
 
-    // OAuth flow - exchange code for access token
-    public String getAccessToken(String code) {
+    // Exchange code for github app useraccess token
+    public Map<String, String> getAccessToken(String code) {
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("client_id", clientId);
         params.add("client_secret", clientSecret);
         params.add("code", code);
+
+        // TODO: figure out how to get new access token from refresh token
+        //params.add("grant_type", "authorization_code");
+        //params.add("refresh_token", refreshToken);
         
         Map<String, String> response = webClient
             .post()
@@ -241,61 +247,65 @@ public class GithubService {
             throw new RuntimeException("Failed to get access token: " + response);
         }
         
-        return response.get("access_token");
+        return response;
     }
 
     // Validate token and check scopes
-    public Mono<Map<String, Object>> validateToken(String token) {
-        return webClient
-            .get()
-            .uri("https://api.github.com/user")
-            .header("Authorization", "token " + token)
-            .header("Accept", "application/vnd.github.v3+json")
-            .header("User-Agent", "Delphi-App/1.0")
-            .retrieve()
-            .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), response -> {
-                return response.bodyToMono(String.class)
-                    .flatMap(errorBody -> {
-                        log.error("Token validation error - Status: {}, Body: {}", response.statusCode(), errorBody);
-                        return Mono.error(new RuntimeException(
-                            String.format("Token validation error %d: %s", response.statusCode().value(), errorBody)
-                        ));
-                    });
-            })
-            .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {});
-    }
+    // public Mono<Map<String, Object>> validateToken(String token) {
+    //     return webClient
+    //         .get()
+    //         .uri("https://api.github.com/user")
+    //         .header("Authorization", "token " + token)
+    //         .header("Accept", "application/vnd.github.v3+json")
+    //         .header("User-Agent", "Delphi-App/1.0")
+    //         .retrieve()
+    //         .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), response -> {
+    //             return response.bodyToMono(String.class)
+    //                 .flatMap(errorBody -> {
+    //                     log.error("Token validation error - Status: {}, Body: {}", response.statusCode(), errorBody);
+    //                     return Mono.error(new RuntimeException(
+    //                         String.format("Token validation error %d: %s", response.statusCode().value(), errorBody)
+    //                     ));
+    //                 });
+    //         })
+    //         .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {});
+    // }
 
     // Check token scopes
-    public Mono<String> getTokenScopes(String token) {
-        return webClient
-            .get()
-            .uri("https://api.github.com/user")
-            .header("Authorization", "token " + token)
-            .header("Accept", "application/vnd.github.v3+json")
-            .header("User-Agent", "Delphi-App/1.0")
-            .retrieve()
-            .toEntity(String.class)
-            .map(response -> {
-                String scopes = response.getHeaders().getFirst("X-OAuth-Scopes");
-                log.info("Token scopes: {}", scopes);
-                return scopes != null ? scopes : "No scopes found";
-            })
-            .onErrorReturn("Error retrieving scopes");
-    }
+    // public Mono<String> getTokenScopes(String token) {
+    //     return webClient
+    //         .get()
+    //         .uri("https://api.github.com/user")
+    //         .header("Authorization", "token " + token)
+    //         .header("Accept", "application/vnd.github.v3+json")
+    //         .header("User-Agent", "Delphi-App/1.0")
+    //         .retrieve()
+    //         .toEntity(String.class)
+    //         .map(response -> {
+    //             String scopes = response.getHeaders().getFirst("X-OAuth-Scopes");
+    //             log.info("Token scopes: {}", scopes);
+    //             return scopes != null ? scopes : "No scopes found";
+    //         })
+    //         .onErrorReturn("Error retrieving scopes");
+    // }
 
     public Mono<GithubRepoContents> createRepo(String token, String repoName) {
         try {
+            // For GitHub App installation tokens, we need to create repo in the installation's account
             String url = "https://api.github.com/user/repos";
 
             Map<String, Object> body = Map.of(
                     "name", repoName,
-                    "private", false); // Try public repo first
+                    "description", "Assessment repository",
+                    "private", true,
+                    "auto_init", true,
+                    "isTemplate", true);
 
             log.info("Creating repo '{}' with token: {}...", repoName, token.substring(0, Math.min(10, token.length())));
 
             return webClient.post()
                 .uri(url)
-                .header("Authorization", "token " + token)
+                .header("Authorization", "Bearer " + token)
                 .header("Accept", "application/vnd.github.v3+json")
                 .header("User-Agent", "Delphi-App/1.0")
                 .bodyValue(body)
@@ -314,22 +324,50 @@ public class GithubService {
             log.error("RestClient error creating repo: {}", e.getMessage(), e);
             throw new RuntimeException("Error creating repo: " + e.getMessage(), e);
         }
-    }
+    }    
 
-    public Mono<String> addContributor(String token, String owner, String repo, String username) {
-        try {
-            String url = String.format("https://api.github.com/repos/%s/%s/collaborators/%s", owner, repo, username);
+    // Test installation token with existing repository operations
+    // public Mono<Map<String, Object>> testInstallationToken(String installationToken, String owner, String repo) {
+    //     try {
+    //         log.info("Testing installation token with repo '{}/{}'", owner, repo);
+            
+    //         // Test getting repository contents
+    //         return webClient.get()
+    //             .uri("https://api.github.com/repos/{owner}/{repo}/contents", owner, repo)
+    //             .header("Authorization", "Bearer " + installationToken)
+    //             .header("Accept", "application/vnd.github.v3+json")
+    //             .header("User-Agent", "Delphi-App/1.0")
+    //             .retrieve()
+    //             .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), response -> {
+    //                 return response.bodyToMono(String.class)
+    //                     .flatMap(errorBody -> {
+    //                         log.error("GitHub API error testing installation - Status: {}, Body: {}", response.statusCode(), errorBody);
+    //                         return Mono.error(new RuntimeException(
+    //                             String.format("GitHub API error %d: %s", response.statusCode().value(), errorBody)
+    //                         ));
+    //                     });
+    //             })
+    //             .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {});
+    //     } catch (RestClientException e) {
+    //         log.error("RestClient error testing installation: {}", e.getMessage(), e);
+    //         throw new RuntimeException("Error testing installation: " + e.getMessage(), e);
+    //     }
+    // }
 
-            //HttpEntity<Map<String, Object>> entity = new HttpEntity<>(headers);
-            return webClient.put()
-                .uri(url)
-                .header("Authorization", "token " + token)
-                .retrieve()
-                .bodyToMono(String.class);
-        } catch (RestClientException e) {
-            throw new RuntimeException("Error adding contributor: " + e.getMessage());
-        }
-    }
+    // public Mono<String> addContributor(String token, String owner, String repo, String username) {
+    //     try {
+    //         String url = String.format("https://api.github.com/repos/%s/%s/collaborators/%s", owner, repo, username);
+
+    //         //HttpEntity<Map<String, Object>> entity = new HttpEntity<>(headers);
+    //         return webClient.put()
+    //             .uri(url)
+    //             .header("Authorization", "token " + token)
+    //             .retrieve()
+    //             .bodyToMono(String.class);
+    //     } catch (RestClientException e) {
+    //         throw new RuntimeException("Error adding contributor: " + e.getMessage());
+    //     }
+    // }
 
     public Mono<GithubFile> addFileToRepo(String token, String owner, String repo, String path,
             String branch, String content, String commitMessage) {
@@ -342,7 +380,7 @@ public class GithubService {
                     "message", commitMessage,
                     "content", base64Content,
                     "branch", branch,
-                    "committer", committer);
+                    "author", author);
 
             //HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
             return webClient.put()
@@ -428,7 +466,7 @@ public class GithubService {
                     "message", commitMessage,
                     "content", base64Content,
                     "sha", sha,
-                    "committer", committer);
+                    "author", author);
 
             return webClient.put()
                 .uri(url)
@@ -449,7 +487,7 @@ public class GithubService {
             // Map<String, Object> body = Map.of(
             //         "message", commitMessage,
             //         "sha", sha,
-            //         "committer", committer);
+            //         "author", author);
 
             return webClient.delete()
                 .uri(url)

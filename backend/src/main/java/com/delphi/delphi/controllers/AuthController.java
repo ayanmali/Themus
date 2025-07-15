@@ -1,7 +1,6 @@
 package com.delphi.delphi.controllers;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -14,7 +13,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,7 +28,6 @@ import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.RefreshTokenService;
 import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.exceptions.TokenRefreshException;
-import com.delphi.delphi.utils.git.GithubRepoContents;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -136,60 +133,76 @@ public class AuthController {
         response.addCookie(refreshCookie);
     }
 
-    @GetMapping("/test")
-    public ResponseEntity<Map<String, Object>> test() {
-        Map<String, Object> result = new HashMap<>();
+    // @GetMapping("/test")
+    // public ResponseEntity<Map<String, Object>> test() {
+    //     Map<String, Object> result = new HashMap<>();
         
-        try {
-            // Test both OAuth and GitHub App flows
+    //     try {
+    //         // Test both OAuth and GitHub App flows
             
-            // Option 1: Test OAuth flow (if you have OAuth App set up)
-            // String oauthToken = "YOUR_OAUTH_TOKEN_HERE"; // gho_ prefix for OAuth tokens
-            // if (!oauthToken.equals("YOUR_OAUTH_TOKEN_HERE")) {
-            //     log.info("Testing OAuth token...");
-            //     Map<String, Object> userInfo = githubService.validateToken(oauthToken).block();
-            //     result.put("oauth_user_info", userInfo);
+    //         // Option 1: Test OAuth flow (if you have OAuth App set up)
+    //         // String oauthToken = "YOUR_OAUTH_TOKEN_HERE"; // gho_ prefix for OAuth tokens
+    //         // if (!oauthToken.equals("YOUR_OAUTH_TOKEN_HERE")) {
+    //         //     log.info("Testing OAuth token...");
+    //         //     Map<String, Object> userInfo = githubService.validateToken(oauthToken).block();
+    //         //     result.put("oauth_user_info", userInfo);
                 
-            //     String scopes = githubService.getTokenScopes(oauthToken).block();
-            //     result.put("oauth_scopes", scopes);
+    //         //     String scopes = githubService.getTokenScopes(oauthToken).block();
+    //         //     result.put("oauth_scopes", scopes);
                 
-            //     if (scopes != null && scopes.contains("repo")) {
-            //         GithubRepoContents repo = githubService.createRepo(oauthToken, "oauth-test-repo-" + System.currentTimeMillis()).block();
-            //         result.put("oauth_repository", repo);
-            //     }
-            // }
+    //         //     if (scopes != null && scopes.contains("repo")) {
+    //         //         GithubRepoContents repo = githubService.createRepo(oauthToken, "oauth-test-repo-" + System.currentTimeMillis()).block();
+    //         //         result.put("oauth_repository", repo);
+    //         //     }
+    //         // }
             
-            // Option 2: Test GitHub App installation flow
-            String installationId = "75837596"; // Your installation ID
-            if (!installationId.equals("YOUR_INSTALLATION_ID")) {
-                log.info("Testing GitHub App installation token...");
+    //         // Option 2: Test GitHub App installation flow
+
+    //         String installationId = "75837596"; // Your installation ID
+    //         if (!installationId.equals("YOUR_INSTALLATION_ID")) {
+    //             log.info("Testing GitHub App installation token...");
                 
-                // First, get installation info
-                Map<String, Object> installationInfo = githubService.getInstallationInfo(installationId).block();
-                result.put("installation_info", installationInfo);
-                log.info("Installation info: {}", installationInfo);
+    //             // First, get installation info
+    //             Map<String, Object> installationInfo = githubService.getInstallationInfo(installationId).block();
+    //             result.put("installation_info", installationInfo);
+    //             log.info("Installation info: {}", installationInfo);
                 
-                // Then get installation token
-                String installationToken = githubService.getInstallationToken(installationId);
-                result.put("installation_token_prefix", installationToken.substring(0, Math.min(10, installationToken.length())));
+    //             // Then get installation token
+    //             String installationToken = githubService.getInstallationToken(installationId);
+    //             result.put("installation_token_prefix", installationToken.substring(0, Math.min(10, installationToken.length())));
                 
-                // Try to create repository with installation token
-                GithubRepoContents repo = githubService.createRepo(installationToken, "app-test-repo-" + System.currentTimeMillis()).block();
-                result.put("app_repository", repo);
-            }
+    //             // Try to create repository with installation token in the installation's account
+    //             String owner = "delphi-assessments"; // From installation info
+    //             try {
+    //                 GithubRepoContents repo = githubService.createRepoWithInstallation(installationToken, "app-test-repo-" + System.currentTimeMillis(), owner).block();
+    //                 result.put("app_repository", repo);
+    //             } catch (Exception e) {
+    //                 log.warn("Failed to create repository: {}", e.getMessage());
+    //                 result.put("create_repo_error", e.getMessage());
+                    
+    //                 // Try to test with an existing repository instead
+    //                 try {
+    //                     Map<String, Object> repoContents = githubService.testInstallationToken(installationToken, owner, "test-repo").block();
+    //                     result.put("existing_repo_test", repoContents);
+    //                 } catch (Exception e2) {
+    //                     log.warn("Failed to test with existing repo: {}", e2.getMessage());
+    //                     result.put("existing_repo_error", e2.getMessage());
+    //                 }
+    //             }
+    //         }
             
-            result.put("message", "Check which authentication method worked");
-            result.put("success", true);
+    //         result.put("message", "Check which authentication method worked");
+    //         result.put("success", true);
             
-            return ResponseEntity.ok(result);
+    //         return ResponseEntity.ok(result);
             
-        } catch (Exception e) {
-            log.error("Test failed", e);
-            result.put("error", e.getMessage());
-            result.put("success", false);
-            return ResponseEntity.status(500).body(result);
-        }
-    }
+    //     } catch (Exception e) {
+    //         log.error("Test failed", e);
+    //         result.put("error", e.getMessage());
+    //         result.put("success", false);
+    //         return ResponseEntity.status(500).body(result);
+    //     }
+    // }
 
     @PostMapping("/signup/email")
     public ResponseEntity<?> registerEmail(@Valid @RequestBody NewUserDto newUserDto, HttpServletResponse response) {

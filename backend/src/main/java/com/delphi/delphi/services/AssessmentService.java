@@ -23,7 +23,6 @@ import com.delphi.delphi.repositories.AssessmentRepository;
 import com.delphi.delphi.utils.AssessmentCreationPrompts;
 import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.AssessmentType;
-import com.delphi.delphi.utils.DelphiGithubConstants;
 
 @Service
 @Transactional
@@ -95,7 +94,7 @@ public class AssessmentService {
 
         // create github repo and add Delphi as a contributor
         githubService.createRepo(user.getGithubAccessToken(), assessment.getGithubRepoName());
-        githubService.addContributor(user.getGithubAccessToken(), DelphiGithubConstants.DELPHI_GITHUB_NAME, assessment.getName(), user.getGithubUsername());
+        //githubService.addContributor(user.getGithubAccessToken(), DelphiGithubConstants.DELPHI_GITHUB_NAME, assessment.getName(), user.getGithubUsername());
 
         // save assessment
         return assessmentRepository.save(assessment);
