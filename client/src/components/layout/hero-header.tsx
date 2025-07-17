@@ -25,7 +25,7 @@ export const HeroHeader = () => {
                                 aria-label="home"
                                 className="flex items-center space-x-2">
                                 {/* <Logo /> */}
-                                <span className="text-xl font-semibold pr-16">Delphi</span>
+                                <span className="text-xl font-bold pr-16 font-gfs-didot">Delphi</span>
                             </Link>
 
                             <button
@@ -80,7 +80,7 @@ export const HeroHeader = () => {
                                     asChild
                                     size="sm">
                                     <Link href="/signup">
-                                        <span>Sign Up</span>
+                                        <span>Sign up</span>
                                     </Link>
                                 </Button>
                             </div>

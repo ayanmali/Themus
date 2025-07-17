@@ -17,6 +17,7 @@ import { useState } from "react"
 import { AuthPageHeader } from "@/components/layout/auth-page-header"
 import { navigate } from "wouter/use-browser-location"
 import { useAuth } from "@/hooks/use-auth"
+import { Link } from "wouter"
 
 // Zod validation schema
 const signupSchema = z.object({
@@ -205,7 +206,7 @@ export function SignupForm({
                                 </p>
                             </div>
 
-                            <div className="flex flex-col gap-3">
+                            <div className="flex flex-col gap-3 items-center">
                                 <Button
                                     variant="outline"
                                     type="submit"
@@ -221,6 +222,9 @@ export function SignupForm({
                                 <Button variant="outline" className="w-full bg-slate-700 border-white/20" type="button">
                                     Continue with GitHub
                                 </Button>
+                                <span className="text-sm text-white/60 mt-4">
+                                    Already have an account? <Link href="/login" className="text-blue-100 hover:text-blue-300">Login</Link>
+                                </span>
                             </div>
                         </div>
                     </form>

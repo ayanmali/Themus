@@ -1,18 +1,13 @@
 import { Assessment } from "@/lib/types/assessment";
 import { ArrowLeft, Calendar, Check, ChevronLeft, ChevronRight, Clock, Command, Edit3, ExternalLink, Link2, MoreHorizontal, Plus, Trash2, X  } from "lucide-react"
 import { useState } from "react";
-import candidates from "./candidates";
 import { CandidateAttempt } from "@/lib/types/candidate-attempt";
 import { Candidate } from "@/lib/types/candidate";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { ChatMessageListExample } from "@/components/blocks/chat-msg-list";
-import { navigate } from "wouter/use-browser-location";
-import { useAuth } from "@/hooks/use-auth";
+import { ChatMessageListExample } from "@/pages/employer/assessment-details/chat-msg-list";
 
 interface AssessmentDetailsProps {
     assessment: Assessment;
@@ -46,12 +41,6 @@ export default function AssessmentDetails({ assessment, setSelectedAssessment, e
 
     // Add this state variable with your other useState declarations at the top of the component
     const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([]);
-
-    const { isAuthenticated } = useAuth();
-
-    if (!isAuthenticated) {
-        navigate("/login");
-    }
 
     // Sample candidates data
     const candidates: Candidate[] = [

@@ -5,7 +5,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
 import { AppShell } from "@/components/layout/app-shell";
 import { Assessment } from "@/lib/types/assessment";
 import AssessmentPagination from "@/components/ui/AssessmentPagination";
-import AssessmentDetails from "./assessment-details";
+import AssessmentDetails from "./assessment-details/assessment-details";
 import { Link } from "wouter";
 
 export default function EmployerAssessments() {
@@ -126,7 +126,7 @@ export default function EmployerAssessments() {
     }
 
     return (
-        <AppShell title="Assessments">
+        <AppShell>
             <div className="max-w-6xl mx-auto text-white">
                 {/* <div className="flex justify-between items-center mb-6">
                         <h1 className="text-2xl font-medium text-gray-100">Assessments</h1>
@@ -139,7 +139,7 @@ export default function EmployerAssessments() {
                     </div> */}
                 <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-white mb-2">Assessments</h1>
+                        <h1 className="serif-heading">Assessments</h1>
                         <p className="text-gray-400 flex items-center space-x-2">
                             {/* <Calendar className="w-4 h-4" /> */}
                             <span>View and manage your assessments</span>

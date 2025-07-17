@@ -13,12 +13,12 @@ import EmployerDashboard from "@/pages/employer/dashboard";
 import EmployerAssessments from "@/pages/employer/assessmentss";
 import EmployerCandidates from "@/pages/employer/candidates";
 import EmployerReports from "@/pages/employer/reports";
-import CreateAssessment from "@/pages/employer/create-assessment";
+import CreateAssessment from "@/pages/employer/new-assessment/create-assessment";
 
 // Candidate Pages
 import CandidateAssessments from "@/pages/candidate/assessments";
 import CandidateProfile from "@/pages/candidate/profile";
-import LandingPage from "./pages/lander";
+import LandingPage from "./pages/landing-page/lander";
 import SignupPage from "./pages/auth/signup";
 import LoginPage from "./pages/auth/login";
 import CandidateAssessmentInvite from "./pages/candidate/assessment-invite";

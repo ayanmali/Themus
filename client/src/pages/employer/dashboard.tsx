@@ -179,8 +179,11 @@ import {
   Filter
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
+import { useAuth } from '@/hooks/use-auth';
 
 const EmployerDashboard = () => {
+  const { user } = useAuth();
+
   // TODO: Add actual API calls when needed
   // const getData = async () => {
   //   const [stats, recentActivity] = await Promise.all(
@@ -304,7 +307,7 @@ const EmployerDashboard = () => {
         {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2">Welcome Back, John</h1>
+              <h1 className="serif-heading">{`Welcome Back, ${user?.name}`}</h1>
               <p className="text-gray-400 flex items-center space-x-2">
                 <Calendar className="w-4 h-4" />
                 <span>Saturday, June 21, 2025</span>

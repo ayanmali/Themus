@@ -1,3 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Aleo:ital,wght@0,100..900;1,100..900&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Serif+Display:ital@0;1&family=GFS+Didot&family=Manrope:wght@200..800&family=Suranna&display=swap');
+
+/* @font-face {
+  font-family: 'CustomFont';
+  src: url('/fonts/CustomFont-Regular.woff2') format('woff2'),
+       url('/fonts/CustomFont-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'CustomFont';
+  src: url('/fonts/CustomFont-Bold.woff2') format('woff2'),
+       url('/fonts/CustomFont-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+} */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,7 +29,66 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   }
+
+  /* Custom font classes */
+
+  .font-dm-serif-display {
+    font-family: 'DM Serif Display', serif;
+    font-style: normal;
+  }
+
+  .font-dm-serif-display-italic {
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+  }
+
+  .font-aleo {
+    font-family: "Aleo", serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  .font-dm-sans {
+    font-family: "DM Sans", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  .font-manrope {
+    font-family: "Manrope", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  .font-suranna {
+    font-family: "Suranna", serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  .font-gfs-didot {
+    font-family: "GFS Didot", serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  /* .font-fraunces {
+    font-family: "Fraunces", serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+    font-variation-settings:
+      "SOFT" 0,
+      "WONK" 0;
+  } */
+
   :root {
 
     --background: 0 0% 100%;
@@ -62,6 +141,7 @@
 
     --radius: 0.5rem
   }
+
   .dark {
 
     --background: 222.2 84% 4.9%;
@@ -115,12 +195,18 @@
 }
 
 
-
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .serif-heading {
+    @apply text-4xl font-gfs-didot font-semibold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-200 mb-2;
   }
 }

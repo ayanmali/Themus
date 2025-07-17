@@ -1,8 +1,8 @@
 import React from 'react'
 import { Link } from 'wouter'
 import { Button } from '@/components/ui/button'
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
-import { HeroHeader } from '../layout/hero-header'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../../components/ui/accordion";
+import { HeroHeader } from '../../components/layout/hero-header'
 
 export function HeroSection() {
     return (
@@ -13,16 +13,18 @@ export function HeroSection() {
                     <div className="pb-24 pt-12 md:pb-32 lg:pb-56 lg:pt-44">
                         <div className="relative mx-auto flex max-w-6xl flex-col px-6 lg:grid lg:grid-cols-2">
                             <div className="mx-auto max-w-lg text-center lg:ml-0 lg:text-left">
-                                <h1 className="mt-8 max-w-2xl text-balance text-5xl font-medium md:text-6xl lg:mt-16 xl:text-7xl">Technical Hiring for the Modern Era</h1>
-                                <p className="mt-8 max-w-2xl text-pretty text-lg">Assess candidates on debugging and enhancing AI-generated code.</p>
+                                <h1 className="font-gfs-didot mt-8 max-w-2xl text-balance text-5xl font-semibold md:text-6xl lg:mt-16 xl:text-7xl">Technical Hiring for the Modern Era</h1>
+                                <p className="mt-8 max-w-2xl text-pretty text-lg">Assess candidates on their ability to debug and enhance AI-generated code.</p>
 
                                 <div className="mt-12 flex flex-col items-center justify-center gap-2 sm:flex-row lg:justify-start">
                                     <Button
                                         asChild
+                                        variant="destructive"
                                         size="lg"
-                                        className="px-5 text-base">
+                                        className="px-5 bg-slate-700 hover:bg-slate-600 border border-white/20 text-base">
+                                        {/* className="text-muted hover:bg-slate-600 bg-slate-700 hover:text-white border-white/20" */}
                                         <Link href="/signup">
-                                            <span className="text-nowrap">Get started</span>
+                                            <span>Get started</span>
                                         </Link>
                                     </Button>
 
@@ -243,3 +245,11 @@ export function HeroSection() {
 //         </svg>
 //     )
 // }
+
+export default function LandingPage() {
+    return (
+        <div>
+            <HeroSection />
+        </div>
+    )
+}

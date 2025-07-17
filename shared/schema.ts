@@ -1,6 +1,6 @@
 import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
+import { array, z } from "zod";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -32,6 +32,8 @@ export const assessments = pgTable("assessments", {
   description: text("description"),
   repositoryLink: text("repository_link"),
   duration: integer("duration").notNull(),
+  durationUnit: text("duration_unit").notNull(),
+  candidateChoices: text("candidate_choices").array(),
   //repositoryId: integer("repository_id").notNull(),
   userId: integer("user_id").notNull(),
   startDate: timestamp("start_date"),
@@ -77,6 +79,8 @@ export const insertAssessmentSchema = createInsertSchema(assessments).pick({
   description: true, // LLM input
   repositoryLink: true,
   duration: true,
+  durationUnit: true,
+  candidateChoices: true,
   assessmentType: true,
   userId: true,
   startDate: true,

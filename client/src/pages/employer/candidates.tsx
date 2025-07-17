@@ -1,15 +1,11 @@
 import { useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
-import { Button } from "@/components/ui/button";
-import { Calendar, Eye, Plus, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { CandidateCard } from "@/components/candidate-card";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Candidate } from "@/lib/types/candidate";
-import { navigate } from "wouter/use-browser-location";
-import { useAuth } from "@/hooks/use-auth";
 
 export default function EmployerCandidates() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -57,10 +53,10 @@ export default function EmployerCandidates() {
   });
 
   return (
-    <AppShell title="Candidates">
+    <AppShell>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Candidates</h1>
+          <h1 className="serif-heading">Candidates</h1>
           <p className="text-gray-400 flex items-center space-x-2">
             {/* <Calendar className="w-4 h-4" /> */}
             <span>Add, view, and manage your candidates</span>

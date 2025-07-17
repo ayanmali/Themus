@@ -7,7 +7,7 @@ interface AppShellProps {
   title?: string;
 }
 
-export function AppShell({ children, title }: AppShellProps) {
+export function AppShell({ children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (

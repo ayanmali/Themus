@@ -97,7 +97,7 @@ export const PricingPage: React.FC = () => {
             <div className="max-w-6xl mx-auto py-12 px-4 sm:px-6 lg:px-8 pt-32">
                 {/* Header Section */}
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-16">
-                    <h1 className="text-4xl font-bold mb-6 sm:mb-0">Choose Your Plan</h1>
+                    <h1 className="text-4xl font-semibold mb-6 sm:mb-0 font-gfs-didot">Choose Your Plan</h1>
                     <div className="flex items-center space-x-4">
                         <Label htmlFor="pricing-toggle" className="text-gray-300 font-medium">Monthly</Label>
                         <Switch
@@ -163,7 +163,7 @@ export const PricingPage: React.FC = () => {
 
                 {/* Why Choose Our Platform Section */}
                 <div className="mt-20">
-                    <h2 className="text-3xl font-bold text-white text-center mb-12">Why Choose Our Platform?</h2>
+                    <h2 className="text-3xl font-bold text-white text-center mb-12 font-gfs-didot">Why Choose Our Platform?</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         <Card className="bg-gray-900 border border-gray-800 p-6 shadow-md text-center">
                             <CardTitle className="text-xl font-bold text-white mb-3">Comprehensive Library</CardTitle>

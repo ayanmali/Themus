@@ -50,6 +50,8 @@ public class AuthController {
 
     private final long jwtAccessExpiration;
 
+    private final long jwtRefreshExpiration;
+
     private final String appEnv;
 
     private final String appDomain;
@@ -59,12 +61,14 @@ public class AuthController {
     public AuthController(UserService userService,
             JwtService jwtService, RefreshTokenService refreshTokenService,
             AuthenticationManager authenticationManager, @Value("${jwt.access.expiration}") long jwtAccessExpiration,
+            @Value("${jwt.refresh.expiration}") long jwtRefreshExpiration,
             @Value("${app.env}") String appEnv, @Value("${app.domain}") String appDomain, GithubService githubService) {
         this.userService = userService;
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
         this.authenticationManager = authenticationManager;
         this.jwtAccessExpiration = jwtAccessExpiration;
+        this.jwtRefreshExpiration = jwtRefreshExpiration;
         this.appEnv = appEnv;
         this.appDomain = appDomain;
         this.githubService = githubService;
@@ -115,7 +119,7 @@ public class AuthController {
         
         // Set the refresh token in a separate cookie
         Cookie refreshCookie = new Cookie("refreshToken", refreshToken.getToken());
-        refreshCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days (same as refresh token expiration)
+        refreshCookie.setMaxAge((int) (jwtRefreshExpiration / 1000));
         refreshCookie.setHttpOnly(true);
         refreshCookie.setSecure(appEnv.equals("prod"));
         refreshCookie.setPath("/");
@@ -272,10 +276,12 @@ public class AuthController {
             accessCookie.setHttpOnly(true);
             accessCookie.setSecure(appEnv.equals("prod"));
             accessCookie.setPath("/");
+
+            accessCookie.setAttribute("SameSite", "Lax");
             
             // Set new refresh token cookie
             Cookie refreshCookie = new Cookie("refreshToken", newRefreshToken.getToken());
-            refreshCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
+            refreshCookie.setMaxAge((int) (jwtRefreshExpiration / 1000)); // 7 days
             refreshCookie.setHttpOnly(true);
             refreshCookie.setSecure(appEnv.equals("prod"));
             refreshCookie.setPath("/");
@@ -285,7 +291,6 @@ public class AuthController {
                 refreshCookie.setDomain(appDomain);
             }
             
-            accessCookie.setAttribute("SameSite", "Lax");
             refreshCookie.setAttribute("SameSite", "Lax");
 
             response.addCookie(accessCookie);
