@@ -8,6 +8,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { ChatMessageListExample } from "@/pages/employer/assessment-details/chat-msg-list";
+import { useAuth } from "@/hooks/use-auth";
+import { useRoute } from "wouter";
 
 interface AssessmentDetailsProps {
     assessment: Assessment;
@@ -17,6 +19,9 @@ interface AssessmentDetailsProps {
 }
 
 export default function AssessmentDetails({ assessment, setSelectedAssessment, editedAssessment, setEditedAssessment }: AssessmentDetailsProps) {
+    // const { user } = useAuth();
+    // const [match, params] = useRoute("/assessments/:id");
+
     const [newMetadataKey, setNewMetadataKey] = useState('');
     const [newMetadataValue, setNewMetadataValue] = useState('');
     const [isEditingDescription, setIsEditingDescription] = useState(false);

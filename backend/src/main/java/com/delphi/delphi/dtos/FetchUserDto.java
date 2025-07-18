@@ -11,6 +11,7 @@ public class FetchUserDto {
     private String organizationName;
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
+    private boolean connectedGithub;
 
     public FetchUserDto() {
     }
@@ -22,6 +23,7 @@ public class FetchUserDto {
         this.organizationName = user.getOrganizationName();
         this.createdDate = user.getCreatedDate();
         this.updatedDate = user.getUpdatedDate();
+        this.connectedGithub = user.getGithubUsername() != null;
     }
 
     public Long getId() {
@@ -70,6 +72,14 @@ public class FetchUserDto {
 
     public void setUpdatedDate(LocalDateTime updatedDate) {
         this.updatedDate = updatedDate;
+    }
+
+    public boolean isConnectedGithub() {
+        return connectedGithub;
+    }
+
+    public void setConnectedGithub(boolean connectedGithub) {
+        this.connectedGithub = connectedGithub;
     }
    
 }

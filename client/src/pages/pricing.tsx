@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Check } from 'lucide-react';
 import { HeroHeader } from '@/components/layout/hero-header';
 import { navigate } from 'wouter/use-browser-location';
-import useApi from '@/hooks/useapi';
+import useApi from '@/hooks/use-api';
 
 interface FeatureItemProps {
     text: string;

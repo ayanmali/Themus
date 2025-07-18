@@ -6,4 +6,5 @@ export type User = {
   id: string;
   createdAt?: Date;
   organizationName?: string;
+  connectedGithub: boolean;
 }

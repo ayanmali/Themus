@@ -1,12 +1,12 @@
 package com.delphi.delphi.controllers;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
 
 import com.delphi.delphi.dtos.FetchUserDto;
 import com.delphi.delphi.dtos.NewUserDto;
@@ -38,6 +39,9 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
+
+    private final String appClientDomain;
+    private final String appEnv;
 
     private final GithubService githubService;
 
@@ -61,11 +65,15 @@ public class UserController {
              * @Value("${spring.security.oauth2.client.registration.github.client-secret}")
              * String clientSecret,
              */
+            @Value("${app.client-domain}") String appClientDomain,
+            @Value("${app.env}") String appEnv,
             GithubService githubService) {
         this.userService = userService;
         // this.clientId = clientId;
         // this.clientSecret = clientSecret;
         this.githubService = githubService;
+        this.appClientDomain = appClientDomain;
+        this.appEnv = appEnv;
     }
 
     private User getCurrentUser() {
@@ -332,17 +340,24 @@ public class UserController {
      * The access token is stored in the database.
      * The access token is used to authenticate the user with the GitHub API.
      */
-    public ResponseEntity<Map<String, String>> callback(@RequestParam String code) {
-        Map<String, String> accessToken = githubService.getAccessToken(code);
+    public ModelAndView callback(@RequestParam String code) {
+        Map<String, String> githubResponse = githubService.getAccessToken(code);
 
-        Map<String, String> response = new HashMap<>();
-        response.put("access_token", accessToken.get("access_token"));
-        response.put("refresh_token", accessToken.get("refresh_token"));
-        response.put("token_type", accessToken.get("token_type"));
-        response.put("expires_in", accessToken.get("expires_in"));
-        response.put("status", "success");
-
-        return ResponseEntity.ok(response);
+        // Map<String, String> map = new HashMap<>();
+        // map.put("access_token", githubResponse.get("access_token"));
+        // map.put("refresh_token", githubResponse.get("refresh_token"));
+        // map.put("token_type", githubResponse.get("token_type"));
+        // map.put("expires_in", githubResponse.get("expires_in"));
+        // map.put("status", "githubResponse");
+        try {
+            User user = getCurrentUser();
+            userService.updateGithubAccessToken(user, githubResponse.get("access_token"));
+            log.info("Access token obtained: " + githubResponse.get("access_token"));
+            return new ModelAndView(String.format("redirect:%s://%s/assessments", appEnv.equals("dev") ? "http" : "https", appClientDomain));
+        } catch (Exception e) {
+            log.error("Error updating GitHub access token: " + e.getMessage());
+            return new ModelAndView(String.format("redirect:%s://%s", appEnv.equals("dev") ? "http" : "https", appClientDomain));
+        }
     }
 
     // Webhook endpoint

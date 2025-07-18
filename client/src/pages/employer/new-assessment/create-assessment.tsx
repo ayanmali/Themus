@@ -23,14 +23,16 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { z } from "zod";
+import { queryClient } from "@/lib/queryClient";
+import { z } from "zod";  
 import { DatePicker } from "@/components/ui/date-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { models } from "@/lib/models";
 import { TechChoices } from "./tech-choices";
+import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import useApi from "@/hooks/use-api";
 
 // Create a schema for the assessment creation form
 const createAssessmentSchema = z.object({
@@ -193,6 +195,7 @@ export function CreateAssessmentForm() {
 
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const { apiCall } = useApi();
 
   // Setup form with updated default values
   const form = useForm<CreateAssessmentFormValues>({
@@ -211,8 +214,12 @@ export function CreateAssessmentForm() {
   // Create assessment mutation
   const createAssessmentMutation = useMutation({
     mutationFn: async (data: CreateAssessmentFormValues) => {
-      const res = await apiRequest("POST", "/api/assessments", data);
-      return await res.json();
+      // TODO:
+      const res = await apiCall("api/assessments/new", {
+        method: "POST",
+        body: JSON.stringify(data)
+      });
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/assessments"] });
@@ -233,13 +240,15 @@ export function CreateAssessmentForm() {
 
   const onSubmit = (data: CreateAssessmentFormValues) => {
     console.log('Form data with candidate choices:', data);
-    // data.techChoices will contain:
-    // {
-    //   enableLanguageSelection: boolean,
-    //   languageOptions: [{ id: string, name: string }]
-    // }
+    
+
     createAssessmentMutation.mutate(data);
   };
+
+  const installGithubApp = () => {
+    // TODO:
+    
+  }
 
   const commandSuggestions: CommandSuggestion[] = [
     {
@@ -411,14 +420,31 @@ export function CreateAssessmentForm() {
     <div className="min-h-screen flex flex-col w-full items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6 relative overflow-hidden">
       {/* Fixed header with buttons */}
       <div className="fixed top-0 left-0 w-full z-50 bg-slate-900/80 backdrop-blur border-b border-slate-800 shadow-lg flex justify-between px-8 py-4 gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => navigate("/assessments")}
-          className="bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-700/80 hover:text-white hover:border-slate-600/50 backdrop-blur-sm"
-        >
-          Cancel
-        </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              //onClick={() => navigate("/assessments")}
+              className="bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-700/80 hover:text-white hover:border-slate-600/50 backdrop-blur-sm"
+            >
+              Cancel
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-slate-800/60 border-slate-700/50 text-slate-300 backdrop-blur-sm">
+            <DialogHeader>
+              <DialogTitle>Cancel Assessment</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to cancel this assessment?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="default" className="bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-700/80 hover:text-white hover:border-slate-600/50 backdrop-blur-sm" onClick={() => navigate("/assessments")}>Discard</Button>
+              <Button type="submit" form="assessment-form" variant="default" className="bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-700/80 hover:text-white hover:border-slate-600/50 backdrop-blur-sm" onClick={() => navigate("/assessments")}>Save as draft</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <Button
           type="submit"
           form="assessment-form"
@@ -445,7 +471,7 @@ export function CreateAssessmentForm() {
               className="inline-block"
             >
               {/* <h1 className="text-3xl font-gfs-didot font-medium tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-300 pb-3"> */}
-              <h1 className="serif-heading"> 
+              <h1 className="serif-heading">
                 Describe your assessment
               </h1>
 
@@ -912,14 +938,14 @@ export function CreateAssessmentForm() {
               />
 
               <div className="flex justify-end space-x-3">
-                <Button
+                {/* <Button
                   type="button"
                   variant="outline"
                   onClick={() => navigate("/assessments")}
                   className="bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-700/80 hover:text-white hover:border-slate-600/50 backdrop-blur-sm"
                 >
                   Cancel
-                </Button>
+                </Button> */}
                 <Button
                   type="submit"
                   disabled={createAssessmentMutation.isPending}
