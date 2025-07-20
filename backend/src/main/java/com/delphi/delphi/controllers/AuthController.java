@@ -13,6 +13,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -207,6 +208,12 @@ public class AuthController {
     //         return ResponseEntity.status(500).body(result);
     //     }
     // }
+
+    @GetMapping("/github-app/jwt")
+    public ResponseEntity<String> getGithubAppJwt() {
+        String jwt = githubService.generateAppToken();
+        return ResponseEntity.ok(jwt);
+    }
 
     @PostMapping("/signup/email")
     public ResponseEntity<?> registerEmail(@Valid @RequestBody NewUserDto newUserDto, HttpServletResponse response) {

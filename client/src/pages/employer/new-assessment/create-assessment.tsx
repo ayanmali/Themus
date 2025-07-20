@@ -33,6 +33,7 @@ import { models } from "@/lib/models";
 import { TechChoices } from "./tech-choices";
 import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import useApi from "@/hooks/use-api";
+import { useAuth } from "@/hooks/use-auth";
 
 // Create a schema for the assessment creation form
 const createAssessmentSchema = z.object({
@@ -194,6 +195,7 @@ export function CreateAssessmentForm() {
   const commandPaletteRef = useRef<HTMLDivElement>(null);
 
   const { toast } = useToast();
+  const { user } = useAuth();
   const [, navigate] = useLocation();
   const { apiCall } = useApi();
 
@@ -241,13 +243,15 @@ export function CreateAssessmentForm() {
   const onSubmit = (data: CreateAssessmentFormValues) => {
     console.log('Form data with candidate choices:', data);
     
-
+    if (!user?.connectedGithub) {
+      installGithubApp();
+    }
     createAssessmentMutation.mutate(data);
   };
 
   const installGithubApp = () => {
     // TODO:
-    
+
   }
 
   const commandSuggestions: CommandSuggestion[] = [

@@ -10,11 +10,14 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import com.delphi.delphi.utils.git.GithubAccountType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -58,6 +61,10 @@ public class User implements UserDetails {
 
     @Column(name = "github_username", nullable = true)
     private String githubUsername;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "github_account_type", nullable = true)
+    private GithubAccountType githubAccountType = GithubAccountType.USER;
     
     @CreationTimestamp
     @Column(name = "created_date", nullable = false, updatable = false)
@@ -78,13 +85,14 @@ public class User implements UserDetails {
     public User() {
     }
 
-    public User(String name, String email, String password, String organizationName, String githubAccessToken, String githubUsername) {
+    public User(String name, String email, String password, String organizationName, String githubAccessToken, String githubUsername, GithubAccountType githubAccountType) {
         this.name = name;
         this.email = email;
         this.password = password;
         this.organizationName = organizationName;
         this.githubAccessToken = githubAccessToken;
         this.githubUsername = githubUsername;
+        this.githubAccountType = githubAccountType;
     }
 
     public Long getId() {
@@ -215,4 +223,12 @@ public class User implements UserDetails {
     // One-to-many relationship with ChatHistory
     // @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     // private List<ChatHistory> chatHistories;
+
+    public GithubAccountType getGithubAccountType() {
+        return githubAccountType;
+    }
+
+    public void setGithubAccountType(GithubAccountType githubAccountType) {
+        this.githubAccountType = githubAccountType;
+    }
 }

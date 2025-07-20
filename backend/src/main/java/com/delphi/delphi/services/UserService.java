@@ -3,6 +3,8 @@ package com.delphi.delphi.services;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -14,10 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.repositories.UserRepository;
+import com.delphi.delphi.utils.git.GithubAccountType;
 
 @Service
 @Transactional
 public class UserService {
+
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     private final EncryptionService encryptionService;
     
@@ -126,6 +131,11 @@ public class UserService {
         }
         userRepository.deleteById(id);
     }
+
+    @Transactional(readOnly = true)
+    public boolean connectedGithub(User user) {
+        return user.getGithubUsername() != null && user.getGithubAccessToken() != null;
+    }
     
     // Check if email exists
     @Cacheable(value = "users", key = "emailExists + ':' + #email")
@@ -230,9 +240,7 @@ public class UserService {
     // Update user's GitHub credentials
     @CacheEvict(value = "users", beforeInvocation = true, key = "#userId")
     @Transactional
-    public User updateGithubCredentials(Long userId, String githubAccessToken, String githubUsername) throws Exception {
-        User user = getUserByIdOrThrow(userId);
-        
+    public User updateGithubCredentials(User user, String githubAccessToken, String githubUsername, GithubAccountType githubAccountType) throws Exception {        
         // // Check if GitHub username is already taken by another user
         // if (githubUsername != null && !githubUsername.equals(user.getGithubUsername()) && userRepository.existsByGithubUsername(githubUsername)) {
         //     throw new IllegalArgumentException("GitHub username " + githubUsername + " is already in use");
@@ -249,7 +257,7 @@ public class UserService {
         String encryptedAccessToken = encryptionService.encrypt(githubAccessToken);
         user.setGithubAccessToken(encryptedAccessToken);
         user.setGithubUsername(githubUsername);
-        
+        user.setGithubAccountType(githubAccountType);
         return userRepository.save(user);
     }
 

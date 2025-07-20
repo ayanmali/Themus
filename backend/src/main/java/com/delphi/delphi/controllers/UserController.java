@@ -1,7 +1,6 @@
 package com.delphi.delphi.controllers;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -33,7 +32,11 @@ import com.delphi.delphi.dtos.NewUserDto;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.UserService;
+import com.delphi.delphi.utils.git.AccessTokenResponse;
+import com.delphi.delphi.utils.git.GithubAccountType;
+import com.delphi.delphi.utils.git.GithubCredentials;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 @RestController
@@ -42,6 +45,8 @@ public class UserController {
 
     private final String appClientDomain;
     private final String appEnv;
+    private final String githubAppName;
+    private final String appInstallUrl;
 
     private final GithubService githubService;
 
@@ -67,6 +72,7 @@ public class UserController {
              */
             @Value("${app.client-domain}") String appClientDomain,
             @Value("${app.env}") String appEnv,
+            @Value("${github.app.name}") String githubAppName,
             GithubService githubService) {
         this.userService = userService;
         // this.clientId = clientId;
@@ -74,6 +80,9 @@ public class UserController {
         this.githubService = githubService;
         this.appClientDomain = appClientDomain;
         this.appEnv = appEnv;
+        this.githubAppName = githubAppName;
+
+        this.appInstallUrl = String.format("https://github.com/app/%s/installations/new", githubAppName);
     }
 
     private User getCurrentUser() {
@@ -91,6 +100,23 @@ public class UserController {
     public ResponseEntity<FetchUserDto> isAuthenticated() {
         log.info("Checking if user is authenticated");
         return ResponseEntity.ok(new FetchUserDto(getCurrentUser()));
+    }
+
+    // for the client to check if it is authenticated
+    @GetMapping("/is-connected-github")
+    public ResponseEntity<?> isConnectedGithub(HttpServletResponse response) {
+        log.info("Checking if user is connected to github");
+        User user = getCurrentUser();
+        GithubCredentials githubCredentialsValid = githubService.validateGithubCredentials(user);
+
+        if (!userService.connectedGithub(user) || githubCredentialsValid == null) {
+            response.setHeader("Location", appInstallUrl);
+            response.setStatus(302);
+            return ResponseEntity.status(HttpStatus.FOUND).build();
+        }
+
+        return ResponseEntity.ok(new FetchUserDto(user));
+
     }
 
     // Create a new user
@@ -339,9 +365,9 @@ public class UserController {
      * The access token is used to authenticate the user with the GitHub API.
      * The access token is stored in the database.
      * The access token is used to authenticate the user with the GitHub API.
+     * TODO: make this endpoint require authentication
      */
     public ModelAndView callback(@RequestParam String code) {
-        Map<String, String> githubResponse = githubService.getAccessToken(code);
 
         // Map<String, String> map = new HashMap<>();
         // map.put("access_token", githubResponse.get("access_token"));
@@ -351,52 +377,59 @@ public class UserController {
         // map.put("status", "githubResponse");
         try {
             User user = getCurrentUser();
-            userService.updateGithubAccessToken(user, githubResponse.get("access_token"));
-            log.info("Access token obtained: " + githubResponse.get("access_token"));
-            return new ModelAndView(String.format("redirect:%s://%s/assessments", appEnv.equals("dev") ? "http" : "https", appClientDomain));
+            AccessTokenResponse accessTokenResponse = githubService.getAccessToken(code);
+            GithubCredentials githubCredentialsResponse = githubService.validateGithubCredentials(user);
+
+            log.info("Access token obtained: " + accessTokenResponse.getAccessToken());
+            GithubAccountType githubAccountType = githubCredentialsResponse.getAccountType().toLowerCase().equals("user") ? GithubAccountType.USER : GithubAccountType.ORG;
+            userService.updateGithubCredentials(user, accessTokenResponse.getAccessToken(), githubCredentialsResponse.getUsername(), githubAccountType);
+            return new ModelAndView(String.format("redirect:%s://%s/assessments",
+                    appEnv.equals("dev") ? "http" : "https", appClientDomain));
         } catch (Exception e) {
             log.error("Error updating GitHub access token: " + e.getMessage());
-            return new ModelAndView(String.format("redirect:%s://%s", appEnv.equals("dev") ? "http" : "https", appClientDomain));
+            return new ModelAndView(
+                    String.format("redirect:%s://%s", appEnv.equals("dev") ? "http" : "https", appClientDomain));
         }
     }
 
     // Webhook endpoint
     // @PostMapping("/github/webhook")
     // public ResponseEntity<String> handleWebhook(@RequestBody String payload,
-    //         @RequestHeader("X-GitHub-Event") String event,
-    //         @RequestHeader("X-Hub-Signature-256") String signature) {
+    // @RequestHeader("X-GitHub-Event") String event,
+    // @RequestHeader("X-Hub-Signature-256") String signature) {
 
-    //     // Verify webhook signature here for security
-    //     if (!verifyWebhookSignature(payload, signature)) {
-    //         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid signature");
-    //     }
+    // // Verify webhook signature here for security
+    // if (!verifyWebhookSignature(payload, signature)) {
+    // return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid
+    // signature");
+    // }
 
-    //     // Handle different event types
-    //     switch (event) {
-    //         case "push" -> handlePushEvent(payload);
-    //         case "installation" -> handleInstallationEvent(payload);
-    //         default -> System.out.println("Unhandled event: " + event);
-    //     }
+    // // Handle different event types
+    // switch (event) {
+    // case "push" -> handlePushEvent(payload);
+    // case "installation" -> handleInstallationEvent(payload);
+    // default -> System.out.println("Unhandled event: " + event);
+    // }
 
-    //     return ResponseEntity.ok("Webhook processed");
+    // return ResponseEntity.ok("Webhook processed");
     // }
 
     // private boolean verifyWebhookSignature(String payload, String signature) {
-    //     // TODO: Implement webhook signature verification
-    //     return true;
+    // // TODO: Implement webhook signature verification
+    // return true;
     // }
 
     // private void handlePushEvent(String payload) {
-    //     // Process push event
-    //     //System.out.println("Push event received: " + payload);
+    // // Process push event
+    // //System.out.println("Push event received: " + payload);
     // }
 
     // private void handleInstallationEvent(String payload) {
-    //     // Process installation event
-    //     log.info("Installation event received: " + payload);
-    //     // TODO: Process installation event
+    // // Process installation event
+    // log.info("Installation event received: " + payload);
+    // // TODO: Process installation event
 
-    //     // System.out.println("Installation event received: " + payload);
+    // // System.out.println("Installation event received: " + payload);
     // }
 
 }

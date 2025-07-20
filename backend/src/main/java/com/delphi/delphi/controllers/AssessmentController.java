@@ -131,6 +131,8 @@ public class AssessmentController {
     public ResponseEntity<?> createAssessment(@Valid @RequestBody NewAssessmentDto newAssessmentDto) {
         try {
             User user = getCurrentUser();
+
+            // if user is not connected to github, redirect them to the installation page
             
             Assessment assessment = assessmentService.createAssessment(newAssessmentDto, user);
 
