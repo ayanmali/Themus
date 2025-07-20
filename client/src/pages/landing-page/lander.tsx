@@ -2,52 +2,46 @@ import React from 'react'
 import { Link } from 'wouter'
 import { Button } from '@/components/ui/button'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../../components/ui/accordion";
-import { HeroHeader } from '../../components/layout/hero-header'
+import { HeroHeader } from './hero-header'
+import HowItWorks from './how-it-works';
+import Benefits from './benefits';
 
 export function HeroSection() {
     return (
-        <div className="bg-slate-800 text-white">
+        <div className="min-h-screen bg-slate-800 text-white">
             <HeroHeader />
             <main className="overflow-x-hidden pb-10">
                 <section>
-                    <div className="pb-24 pt-12 md:pb-32 lg:pb-56 lg:pt-44">
-                        <div className="relative mx-auto flex max-w-6xl flex-col px-6 lg:grid lg:grid-cols-2">
-                            <div className="mx-auto max-w-lg text-center lg:ml-0 lg:text-left">
-                                <h1 className="font-gfs-didot mt-8 max-w-2xl text-balance text-5xl font-semibold md:text-6xl lg:mt-16 xl:text-7xl">Technical Hiring for the Modern Era</h1>
-                                <p className="mt-8 max-w-2xl text-pretty text-lg">Assess candidates on their ability to debug and enhance AI-generated code.</p>
+                    <div className="pt-12 lg:pt-44 h-screen relative mx-auto flex max-w-6xl flex-col px-6 lg:grid lg:grid-cols-2">
+                        <div className="mx-auto max-w-lg text-center lg:ml-0 lg:text-left">
+                            <h1 className="font-gfs-didot mt-8 max-w-2xl text-balance text-5xl font-semibold md:text-6xl lg:mt-16 xl:text-7xl">Technical Hiring for the Modern Era</h1>
+                            <p className="mt-8 max-w-2xl text-pretty text-lg">Assess candidates on their ability to debug and enhance AI-generated code.</p>
 
-                                <div className="mt-12 flex flex-col items-center justify-center gap-2 sm:flex-row lg:justify-start">
-                                    <Button
-                                        asChild
-                                        variant="destructive"
-                                        size="lg"
-                                        className="px-5 bg-slate-700 hover:bg-slate-600 border border-white/20 text-base">
-                                        {/* className="text-muted hover:bg-slate-600 bg-slate-700 hover:text-white border-white/20" */}
-                                        <Link href="/signup">
-                                            <span>Get started</span>
-                                        </Link>
-                                    </Button>
+                            <div className="mt-12 flex flex-col items-center justify-center gap-2 sm:flex-row lg:justify-start">
+                                
+                                <Button className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-3 rounded-full border border-gray-600 transition-colors flex items-center mx-auto">
+                                    <Link href="/signup">
+                                        <span>Get started</span>
+                                    </Link>
+                                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </Button>
 
-                                    <Button
-                                        key={2}
-                                        asChild
-                                        size="lg"
-                                        variant="default"
-                                        className="px-5 text-base">
-                                        <Link href="#link">
-                                            <span className="text-nowrap">Request a demo</span>
-                                        </Link>
-                                    </Button>
-                                </div>
+                                <Button className="bg-slate-700 hover:bg-slate-600 text-white px-8 py-3 rounded-full border border-gray-600 transition-colors flex items-center mx-auto">
+                                    <Link href="#link">
+                                        <span className="text-nowrap">Request a demo</span>
+                                    </Link>
+                                </Button>
                             </div>
-                            {/* <img
+                        </div>
+                        {/* <img
                                 className="pointer-events-none order-first ml-auto h-56 w-full object-cover invert sm:h-96 lg:static lg:order-last lg:h-max lg:w-full lg:object-contain dark:mix-blend-lighten dark:invert-0"
                                 src="https://ik.imagekit.io/lrigu76hy/tailark/abstract-bg.jpg?updatedAt=1745733473768"
                                 alt="Abstract Object"
                                 height="4000"
                                 width="3000"
                             /> */}
-                        </div>
                     </div>
                 </section>
                 {/* <section className="bg-background pb-16 md:pb-32">
@@ -153,59 +147,69 @@ export function HeroSection() {
                         </div>
                     </div>
                 </section> */}
-
+                <section className="relative mx-auto flex max-w-6xl flex-col px-6">
+                    <HowItWorks />
+                </section>
+                <div className="py-10"></div>
+                <section className="relative mx-auto flex max-w-6xl flex-col px-6">
+                    <Benefits />
+                </section>
+                <div className="py-20"></div>
                 {/* FAQ */}
-                <section className="bg-slate-800 text-gray-100 w-full mx-auto max-w-6xl px-6 border border-white/20 rounded-lg">
-                    <Accordion
-                        type="single"
-                        collapsible
-                        defaultValue="item-1"
-                        className="mb-8"
-                    >
-                        <AccordionItem value="item-1">
-                            <AccordionTrigger>Product Information</AccordionTrigger>
-                            <AccordionContent className="flex flex-col gap-4 text-balance">
-                                <p>
-                                    Our flagship product combines cutting-edge technology with sleek
-                                    design. Built with premium materials, it offers unparalleled
-                                    performance and reliability.
-                                </p>
-                                <p>
-                                    Key features include advanced processing capabilities, and an
-                                    intuitive user interface designed for both beginners and experts.
-                                </p>
-                            </AccordionContent>
-                        </AccordionItem>
-                        <AccordionItem value="item-2">
-                            <AccordionTrigger>Shipping Details</AccordionTrigger>
-                            <AccordionContent className="flex flex-col gap-4 text-balance">
-                                <p>
-                                    We offer worldwide shipping through trusted courier partners.
-                                    Standard delivery takes 3-5 business days, while express shipping
-                                    ensures delivery within 1-2 business days.
-                                </p>
-                                <p>
-                                    All orders are carefully packaged and fully insured. Track your
-                                    shipment in real-time through our dedicated tracking portal.
-                                </p>
-                            </AccordionContent>
-                        </AccordionItem>
-                        <AccordionItem value="item-3">
-                            <AccordionTrigger>Return Policy</AccordionTrigger>
-                            <AccordionContent className="flex flex-col gap-4 text-balance">
-                                <p>
-                                    We stand behind our products with a comprehensive 30-day return
-                                    policy. If you&apos;re not completely satisfied, simply return the
-                                    item in its original condition.
-                                </p>
-                                <p>
-                                    Our hassle-free return process includes free return shipping and
-                                    full refunds processed within 48 hours of receiving the returned
-                                    item.
-                                </p>
-                            </AccordionContent>
-                        </AccordionItem>
-                    </Accordion>
+                <section>
+                    <div className="relative mx-auto flex max-w-6xl flex-col px-6">
+                        <div className="bg-slate-800 text-gray-100 border border-white/20 rounded-lg px-8 py-2">
+                            <Accordion
+                                type="single"
+                                collapsible
+                                className="mb-8"
+                            >
+                                <AccordionItem value="item-1">
+                                    <AccordionTrigger>Product Information</AccordionTrigger>
+                                    <AccordionContent className="flex flex-col gap-4 text-balance">
+                                        <p>
+                                            Our flagship product combines cutting-edge technology with sleek
+                                            design. Built with premium materials, it offers unparalleled
+                                            performance and reliability.
+                                        </p>
+                                        <p>
+                                            Key features include advanced processing capabilities, and an
+                                            intuitive user interface designed for both beginners and experts.
+                                        </p>
+                                    </AccordionContent>
+                                </AccordionItem>
+                                <AccordionItem value="item-2">
+                                    <AccordionTrigger>Shipping Details</AccordionTrigger>
+                                    <AccordionContent className="flex flex-col gap-4 text-balance">
+                                        <p>
+                                            We offer worldwide shipping through trusted courier partners.
+                                            Standard delivery takes 3-5 business days, while express shipping
+                                            ensures delivery within 1-2 business days.
+                                        </p>
+                                        <p>
+                                            All orders are carefully packaged and fully insured. Track your
+                                            shipment in real-time through our dedicated tracking portal.
+                                        </p>
+                                    </AccordionContent>
+                                </AccordionItem>
+                                <AccordionItem value="item-3">
+                                    <AccordionTrigger>Return Policy</AccordionTrigger>
+                                    <AccordionContent className="flex flex-col gap-4 text-balance">
+                                        <p>
+                                            We stand behind our products with a comprehensive 30-day return
+                                            policy. If you&apos;re not completely satisfied, simply return the
+                                            item in its original condition.
+                                        </p>
+                                        <p>
+                                            Our hassle-free return process includes free return shipping and
+                                            full refunds processed within 48 hours of receiving the returned
+                                            item.
+                                        </p>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            </Accordion>
+                        </div>
+                    </div>
                 </section>
             </main>
         </div>

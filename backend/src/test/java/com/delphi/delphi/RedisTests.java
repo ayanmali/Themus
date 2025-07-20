@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.entities.User;
+import com.delphi.delphi.utils.git.GithubAccountType;
 
 @SpringBootTest
 public class RedisTests {
@@ -25,7 +26,7 @@ public class RedisTests {
 
     @Test
     public void testObjTimeout() throws Exception {
-        User user = new User("userKey0", "email", "password", "name", "pat", "ghusername");
+        User user = new User("userKey0", "email", "password", "name", "pat", "ghusername", GithubAccountType.USER);
 
         redisService.setWithExpiration("userKey1", user, 1, TimeUnit.SECONDS);
 

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Check } from 'lucide-react';
-import { HeroHeader } from '@/components/layout/hero-header';
+import { HeroHeader } from '@/pages/landing-page/hero-header';
 import { navigate } from 'wouter/use-browser-location';
 import useApi from '@/hooks/use-api';
 

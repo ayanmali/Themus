@@ -262,15 +262,15 @@ public class UserService {
     }
 
     // Update user's GitHub access token
-    @CachePut(value = "users", key = "#result.id")
-    @Transactional
-    public User updateGithubAccessToken(User user, String githubAccessToken) throws Exception {
-        // store the encrypted access token in the DB
-        String encryptedAccessToken = encryptionService.encrypt(githubAccessToken);
-        user.setGithubAccessToken(encryptedAccessToken);
+    // @CachePut(value = "users", key = "#result.id")
+    // @Transactional
+    // public User updateGithubAccessToken(User user, String githubAccessToken) throws Exception {
+    //     // store the encrypted access token in the DB
+    //     String encryptedAccessToken = encryptionService.encrypt(githubAccessToken);
+    //     user.setGithubAccessToken(encryptedAccessToken);
         
-        return userRepository.save(user);
-    }
+    //     return userRepository.save(user);
+    // }
     
     // Remove user's GitHub credentials
     @CacheEvict(value = "users", beforeInvocation = true, key = "#userId")
