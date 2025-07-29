@@ -41,9 +41,9 @@ const HowItWorks = () => {
                     <div className="bg-gray-800 p-8 rounded-3xl border border-gray-700 relative overflow-hidden">
                         <div className="mb-6">
                             <span className="text-gray-500 text-sm">01</span>
-                            <h3 className="text-2xl font-bold mt-2 mb-4">Connect your calendar</h3>
+                            <h3 className="text-2xl font-bold mt-2 mb-4 font-gfs-didot">Describe the role</h3>
                             <p className="text-gray-400">
-                                We'll handle all the cross-referencing, so you don't have to worry about double bookings.
+                                Fill out a short form to describe the role you're hiring for.
                             </p>
                         </div>
 
@@ -72,9 +72,9 @@ const HowItWorks = () => {
                     <div className="bg-gray-800 p-8 rounded-3xl border border-gray-700">
                         <div className="mb-6">
                             <span className="text-gray-500 text-sm">02</span>
-                            <h3 className="text-2xl font-bold mt-2 mb-4">Set your availability</h3>
+                            <h3 className="text-2xl font-bold mt-2 mb-4 font-gfs-didot">Repository creation</h3>
                             <p className="text-gray-400">
-                                Want to block off weekends? Set up any buffers? We make that easy.
+                                We'll design the assessment and store the files in a private GitHub repository.
                             </p>
                         </div>
 
@@ -102,9 +102,69 @@ const HowItWorks = () => {
                     <div className="bg-gray-800 p-8 rounded-3xl border border-gray-700">
                         <div className="mb-6">
                             <span className="text-gray-500 text-sm">03</span>
-                            <h3 className="text-2xl font-bold mt-2 mb-4">Choose how to meet</h3>
+                            <h3 className="text-2xl font-bold mt-2 mb-4 font-gfs-didot">Invite candidates</h3>
                             <p className="text-gray-400">
-                                It could be a video chat, phone call, or a walk in the park!
+                                Inviting candidates is as easy as sending them a link to the assessment.
+                            </p>
+                        </div>
+
+                        {/* Meeting Options */}
+                        <div className="flex justify-center items-end space-x-2 mt-12">
+                            <button className="p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                                <Video className="w-6 h-6" />
+                            </button>
+                            <button className="p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                                <Phone className="w-6 h-6" />
+                            </button>
+                            <button className="p-3 bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors">
+                                <MapPin className="w-6 h-6" />
+                            </button>
+                            <button className="p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                                <Clock className="w-6 h-6" />
+                            </button>
+                            <button className="p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                                <Calendar className="w-6 h-6" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Feature 4 - Completing the assessment */}
+                    <div className="bg-gray-800 p-8 rounded-3xl border border-gray-700">
+                        <div className="mb-6">
+                            <span className="text-gray-500 text-sm">04</span>
+                            <h3 className="text-2xl font-bold mt-2 mb-4 font-gfs-didot">Completing the assessment</h3>
+                            <p className="text-gray-400">
+                                We'll clone the repository for your candidates where they can make changes to the code. They'll submit a pull request with their changes for review when they're finished.
+                            </p>
+                        </div>
+
+                        {/* Meeting Options */}
+                        <div className="flex justify-center items-end space-x-2 mt-12">
+                            <button className="p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                                <Video className="w-6 h-6" />
+                            </button>
+                            <button className="p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                                <Phone className="w-6 h-6" />
+                            </button>
+                            <button className="p-3 bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors">
+                                <MapPin className="w-6 h-6" />
+                            </button>
+                            <button className="p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                                <Clock className="w-6 h-6" />
+                            </button>
+                            <button className="p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                                <Calendar className="w-6 h-6" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Feature 5 - Evaluating the assessment */}
+                    <div className="bg-gray-800 p-8 rounded-3xl border border-gray-700">
+                        <div className="mb-6">
+                            <span className="text-gray-500 text-sm">05</span>
+                            <h3 className="text-2xl font-bold mt-2 mb-4 font-gfs-didot">Completing the assessment</h3>
+                            <p className="text-gray-400">
+                                We'll clone the repository for your candidates where they can make changes to the code. They'll submit a pull request with their changes for review when they're finished.
                             </p>
                         </div>
 
