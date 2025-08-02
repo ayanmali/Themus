@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.delphi.delphi.components.messaging.candidates.CandidateInvitationPublisher;
 import com.delphi.delphi.dtos.NewAssessmentDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
@@ -41,16 +42,18 @@ public class AssessmentService {
     private final UserService userService;
     private final ChatService chatService;
     private final GithubService githubService;
+    private final CandidateInvitationPublisher candidateInvitationPublisher;
     private final String PYTHON_SERVICE_URL;
     private final WebClient webClient;
 
-    public AssessmentService(AssessmentRepository assessmentRepository, UserService userService, ChatService chatService, GithubService githubService, CandidateService candidateService, CandidateAttemptRepository candidateAttemptRepository, @Value("${python.service.url}") String PYTHON_SERVICE_URL) {
+    public AssessmentService(AssessmentRepository assessmentRepository, UserService userService, ChatService chatService, GithubService githubService, CandidateService candidateService, CandidateAttemptRepository candidateAttemptRepository, CandidateInvitationPublisher candidateInvitationPublisher, @Value("${python.service.url}") String PYTHON_SERVICE_URL) {
         this.assessmentRepository = assessmentRepository;
         this.userService = userService;
         this.chatService = chatService;
         this.githubService = githubService;
         this.candidateService = candidateService;
         this.candidateAttemptRepository = candidateAttemptRepository;
+        this.candidateInvitationPublisher = candidateInvitationPublisher;
         this.PYTHON_SERVICE_URL = PYTHON_SERVICE_URL;
         this.webClient = WebClient.builder().baseUrl(PYTHON_SERVICE_URL).build();
     }
@@ -377,13 +380,15 @@ public class AssessmentService {
         candidateAttempt.setAssessment(getAssessmentByIdOrThrow(assessmentId));
         candidateAttempt.setStatus(AttemptStatus.INVITED);
 
-        return candidateAttemptRepository.save(candidateAttempt);
+        // Send message to message queue to add candidate to assessment in python service
+        candidateInvitationPublisher.publishCandidateInvitation(
+            assessment, 
+            candidate, 
+            assessment.getUser().getId(), 
+            assessment.getUser().getEmail()
+        );
 
-        // Call python service to add candidate to assessment
-        // webClient.post()
-        //     .uri("/api/users/{userId}/assessments/{assessmentId}/candidates", assessment.getUser().getId(), assessmentId)
-        //     .body(candidate)
-        //     .retrieve()
+        return candidateAttemptRepository.save(candidateAttempt);
     }
 
     // Add a new candidate to the assessment that doesn't already exist in the database
@@ -399,6 +404,14 @@ public class AssessmentService {
         candidateAttempt.setCandidate(candidate);
         candidateAttempt.setAssessment(getAssessmentByIdOrThrow(assessmentId));
         candidateAttempt.setStatus(AttemptStatus.INVITED);
+
+        // Send message to message queue to add candidate to assessment in python service
+        candidateInvitationPublisher.publishCandidateInvitation(
+            assessment, 
+            candidate, 
+            assessment.getUser().getId(), 
+            assessment.getUser().getEmail()
+        );
 
         return candidateAttemptRepository.save(candidateAttempt);
     }

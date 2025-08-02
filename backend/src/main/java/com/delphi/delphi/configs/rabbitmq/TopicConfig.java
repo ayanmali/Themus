@@ -22,6 +22,10 @@ public class TopicConfig {
     // public static final String CHAT_RESPONSE_TOPIC_DLX = "chat.response.topic.dlx";
     // public static final String CHAT_RESPONSE_TOPIC_DLQ = "chat.response.topic.dlq";
 
+    public static final String CANDIDATE_INVITATION_TOPIC_EXCHANGE_NAME = "candidate.invitation.topic";
+    public static final String CANDIDATE_INVITATION_TOPIC_QUEUE_NAME = "candidate.invitation.queue";
+    public static final String CANDIDATE_INVITATION_ROUTING_KEY = "topic.candidate.invitation";
+
     // // Exchange names
     // public static final String STRIPE_EXCHANGE = "stripe.exchange";
     // public static final String PAYMENT_DLX = "payment.dlx";
@@ -87,6 +91,23 @@ public class TopicConfig {
     @Bean
     public Binding bindingChatResponseExchange(Queue chatResponseTopicQueue, TopicExchange chatResponseTopicExchange) {
         return BindingBuilder.bind(chatResponseTopicQueue).to(chatResponseTopicExchange).with("topic.chat.response");
+    }
+
+    /* CANDIDATE INVITATION TOPIC */
+    @Bean
+    public TopicExchange candidateInvitationTopicExchange() {
+        return new TopicExchange(CANDIDATE_INVITATION_TOPIC_EXCHANGE_NAME);
+    }
+
+    @Bean
+    public Queue candidateInvitationTopicQueue() {
+        return QueueBuilder.durable(CANDIDATE_INVITATION_TOPIC_QUEUE_NAME)
+        .build();
+    }
+
+    @Bean
+    public Binding bindingCandidateInvitationExchange(Queue candidateInvitationTopicQueue, TopicExchange candidateInvitationTopicExchange) {
+        return BindingBuilder.bind(candidateInvitationTopicQueue).to(candidateInvitationTopicExchange).with(CANDIDATE_INVITATION_ROUTING_KEY);
     }
 
     /* PAYMENTS TOPIC */
