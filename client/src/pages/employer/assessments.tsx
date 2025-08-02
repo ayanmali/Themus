@@ -1,177 +1,239 @@
-// import { useState } from "react";
-// import { useQuery } from "@tanstack/react-query";
-// import { Link } from "wouter";
-// import { AppShell } from "@/components/layout/app-shell";
-// import { Button } from "@/components/ui/button";
-// import { Plus, Search } from "lucide-react";
-// import { Input } from "@/components/ui/input";
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-// import { Label } from "@/components/ui/label";
-// import { AssessmentCard } from "@/components/assessment-card";
-// import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from "react";
+import { Calendar, Clock, MoreHorizontal, Plus, Eye } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AppShell } from "@/components/layout/app-shell";
+import { Assessment } from "@/lib/types/assessment";
+import AssessmentPagination from "@/components/ui/AssessmentPagination";
+import AssessmentDetails from "./assessment-details/assessment-details";
+import { Link } from "wouter";
 
-// interface Assessment {
-//   id: number;
-//   title: string;
-//   description: string;
-//   status: string;
-//   durationDays: number;
-//   candidateAssessments?: any[];
-// }
+export default function EmployerAssessments() {
+    const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
+    const [editedAssessment, setEditedAssessment] = useState<Assessment | null>(null);
 
-// export default function EmployerAssessments() {
-//   const [statusFilter, setStatusFilter] = useState<string>("all");
-//   const [roleFilter, setRoleFilter] = useState<string>("all");
-//   const [searchQuery, setSearchQuery] = useState<string>("");
+    // Sample assessment data
+    const assessments: Assessment[] = [
+        {
+            id: 1,
+            role: 'Senior Software Engineer',
+            employerId: '123',
+            description: 'Full-stack development assessment focusing on system design and microservices architecture. Candidates will build a scalable web application with proper testing and documentation.',
+            skills: ['React', 'Node.js', 'TypeScript', 'Python', 'SQL', 'Docker', 'Kubernetes'],
+            createdAt: new Date('2024-01-15'),
+            updatedAt: new Date('2024-02-01'),
+            name: 'Backend SWE Microservices Assessment',
+            status: 'active',
+            startDate: new Date('2025-06-01'),
+            endDate: new Date('2025-06-15'),
+            type: 'take-home',
+            repoLink: 'https://github.com/company/backend-swe-assessment',
+            metadata: {
+                'Duration': '7 days',
+                'Difficulty': 'Senior Level',
+                'Focus Areas': 'System Design, API Development'
+            }
+        },
+        {
+            id: 2,
+            role: 'Data Scientist Intern',
+            employerId: '456',
+            description: 'Machine learning assessment covering data analysis, model building, and statistical interpretation. Focus on real-world data processing and visualization.',
+            skills: ['Python', 'Pandas', 'Scikit-learn', 'PyTorch', 'NumPy', 'Matplotlib', 'Seaborn'],
+            createdAt: new Date('2024-01-20'),
+            updatedAt: new Date('2024-01-25'),
+            name: 'ML Data Analysis Challenge',
+            status: 'inactive',
+            startDate: new Date('2025-06-07'),
+            endDate: new Date('2025-06-14'),
+            type: 'take-home',
+            repoLink: 'https://github.com/company/ml-data-assessment',
+            metadata: {
+                'Dataset Size': '10GB',
+                'Expected Output': 'Jupyter Notebook + Report'
+            }
+        },
+        {
+            id: 3,
+            role: 'Quantitative Development Intern',
+            employerId: '789',
+            description: 'Quantitative Development Intern assessment focusing on performant backtesting engine design. Candidates will build a backtesting engine in C++ that can backtest a trading strategy on a given dataset.',
+            skills: ['C++', 'Backtesting', 'Performance Optimization', 'Algorithmic Trading', 'Data Structures', 'Object-Oriented Programming', 'Testing', 'Documentation'],
+            createdAt: new Date('2024-01-25'),
+            updatedAt: new Date('2024-01-25'),
+            name: 'Quant Development Intern Assessment',
+            status: 'active',
+            startDate: new Date('2025-06-14'),
+            endDate: new Date('2025-06-21'),
+            type: 'take-home',
+            repoLink: 'https://github.com/company/quant-development-intern-assessment',
+            metadata: {
+                'Duration': '7 days',
+                'Difficulty': 'Junior Level',
+                'Focus Areas': 'System Design, API Development'
+            }
+        },
+        {
+            id: 4,
+            role: 'Backend SWE Intern',
+            employerId: '789',
+            description: 'Backend development Intern assessment focusing on proficiency in the Go programming language and concurrent programming.',
+            skills: ['Go', 'Mutexes', 'Goroutines', 'Concurrency', 'Channels', 'Multithreading'],
+            createdAt: new Date('2024-01-25'),
+            updatedAt: new Date('2024-01-25'),
+            name: 'Backend SWE Intern Assessment',
+            status: 'active',
+            startDate: new Date('2025-06-14'),
+            endDate: new Date('2025-06-21'),
+            type: 'take-home',
+            repoLink: 'https://github.com/company/backend-swe-intern-assessment',
+            metadata: {
+                'Duration': '7 days',
+                'Difficulty': 'Junior Level',
+                'Focus Areas': 'System Design, API Development'
+            }
+        }
+    ];
 
-//   const { data: assessments, isLoading, error } = useQuery<Assessment[]>({
-//     queryKey: ["/api/assessments"],
-//   });
+    const formatDateRange = (assessment: Assessment) => {
+        if (assessment.type === 'live-coding') {
+            const duration = assessment.duration || 60;
+            return `Duration: ${duration} minutes`;
+        } else {
+            const start = assessment?.startDate?.toLocaleDateString();
+            const end = assessment?.endDate?.toLocaleDateString();
+            return `${start} - ${end}`;
+        }
+    };
 
-//   // Filter assessments based on selected filters
-//   const filteredAssessments = assessments?.filter(assessment => {
-//     // Apply status filter
-//     if (statusFilter !== "all" && assessment.status !== statusFilter) {
-//       return false;
-//     }
+    const handleAssessmentSelect = (assessment: Assessment) => {
+        setSelectedAssessment(assessment);
+        setEditedAssessment({ ...assessment });
+    };
 
-//     // Apply search query
-//     if (searchQuery && !assessment.title.toLowerCase().includes(searchQuery.toLowerCase())) {
-//       return false;
-//     }
+    // const formatTimeSpent = (startedAt: Date | null | undefined) => {
+    //     if (!startedAt) return '';
+    //     const now = new Date();
+    //     const timeDiff = now.getTime() - startedAt.getTime();
+    //     const minutes = Math.floor(timeDiff / (1000 * 60));
+    //     return `Time spent: ${minutes} minutes`;
+    // };
 
-//     return true;
-//   }) || [];
+    if (selectedAssessment) {
+        return (
+            <AssessmentDetails assessment={selectedAssessment} setSelectedAssessment={setSelectedAssessment} editedAssessment={editedAssessment} setEditedAssessment={setEditedAssessment} />
+        );
+    }
 
-//   return (
-//     <AppShell title="Assessments">
-//       <div className="flex justify-between items-center mb-6">
-//         <h2 className="text-lg leading-6 font-medium text-gray-900">All Assessments</h2>
-//         <Button asChild>
-//           <Link href="/assessments/new">
-//             <Plus className="-ml-1 mr-2 h-5 w-5" />
-//             Create Assessment
-//           </Link>
-//         </Button>
-//       </div>
-      
-//       {/* Filters */}
-//       <div className="bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6 mb-6">
-//         <div className="md:flex md:items-center md:justify-between">
-//           <div className="flex-1 min-w-0">
-//             <h2 className="text-lg leading-6 font-medium text-gray-900">Filters</h2>
-//           </div>
-//           <div className="mt-4 flex md:mt-0 md:ml-4">
-//             <div className="flex items-center">
-//               <label htmlFor="search" className="sr-only">Search Assessments</label>
-//               <div className="relative rounded-md shadow-sm">
-//                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-//                   <Search className="h-5 w-5 text-gray-400" />
-//                 </div>
-//                 <Input
-//                   type="search"
-//                   id="search"
-//                   value={searchQuery}
-//                   onChange={(e) => setSearchQuery(e.target.value)}
-//                   className="pl-10"
-//                   placeholder="Search assessments..."
-//                 />
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-//           <div>
-//             <Label htmlFor="status">Status</Label>
-//             <Select value={statusFilter} onValueChange={setStatusFilter}>
-//               <SelectTrigger id="status" className="mt-1">
-//                 <SelectValue placeholder="All Statuses" />
-//               </SelectTrigger>
-//               <SelectContent>
-//                 <SelectItem value="all">All Statuses</SelectItem>
-//                 <SelectItem value="active">Active</SelectItem>
-//                 <SelectItem value="completed">Completed</SelectItem>
-//                 <SelectItem value="draft">Draft</SelectItem>
-//               </SelectContent>
-//             </Select>
-//           </div>
-//           <div>
-//             <Label htmlFor="job-role">Job Role</Label>
-//             <Select value={roleFilter} onValueChange={setRoleFilter}>
-//               <SelectTrigger id="job-role" className="mt-1">
-//                 <SelectValue placeholder="All Roles" />
-//               </SelectTrigger>
-//               <SelectContent>
-//                 <SelectItem value="all">All Roles</SelectItem>
-//                 <SelectItem value="frontend">Frontend Developer</SelectItem>
-//                 <SelectItem value="backend">Backend Developer</SelectItem>
-//                 <SelectItem value="devops">DevOps Engineer</SelectItem>
-//                 <SelectItem value="fullstack">Full Stack Developer</SelectItem>
-//               </SelectContent>
-//             </Select>
-//           </div>
-//           <div>
-//             <Label htmlFor="daterange">Date Range</Label>
-//             <Select defaultValue="all">
-//               <SelectTrigger id="daterange" className="mt-1">
-//                 <SelectValue placeholder="All Time" />
-//               </SelectTrigger>
-//               <SelectContent>
-//                 <SelectItem value="all">All Time</SelectItem>
-//                 <SelectItem value="7days">Last 7 Days</SelectItem>
-//                 <SelectItem value="30days">Last 30 Days</SelectItem>
-//                 <SelectItem value="90days">Last 90 Days</SelectItem>
-//               </SelectContent>
-//             </Select>
-//           </div>
-//         </div>
-//       </div>
-      
-//       {/* Assessment List */}
-//       {isLoading ? (
-//         <div className="space-y-4">
-//           {[1, 2, 3].map(i => (
-//             <div key={i} className="bg-white shadow rounded-md p-6">
-//               <div className="flex justify-between items-start">
-//                 <div className="space-y-2">
-//                   <Skeleton className="h-6 w-48" />
-//                   <Skeleton className="h-4 w-32" />
-//                 </div>
-//                 <Skeleton className="h-8 w-20 rounded-full" />
-//               </div>
-//               <div className="mt-4 space-y-2">
-//                 <Skeleton className="h-4 w-full" />
-//                 <Skeleton className="h-4 w-3/4" />
-//               </div>
-//             </div>
-//           ))}
-//         </div>
-//       ) : error ? (
-//         <div className="bg-red-50 p-4 rounded-md">
-//           <p className="text-red-800">Error loading assessments</p>
-//         </div>
-//       ) : filteredAssessments.length === 0 ? (
-//         <div className="bg-white shadow rounded-md p-8 text-center">
-//           <p className="text-gray-500">No assessments found matching your filters</p>
-//         </div>
-//       ) : (
-//         <div className="space-y-4">
-//           {filteredAssessments.map(assessment => (
-//             <AssessmentCard
-//               key={assessment.id}
-//               id={assessment.id}
-//               title={assessment.title}
-//               description={assessment.description || ""}
-//               status={assessment.status}
-//               durationDays={assessment.durationDays}
-//               candidateCount={assessment.candidateAssessments?.length || 0}
-//               completedCount={assessment.candidateAssessments?.filter(ca => ca.status === "completed").length || 0}
-//               inProgressCount={assessment.candidateAssessments?.filter(ca => ca.status === "in_progress").length || 0}
-//               isEmployerView={true}
-//             />
-//           ))}
-//         </div>
-//       )}
-//     </AppShell>
-//   );
-// }
+    return (
+        <AppShell>
+            <div className="max-w-6xl mx-auto text-white">
+                {/* <div className="flex justify-between items-center mb-6">
+                        <h1 className="text-2xl font-medium text-gray-100">Assessments</h1>
+                        <Link to="/assessments/new">
+                            <Button className="flex items-center gap-2">
+                                <Plus size={16} />
+                                New Assessment
+                            </Button>
+                        </Link>
+                    </div> */}
+                <div className="flex items-center justify-between mb-8">
+                    <div>
+                        <h1 className="serif-heading">Assessments</h1>
+                        <p className="text-gray-400 flex items-center space-x-2">
+                            {/* <Calendar className="w-4 h-4" /> */}
+                            <span>View and manage your assessments</span>
+                        </p>
+                    </div>
+                    <div className="flex space-x-3">
+                        <Link href="/assessments/new">
+                            <button className="bg-slate-700 hover:bg-blue-700 text-gray-100 text-sm px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
+                                <Plus className="w-4 h-4" />
+                                <span>Create Assessment</span>
+                            </button>
+                        </Link>
+                        <button className="bg-slate-700 hover:bg-blue-700 text-gray-100 text-sm px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
+                            <Eye className="w-4 h-4" />
+                            <span>View All</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    {assessments.map((assessment) => (
+                        <div
+                            key={assessment.id}
+                            className="bg-gray-800 border border-slate-700 rounded-lg p-6 hover:bg-gray-750 transition-colors cursor-pointer shadow-lg"
+                            onClick={() => handleAssessmentSelect(assessment)}
+                        >
+                            <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                    <div className="mb-3">
+                                        <h3 className="text-xl font-semibold text-white mb-2">{assessment.name}</h3>
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${assessment.status === 'active'
+                                                ? 'bg-green-600 text-white'
+                                                : 'bg-red-600 text-white'
+                                                }`}>
+                                                {assessment.status}
+                                            </span>
+                                            <span className="px-3 py-1 rounded-full text-sm font-medium capitalize bg-blue-600 text-white">
+                                                {assessment.type.replace('-', ' ')}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <p className="text-gray-300 mb-3">
+                                        <span className="font-medium">{assessment.role}</span>
+                                    </p>
+
+                                    <div className="flex items-center gap-6 text-sm text-gray-400">
+                                        <div className="flex items-center gap-2">
+                                            <Calendar size={16} />
+                                            <span>Created: {assessment.createdAt.toLocaleDateString()}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {assessment.type === 'live-coding' ? (
+                                                <Clock size={16} />
+                                            ) : (
+                                                <Calendar size={16} />
+                                            )}
+                                            <span>{formatDateRange(assessment)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" className="p-2 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
+                                            <MoreHorizontal size={20} />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
+                                        <DropdownMenuLabel>More Actions</DropdownMenuLabel>
+                                        <DropdownMenuGroup>
+                                            <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                Copy link
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                {assessment.status === 'active' ? 'Deactivate Assessment' : 'Activate Assessment'}
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                View Repository on GitHub
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator className="bg-slate-700" />
+                                            <DropdownMenuItem className="hover:bg-slate-700 text-red-400 transition-colors hover:text-white">
+                                                Delete Assessment
+                                            </DropdownMenuItem>
+                                        </DropdownMenuGroup>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <AssessmentPagination />
+        </AppShell>
+    );
+}

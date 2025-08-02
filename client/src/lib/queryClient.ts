@@ -15,6 +15,8 @@ export async function apiRequest(
 ): Promise<Response> {
 
   // Ensure URL starts with http/https or prepend API base URL
+  // TODO: add an API gateway to handle the requests to the different services?
+  // TODO: use query client to fetch data from client side requests 
   const fullUrl = url.startsWith('http') ? url : 
   `${url.includes('api/recordings') ? PY_SERVICE_URL : API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
 

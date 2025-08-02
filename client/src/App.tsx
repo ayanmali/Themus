@@ -10,7 +10,7 @@ import NotFound from "@/pages/not-found";
 
 // Employer Pages
 import EmployerDashboard from "@/pages/employer/dashboard";
-import EmployerAssessments from "@/pages/employer/assessmentss";
+import EmployerAssessments from "@/pages/employer/assessments";
 import EmployerCandidates from "@/pages/employer/candidates";
 import EmployerReports from "@/pages/employer/reports";
 import CreateAssessment from "@/pages/employer/new-assessment/create-assessment";
