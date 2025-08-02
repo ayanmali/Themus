@@ -15,17 +15,16 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-
   // Ensure URL starts with http/https or prepend API base URL
   const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
-
+  
   const headers: Record<string, string> = {};
   
   // Only set Content-Type for JSON data, not for FormData
   if (data && !(data instanceof FormData)) {
     headers["Content-Type"] = "application/json";
   }
-
+  
   const res = await fetch(fullUrl, {
     method,
     headers,

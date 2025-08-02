@@ -25,6 +25,8 @@ import CandidateAssessmentInvite from "./pages/candidate/assessment-invite";
 import CandidateDashboard from "./pages/candidate/assessments-overview";
 import {PricingPage, SubscriptionSuccessPage } from "./pages/pricing";
 import ForgotPassword from "./pages/auth/forgot-password";
+import Record from "./pages/candidate/screen-record/record";
+import Recordings from "./pages/candidate/screen-record/recordings";
 
 function Router() {
   return (
@@ -59,10 +61,16 @@ function Router() {
       {/* Candidate Routes */}
       {/* <Route path="/start-assessment/{assessment_id}" component={StartAssessment} /> */}
       {/* <Route path="/candidate/dashboard" component={CandidateDashboard} /> */}
+      
+      {/* Candidate Assessment Invite - preview before they begin */}
       <Route path="/invite" component={CandidateAssessmentInvite} />
-      <Route path="/assessments-overview" component={CandidateDashboard} />
+      {/* <Route path="/assessments-overview" component={CandidateDashboard} /> */}
       <ProtectedRoute path="/candidate/assessments" component={CandidateAssessments} role="candidate" />
       <ProtectedRoute path="/candidate/profile" component={CandidateProfile} role="candidate" />
+
+      {/* Candidate Assessment Routes */}
+      <Route path="/candidate/screen-record" component={Record} />
+      <Route path="/candidate/recordings" component={Recordings} />
       
       {/* Fallback to 404 */}
       <Route component={NotFound} />
