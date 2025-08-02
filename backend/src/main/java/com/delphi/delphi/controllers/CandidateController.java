@@ -38,8 +38,6 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/candidates")
 public class CandidateController {
-
-    private final AssessmentService assessmentService;
     
     private final UserService userService;
     private final CandidateService candidateService;
@@ -47,7 +45,6 @@ public class CandidateController {
     public CandidateController(CandidateService candidateService, UserService userService, AssessmentService assessmentService) {
         this.candidateService = candidateService;
         this.userService = userService;
-        this.assessmentService = assessmentService;
     }
 
     private User getCurrentUser() {
@@ -75,22 +72,6 @@ public class CandidateController {
             
             Candidate createdCandidate = candidateService.createCandidate(candidate);
             return ResponseEntity.status(HttpStatus.CREATED).body(new FetchCandidateDto(createdCandidate));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Error creating candidate: " + e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Internal server error: " + e.getMessage());
-        }
-    }
-
-    /*
-     * Add a new candidate and invite them to an assessment
-     */
-    @PostMapping("/add-and-invite/{assessmentId}")
-    public ResponseEntity<?> addAndInviteCandidate(@Valid @RequestBody NewCandidateDto newCandidateDto, @PathVariable Long assessmentId) {
-        try {
-            Candidate candidate = assessmentService.addCandidateFromNew(assessmentId, newCandidateDto.getFirstName(), newCandidateDto.getLastName(), newCandidateDto.getEmail());
-            return ResponseEntity.status(HttpStatus.CREATED).body(new FetchCandidateDto(candidate));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error creating candidate: " + e.getMessage());
         } catch (Exception e) {

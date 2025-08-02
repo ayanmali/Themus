@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -13,16 +14,20 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import com.delphi.delphi.dtos.NewAssessmentDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
+import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.entities.ChatHistory;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.repositories.AssessmentRepository;
+import com.delphi.delphi.repositories.CandidateAttemptRepository;
 import com.delphi.delphi.utils.AssessmentCreationPrompts;
 import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.AssessmentType;
+import com.delphi.delphi.utils.AttemptStatus;
 import com.delphi.delphi.utils.git.GithubAccountType;
 
 @Service
@@ -31,18 +36,23 @@ import com.delphi.delphi.utils.git.GithubAccountType;
 public class AssessmentService {
 
     private final CandidateService candidateService;
-
+    private final CandidateAttemptRepository candidateAttemptRepository;
     private final AssessmentRepository assessmentRepository;
     private final UserService userService;
     private final ChatService chatService;
     private final GithubService githubService;
+    private final String PYTHON_SERVICE_URL;
+    private final WebClient webClient;
 
-    public AssessmentService(AssessmentRepository assessmentRepository, UserService userService, ChatService chatService, GithubService githubService, CandidateService candidateService) {
+    public AssessmentService(AssessmentRepository assessmentRepository, UserService userService, ChatService chatService, GithubService githubService, CandidateService candidateService, CandidateAttemptRepository candidateAttemptRepository, @Value("${python.service.url}") String PYTHON_SERVICE_URL) {
         this.assessmentRepository = assessmentRepository;
         this.userService = userService;
         this.chatService = chatService;
         this.githubService = githubService;
         this.candidateService = candidateService;
+        this.candidateAttemptRepository = candidateAttemptRepository;
+        this.PYTHON_SERVICE_URL = PYTHON_SERVICE_URL;
+        this.webClient = WebClient.builder().baseUrl(PYTHON_SERVICE_URL).build();
     }
 
     // Create a new assessment
@@ -345,22 +355,52 @@ public class AssessmentService {
 
     // Add candidate from existing candidate
     @CacheEvict(value = "assessments", beforeInvocation = true, key = "#assessmentId")
-    public Candidate addCandidateFromExisting(Long assessmentId, Long candidateId) {
+    // TODO: add cache annotation for candidate attempt
+    public CandidateAttempt addCandidateFromExisting(Long assessmentId, Long candidateId) {
         Assessment assessment = getAssessmentByIdOrThrow(assessmentId);
         Candidate candidate = candidateService.getCandidateByIdOrThrow(candidateId);
         assessment.addCandidate(candidate);
         assessmentRepository.save(assessment);
-        return candidate;
+        
+        // Check if candidate already has an attempt for this assessment
+        Optional<CandidateAttempt> existingAttempt = candidateAttemptRepository.findByCandidateIdAndAssessmentId(
+                candidateId,
+                assessmentId);
+
+        if (existingAttempt.isPresent()) {
+            throw new IllegalArgumentException("Candidate already has an attempt for this assessment");
+        }
+
+        // Create a new candidate attempt and set the status to INVITED
+        CandidateAttempt candidateAttempt = new CandidateAttempt();
+        candidateAttempt.setCandidate(candidateService.getCandidateByIdOrThrow(candidateId));
+        candidateAttempt.setAssessment(getAssessmentByIdOrThrow(assessmentId));
+        candidateAttempt.setStatus(AttemptStatus.INVITED);
+
+        return candidateAttemptRepository.save(candidateAttempt);
+
+        // Call python service to add candidate to assessment
+        // webClient.post()
+        //     .uri("/api/users/{userId}/assessments/{assessmentId}/candidates", assessment.getUser().getId(), assessmentId)
+        //     .body(candidate)
+        //     .retrieve()
     }
 
-    // Add a new candidate to the assessmentthat doesn't already exist in the database
+    // Add a new candidate to the assessment that doesn't already exist in the database
     @CacheEvict(value = "assessments", beforeInvocation = true, key = "#assessmentId")
-    public Candidate addCandidateFromNew(Long assessmentId, String firstName, String lastName, String email) {
+    public CandidateAttempt addCandidateFromNew(Long assessmentId, String firstName, String lastName, String email) {
         Assessment assessment = getAssessmentByIdOrThrow(assessmentId);
         Candidate candidate = candidateService.createCandidate(firstName, lastName, email, assessment.getUser());
         assessment.addCandidate(candidate);
         assessmentRepository.save(assessment);
-        return candidate;
+
+        // Create a new candidate attempt and set the status to INVITED
+        CandidateAttempt candidateAttempt = new CandidateAttempt();
+        candidateAttempt.setCandidate(candidate);
+        candidateAttempt.setAssessment(getAssessmentByIdOrThrow(assessmentId));
+        candidateAttempt.setStatus(AttemptStatus.INVITED);
+
+        return candidateAttemptRepository.save(candidateAttempt);
     }
 
     // Remove skill from assessment

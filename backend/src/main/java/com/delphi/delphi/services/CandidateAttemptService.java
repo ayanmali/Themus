@@ -22,17 +22,11 @@ public class CandidateAttemptService {
 
     private final CandidateAttemptRepository candidateAttemptRepository;
 
-    private final CandidateService candidateService;
-
-    private final AssessmentService assessmentService;
-
-    public CandidateAttemptService(CandidateAttemptRepository candidateAttemptRepository, CandidateService candidateService, AssessmentService assessmentService) {
+    public CandidateAttemptService(CandidateAttemptRepository candidateAttemptRepository) {
         this.candidateAttemptRepository = candidateAttemptRepository;
-        this.candidateService = candidateService;
-        this.assessmentService = assessmentService;
     }
 
-    // Create a new candidate attempt
+    // Start a new candidate attempt: change status to from INVITED to STARTED
     @CachePut(value = "candidateAttempts", key = "#result.id")
     public CandidateAttempt startAttempt(Long candidateId, Long assessmentId, Optional<String> languageChoice, AttemptStatus status, LocalDateTime startedDate) {
         // Check if candidate already has an attempt for this assessment
@@ -40,22 +34,14 @@ public class CandidateAttemptService {
                 candidateId,
                 assessmentId);
 
-        if (existingAttempt.isPresent()) {
-            throw new IllegalArgumentException("Candidate already has an attempt for this assessment");
+        if (!existingAttempt.isPresent()) {
+            throw new IllegalArgumentException("Candidate does not have an attempt for this assessment");
         }
 
-        CandidateAttempt candidateAttempt = new CandidateAttempt();
-        candidateAttempt.setCandidate(candidateService.getCandidateByIdOrThrow(candidateId));
-        candidateAttempt.setAssessment(assessmentService.getAssessmentByIdOrThrow(assessmentId));
-        // Set language choice if provided and valid
-        if (languageChoice.isPresent() && !assessmentService.getAssessmentByIdOrThrow(assessmentId).getLanguageOptions()
-                .contains(languageChoice.get())) {
-            candidateAttempt.setLanguageChoice(languageChoice.get());
-        }
-        candidateAttempt.setStatus(status);
-        candidateAttempt.setStartedDate(startedDate);
+        existingAttempt.get().setStatus(AttemptStatus.STARTED);
+        existingAttempt.get().setStartedDate(startedDate);
 
-        return candidateAttemptRepository.save(candidateAttempt);
+        return candidateAttemptRepository.save(existingAttempt.get());
     }
 
     // Create a new candidate attempt

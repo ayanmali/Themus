@@ -48,6 +48,7 @@ public class CandidateAttempt {
     @Column(nullable = false)
     private AttemptStatus status = AttemptStatus.INVITED;
     
+    // if the assessment doesn't support multiple languages, this will be null
     @Size(max = 100, message = "Language choice must not exceed 100 characters")
     @Column(name = "language_choice", length = 100)
     private String languageChoice;

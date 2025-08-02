@@ -27,14 +27,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.components.messaging.chat.ChatMessagePublisher;
 import com.delphi.delphi.dtos.FetchAssessmentDto;
+import com.delphi.delphi.dtos.FetchCandidateAttemptDto;
 import com.delphi.delphi.dtos.FetchCandidateDto;
 import com.delphi.delphi.dtos.NewAssessmentDto;
+import com.delphi.delphi.dtos.NewCandidateDto;
 import com.delphi.delphi.dtos.NewUserMessageDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
+import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.services.AssessmentService;
-import com.delphi.delphi.services.CandidateService;
 import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.AssessmentCreationPrompts;
 import com.delphi.delphi.utils.AssessmentStatus;
@@ -50,13 +52,10 @@ public class AssessmentController {
 
     private final ChatMessagePublisher chatMessagePublisher;
 
-    private final CandidateService candidateService;
-
     private final AssessmentService assessmentService;
 
-    public AssessmentController(AssessmentService assessmentService, CandidateService candidateService, ChatMessagePublisher chatMessagePublisher, UserService userService) {
+    public AssessmentController(AssessmentService assessmentService, ChatMessagePublisher chatMessagePublisher, UserService userService) {
         this.assessmentService = assessmentService;
-        this.candidateService = candidateService;
         this.chatMessagePublisher = chatMessagePublisher;
         this.userService = userService;
     }
@@ -198,15 +197,30 @@ public class AssessmentController {
     }
 
     // Add an existing candidate to an assessment
-    @PostMapping("/{id}/add-candidate/{candidateId}")
-    public ResponseEntity<?> addCandidate(@PathVariable Long id, @PathVariable Long candidateId) {
+    @PostMapping("/{assessmentId}/invite-candidate/{candidateId}")
+    public ResponseEntity<?> inviteCandidate(@PathVariable Long assessmentId, @PathVariable Long candidateId) {
         try {
-            Candidate candidate = candidateService.getCandidateByIdOrThrow(candidateId);
-            assessmentService.addCandidateFromExisting(id, candidateId);
-            return ResponseEntity.ok(new FetchCandidateDto(candidate));
+            CandidateAttempt candidateAttempt = assessmentService.addCandidateFromExisting(assessmentId, candidateId);
+            return ResponseEntity.ok(new FetchCandidateAttemptDto(candidateAttempt));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error adding candidate: " + e.getMessage());
+        }
+    }
+
+    /*
+     * Add a new candidate and invite them to an assessment
+     */
+    @PostMapping("/{assessmentId}/add-and-invite")
+    public ResponseEntity<?> addAndInviteCandidate(@Valid @RequestBody NewCandidateDto newCandidateDto, @PathVariable Long assessmentId) {
+        try {
+            CandidateAttempt candidateAttempt = assessmentService.addCandidateFromNew(assessmentId, newCandidateDto.getFirstName(), newCandidateDto.getLastName(), newCandidateDto.getEmail());
+            return ResponseEntity.status(HttpStatus.CREATED).body(new FetchCandidateAttemptDto(candidateAttempt));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Error creating candidate: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Internal server error: " + e.getMessage());
         }
     }
 
