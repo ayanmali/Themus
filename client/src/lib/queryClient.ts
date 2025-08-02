@@ -1,7 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-
-// API base URL - change this to match your backend URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { API_BASE_URL, PY_SERVICE_URL } from "./utils";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -17,7 +15,8 @@ export async function apiRequest(
 ): Promise<Response> {
 
   // Ensure URL starts with http/https or prepend API base URL
-  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+  const fullUrl = url.startsWith('http') ? url : 
+  `${url.includes('api/recordings') ? PY_SERVICE_URL : API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
 
   const headers: Record<string, string> = {};
   

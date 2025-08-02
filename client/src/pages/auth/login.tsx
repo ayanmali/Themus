@@ -1,4 +1,4 @@
-import { cn, API_URL } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -17,6 +17,7 @@ import { Link } from "wouter"
 import { AuthPageHeader } from "@/components/layout/auth-page-header"
 import { navigate } from "wouter/use-browser-location"
 import { useAuth } from "@/hooks/use-auth"
+import { API_BASE_URL } from "@/lib/utils"
 
 // Zod validation schema
 const loginSchema = z.object({
@@ -57,7 +58,7 @@ export function LoginForm({
     setIsLoading(true)
     try {
       console.log("Logging in with data:", data);
-      const response = await fetch(`${API_URL}/api/auth/login/email`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login/email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import Sidebar from "@/components/sidebar";
-import VideoPreviewModal from "@/components/video-preview-modal";
+import Sidebar from "@/components/candidate-assessment/assessment-preview-sidebar";
+import VideoPreviewModal from "@/components/candidate-assessment/video-preview-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Download, Trash2, Play, Search } from "lucide-react";
-import type { Recording } from "@shared/schema";
+import type { Recording } from "@/lib/types/recording";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
