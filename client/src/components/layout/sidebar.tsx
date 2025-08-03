@@ -1,4 +1,4 @@
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/contexts/AuthContext";
 import { Link, useLocation } from "wouter";
 import { Code, LayoutDashboard, FileText, Database, Users, ChartBarStacked, User as LucideUser } from "lucide-react";
 import { cn } from "@/lib/utils";

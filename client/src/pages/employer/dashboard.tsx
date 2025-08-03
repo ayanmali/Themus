@@ -179,7 +179,7 @@ import {
   Filter
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/contexts/AuthContext';
 
 const EmployerDashboard = () => {
   const { user } = useAuth();

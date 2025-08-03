@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
-import { useAuth } from './use-auth';
-import { navigate } from 'wouter/use-browser-location';
-import { API_BASE_URL, PY_SERVICE_URL } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { API_BASE_URL } from '@/lib/utils';
 
 const useApi = () => {
   const auth = useAuth();
@@ -21,7 +20,7 @@ const useApi = () => {
 
     const makeRequest = async (): Promise<Response> => {
       // TODO: add an API gateway to handle the requests to the different services?
-      const fullUrl = `${url.includes('api/recordings') ? PY_SERVICE_URL : API_BASE_URL}${url}`;
+      const fullUrl = `${API_BASE_URL}${url}`;
       return await fetch(fullUrl, {
         ...options,
         credentials: 'include',

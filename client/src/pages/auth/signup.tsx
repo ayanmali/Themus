@@ -16,7 +16,7 @@ import { z } from "zod"
 import { useState } from "react"
 import { AuthPageHeader } from "@/components/layout/auth-page-header"
 import { navigate } from "wouter/use-browser-location"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/contexts/AuthContext"
 import { Link } from "wouter"
 import { API_BASE_URL } from "@/lib/utils"
 

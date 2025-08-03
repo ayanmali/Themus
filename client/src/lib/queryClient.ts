@@ -1,5 +1,23 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { API_BASE_URL, PY_SERVICE_URL } from "./utils";
+import { API_BASE_URL } from "./utils";
+
+// Global auth state management
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+// Auth context integration
+let authContext: {
+  refreshToken: () => Promise<boolean>;
+  logout: () => void;
+} | null = null;
+
+// Function to set auth context (called from AuthContext)
+export const setAuthContext = (context: {
+  refreshToken: () => Promise<boolean>;
+  logout: () => void;
+}) => {
+  authContext = context;
+};
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -18,7 +36,7 @@ export async function apiRequest(
   // TODO: add an API gateway to handle the requests to the different services?
   // TODO: use query client to fetch data from client side requests 
   const fullUrl = url.startsWith('http') ? url : 
-  `${url.includes('api/recordings') ? PY_SERVICE_URL : API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+  `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
 
   const headers: Record<string, string> = {};
   
@@ -27,15 +45,56 @@ export async function apiRequest(
     headers["Content-Type"] = "application/json";
   }
 
-  const res = await fetch(fullUrl, {
-    method,
-    headers,
-    body: data instanceof FormData ? data : (data ? JSON.stringify(data) : undefined),
-    credentials: "include",
-  });
+  const makeRequest = async (): Promise<Response> => {
+    return await fetch(fullUrl, {
+      method,
+      headers,
+      body: data instanceof FormData ? data : (data ? JSON.stringify(data) : undefined),
+      credentials: "include",
+    });
+  };
 
-  await throwIfResNotOk(res);
-  return res;
+  try {
+    let response = await makeRequest();
+
+    // Handle 401 responses with automatic token refresh
+    if (response.status === 401) {
+      console.log('Access token expired, attempting refresh...');
+      
+      // Prevent multiple simultaneous refresh attempts
+      if (!isRefreshing) {
+        isRefreshing = true;
+        refreshPromise = authContext?.refreshToken() || Promise.resolve(false);
+      }
+      
+      // Wait for the refresh to complete
+      const refreshSuccess = await refreshPromise;
+      isRefreshing = false;
+      refreshPromise = null;
+      
+      if (refreshSuccess) {
+        console.log('Token refresh successful, retrying original request...');
+        // Retry the original request with the new token
+        response = await makeRequest();
+        
+        // If still 401 after refresh, logout
+        if (response.status === 401) {
+          authContext?.logout();
+          throw new Error('Authentication failed after token refresh');
+        }
+      } else {
+        // Refresh failed, logout
+        authContext?.logout();
+        throw new Error('Token refresh failed');
+      }
+    }
+
+    await throwIfResNotOk(response);
+    return response;
+  } catch (error) {
+    console.error('API request failed:', error);
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -47,16 +106,61 @@ export const getQueryFn: <T>(options: {
     const url = queryKey.join("/") as string;
     const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
     
-    const res = await fetch(fullUrl, {
-      credentials: "include",
-    });
+    const makeRequest = async (): Promise<Response> => {
+      return await fetch(fullUrl, {
+        credentials: "include",
+      });
+    };
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+    try {
+      let response = await makeRequest();
+
+      // Handle 401 responses with automatic token refresh
+      if (response.status === 401) {
+        console.log('Access token expired, attempting refresh...');
+        
+        // Prevent multiple simultaneous refresh attempts
+        if (!isRefreshing) {
+          isRefreshing = true;
+          refreshPromise = authContext?.refreshToken() || Promise.resolve(false);
+        }
+        
+        // Wait for the refresh to complete
+        const refreshSuccess = await refreshPromise;
+        isRefreshing = false;
+        refreshPromise = null;
+        
+        if (refreshSuccess) {
+          console.log('Token refresh successful, retrying original request...');
+          // Retry the original request with the new token
+          response = await makeRequest();
+          
+          // If still 401 after refresh, handle based on unauthorizedBehavior
+          if (response.status === 401) {
+            if (unauthorizedBehavior === "returnNull") {
+              return null;
+            } else {
+              authContext?.logout();
+              throw new Error('Authentication failed after token refresh');
+            }
+          }
+        } else {
+          // Refresh failed, handle based on unauthorizedBehavior
+          if (unauthorizedBehavior === "returnNull") {
+            return null;
+          } else {
+            authContext?.logout();
+            throw new Error('Token refresh failed');
+          }
+        }
+      }
+
+      await throwIfResNotOk(response);
+      return await response.json();
+    } catch (error) {
+      console.error('Query request failed:', error);
+      throw error;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 export const queryClient = new QueryClient({

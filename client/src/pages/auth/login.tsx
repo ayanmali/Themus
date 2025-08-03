@@ -16,7 +16,7 @@ import { useState, useEffect } from "react"
 import { Link } from "wouter"
 import { AuthPageHeader } from "@/components/layout/auth-page-header"
 import { navigate } from "wouter/use-browser-location"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/contexts/AuthContext"
 import { API_BASE_URL } from "@/lib/utils"
 
 // Zod validation schema

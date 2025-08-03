@@ -33,7 +33,7 @@ import { models } from "@/lib/models";
 import { TechChoices } from "./tech-choices";
 import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import useApi from "@/hooks/use-api";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Create a schema for the assessment creation form
 const createAssessmentSchema = z.object({
