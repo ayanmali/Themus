@@ -7,9 +7,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import com.delphi.delphi.configs.rabbitmq.TopicConfig;
 import com.delphi.delphi.dtos.messaging.candidates.CandidateInvitationMessage;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
@@ -18,10 +18,17 @@ import com.delphi.delphi.entities.Candidate;
 public class CandidateInvitationPublisher {
 
     private final RabbitTemplate rabbitTemplate;
+    private final String candidateInvitationTopicExchangeName;
+    private final String candidateInvitationRoutingKey;
+    
     private static final Logger log = LoggerFactory.getLogger(CandidateInvitationPublisher.class);
 
-    public CandidateInvitationPublisher(RabbitTemplate rabbitTemplate) {
+    public CandidateInvitationPublisher(RabbitTemplate rabbitTemplate,
+                       @Value("${candidate.invitation.topic.exchange.name}") String candidateInvitationTopicExchangeName,
+                       @Value("${candidate.invitation.routing.key}") String candidateInvitationRoutingKey) {
         this.rabbitTemplate = rabbitTemplate;
+        this.candidateInvitationTopicExchangeName = candidateInvitationTopicExchangeName;
+        this.candidateInvitationRoutingKey = candidateInvitationRoutingKey;
     }
 
     public String publishCandidateInvitation(Assessment assessment, Candidate candidate, Long userId, String userEmail) {
@@ -47,8 +54,8 @@ public class CandidateInvitationPublisher {
                 candidate.getFullName(), candidate.getEmail(), assessment.getName());
             
             rabbitTemplate.convertAndSend(
-                TopicConfig.CANDIDATE_INVITATION_TOPIC_EXCHANGE_NAME,
-                TopicConfig.CANDIDATE_INVITATION_ROUTING_KEY,
+                candidateInvitationTopicExchangeName,
+                candidateInvitationRoutingKey,
                 message
             );
             

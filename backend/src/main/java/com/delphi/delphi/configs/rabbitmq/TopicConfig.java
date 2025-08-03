@@ -5,6 +5,7 @@ import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.TopicExchange;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -22,9 +23,17 @@ public class TopicConfig {
     // public static final String CHAT_RESPONSE_TOPIC_DLX = "chat.response.topic.dlx";
     // public static final String CHAT_RESPONSE_TOPIC_DLQ = "chat.response.topic.dlq";
 
-    public static final String CANDIDATE_INVITATION_TOPIC_EXCHANGE_NAME = "candidate.invitation.topic";
-    public static final String CANDIDATE_INVITATION_TOPIC_QUEUE_NAME = "candidate.invitation.queue";
-    public static final String CANDIDATE_INVITATION_ROUTING_KEY = "topic.candidate.invitation";
+    public final String CANDIDATE_INVITATION_TOPIC_EXCHANGE_NAME;
+    public final String CANDIDATE_INVITATION_TOPIC_QUEUE_NAME;
+    public final String CANDIDATE_INVITATION_ROUTING_KEY;
+    
+    public TopicConfig(@Value("${candidate.invitation.topic.exchange.name}") String candidateInvitationTopicExchangeName,
+                       @Value("${candidate.invitation.topic.queue.name}") String candidateInvitationTopicQueueName,
+                       @Value("${candidate.invitation.routing.key}") String candidateInvitationRoutingKey) {
+        this.CANDIDATE_INVITATION_TOPIC_EXCHANGE_NAME = candidateInvitationTopicExchangeName;
+        this.CANDIDATE_INVITATION_TOPIC_QUEUE_NAME = candidateInvitationTopicQueueName;
+        this.CANDIDATE_INVITATION_ROUTING_KEY = candidateInvitationRoutingKey;
+    }
 
     // // Exchange names
     // public static final String STRIPE_EXCHANGE = "stripe.exchange";
