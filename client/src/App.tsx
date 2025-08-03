@@ -25,8 +25,8 @@ import CandidateAssessmentInvite from "./pages/candidate/assessment-invite";
 import CandidateDashboard from "./pages/candidate/assessments-overview";
 import {PricingPage, SubscriptionSuccessPage } from "./pages/pricing";
 import ForgotPassword from "./pages/auth/forgot-password";
-import Record from "./pages/candidate/screen-record/record";
-import Recordings from "./pages/candidate/screen-record/recordings";
+import Record from "./pages/candidate/starting-assessment/record";
+import Recordings from "./pages/candidate/starting-assessment/recordings";
 
 function Router() {
   return (
@@ -69,7 +69,7 @@ function Router() {
       <ProtectedRoute path="/candidate/profile" component={CandidateProfile} role="candidate" />
 
       {/* Candidate Assessment Routes */}
-      <Route path="/candidate/screen-record" component={Record} />
+      <Route path="/:attempt_id/starting" component={Record} />
       <Route path="/candidate/recordings" component={Recordings} />
       
       {/* Fallback to 404 */}

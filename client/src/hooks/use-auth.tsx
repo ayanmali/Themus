@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { API_URL } from '@/lib/utils'
+import { API_BASE_URL } from '@/lib/utils'
 import { User } from '@/lib/types/user'
 import { navigate } from 'wouter/use-browser-location'
 
@@ -11,7 +11,7 @@ export const useAuth = () => {
   const refreshToken = async (): Promise<boolean> => {
     console.log("Refreshing token...")
     try {
-      const response = await fetch(`${API_URL}/api/auth/refresh`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
         method: 'POST',
         credentials: 'include'
       });
@@ -41,7 +41,7 @@ export const useAuth = () => {
   const checkAuth = async () => {
     console.log("Checking auth...")
     try {
-      const response = await fetch(`${API_URL}/api/users/is-authenticated`, {
+      const response = await fetch(`${API_BASE_URL}/api/users/is-authenticated`, {
         method: 'GET',
         credentials: 'include'
       });
@@ -85,7 +85,7 @@ export const useAuth = () => {
   const logout = async () => {
     console.log("Logging out...");
     try {
-      await fetch(`${API_URL}/api/auth/logout`, {
+      await fetch(`${API_BASE_URL}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include'
       })

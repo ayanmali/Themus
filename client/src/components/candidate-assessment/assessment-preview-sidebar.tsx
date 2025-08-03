@@ -50,7 +50,7 @@ export default function Sidebar() {
 
   const navigationItems = [
     {
-      href: "/",
+      href: "/candidate/screen-record",
       icon: Record,
       label: "Record",
       active: location === "/",

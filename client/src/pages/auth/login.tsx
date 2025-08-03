@@ -71,6 +71,9 @@ export function LoginForm({
       });
 
       if (!response.ok) {
+        if (response.status === 403) {
+          alert("Invalid email or password");
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 

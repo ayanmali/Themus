@@ -3,11 +3,12 @@ import Sidebar from "@/components/candidate-assessment/assessment-preview-sideba
 import RecordingPreview from "@/components/candidate-assessment/recording-preview";
 import RecordingControls from "@/components/candidate-assessment/recording-controls";
 import RecordingOptionsComponent from "@/components/candidate-assessment/recording-options";
-import RecentRecordings from "@/components/candidate-assessment/recent-recordings";
+import RecentRecordings from "@/components/candidate-assessment/candidate-instructions";
 import VideoPreviewModal from "@/components/candidate-assessment/video-preview-modal";
 import PermissionDialog from "@/components/candidate-assessment/permission-dialog";
 import { useScreenRecording } from "@/hooks/use-screen-recording";
 import type { RecordingOptions, Recording } from "@/lib/types/recording";
+import CandidateInstructions from "@/components/candidate-assessment/candidate-instructions";
 
 export default function Record() {
   const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
@@ -49,15 +50,15 @@ export default function Record() {
 
   return (
     <div className="min-h-screen flex bg-gray-50">
-      <Sidebar />
+      {/* <Sidebar /> */}
       
       <div className="flex-1 flex flex-col">
         {/* Top Bar */}
         <header className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Screen Recording</h2>
-              <p className="text-gray-600">Capture your screen with audio</p>
+              <h2 className="text-2xl font-bold text-gray-900">ASSESSMENT NAME HERE</h2>
+              <p className="text-gray-600">COMPANY NAME HERE</p>
             </div>
             <div className="flex items-center space-x-4">
               {isRecording && (
@@ -67,6 +68,7 @@ export default function Record() {
                   <span className="font-mono font-medium">{formatTime(recordingDuration)}</span>
                 </div>
               )}
+              <span>CANDIDATE NAME HERE</span>
               <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
             </div>
           </div>
@@ -74,7 +76,11 @@ export default function Record() {
 
         {/* Main Content */}
         <main className="flex-1 p-6">
+          
           <div className="max-w-4xl mx-auto">
+            {/* Instructions*/}
+            <CandidateInstructions onSelectRecording={setSelectedRecording} />
+
             {/* Recording Preview */}
             <RecordingPreview 
               isRecording={isRecording} 
@@ -99,8 +105,6 @@ export default function Record() {
               disabled={isRecording}
             />
 
-            {/* Recent Recordings */}
-            <RecentRecordings onSelectRecording={setSelectedRecording} />
           </div>
         </main>
       </div>

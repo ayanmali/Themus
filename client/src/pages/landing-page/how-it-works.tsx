@@ -21,10 +21,10 @@ const HowItWorks = () => {
             {/* Hero Section */}
             <div className="text-center py-12">
                 <h1 className="text-5xl font-gfs-didot md:text-6xl font-bold mb-8 leading-tight">
-                    With us, appointment scheduling is easy
+                    Screening candidates, made easy
                 </h1>
                 <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
-                    Effortless scheduling for business and individuals, powerful solutions for fast-growing modern companies.
+                    Effortless screening for technical roles
                 </p>
                 <Button className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-3 rounded-full border border-gray-600 transition-colors flex items-center mx-auto">
                     Get started

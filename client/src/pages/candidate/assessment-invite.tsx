@@ -77,7 +77,7 @@ export default function CandidateAssessmentInvite() {
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-2xl font-bold text-white">{assessmentData.name}</h1>
-                            <p className="text-gray-400 mt-1">Position: {assessmentData.role}</p>
+                            <p className="text-gray-400 mt-1">Position: {assessmentData.role} - EMPLOYER_NAME</p>
                         </div>
                         <div className="flex items-center space-x-4">
                             <div className="flex items-center space-x-2 bg-blue-900/30 px-3 py-1 rounded-full">
@@ -237,7 +237,8 @@ export default function CandidateAssessmentInvite() {
                             <button
                                 onClick={handleStart}
                                 disabled={(!selectedLanguage && !!assessmentData.languageOptions?.length) || isStarting}
-                                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
+                                className="w-full  disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
+                                // className="w-full bg-gradient-to-r duration-1000 from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
                             >
                                 {isStarting ? (
                                     <>

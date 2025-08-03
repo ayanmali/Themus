@@ -10,7 +10,7 @@ interface RecentRecordingsProps {
   onSelectRecording: (recording: Recording) => void;
 }
 
-export default function RecentRecordings({ onSelectRecording }: RecentRecordingsProps) {
+export default function CandidateInstructions({ onSelectRecording }: RecentRecordingsProps) {
   const { toast } = useToast();
   
   const { data: recordings = [], isLoading, refetch } = useQuery<Recording[]>({
@@ -137,7 +137,7 @@ export default function RecentRecordings({ onSelectRecording }: RecentRecordings
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Recent Recordings</CardTitle>
+          <CardTitle>Instructions</CardTitle>
           <Button variant="ghost" size="sm">
             View All
           </Button>

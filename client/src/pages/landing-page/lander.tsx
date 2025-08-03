@@ -15,17 +15,17 @@ export function HeroSection() {
                     <div className="pt-12 lg:pt-44 h-screen relative mx-auto flex max-w-6xl flex-col px-6 lg:grid lg:grid-cols-2">
                         <div className="mx-auto max-w-lg text-center lg:ml-0 lg:text-left">
                             <h1 className="font-gfs-didot mt-8 max-w-2xl text-balance text-5xl font-semibold md:text-6xl lg:mt-16 xl:text-7xl">Technical Hiring for the Modern Era</h1>
-                            <p className="mt-8 max-w-2xl text-pretty text-lg">Assess candidates on their ability to debug and enhance AI-generated code.</p>
+                            <p className="mt-8 max-w-2xl text-pretty text-lg">Assess candidates on their ability to debug and enhance AI-generated code and how they use AI programming tools.</p>
 
                             <div className="mt-12 flex flex-col items-center justify-center gap-2 sm:flex-row lg:justify-start">
-                                
+
                                 <Button className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-3 rounded-full border border-gray-600 transition-colors flex items-center mx-auto">
-                                    <Link href="/signup">
+                                    <Link href="/signup" className="flex items-center">
                                         <span>Get started</span>
+                                        <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
                                     </Link>
-                                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
                                 </Button>
 
                                 <Button className="bg-slate-700 hover:bg-slate-600 text-white px-8 py-3 rounded-full border border-gray-600 transition-colors flex items-center mx-auto">

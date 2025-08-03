@@ -18,10 +18,10 @@ const Benefits = () => {
             {/* Hero Section */}
             <div className="text-center py-12">
                 <h1 className="text-5xl font-gfs-didot md:text-6xl font-bold mb-8 leading-tight">
-                    Your all-purpose scheduling app
+                    The new way to screen candidates
                 </h1>
                 <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
-                    Your all-purpose scheduling app
+                    Ditch the old hiring process and screen candidates easily, with confidence
                 </p>
                 <Button className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-3 rounded-full border border-gray-600 transition-colors flex items-center mx-auto">
                     Get started
