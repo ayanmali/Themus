@@ -8,14 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Download, Trash2, Play, Search } from "lucide-react";
 import type { Recording } from "@/lib/types/recording";
-import { apiRequest } from "@/lib/queryClient";
+import useApi from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Recordings() {
   const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
-
+  const { apiCall } = useApi();
   const { data: recordings = [], isLoading, refetch } = useQuery<Recording[]>({
     queryKey: ["/api/recordings"],
   });
@@ -26,7 +26,9 @@ export default function Recordings() {
 
   const handleDelete = async (id: number) => {
     try {
-      await apiRequest("DELETE", `/api/recordings/${id}`);
+      await apiCall(`/api/recordings/${id}`, {
+        method: "DELETE",
+      });
       toast({
         title: "Recording deleted",
         description: "The recording has been successfully deleted.",

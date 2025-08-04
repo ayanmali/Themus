@@ -2,10 +2,10 @@ package com.delphi.delphi.controllers;
 
 import java.io.IOException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
@@ -35,23 +35,31 @@ import reactor.core.publisher.Mono;
 public class RecordingController {
     private final WebClient webClient;
     private final String PYTHON_SERVICE_URL;
+    private final Logger logger = LoggerFactory.getLogger(RecordingController.class);
     
     public RecordingController(@Value("${python.service.url}") String pythonServiceUrl) {
         this.PYTHON_SERVICE_URL = pythonServiceUrl;
         // sending HTTP requests to Python service
-        this.webClient = WebClient.builder().baseUrl(PYTHON_SERVICE_URL).build();
+        this.webClient = WebClient.builder()
+            .baseUrl(PYTHON_SERVICE_URL)
+            .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(500 * 1024 * 1024)) // 500MB
+            .build();
     }
 
-    @PostMapping("/")
+    @PostMapping
     public Mono<ResponseEntity<RecordingResponseDto>> saveRecording(
             @RequestParam("video") MultipartFile video,
             @RequestParam("metadata") String metadata) {
         
         try {
+            logger.info("Received video file: " + video.getOriginalFilename() + 
+                              ", size: " + video.getSize() + " bytes");
+            logger.info("Received metadata: " + metadata);
+            
             // Create multipart form data
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             
-            // Add video file
+            // Add video file with proper filename
             ByteArrayResource videoResource = new ByteArrayResource(video.getBytes()) {
                 @Override
                 public String getFilename() {
@@ -60,25 +68,26 @@ public class RecordingController {
             };
             body.add("video", videoResource);
             
-            // Add metadata
+            // Add metadata as string
             body.add("metadata", metadata);
             
-            // Set headers for multipart form data
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-            
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+            logger.info("Forwarding to Python service at: " + PYTHON_SERVICE_URL + "/api/recordings/");
             
             return webClient.post()
                 .uri("/api/recordings/")
                 .contentType(MediaType.MULTIPART_FORM_DATA)
-                .bodyValue(requestEntity)
+                .bodyValue(body)
                 .retrieve()
                 .bodyToMono(RecordingResponseDto.class)
                 .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build());
+                .defaultIfEmpty(ResponseEntity.notFound().build())
+                .doOnError(error -> {
+                    logger.error("Error forwarding to Python service: " + error.getMessage());
+                    logger.error("Error details: ", error);
+                });
                 
         } catch (IOException e) {
+            logger.error("Error processing video file: " + e.getMessage());
             return Mono.just(ResponseEntity.badRequest().build());
         }
     }
@@ -114,12 +123,16 @@ public class RecordingController {
     
     @GetMapping("/storage/stats")
     public Mono<ResponseEntity<Object>> getStorageStats() {
+        logger.info("Testing connection to Python service at: " + PYTHON_SERVICE_URL + "/api/recordings/storage/stats");
         return webClient.get()
             .uri("/api/recordings/storage/stats")
             .retrieve()
             .bodyToMono(Object.class)
             .map(ResponseEntity::ok)
-            .defaultIfEmpty(ResponseEntity.notFound().build());
+            .defaultIfEmpty(ResponseEntity.notFound().build())
+            .doOnError(error -> {
+                logger.error("Error connecting to Python service: " + error.getMessage());
+            });
     }
     
     @GetMapping("/{recordingId}")

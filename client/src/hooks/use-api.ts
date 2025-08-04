@@ -1,6 +1,10 @@
 import { useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { API_BASE_URL } from '@/lib/utils';
+import { API_BASE_URL, PY_SERVICE_URL } from '@/lib/utils';
+
+// Global auth state management
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
 
 const useApi = () => {
   const auth = useAuth();
@@ -8,7 +12,7 @@ const useApi = () => {
   const apiCall = useCallback(async (url: string, options: RequestInit = {}) => {
     // Check authentication before making request
     if (!auth.isAuthenticated) {
-       // navigate("/login")
+      // navigate("/login")
       throw new Error('User not authenticated');
     }
 
@@ -20,7 +24,7 @@ const useApi = () => {
 
     const makeRequest = async (): Promise<Response> => {
       // TODO: add an API gateway to handle the requests to the different services?
-      const fullUrl = `${API_BASE_URL}${url}`;
+      const fullUrl = `${url.includes('api/recordings') ? PY_SERVICE_URL : API_BASE_URL}${url}`;
       return await fetch(fullUrl, {
         ...options,
         credentials: 'include',
@@ -34,22 +38,49 @@ const useApi = () => {
       // Handle 401 responses with automatic token refresh
       if (response.status === 401) {
         console.log('Access token expired, attempting refresh...');
-        
-        // Try to refresh the token
-        const refreshSuccess = await auth.refreshToken();
-        
+
+        // // Try to refresh the token
+        // const refreshSuccess = await auth.refreshToken();
+
+        // if (refreshSuccess) {
+        //   console.log('Token refresh successful, retrying original request...');
+        //   // Retry the original request with the new token
+        //   response = await makeRequest();
+
+        //   // If still 401 after refresh, redirect to login
+        //   if (response.status === 401) {
+        //     auth.logout();
+        //     throw new Error('Authentication failed after token refresh');
+        //   }
+        // } else {
+        //   // Refresh failed, redirect to login
+        //   auth.logout();
+        //   throw new Error('Token refresh failed');
+        // }
+
+        // Prevent multiple simultaneous refresh attempts
+        if (!isRefreshing) {
+          isRefreshing = true;
+          refreshPromise = auth.refreshToken() || Promise.resolve(false);
+        }
+
+        // Wait for the refresh to complete
+        const refreshSuccess = await refreshPromise;
+        isRefreshing = false;
+        refreshPromise = null;
+
         if (refreshSuccess) {
           console.log('Token refresh successful, retrying original request...');
           // Retry the original request with the new token
           response = await makeRequest();
-          
-          // If still 401 after refresh, redirect to login
+
+          // If still 401 after refresh, logout
           if (response.status === 401) {
             auth.logout();
             throw new Error('Authentication failed after token refresh');
           }
         } else {
-          // Refresh failed, redirect to login
+          // Refresh failed, logout
           auth.logout();
           throw new Error('Token refresh failed');
         }

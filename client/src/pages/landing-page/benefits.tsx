@@ -37,80 +37,80 @@ const Benefits = () => {
                     {/* Avoid meeting overload */}
                     <div className="bg-gray-800 p-8 rounded-3xl border border-gray-700">
                         <h3 className="text-2xl font-bold mb-4">Avoid meeting overload</h3>
-                        <p className="text-gray-400 mb-8">
+                        <div className="text-gray-400 mb-8">
                             Only get booked when you want to. Set daily, weekly or monthly limits and add buffers around your events to allow you to focus or take a break.
-                            <h3 className="text-2xl font-bold mb-4">Notice and buffers</h3>
+                            <p className="text-2xl font-bold mb-4">Notice and buffers</p>
 
-                        <div className="space-y-6">
-                            <div>
-                                <label className="block text-sm text-gray-400 mb-2">Minimum notice</label>
-                                <div className="relative">
-                                    <select
-                                        value={minNotice}
-                                        onChange={(e) => setMinNotice(e.target.value)}
-                                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-gray-500"
-                                    >
-                                        <option>1 hour</option>
-                                        <option>2 hours</option>
-                                        <option>4 hours</option>
-                                        <option>1 day</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-6">
                                 <div>
-                                    <label className="block text-sm text-gray-400 mb-2">Buffer before event</label>
+                                    <label className="block text-sm text-gray-400 mb-2">Minimum notice</label>
                                     <div className="relative">
                                         <select
-                                            value={bufferBefore}
-                                            onChange={(e) => setBufferBefore(e.target.value)}
+                                            value={minNotice}
+                                            onChange={(e) => setMinNotice(e.target.value)}
                                             className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-gray-500"
                                         >
-                                            <option>15 mins</option>
-                                            <option>30 mins</option>
                                             <option>1 hour</option>
+                                            <option>2 hours</option>
+                                            <option>4 hours</option>
+                                            <option>1 day</option>
                                         </select>
                                         <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                     </div>
                                 </div>
 
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm text-gray-400 mb-2">Buffer before event</label>
+                                        <div className="relative">
+                                            <select
+                                                value={bufferBefore}
+                                                onChange={(e) => setBufferBefore(e.target.value)}
+                                                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-gray-500"
+                                            >
+                                                <option>15 mins</option>
+                                                <option>30 mins</option>
+                                                <option>1 hour</option>
+                                            </select>
+                                            <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm text-gray-400 mb-2">Buffer after event</label>
+                                        <div className="relative">
+                                            <select
+                                                value={bufferAfter}
+                                                onChange={(e) => setBufferAfter(e.target.value)}
+                                                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-gray-500"
+                                            >
+                                                <option>15 mins</option>
+                                                <option>30 mins</option>
+                                                <option>1 hour</option>
+                                            </select>
+                                            <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div>
-                                    <label className="block text-sm text-gray-400 mb-2">Buffer after event</label>
+                                    <label className="block text-sm text-gray-400 mb-2">Time-slot intervals</label>
                                     <div className="relative">
                                         <select
-                                            value={bufferAfter}
-                                            onChange={(e) => setBufferAfter(e.target.value)}
+                                            value={timeSlot}
+                                            onChange={(e) => setTimeSlot(e.target.value)}
                                             className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-gray-500"
                                         >
+                                            <option>5 mins</option>
+                                            <option>10 mins</option>
                                             <option>15 mins</option>
                                             <option>30 mins</option>
-                                            <option>1 hour</option>
                                         </select>
                                         <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                     </div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm text-gray-400 mb-2">Time-slot intervals</label>
-                                <div className="relative">
-                                    <select
-                                        value={timeSlot}
-                                        onChange={(e) => setTimeSlot(e.target.value)}
-                                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-gray-500"
-                                    >
-                                        <option>5 mins</option>
-                                        <option>10 mins</option>
-                                        <option>15 mins</option>
-                                        <option>30 mins</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 </div>
                             </div>
                         </div>
-                        </p>
                     </div>
 
                     {/* Custom booking link */}

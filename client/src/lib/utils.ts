@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 // API base URL - change this to match your backend URL
 export const API_BASE_URL = import.meta.env.VITE_API_URL;
-//export const PY_SERVICE_URL = import.meta.env.VITE_PY_SERVICE_URL;
+export const PY_SERVICE_URL = import.meta.env.VITE_PY_SERVICE_URL;
 
 // export const API_URL = import.meta.env.VITE_API_URL;
 

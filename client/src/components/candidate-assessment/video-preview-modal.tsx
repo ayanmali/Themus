@@ -2,7 +2,7 @@ import { useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Download, Share, Trash2 } from "lucide-react";
 import type { Recording } from "@/lib/types/recording";
-import { apiRequest } from "@/lib/queryClient";
+import useApi from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
 
 interface VideoPreviewModalProps {
@@ -13,6 +13,7 @@ interface VideoPreviewModalProps {
 export default function VideoPreviewModal({ recording, onClose }: VideoPreviewModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { apiCall } = useApi();
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -82,7 +83,9 @@ export default function VideoPreviewModal({ recording, onClose }: VideoPreviewMo
 
   const handleDelete = async () => {
     try {
-      await apiRequest("DELETE", `/api/recordings/${recording.id}`);
+      await apiCall(`/api/recordings/${recording.id}`, {
+        method: "DELETE",
+      });
       toast({
         title: "Recording deleted",
         description: "The recording has been successfully deleted.",

@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { API_BASE_URL } from '@/lib/utils';
 import { User } from '@/lib/types/user';
 import { navigate } from 'wouter/use-browser-location';
-import { setAuthContext } from '@/lib/queryClient';
 
 interface AuthContextType {
   user: User | null;
@@ -124,12 +123,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [checkAuth]);
 
   // Register auth context with queryClient
-  useEffect(() => {
-    setAuthContext({
-      refreshToken,
-      logout
-    });
-  }, [refreshToken, logout]);
+  // useEffect(() => {
+  //   setAuthContext({
+  //     refreshToken,
+  //     logout
+  //   });
+  // }, [refreshToken, logout]);
 
   const value: AuthContextType = {
     user,

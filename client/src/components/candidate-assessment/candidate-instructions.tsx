@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Play, Download, Trash2 } from "lucide-react";
 import type { Recording } from "@/lib/types/recording";
-import { apiRequest } from "@/lib/queryClient";
+import useApi from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
 
 interface RecentRecordingsProps {
@@ -12,7 +12,7 @@ interface RecentRecordingsProps {
 
 export default function CandidateInstructions({ onSelectRecording }: RecentRecordingsProps) {
   const { toast } = useToast();
-  
+  const { apiCall } = useApi();
   const { data: recordings = [], isLoading, refetch } = useQuery<Recording[]>({
     queryKey: ["/api/recordings"],
   });
@@ -22,7 +22,9 @@ export default function CandidateInstructions({ onSelectRecording }: RecentRecor
   const handleDelete = async (id: number, event: React.MouseEvent) => {
     event.stopPropagation();
     try {
-      await apiRequest("DELETE", `/api/recordings/${id}`);
+      await apiCall(`/api/recordings/${id}`, {
+        method: "DELETE",
+      });
       toast({
         title: "Recording deleted",
         description: "The recording has been successfully deleted.",

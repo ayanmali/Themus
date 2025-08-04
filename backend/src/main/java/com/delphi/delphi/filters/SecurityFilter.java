@@ -16,6 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 // Security filter
+// TODO: enable this in production
 @Component
 @Order(3) // Run after JWT filter
 public class SecurityFilter implements Filter {

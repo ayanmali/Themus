@@ -1,9 +1,8 @@
 import { useState, useRef, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import type { RecordingOptions } from "@/lib/types/recording";
-import { API_BASE_URL } from "@/lib/utils";
+import useApi from "./use-api";
 
 export function useScreenRecording(options: RecordingOptions) {
   const [isRecording, setIsRecording] = useState(false);
@@ -18,7 +17,7 @@ export function useScreenRecording(options: RecordingOptions) {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
+  const { apiCall } = useApi();
   const saveRecording = useMutation({
     mutationFn: async ({ blob, title, duration }: { blob: Blob; title: string; duration: number }) => {
       const formData = new FormData();
@@ -36,7 +35,7 @@ export function useScreenRecording(options: RecordingOptions) {
       }));
 
       // Use apiRequest for proper URL handling
-      const response = await fetch(`${API_BASE_URL}/api/recordings`, {
+      const response = await apiCall("/api/recordings", {
         method: "POST",
         body: formData,
       });
