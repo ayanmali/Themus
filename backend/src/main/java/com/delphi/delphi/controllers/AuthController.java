@@ -9,10 +9,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.components.JwtService;
+import com.delphi.delphi.dtos.AuthErrorResponseDto;
 import com.delphi.delphi.dtos.FetchUserDto;
 import com.delphi.delphi.dtos.NewUserDto;
 import com.delphi.delphi.dtos.PasswordLoginDto;
@@ -28,6 +33,7 @@ import com.delphi.delphi.entities.User;
 import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.RefreshTokenService;
 import com.delphi.delphi.services.UserService;
+import com.delphi.delphi.utils.exceptions.AuthenticationException;
 import com.delphi.delphi.utils.exceptions.TokenRefreshException;
 
 import jakarta.servlet.http.Cookie;
@@ -75,67 +81,116 @@ public class AuthController {
         this.githubService = githubService;
     }
 
-    private User getCurrentUser() {
-        return userService.getUserByEmail(getCurrentUserEmail());
-    }
+    // private User getCurrentUser() {
+    //     return userService.getUserByEmail(getCurrentUserEmail());
+    // }
 
-    private String getCurrentUserEmail() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Object principal = authentication.getPrincipal();
+    // private String getCurrentUserEmail() {
+    //     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    //     Object principal = authentication.getPrincipal();
         
-        switch (principal) {
-            case UserDetails userDetails -> {
-                return userDetails.getUsername();
+    //     switch (principal) {
+    //         case UserDetails userDetails -> {
+    //             return userDetails.getUsername();
+    //         }
+    //         case String string -> {
+    //             return string;
+    //         }
+    //         default -> throw new RuntimeException("Unknown principal type: " + principal.getClass());
+    //     }
+    // }
+
+    private User authenticateUser(String email, String password, HttpServletResponse response) {
+        try {
+            log.debug("Starting authentication for email: {}", email);
+            
+            // Let Spring Security handle the authentication (including user existence check)
+            log.debug("Attempting authentication with AuthenticationManager for email: {}", email);
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, password));
+            log.debug("Authentication successful for email: {}", email);
+
+            // Set the authentication in the security context
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            User user = userService.getUserByEmail(email);
+
+            // Delete any existing refresh token for this user before creating a new one
+            // This prevents the unique constraint violation since RefreshToken has @OneToOne with User
+            refreshTokenService.deleteRefreshToken(user);
+
+            // Generate tokens
+            String accessToken = jwtService.generateAccessToken(userDetails);
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+
+            // Set the access token in the cookie
+            Cookie accessCookie = new Cookie("accessToken", accessToken);
+            accessCookie.setMaxAge((int) (jwtAccessExpiration / 1000));
+            accessCookie.setHttpOnly(true);
+            accessCookie.setSecure(appEnv.equals("prod"));
+            accessCookie.setPath("/");
+            
+            // Set the refresh token in a separate cookie
+            Cookie refreshCookie = new Cookie("refreshToken", refreshToken.getToken());
+            refreshCookie.setMaxAge((int) (jwtRefreshExpiration / 1000));
+            refreshCookie.setHttpOnly(true);
+            refreshCookie.setSecure(appEnv.equals("prod"));
+            refreshCookie.setPath("/");
+            
+            // Only set domain in production to avoid issues with empty domain
+            if (appEnv.equals("prod")) {
+                accessCookie.setDomain(appDomain);
+                refreshCookie.setDomain(appDomain);
             }
-            case String string -> {
-                return string;
+            
+            accessCookie.setAttribute("SameSite", "Lax");
+            refreshCookie.setAttribute("SameSite", "Lax");
+
+            response.addCookie(accessCookie);
+            response.addCookie(refreshCookie);
+            
+            log.info("User successfully authenticated: {}", email);
+            return user;
+            
+        } catch (AuthenticationException e) {
+            // Re-throw our custom authentication exceptions
+            log.error("Authentication error for user: {}", email, e);
+            throw new AuthenticationException(
+                AuthenticationException.ErrorType.UNKNOWN_ERROR,
+                "Authentication failed. Please try again."
+            );
+        } catch (BadCredentialsException e) {
+            log.warn("Bad credentials exception for user: {} - Root cause: {} - Root cause class: {}", 
+                email, e.getCause(), e.getCause() != null ? e.getCause().getClass().getName() : "null");
+            
+            // Check if the root cause is UsernameNotFoundException
+            if (e.getCause() instanceof UsernameNotFoundException) {
+                log.warn("User not found during authentication: {}", email);
+                throw new AuthenticationException(
+                    AuthenticationException.ErrorType.USER_NOT_FOUND,
+                    "No account found with this email address"
+                );
             }
-            default -> throw new RuntimeException("Unknown principal type: " + principal.getClass());
+            
+            // Otherwise, it's an invalid password
+            log.warn("Invalid password for user: {}", email);
+            throw new AuthenticationException(
+                AuthenticationException.ErrorType.INVALID_PASSWORD,
+                "Invalid password for this email address"
+            );
+        } catch (DisabledException e) {
+            log.warn("Disabled account login attempt: {}", email);
+            throw new AuthenticationException(
+                AuthenticationException.ErrorType.ACCOUNT_DISABLED,
+                "Account is disabled. Please contact support."
+            );
+        } catch (LockedException e) {
+            log.warn("Locked account login attempt: {}", email);
+            throw new AuthenticationException(
+                AuthenticationException.ErrorType.ACCOUNT_LOCKED,
+                "Account is locked. Please contact support."
+            );
         }
-    }
-
-    private void authenticateUser(String email, String password, HttpServletResponse response) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(email, password));
-
-        // Set the authentication in the security context
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        User user = userService.getUserByEmail(email);
-
-        // Delete any existing refresh token for this user before creating a new one
-        // This prevents the unique constraint violation since RefreshToken has @OneToOne with User
-        refreshTokenService.deleteRefreshToken(user);
-
-        // Generate tokens
-        String accessToken = jwtService.generateAccessToken(userDetails);
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
-
-        // Set the access token in the cookie
-        Cookie accessCookie = new Cookie("accessToken", accessToken);
-        accessCookie.setMaxAge((int) (jwtAccessExpiration / 1000));
-        accessCookie.setHttpOnly(true);
-        accessCookie.setSecure(appEnv.equals("prod"));
-        accessCookie.setPath("/");
-        
-        // Set the refresh token in a separate cookie
-        Cookie refreshCookie = new Cookie("refreshToken", refreshToken.getToken());
-        refreshCookie.setMaxAge((int) (jwtRefreshExpiration / 1000));
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(appEnv.equals("prod"));
-        refreshCookie.setPath("/");
-        
-        // Only set domain in production to avoid issues with empty domain
-        if (appEnv.equals("prod")) {
-            accessCookie.setDomain(appDomain);
-            refreshCookie.setDomain(appDomain);
-        }
-        
-        accessCookie.setAttribute("SameSite", "Lax");
-        refreshCookie.setAttribute("SameSite", "Lax");
-
-        response.addCookie(accessCookie);
-        response.addCookie(refreshCookie);
     }
 
     // @GetMapping("/test")
@@ -215,27 +270,126 @@ public class AuthController {
         return ResponseEntity.ok(jwt);
     }
 
+    @PostMapping("/test-auth-error")
+    public ResponseEntity<?> testAuthError(@RequestBody Map<String, String> request) {
+        String errorType = request.get("errorType");
+        
+        switch (errorType) {
+            case "USER_NOT_FOUND" -> throw new AuthenticationException(
+                    com.delphi.delphi.utils.exceptions.AuthenticationException.ErrorType.USER_NOT_FOUND,
+                    "No account found with this email address"
+                );
+            case "INVALID_PASSWORD" -> throw new AuthenticationException(
+                    com.delphi.delphi.utils.exceptions.AuthenticationException.ErrorType.INVALID_PASSWORD,
+                    "Invalid password for this email address"
+                );
+            case "BAD_CREDENTIALS_USER_NOT_FOUND" -> {
+                // Simulate what Spring Security does - wrap UsernameNotFoundException in BadCredentialsException
+                
+                throw new BadCredentialsException("Bad credentials", new UsernameNotFoundException("User not found"));
+            }
+
+            default -> throw new AuthenticationException(
+                    AuthenticationException.ErrorType.UNKNOWN_ERROR,
+                    "Unknown error occurred"
+                );
+        }
+    }
+
     @PostMapping("/signup/email")
-    public ResponseEntity<?> registerEmail(@Valid @RequestBody NewUserDto newUserDto, HttpServletResponse response) {
-        User user = new User();
-        user.setName(newUserDto.getName());
-        user.setEmail(newUserDto.getEmail());
-        user.setOrganizationName(newUserDto.getOrganizationName());
-        user.setPassword(newUserDto.getPassword()); // sets the raw password -- sefvice method encrypts it
-        userService.createUser(user);
+    public ResponseEntity<?> registerEmail(@Valid @RequestBody NewUserDto newUserDto, HttpServletResponse response, HttpServletRequest request) {
+        try {
+            log.info("Signup attempt for email: {}", newUserDto.getEmail());
+            
+            User user = new User();
+            user.setName(newUserDto.getName());
+            user.setEmail(newUserDto.getEmail());
+            user.setOrganizationName(newUserDto.getOrganizationName());
+            user.setPassword(newUserDto.getPassword()); // sets the raw password -- service method encrypts it
+            userService.createUser(user);
 
-        // add auth cookie to response
-        authenticateUser(newUserDto.getEmail(), newUserDto.getPassword(), response);
+            // add auth cookie to response
+            authenticateUser(newUserDto.getEmail(), newUserDto.getPassword(), response);
 
-        return ResponseEntity.ok(new FetchUserDto(user));
+            log.info("Signup successful for user: {}", user.getEmail());
+            return ResponseEntity.ok(new FetchUserDto(user));
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("Signup failed for email: {} - Error: {}", newUserDto.getEmail(), e.getMessage());
+            
+            // Check if it's an email already exists error
+            if (e.getMessage().contains("already exists")) {
+                AuthErrorResponseDto errorResponse = new AuthErrorResponseDto(
+                    "Signup Failed",
+                    "An account with this email address already exists. Please try logging in instead.",
+                    AuthenticationException.ErrorType.EMAIL_ALREADY_EXISTS,
+                    request.getRequestURI()
+                );
+                
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+            }
+            
+            // Other validation errors
+            AuthErrorResponseDto errorResponse = new AuthErrorResponseDto(
+                "Signup Failed",
+                e.getMessage(),
+                AuthenticationException.ErrorType.VALIDATION_ERROR,
+                request.getRequestURI()
+            );
+            
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            
+        } catch (Exception e) {
+            log.error("Unexpected error during signup for email: {} - Error: {} - Stack trace: {}", 
+                newUserDto.getEmail(), e.getMessage(), e.getClass().getName(), e);
+            
+            AuthErrorResponseDto errorResponse = new AuthErrorResponseDto(
+                "Internal Server Error",
+                "An unexpected error occurred. Please try again.",
+                AuthenticationException.ErrorType.UNKNOWN_ERROR,
+                request.getRequestURI()
+            );
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 
     @PostMapping("/login/email")
-    public ResponseEntity<?> loginEmail(@RequestBody PasswordLoginDto passwordLoginDto, HttpServletResponse response) {
-        // add cookies to response
-        authenticateUser(passwordLoginDto.getEmail(), passwordLoginDto.getPassword(), response);
+    public ResponseEntity<?> loginEmail(@RequestBody PasswordLoginDto passwordLoginDto, HttpServletResponse response, HttpServletRequest request) {
+        try {
+            log.info("Login attempt for email: {}", passwordLoginDto.getEmail());
+            
+            // add cookies to response
+            User user = authenticateUser(passwordLoginDto.getEmail(), passwordLoginDto.getPassword(), response);
 
-        return ResponseEntity.ok(new FetchUserDto(getCurrentUser()));
+            log.info("Login successful for user: {}", user.getEmail());
+            return ResponseEntity.ok(new FetchUserDto(user));
+            
+        } catch (AuthenticationException e) {
+            log.warn("Authentication failed for email: {} - Error: {} - ErrorType: {}", 
+                passwordLoginDto.getEmail(), e.getMessage(), e.getErrorType());
+            
+            AuthErrorResponseDto errorResponse = new AuthErrorResponseDto(
+                "Authentication Failed",
+                e.getMessage(),
+                e.getErrorType(),
+                request.getRequestURI()
+            );
+            
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        } catch (Exception e) {
+            log.error("Unexpected error during login for email: {} - Error: {} - Stack trace: {}", 
+                passwordLoginDto.getEmail(), e.getMessage(), e.getClass().getName(), e);
+            
+            AuthErrorResponseDto errorResponse = new AuthErrorResponseDto(
+                "Internal Server Error",
+                "An unexpected error occurred. Please try again.",
+                com.delphi.delphi.utils.exceptions.AuthenticationException.ErrorType.UNKNOWN_ERROR,
+                request.getRequestURI()
+            );
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 
     @PostMapping("/refresh")

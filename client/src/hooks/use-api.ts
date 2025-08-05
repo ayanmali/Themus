@@ -106,7 +106,17 @@ const useApi = () => {
       }
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // Try to parse error response for structured errors
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { message: `HTTP error! status: ${response.status}` };
+        }
+        
+        // Create error object with status
+        const error = { ...errorData, status: response.status };
+        throw error;
       }
 
       return await response.json();

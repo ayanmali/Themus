@@ -18,6 +18,8 @@ import { AuthPageHeader } from "@/components/layout/auth-page-header"
 import { navigate } from "wouter/use-browser-location"
 import { useAuth } from "@/contexts/AuthContext"
 import { API_BASE_URL } from "@/lib/utils"
+import { handleAuthError, getFieldSpecificError } from "@/lib/auth-error-handler"
+import { LoginError } from "@/lib/types/auth"
 
 // Zod validation schema
 const loginSchema = z.object({
@@ -37,12 +39,15 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   const [isLoading, setIsLoading] = useState(false)
+  const [authError, setAuthError] = useState<LoginError | null>(null)
   const { isAuthenticated, setIsAuthenticated, setUser, isLoading: authLoading } = useAuth();
 
   const {
     register,
     handleSubmit,
-    formState: { errors }
+    formState: { errors },
+    setError,
+    clearErrors
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema)
   })
@@ -56,6 +61,9 @@ export function LoginForm({
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true)
+    setAuthError(null)
+    clearErrors()
+    
     try {
       console.log("Logging in with data:", data);
       const response = await fetch(`${API_BASE_URL}/api/auth/login/email`, {
@@ -71,10 +79,32 @@ export function LoginForm({
       });
 
       if (!response.ok) {
-        if (response.status === 403) {
-          alert("Invalid email or password");
+        console.log("Login failed with status:", response.status);
+        
+        // Try to parse error response
+        let errorData;
+        try {
+          errorData = await response.json();
+          console.log("Parsed error data:", errorData);
+        } catch (parseError) {
+          console.log("Failed to parse error response:", parseError);
+          errorData = { message: `HTTP error! status: ${response.status}` };
         }
-        throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const loginError = handleAuthError({ ...errorData, status: response.status });
+        console.log("Processed login error:", loginError);
+        setAuthError(loginError);
+        
+        // Set field-specific errors
+        const fieldError = getFieldSpecificError(loginError);
+        console.log("Field error:", fieldError);
+        if (fieldError.field === 'email') {
+          setError('email', { message: fieldError.message });
+        } else if (fieldError.field === 'password') {
+          setError('password', { message: fieldError.message });
+        }
+        
+        return;
       }
 
       const result = await response.json();
@@ -89,7 +119,13 @@ export function LoginForm({
 
     } catch (error) {
       console.error("Login failed:", error);
-      // Handle error (show error message, etc.)
+      const loginError = handleAuthError(error);
+      setAuthError(loginError);
+      
+      // Set general error for network issues
+      if (loginError.type === 'UNKNOWN_ERROR') {
+        setError('root', { message: loginError.userFriendlyMessage });
+      }
     } finally {
       setIsLoading(false)
     }
@@ -137,6 +173,13 @@ export function LoginForm({
                   <p className="text-red-400 text-sm">{errors.password.message}</p>
                 )}
               </div>
+              {/* General error message */}
+              {authError && authError.type !== 'USER_NOT_FOUND' && authError.type !== 'INVALID_PASSWORD' && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-md">
+                  <p className="text-red-400 text-sm">{authError.userFriendlyMessage}</p>
+                </div>
+              )}
+              
               <div className="flex flex-col gap-3">
                 <Button
                   variant="outline"

@@ -37,7 +37,8 @@ public class ChatMessage {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "text", nullable = false)
+    // use a TEXT column type instead of VARCHAR to bypass the 255 character limit
+    @Column(name = "text", nullable = false, columnDefinition = "TEXT")
     private String text;
 
     @Column(name = "model")

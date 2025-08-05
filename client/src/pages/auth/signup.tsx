@@ -19,6 +19,8 @@ import { navigate } from "wouter/use-browser-location"
 import { useAuth } from "@/contexts/AuthContext"
 import { Link } from "wouter"
 import { API_BASE_URL } from "@/lib/utils"
+import { handleAuthError, getFieldSpecificError } from "@/lib/auth-error-handler"
+import { LoginError } from "@/lib/types/auth"
 
 // Zod validation schema
 const signupSchema = z.object({
@@ -58,6 +60,7 @@ export function SignupForm({
     ...props
 }: React.ComponentProps<"div">) {
     const [isLoading, setIsLoading] = useState(false)
+    const [authError, setAuthError] = useState<LoginError | null>(null)
     const { setIsAuthenticated, setUser } = useAuth()
 
     const {
@@ -65,6 +68,8 @@ export function SignupForm({
         handleSubmit,
         setValue,
         watch,
+        setError,
+        clearErrors,
         formState: { errors }
     } = useForm<SignupFormData>({
         resolver: zodResolver(signupSchema)
@@ -74,6 +79,9 @@ export function SignupForm({
 
     const onSubmit = async (data: SignupFormData) => {
         setIsLoading(true)
+        setAuthError(null)
+        clearErrors()
+        
         try {
             console.log("Signing up with data:", data);
             const response = await fetch(`${API_BASE_URL}/api/auth/signup/email`, {
@@ -92,7 +100,30 @@ export function SignupForm({
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // Try to parse error response
+                let errorData;
+                try {
+                    errorData = await response.json();
+                    console.log("Parsed error data:", errorData);
+                } catch (parseError) {
+                    console.log("Failed to parse error response:", parseError);
+                    errorData = { message: `HTTP error! status: ${response.status}` };
+                }
+                
+                const signupError = handleAuthError({ ...errorData, status: response.status });
+                console.log("Processed signup error:", signupError);
+                setAuthError(signupError);
+                
+                // Set field-specific errors
+                const fieldError = getFieldSpecificError(signupError);
+                console.log("Field error:", fieldError);
+                if (fieldError.field === 'email') {
+                    setError('email', { message: fieldError.message });
+                } else if (fieldError.field === 'password') {
+                    setError('password', { message: fieldError.message });
+                }
+                
+                return;
             }
 
             const result = await response.json();
@@ -107,7 +138,13 @@ export function SignupForm({
 
         } catch (error) {
             console.error("Signup request failed:", error);
-            // Handle error (show error message, etc.)
+            const signupError = handleAuthError(error);
+            setAuthError(signupError);
+            
+            // Set general error for network issues
+            if (signupError.type === 'UNKNOWN_ERROR') {
+                setError('root', { message: signupError.userFriendlyMessage });
+            }
         } finally {
             setIsLoading(false)
         }
@@ -206,6 +243,13 @@ export function SignupForm({
                                     Password must be at least 8 characters with uppercase, lowercase, and number
                                 </p>
                             </div>
+                            
+                            {/* General error message */}
+                            {authError && authError.type !== 'EMAIL_ALREADY_EXISTS' && authError.type !== 'VALIDATION_ERROR' && (
+                                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-md">
+                                    <p className="text-red-400 text-sm">{authError.userFriendlyMessage}</p>
+                                </div>
+                            )}
 
                             <div className="flex flex-col gap-3 items-center">
                                 <Button
