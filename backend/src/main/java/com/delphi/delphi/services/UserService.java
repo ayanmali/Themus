@@ -132,6 +132,7 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
+    // checks if user's github credentials exist (not necessarily valid; validateGithubCredentials() should be called to check if they are valid)
     @Transactional(readOnly = true)
     public boolean connectedGithub(User user) {
         return user.getGithubUsername() != null && user.getGithubAccessToken() != null;
@@ -238,7 +239,7 @@ public class UserService {
     }
     
     // Update user's GitHub credentials
-    @CacheEvict(value = "users", beforeInvocation = true, key = "#userId")
+    @CacheEvict(value = "users", beforeInvocation = true, key = "#user.id")
     @Transactional
     public User updateGithubCredentials(User user, String githubAccessToken, String githubUsername, GithubAccountType githubAccountType) throws Exception {        
         // // Check if GitHub username is already taken by another user
@@ -254,6 +255,7 @@ public class UserService {
         // }
         
         // store the encrypted access token in the DB
+        log.info("Encrypting github access token for user: {}", user.getEmail());
         String encryptedAccessToken = encryptionService.encrypt(githubAccessToken);
         user.setGithubAccessToken(encryptedAccessToken);
         user.setGithubUsername(githubUsername);

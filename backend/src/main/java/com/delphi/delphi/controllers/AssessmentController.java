@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -37,11 +40,13 @@ import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.services.AssessmentService;
+import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.AssessmentCreationPrompts;
 import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.AssessmentType;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 @RestController
@@ -49,15 +54,21 @@ import jakarta.validation.Valid;
 public class AssessmentController {
 
     private final UserService userService;
-
+    private final GithubService githubService;
     private final ChatMessagePublisher chatMessagePublisher;
 
     private final AssessmentService assessmentService;
 
-    public AssessmentController(AssessmentService assessmentService, ChatMessagePublisher chatMessagePublisher, UserService userService) {
+    private final String appInstallUrl;
+
+    private final Logger log = LoggerFactory.getLogger(AssessmentController.class);
+
+    public AssessmentController(AssessmentService assessmentService, ChatMessagePublisher chatMessagePublisher, UserService userService, GithubService githubService, @Value("${github.app.name}") String githubAppName) {
         this.assessmentService = assessmentService;
         this.chatMessagePublisher = chatMessagePublisher;
         this.userService = userService;
+        this.githubService = githubService;
+        this.appInstallUrl = String.format("https://github.com/app/%s/installations/new", githubAppName);
     }
 
     private User getCurrentUser() {
@@ -127,13 +138,27 @@ public class AssessmentController {
     // }
     // Create a new assessment
     @PostMapping("/new")
-    public ResponseEntity<?> createAssessment(@Valid @RequestBody NewAssessmentDto newAssessmentDto) {
+    public ResponseEntity<?> createAssessment(@Valid @RequestBody NewAssessmentDto newAssessmentDto, HttpServletResponse response) {
         try {
             User user = getCurrentUser();
+            if (!userService.connectedGithub(user)) {
+                response.setHeader("Location", appInstallUrl);
+                response.setStatus(302);
+                return ResponseEntity.status(HttpStatus.FOUND).build();
+            }
+
+            Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user, user.getGithubAccessToken());
+
+            if (githubCredentialsValid == null) {
+                response.setHeader("Location", appInstallUrl);
+                response.setStatus(302);
+                return ResponseEntity.status(HttpStatus.FOUND).build();
+            }
 
             // if user is not connected to github, redirect them to the installation page
-            
+            log.info("assessment creation request received: {}", newAssessmentDto);
             Assessment assessment = assessmentService.createAssessment(newAssessmentDto, user);
+            log.info("assessment created: {}", assessment);
 
             // Publish to chat message queue instead of direct call
             String requestId = chatMessagePublisher.publishChatCompletionRequest(

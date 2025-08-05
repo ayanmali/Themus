@@ -25,4 +25,14 @@ public class AccessTokenResponse {
         return expires_in;
     }
 
+    @Override
+    public String toString() {
+        return "AccessTokenResponse{" +
+                "access_token='" + access_token + '\'' +
+                ", refresh_token='" + refresh_token + '\'' +
+                ", token_type='" + token_type + '\'' +
+                ", expires_in='" + expires_in + '\'' +
+                '}';
+    }
+
 }

@@ -28,9 +28,7 @@ import com.delphi.delphi.entities.ChatHistory;
 import com.delphi.delphi.entities.ChatMessage;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.repositories.ChatHistoryRepository;
-import com.delphi.delphi.utils.git.AccessTokenResponse;
 import com.delphi.delphi.utils.git.GithubBranchDetails;
-import com.delphi.delphi.utils.git.GithubCredentials;
 import com.delphi.delphi.utils.git.GithubFile;
 import com.delphi.delphi.utils.git.GithubReference;
 import com.delphi.delphi.utils.git.GithubRepoContents;
@@ -234,7 +232,7 @@ public class GithubService {
     }
 
     // Exchange code for github app user access token
-    public AccessTokenResponse getAccessToken(String code) {
+    public Map<String, Object> getAccessToken(String code) {
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("client_id", clientId);
         params.add("client_secret", clientSecret);
@@ -244,16 +242,25 @@ public class GithubService {
         //params.add("grant_type", "authorization_code");
         //params.add("refresh_token", refreshToken);
         
-        AccessTokenResponse response = webClient
+        Map<String, Object> response = webClient
             .post()
             .uri("https://github.com/login/oauth/access_token")
             .header("Accept", "application/json")
             .body(BodyInserters.fromFormData(params))
             .retrieve()
-            .bodyToMono(AccessTokenResponse.class)
+            .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), resp -> {
+                return resp.bodyToMono(String.class)
+                    .flatMap(errorBody -> {
+                        log.error("Access token error - Status: {}, Body: {}", resp.statusCode(), errorBody);
+                        return Mono.error(new RuntimeException(
+                            String.format("Access token error %d: %s", resp.statusCode().value(), errorBody)
+                        ));
+                    });
+            })
+            .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
             .block();
         
-        if (response == null || response.getAccessToken() == null) {
+        if (response == null || response.get("access_token") == null) {
             throw new RuntimeException("Failed to get access token: " + response);
         }
         
@@ -262,12 +269,18 @@ public class GithubService {
 
     /*
      * Uses the user's user access token to get their user information from the GitHub API (if the token is valid)
+     * MAKE SURE TO USE THE DECRYPTED ACCESS TOKEN, NOT THE ENCRYPTED ONE
      */
-    public GithubCredentials validateGithubCredentials(User user) {
+    public Map<String, Object> validateGithubCredentials(User user, String githubAccessToken) {
         try {
+            // decrypting the access token if it is encrypted
+            String token = githubAccessToken;
+            if (!githubAccessToken.startsWith("ghu_") && !githubAccessToken.startsWith("gho_")) {
+                token = encryptionService.decrypt(githubAccessToken);
+            }
             String uri = "/user";
-            String token = encryptionService.decrypt(user.getGithubAccessToken());
-            GithubCredentials result = webClient.get()
+            //String token = encryptionService.decrypt(user.getGithubAccessToken());
+            Map<String, Object> result = webClient.get()
                 .uri(uri)
                 .header("Authorization", "Bearer " + token)
                 .retrieve()
@@ -280,9 +293,14 @@ public class GithubService {
                             ));
                         });
                 })
-                .bodyToMono(GithubCredentials.class)
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
                 .block();
-            log.info("Github credentials valid, result: {}", result);
+
+            if (result == null) {
+                throw new RuntimeException("Github credentials are null");
+            }
+
+            log.info("Github credentials valid, result: {}", result.toString());
             return result;
         } catch (Exception e) {
             log.error("Error checking github credentials, {}", e);
@@ -342,7 +360,7 @@ public class GithubService {
                     "isTemplate", true);
 
             log.info("Creating repo '{}' with token: {}...", repoName, token.substring(0, Math.min(10, token.length())));
-
+            
             return webClient.post()
                 .uri(url)
                 .header("Authorization", "Bearer " + token)

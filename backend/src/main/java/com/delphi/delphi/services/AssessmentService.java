@@ -1,11 +1,14 @@
 package com.delphi.delphi.services;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
@@ -43,6 +46,7 @@ public class AssessmentService {
     private final ChatService chatService;
     private final GithubService githubService;
     private final CandidateInvitationPublisher candidateInvitationPublisher;
+    private final Logger log = LoggerFactory.getLogger(AssessmentService.class);
     private final String PYTHON_SERVICE_URL;
     private final WebClient webClient;
 
@@ -94,17 +98,32 @@ public class AssessmentService {
         assessment.setDuration(newAssessmentDto.getDuration());
         assessment.setSkills(newAssessmentDto.getSkills());
         assessment.setLanguageOptions(newAssessmentDto.getLanguageOptions());
+        assessment.setGithubRepoName(newAssessmentDto.getName().toLowerCase().replace(" ", "-") + "-" + String.valueOf(Instant.now().getEpochSecond()));
         assessment.setUser(user);
 
+        Assessment savedAssessment = assessmentRepository.save(assessment);
+
         ChatHistory chatHistory = new ChatHistory();
-        chatHistory.setAssessment(assessment);
+        chatHistory.setAssessment(savedAssessment);
         chatHistory.setMessages(List.of());
 
+        log.info("creating chat history for assessment: {}", assessment);
         // create chat history and add system prompt
         chatHistory = chatService.createChatHistory(chatHistory, AssessmentCreationPrompts.SYSTEM_PROMPT);
-
+        
         // set chat history to assessment
-        assessment.setChatHistory(chatHistory);
+        savedAssessment.setChatHistory(chatHistory);
+
+        // create github repo for the assessment
+        if (user.getGithubAccountType() == GithubAccountType.USER) {
+            githubService.createPersonalRepo(user.getGithubAccessToken(), assessment.getGithubRepoName());
+        } else {
+            githubService.createOrgRepo(user.getGithubAccessToken(), user.getGithubUsername(), assessment.getGithubRepoName());
+        }
+
+        assessment.setGithubRepositoryLink("https://github.com/" + user.getGithubUsername().toLowerCase() + "/" + assessment.getGithubRepoName());
+
+        assessmentRepository.save(savedAssessment); // save assessment with chat history
 
         // create github repo and add Delphi as a contributor
         if (user.getGithubAccountType() == GithubAccountType.USER) {
@@ -115,7 +134,7 @@ public class AssessmentService {
         //githubService.addContributor(user.getGithubAccessToken(), DelphiGithubConstants.DELPHI_GITHUB_NAME, assessment.getName(), user.getGithubUsername());
 
         // save assessment
-        return assessmentRepository.save(assessment);
+        return savedAssessment;
 
     }
 

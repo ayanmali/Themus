@@ -285,12 +285,13 @@ public class ChatService {
      * Database Repository Methods
      */
 
-    @Cacheable(value = "chatHistories", key = "#chatHistory.id")
+    @CachePut(value = "chatHistories", key = "#chatHistory.id")
     public ChatHistory createChatHistory(ChatHistory chatHistory, String systemMessage) throws Exception {
         // adding system prompt to chat history
-        addMessageToChatHistory(systemMessage, MessageType.SYSTEM, List.of(), chatHistory.getId(), "N/A");
+        ChatHistory savedChatHistory = chatHistoryRepository.save(chatHistory);
+        addMessageToChatHistory(systemMessage, MessageType.SYSTEM, List.of(), savedChatHistory.getId(), "N/A");
         // save chat history
-        return chatHistoryRepository.save(chatHistory);
+        return savedChatHistory;
     }
 
     @Cacheable(value = "chatHistories", key = "#id")

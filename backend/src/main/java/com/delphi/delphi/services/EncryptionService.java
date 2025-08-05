@@ -1,5 +1,7 @@
 package com.delphi.delphi.services;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
 
@@ -15,18 +17,39 @@ import org.springframework.stereotype.Service;
 public class EncryptionService {
 
     private final SecretKey secretKey;
-    // private final String salt;
-    // private static final int KEY_SIZE = 256; // 256 bits
     private static final int DATA_LENGTH = 128; // 128 bits
-    private static final String ALGORITHM = "AES/GCM/NoPadding"; // AES/GCM/NoPadding
+    private static final String ALGORITHM = "AES/GCM/NoPadding";
+    private static final String HASH_ALGORITHM = "SHA-256";
 
     public EncryptionService(@Value("${encryption.secret-key}") String secretKey) {
-        this.secretKey = new SecretKeySpec(secretKey.getBytes(), "AES");
-        //this.salt = salt;
+        this.secretKey = deriveAESKey(secretKey);
+    }
+
+    /**
+     * Derives a 32-byte AES-256 key from the provided secret key string
+     * using SHA-256 hash function
+     */
+    private SecretKey deriveAESKey(String secretKeyString) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance(HASH_ALGORITHM);
+            byte[] hash = digest.digest(secretKeyString.getBytes());
+            
+            // Use the first 32 bytes for AES-256
+            byte[] keyBytes = new byte[32];
+            System.arraycopy(hash, 0, keyBytes, 0, Math.min(hash.length, 32));
+            
+            return new SecretKeySpec(keyBytes, "AES");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Failed to create hash for key derivation", e);
+        }
     }
 
     // Encrypt a string (github PAT) using AES/GCM
     public String encrypt(String data) throws Exception {
+        if (data == null) {
+            return null;
+        }
+        
         // Get Cipher Instance
         Cipher cipher = Cipher.getInstance(ALGORITHM);
 
@@ -53,6 +76,10 @@ public class EncryptionService {
 
     // Decrypt a string (github PAT) using AES/GCM
     public String decrypt(String encryptedData) throws Exception {
+        if (encryptedData == null) {
+            return null;
+        }
+        
         // Get Cipher Instance
         Cipher cipher = Cipher.getInstance(ALGORITHM);
 
@@ -71,10 +98,9 @@ public class EncryptionService {
         GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(DATA_LENGTH, iv);
 
         // Initialize Cipher for DECRYPT_MODE
-        cipher.init(Cipher.DECRYPT_MODE,  secretKey, gcmParameterSpec);
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, gcmParameterSpec);
 
         // Perform Decryption
         return new String(cipher.doFinal(cipherText));
     }
-    
 }

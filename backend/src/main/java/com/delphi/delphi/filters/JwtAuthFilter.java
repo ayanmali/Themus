@@ -46,7 +46,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         log.info("Processing request: {} {}", method, requestPath);
 
         // Skip JWT validation for permitted endpoints
-        if (requestPath.equals("/") || requestPath.startsWith("/api/auth/") || requestPath.startsWith("/api/users/github") || requestPath.startsWith("/api/recordings")) {
+        if (requestPath.equals("/") || requestPath.startsWith("/api/auth/") || requestPath.startsWith("/api/recordings")) {
             log.info("Skipping JWT validation for permitted endpoint: {}", requestPath);
             filterChain.doFilter(request, response);
             return;
@@ -73,6 +73,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     break;
                 }
             }
+        }
+
+        // check bearer header
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            jwt = bearerToken.substring(7);
+            log.info("JWT token found in bearer header: {}", jwt);
         }
 
         // Check if JWT token exists before trying to extract username

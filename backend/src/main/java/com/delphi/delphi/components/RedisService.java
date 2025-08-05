@@ -154,4 +154,33 @@ public class RedisService {
             return 1L; // Default to 1 if something went wrong
         });
     }
+
+    // User-specific caching methods
+    // public void cacheUser(String email, Object user) {
+    //     String key = "user:" + email;
+    //     setWithExpiration(key, user, 30, TimeUnit.MINUTES);
+    // }
+
+    // public Object getCachedUser(String email) {
+    //     String key = "user:" + email;
+    //     return get(key);
+    // }
+
+    // public void removeCachedUser(String email) {
+    //     String key = "user:" + email;
+    //     delete(key);
+    // }
+
+    // // Clear all user cache entries
+    // public void clearUserCache() {
+    //     // Note: This is a simple implementation. In production, you might want to use Redis SCAN
+    //     // to find and delete all user:* keys more efficiently
+    //     redisTemplate.execute((org.springframework.data.redis.core.RedisCallback<Void>) connection -> {
+    //         Set<byte[]> keys = connection.keyCommands().keys("user:*".getBytes());
+    //         if (keys != null && !keys.isEmpty()) {
+    //             connection.keyCommands().del(keys.toArray(new byte[0][0]));
+    //         }
+    //         return null;
+    //     });
+    // }
 } 

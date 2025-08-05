@@ -1,6 +1,7 @@
 package com.delphi.delphi.controllers;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -32,9 +33,7 @@ import com.delphi.delphi.dtos.NewUserDto;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.UserService;
-import com.delphi.delphi.utils.git.AccessTokenResponse;
 import com.delphi.delphi.utils.git.GithubAccountType;
-import com.delphi.delphi.utils.git.GithubCredentials;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -45,7 +44,6 @@ public class UserController {
 
     private final String appClientDomain;
     private final String appEnv;
-    private final String githubAppName;
     private final String appInstallUrl;
 
     private final GithubService githubService;
@@ -80,7 +78,6 @@ public class UserController {
         this.githubService = githubService;
         this.appClientDomain = appClientDomain;
         this.appEnv = appEnv;
-        this.githubAppName = githubAppName;
 
         this.appInstallUrl = String.format("https://github.com/app/%s/installations/new", githubAppName);
     }
@@ -90,8 +87,11 @@ public class UserController {
     }
 
     private String getCurrentUserEmail() {
+        log.info("Getting authentication context...");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        log.info("Authentication context: {}", authentication);
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        log.info("User details: {}", userDetails);
         return userDetails.getUsername();
     }
 
@@ -105,18 +105,27 @@ public class UserController {
     // for the client to check if it is authenticated
     @GetMapping("/is-connected-github")
     public ResponseEntity<?> isConnectedGithub(HttpServletResponse response) {
-        log.info("Checking if user is connected to github");
-        User user = getCurrentUser();
-        GithubCredentials githubCredentialsValid = githubService.validateGithubCredentials(user);
+        try {
+            log.info("Checking if user is connected to github");
+            User user = getCurrentUser();
+            if (user.getGithubAccessToken() == null) {
+                response.setHeader("Location", appInstallUrl);
+                response.setStatus(302);
+                return ResponseEntity.status(HttpStatus.FOUND).build();
+            }
+            Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user, user.getGithubAccessToken());
 
-        if (!userService.connectedGithub(user) || githubCredentialsValid == null) {
-            response.setHeader("Location", appInstallUrl);
-            response.setStatus(302);
-            return ResponseEntity.status(HttpStatus.FOUND).build();
+            if (!userService.connectedGithub(user) || githubCredentialsValid == null) {
+                response.setHeader("Location", appInstallUrl);
+                response.setStatus(302);
+                return ResponseEntity.status(HttpStatus.FOUND).build();
+            }
+
+            return ResponseEntity.ok(new FetchUserDto(user));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error checking if user is connected to github: " + e.getMessage());
         }
-
-        return ResponseEntity.ok(new FetchUserDto(user));
-
     }
 
     // Create a new user
@@ -376,13 +385,26 @@ public class UserController {
         // map.put("expires_in", githubResponse.get("expires_in"));
         // map.put("status", "githubResponse");
         try {
+            log.info("Getting current user...");
             User user = getCurrentUser();
-            AccessTokenResponse accessTokenResponse = githubService.getAccessToken(code);
-            GithubCredentials githubCredentialsResponse = githubService.validateGithubCredentials(user);
+            log.info("Current user: {}", user.getEmail());
+            Map<String, Object> accessTokenResponse = githubService.getAccessToken(code);
+            String githubAccessToken = (String) accessTokenResponse.get("access_token");
 
-            log.info("Access token obtained: " + accessTokenResponse.getAccessToken());
-            GithubAccountType githubAccountType = githubCredentialsResponse.getAccountType().toLowerCase().equals("user") ? GithubAccountType.USER : GithubAccountType.ORG;
-            userService.updateGithubCredentials(user, accessTokenResponse.getAccessToken(), githubCredentialsResponse.getUsername(), githubAccountType);
+            log.info("Obtaining github credentials for user: {}", user.getEmail());
+            Map<String, Object> githubCredentialsResponse = githubService.validateGithubCredentials(user,
+            githubAccessToken);
+            String githubUsername = (String) githubCredentialsResponse.get("login");
+            String accountType = (String) githubCredentialsResponse.get("type");
+
+            log.info("Github access token obtained: " + githubAccessToken);
+            GithubAccountType githubAccountType = accountType.toLowerCase()
+                    .equals("user") ? GithubAccountType.USER : GithubAccountType.ORG;
+
+            log.info("Updating github credentials for user: {}", user.getEmail());
+            userService.updateGithubCredentials(user, githubAccessToken, githubUsername, githubAccountType);
+            
+            log.info("Github credentials updated for user: {}", user.getEmail());
             return new ModelAndView(String.format("redirect:%s://%s/assessments",
                     appEnv.equals("dev") ? "http" : "https", appClientDomain));
         } catch (Exception e) {

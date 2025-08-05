@@ -17,10 +17,29 @@ const useApi = () => {
     }
 
     // Add auth headers
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
+    const headers: Record<string, string> = {};
+    
+    // Copy existing headers
+    if (options.headers) {
+      if (options.headers instanceof Headers) {
+        options.headers.forEach((value, key) => {
+          headers[key] = value;
+        });
+      } 
+      else if (Array.isArray(options.headers)) {
+        options.headers.forEach(([key, value]) => {
+          headers[key] = value;
+        });
+      } 
+      else {
+        Object.assign(headers, options.headers);
+      }
+    }
+    
+    // Only set Content-Type to application/json if not sending FormData
+    if (!(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     const makeRequest = async (): Promise<Response> => {
       // TODO: add an API gateway to handle the requests to the different services?

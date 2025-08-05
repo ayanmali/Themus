@@ -34,12 +34,12 @@ export function useScreenRecording(options: RecordingOptions) {
         thumbnailUrl: null,
       }));
 
-      // Use apiRequest for proper URL handling
+      // Use apiCall for proper URL handling
       const response = await apiCall("/api/recordings", {
         method: "POST",
         body: formData,
       });
-      return response.json();
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recordings"] });
