@@ -15,6 +15,7 @@ import com.delphi.delphi.entities.User;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
     // Find user by email
+    @Query("SELECT u FROM User u WHERE u.email = :email")
     Optional<User> findByEmail(String email);
     
     // Check if email exists

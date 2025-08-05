@@ -397,20 +397,20 @@ public class UserController {
             String githubUsername = (String) githubCredentialsResponse.get("login");
             String accountType = (String) githubCredentialsResponse.get("type");
 
-            log.info("Github access token obtained: " + githubAccessToken);
+            log.info("--------------------------------GITHUB ACCESS TOKEN OBTAINED: " + githubAccessToken + " --------------------------------");
             GithubAccountType githubAccountType = accountType.toLowerCase()
                     .equals("user") ? GithubAccountType.USER : GithubAccountType.ORG;
 
             log.info("Updating github credentials for user: {}", user.getEmail());
             userService.updateGithubCredentials(user, githubAccessToken, githubUsername, githubAccountType);
-            
+
             log.info("Github credentials updated for user: {}", user.getEmail());
             return new ModelAndView(String.format("redirect:%s://%s/assessments",
                     appEnv.equals("dev") ? "http" : "https", appClientDomain));
         } catch (Exception e) {
             log.error("Error updating GitHub access token: " + e.getMessage());
             return new ModelAndView(
-                    String.format("redirect:%s://%s", appEnv.equals("dev") ? "http" : "https", appClientDomain));
+                    String.format("redirect:%s://%s/login", appEnv.equals("dev") ? "http" : "https", appClientDomain));
         }
     }
 

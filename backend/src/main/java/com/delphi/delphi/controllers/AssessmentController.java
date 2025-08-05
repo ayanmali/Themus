@@ -141,20 +141,29 @@ public class AssessmentController {
     public ResponseEntity<?> createAssessment(@Valid @RequestBody NewAssessmentDto newAssessmentDto, HttpServletResponse response) {
         try {
             User user = getCurrentUser();
+            log.info("User's email: {}", user.getEmail());
+            log.info("User's id: {}", user.getId());
+            log.info("User's github access token: {}", user.getGithubAccessToken());
+            log.info("User's github username: {}", user.getGithubUsername());
+            log.info("User's github account type: {}", user.getGithubAccountType());
+            log.info("Checking if user is connected to github");
             if (!userService.connectedGithub(user)) {
+                log.info("User is not connected to github, redirecting to installation page");
                 response.setHeader("Location", appInstallUrl);
                 response.setStatus(302);
                 return ResponseEntity.status(HttpStatus.FOUND).build();
             }
 
+            log.info("User is connected to github, validating credentials");
             Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user, user.getGithubAccessToken());
-
+            log.info("Github credentials validated: {}", githubCredentialsValid);
             if (githubCredentialsValid == null) {
+                log.info("Github credentials are invalid, redirecting to installation page");
                 response.setHeader("Location", appInstallUrl);
                 response.setStatus(302);
                 return ResponseEntity.status(HttpStatus.FOUND).build();
             }
-
+            log.info("Github credentials are valid, creating assessment");
             // if user is not connected to github, redirect them to the installation page
             log.info("assessment creation request received: {}", newAssessmentDto);
             Assessment assessment = assessmentService.createAssessment(newAssessmentDto, user);

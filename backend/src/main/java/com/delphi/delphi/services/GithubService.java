@@ -347,8 +347,12 @@ public class GithubService {
     //         .onErrorReturn("Error retrieving scopes");
     // }
 
-    public Mono<GithubRepoContents> createPersonalRepo(String token, String repoName) {
+    public GithubRepoContents createPersonalRepo(String token, String repoName) {
         try {
+            String githubAccessToken = token;
+            if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
+                githubAccessToken = encryptionService.decrypt(token);
+            }
             // For GitHub App installation tokens, we need to create repo in the installation's account
             String url = "https://api.github.com/user/repos";
 
@@ -359,16 +363,17 @@ public class GithubService {
                     "auto_init", true,
                     "isTemplate", true);
 
-            log.info("Creating repo '{}' with token: {}...", repoName, token.substring(0, Math.min(10, token.length())));
+            log.info("Creating repo '{}' with token: {}...", repoName, githubAccessToken.substring(0, Math.min(10, token.length())));
             
-            return webClient.post()
+            GithubRepoContents repo = webClient.post()
                 .uri(url)
-                .header("Authorization", "Bearer " + token)
+                .header("Authorization", "Bearer " + githubAccessToken)
                 .header("Accept", "application/vnd.github.v3+json")
                 .header("User-Agent", "Delphi-App/1.0")
                 .bodyValue(body)
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), response -> {
+                    log.error("Error creating personal repo - Status: {}, Body: {}", response.statusCode(), response.bodyToMono(String.class).block());
                     return response.bodyToMono(String.class)
                         .flatMap(errorBody -> {
                             log.error("GitHub API error - Status: {}, Body: {}", response.statusCode(), errorBody);
@@ -377,15 +382,30 @@ public class GithubService {
                             ));
                         });
                 })
-                .bodyToMono(GithubRepoContents.class);
+                .bodyToMono(GithubRepoContents.class)
+                .block();
+
+            if (repo == null) {
+                throw new RuntimeException("Failed to create personal repo: repo details from Github API response is null");
+            }
+
+            return repo;
         } catch (RestClientException e) {
             log.error("RestClient error creating repo: {}", e.getMessage(), e);
             throw new RuntimeException("Error creating repo: " + e.getMessage(), e);
         }
+        catch (Exception e) {
+            log.error("Error creating personal repo: {}", e.getMessage(), e);
+            throw new RuntimeException("Error creating repo: " + e.getMessage(), e);
+        }
     }    
 
-    public Mono<GithubRepoContents> createOrgRepo(String token, String orgName,String repoName) {
+    public GithubRepoContents createOrgRepo(String token, String orgName,String repoName) {
         try {
+            String githubAccessToken = token;
+            if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
+                githubAccessToken = encryptionService.decrypt(token);
+            }
             // For GitHub App installation tokens, we need to create repo in the installation's account
             String url = String.format("https://api.github.com/orgs/%s/repos", orgName);
 
@@ -399,11 +419,11 @@ public class GithubService {
                     "has_wiki", true,
                     "isTemplate", true);
 
-            log.info("Creating repo '{}' with token: {}...", repoName, token.substring(0, Math.min(10, token.length())));
+            log.info("Creating repo '{}' with token: {}...", repoName, githubAccessToken.substring(0, Math.min(10, token.length())));
 
             return webClient.post()
                 .uri(url)
-                .header("Authorization", "Bearer " + token)
+                .header("Authorization", "Bearer " + githubAccessToken)
                 .header("Accept", "application/vnd.github.v3+json")
                 .header("User-Agent", "Delphi-App/1.0")
                 .bodyValue(body)
@@ -417,9 +437,14 @@ public class GithubService {
                             ));
                         });
                 })
-                .bodyToMono(GithubRepoContents.class);
+                .bodyToMono(GithubRepoContents.class)
+                .block();
         } catch (RestClientException e) {
             log.error("RestClient error creating repo: {}", e.getMessage(), e);
+            throw new RuntimeException("Error creating repo: " + e.getMessage(), e);
+        }
+        catch (Exception e) {
+            log.error("Error creating org repo: {}", e.getMessage(), e);
             throw new RuntimeException("Error creating repo: " + e.getMessage(), e);
         }
     }

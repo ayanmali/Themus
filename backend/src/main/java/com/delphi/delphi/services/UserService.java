@@ -78,9 +78,17 @@ public class UserService {
     
     // Get user by email
     @Cacheable(value = "users", key = "#email")
+    //@CacheEvict(value = "users", key = "#email", beforeInvocation = true)
     @Transactional(readOnly = true)
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+    }
+    
+    // Clear user cache for specific email
+    @CacheEvict(value = "users", key = "#email")
+    public void clearUserCache(String email) {
+        // This method only exists to trigger cache eviction
+        log.info("Clearing cache for user email: {}", email);
     }
     
     // Get all users with pagination
@@ -260,6 +268,15 @@ public class UserService {
         user.setGithubAccessToken(encryptedAccessToken);
         user.setGithubUsername(githubUsername);
         user.setGithubAccountType(githubAccountType);
+        return userRepository.save(user);
+    }
+
+    @CacheEvict(value = "users", beforeInvocation = true, key = "#user.id")
+    @Transactional
+    public User removeGithubCredentials(User user) throws Exception {
+        user.setGithubAccessToken(null);
+        user.setGithubUsername(null);
+        user.setGithubAccountType(null);
         return userRepository.save(user);
     }
 
