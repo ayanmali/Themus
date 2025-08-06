@@ -113,7 +113,8 @@ public class UserController {
                 response.setStatus(302);
                 return ResponseEntity.status(HttpStatus.FOUND).build();
             }
-            Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user, user.getGithubAccessToken());
+            Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user,
+                    user.getGithubAccessToken());
 
             if (!userService.connectedGithub(user) || githubCredentialsValid == null) {
                 response.setHeader("Location", appInstallUrl);
@@ -366,6 +367,27 @@ public class UserController {
         }
     }
 
+    // unauthenticated endpoint
+    // @GetMapping("/github/callback")
+    // public ResponseEntity<?> callback(@RequestParam String code, @RequestParam String state, HttpServletResponse response) {
+    //     String userOrCandidate = state.split("_")[0].toLowerCase();
+    //     switch (userOrCandidate) {
+    //         case "user" -> {
+    //             // authenticated endpoint
+    //             response.setHeader("Location", "http://localhost:8080/api/users/github/callback/user?code=" + code);
+    //             response.setStatus(302);
+    //             return ResponseEntity.status(HttpStatus.FOUND).build();
+    //         }
+    //         case "candidate" -> {
+    //             // unauthenticated endpoint
+    //             response.setHeader("Location", "http://localhost:8080/api/users/github/callback/candidate?code=" + code);
+    //             response.setStatus(302);
+    //             return ResponseEntity.status(HttpStatus.FOUND).build();
+    //         }
+    //         default -> throw new IllegalArgumentException("Invalid state: " + state + " - state must start with user_ or candidate_");
+    //     }
+    // }
+
     @GetMapping("/github/callback")
     /*
      * This endpoint is automatically called by GitHub after the user has
@@ -385,19 +407,22 @@ public class UserController {
         // map.put("expires_in", githubResponse.get("expires_in"));
         // map.put("status", "githubResponse");
         try {
+            // user is authenticating
+            // candidate is authenticating
             log.info("Getting current user...");
             User user = getCurrentUser();
             log.info("Current user: {}", user.getEmail());
-            Map<String, Object> accessTokenResponse = githubService.getAccessToken(code);
+            Map<String, Object> accessTokenResponse = githubService.getAccessToken(code, false);
             String githubAccessToken = (String) accessTokenResponse.get("access_token");
 
             log.info("Obtaining github credentials for user: {}", user.getEmail());
             Map<String, Object> githubCredentialsResponse = githubService.validateGithubCredentials(user,
-            githubAccessToken);
+                    githubAccessToken);
             String githubUsername = (String) githubCredentialsResponse.get("login");
             String accountType = (String) githubCredentialsResponse.get("type");
 
-            log.info("--------------------------------GITHUB ACCESS TOKEN OBTAINED: " + githubAccessToken + " --------------------------------");
+            log.info("--------------------------------GITHUB ACCESS TOKEN OBTAINED: " + githubAccessToken
+                    + " --------------------------------");
             GithubAccountType githubAccountType = accountType.toLowerCase()
                     .equals("user") ? GithubAccountType.USER : GithubAccountType.ORG;
 

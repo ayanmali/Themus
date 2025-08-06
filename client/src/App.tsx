@@ -21,7 +21,7 @@ import CandidateProfile from "@/pages/candidate/profile";
 import LandingPage from "./pages/landing-page/lander";
 import SignupPage from "./pages/auth/signup";
 import LoginPage from "./pages/auth/login";
-import CandidateAssessmentInvite from "./pages/candidate/assessment-invite";
+import CandidateAssessmentPreview from "./pages/candidate/assessment-preview";
 import CandidateDashboard from "./pages/candidate/assessments-overview";
 import {PricingPage, SubscriptionSuccessPage } from "./pages/pricing";
 import ForgotPassword from "./pages/auth/forgot-password";
@@ -62,8 +62,8 @@ function Router() {
       {/* <Route path="/start-assessment/{assessment_id}" component={StartAssessment} /> */}
       {/* <Route path="/candidate/dashboard" component={CandidateDashboard} /> */}
       
-      {/* Candidate Assessment Invite - preview before they begin */}
-      <Route path="/invite" component={CandidateAssessmentInvite} />
+      {/* Candidate Assessment Preview - preview before they begin */}
+      <Route path="/:assessment_id/preview" component={CandidateAssessmentPreview} />
       {/* <Route path="/assessments-overview" component={CandidateDashboard} /> */}
       <ProtectedRoute path="/candidate/assessments" component={CandidateAssessments} role="candidate" />
       <ProtectedRoute path="/candidate/profile" component={CandidateProfile} role="candidate" />

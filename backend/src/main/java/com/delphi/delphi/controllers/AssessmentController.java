@@ -68,6 +68,7 @@ public class AssessmentController {
         this.chatMessagePublisher = chatMessagePublisher;
         this.userService = userService;
         this.githubService = githubService;
+        // state specifies whether this installation is for a user or a candidate
         this.appInstallUrl = String.format("https://github.com/app/%s/installations/new", githubAppName);
     }
 

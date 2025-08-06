@@ -66,6 +66,9 @@ public class GithubService {
     private final String clientSecret;
     private final String githubScope;
 
+    private final String candidateAppClientId;
+    private final String candidateAppClientSecret;
+
     private final WebClient webClient;
     private final Map<String, String> author;
 
@@ -76,6 +79,8 @@ public class GithubService {
                         @Value("${github.app.client-id}") String clientId,
                         @Value("${github.app.client-secret}") String clientSecret,
                         @Value("${github.app.private-key}") String privateKeyRaw,
+                        @Value("${github.candidate.app.client-id}") String candidateAppClientId,
+                        @Value("${github.candidate.app.client-secret}") String candidateAppClientSecret,
                         @Value("${spring.security.oauth2.client.registration.github.scope}") String githubScope,
                         Map<String, String> author,
                         ChatHistoryRepository chatHistoryRepository, EncryptionService encryptionService) {
@@ -84,6 +89,8 @@ public class GithubService {
         this.clientSecret = clientSecret;
         this.privateKeyRaw = privateKeyRaw;
         this.githubScope = githubScope;
+        this.candidateAppClientId = candidateAppClientId;
+        this.candidateAppClientSecret = candidateAppClientSecret;
         this.webClient = WebClient.builder()
             .baseUrl("https://api.github.com")
             .defaultHeader("Accept", "application/vnd.github.v3+json")
@@ -232,10 +239,10 @@ public class GithubService {
     }
 
     // Exchange code for github app user access token
-    public Map<String, Object> getAccessToken(String code) {
+    public Map<String, Object> getAccessToken(String code, boolean isCandidate) {
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("client_id", clientId);
-        params.add("client_secret", clientSecret);
+        params.add("client_id", isCandidate ? candidateAppClientId : clientId);
+        params.add("client_secret", isCandidate ? candidateAppClientSecret : clientSecret);
         params.add("code", code);
 
         // TODO: figure out how to get new access token from refresh token

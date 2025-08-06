@@ -44,7 +44,7 @@ public class RateLimitFilter implements Filter {
         
         // Skip rate limiting for permitted endpoints
         String requestPath = req.getRequestURI();
-        if (requestPath.startsWith("/api/auth/") || requestPath.startsWith("/api/users/is-authenticated") || requestPath.equals("/")) {
+        if (requestPath.startsWith("/api/auth/") || requestPath.startsWith("/api/users/is-authenticated") || requestPath.startsWith("/api/assessments/live") || requestPath.equals("/")) {
             log.info("RateLimitFilter - Skipping rate limiting for permitted endpoint: {}", requestPath);
             chain.doFilter(request, response);
             return;

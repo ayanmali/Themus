@@ -4,6 +4,7 @@ import { Assessment } from '@/lib/types/assessment';
 import { minutesToHours } from '@/lib/utils';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { navigate } from 'wouter/use-browser-location';
 
 // Mock data for the assessment
 const assessmentData: Assessment = {
@@ -51,22 +52,47 @@ const assessmentData: Assessment = {
     repoLink: "https://github.com/user/repo",
 };
 
-export default function CandidateAssessmentInvite() {
+export default function CandidateAssessmentPreview() {
     const [selectedLanguage, setSelectedLanguage] = useState('');
     const [email, setEmail] = useState('');
     const [isStarting, setIsStarting] = useState(false);
 
+    // Email validation function
+    const isValidEmail = (email: string) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
+
     const handleStart = () => {
+        // Github app installation URL with state parameter specifying this is a candidate installation
+        const GITHUB_CANDIDATE_INSTALL_URL: string = import.meta.env.VITE_GITHUB_APP_CANDIDATE_INSTALL_URL + "?state=candidate_" + email;
+
         if (!selectedLanguage) {
             alert('Please select a language/framework combination before starting.');
             return;
         }
+        if (!email || !isValidEmail(email)) {
+            alert('Please enter a valid email address before starting.');
+            return;
+        }
+
+        // TODO: check if this email address corresponds to a valid candidate attempt in the DB
+        // if it does, then we can just redirect to the assessment page
         setIsStarting(true);
-        // Simulate starting the assessment
-        setTimeout(() => {
-            alert(`Starting assessment with ${selectedLanguage}...`);
-            setIsStarting(false);
-        }, 1000);
+        
+        // Open GitHub in a new tab
+        window.open(GITHUB_CANDIDATE_INSTALL_URL, '_blank');
+        
+        // Add polling to check if the candidate has connected their GitHub account
+        // const checkGitHubConnection = () => {
+        //     // TODO: Implement polling to check if the candidate has connected their GitHub account
+        // };
+        // checkGitHubConnection();
+        
+        // Reset the starting state after a short delay
+        // setTimeout(() => {
+        //     setIsStarting(false);
+        // }, 1000);
     };
 
     return (
@@ -236,14 +262,14 @@ export default function CandidateAssessmentInvite() {
                         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
                             <button
                                 onClick={handleStart}
-                                disabled={(!selectedLanguage && !!assessmentData.languageOptions?.length) || isStarting}
+                                disabled={(!selectedLanguage && !!assessmentData.languageOptions?.length) || !email || !isValidEmail(email) || isStarting}
                                 className="w-full  disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
                                 // className="w-full bg-gradient-to-r duration-1000 from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
                             >
                                 {isStarting ? (
                                     <>
                                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                                        <span>Starting...</span>
+                                        <span>Connect GitHub Account</span>
                                     </>
                                 ) : (
                                     <>
@@ -255,6 +281,11 @@ export default function CandidateAssessmentInvite() {
                             {!selectedLanguage && !!assessmentData.languageOptions?.length && (
                                 <p className="text-sm text-gray-400 mt-2 text-center">
                                     Please select a language combination first
+                                </p>
+                            )}
+                            {(!email || !isValidEmail(email)) && (
+                                <p className="text-sm text-gray-400 mt-2 text-center">
+                                    Please enter a valid email address
                                 </p>
                             )}
                         </div>
