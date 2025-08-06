@@ -113,8 +113,7 @@ public class UserController {
                 response.setStatus(302);
                 return ResponseEntity.status(HttpStatus.FOUND).build();
             }
-            Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user,
-                    user.getGithubAccessToken());
+            Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user.getGithubAccessToken());
 
             if (!userService.connectedGithub(user) || githubCredentialsValid == null) {
                 response.setHeader("Location", appInstallUrl);
@@ -416,8 +415,7 @@ public class UserController {
             String githubAccessToken = (String) accessTokenResponse.get("access_token");
 
             log.info("Obtaining github credentials for user: {}", user.getEmail());
-            Map<String, Object> githubCredentialsResponse = githubService.validateGithubCredentials(user,
-                    githubAccessToken);
+            Map<String, Object> githubCredentialsResponse = githubService.validateGithubCredentials(githubAccessToken);
             String githubUsername = (String) githubCredentialsResponse.get("login");
             String accountType = (String) githubCredentialsResponse.get("type");
 

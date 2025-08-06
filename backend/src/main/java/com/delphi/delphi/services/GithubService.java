@@ -26,7 +26,6 @@ import org.springframework.core.ParameterizedTypeReference;
 
 import com.delphi.delphi.entities.ChatHistory;
 import com.delphi.delphi.entities.ChatMessage;
-import com.delphi.delphi.entities.User;
 import com.delphi.delphi.repositories.ChatHistoryRepository;
 import com.delphi.delphi.utils.git.GithubBranchDetails;
 import com.delphi.delphi.utils.git.GithubFile;
@@ -278,7 +277,7 @@ public class GithubService {
      * Uses the user's user access token to get their user information from the GitHub API (if the token is valid)
      * MAKE SURE TO USE THE DECRYPTED ACCESS TOKEN, NOT THE ENCRYPTED ONE
      */
-    public Map<String, Object> validateGithubCredentials(User user, String githubAccessToken) {
+    public Map<String, Object> validateGithubCredentials(String githubAccessToken) {
         try {
             // decrypting the access token if it is encrypted
             String token = githubAccessToken;

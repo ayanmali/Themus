@@ -156,7 +156,7 @@ public class AssessmentController {
             }
 
             log.info("User is connected to github, validating credentials");
-            Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user, user.getGithubAccessToken());
+            Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user.getGithubAccessToken());
             log.info("Github credentials validated: {}", githubCredentialsValid);
             if (githubCredentialsValid == null) {
                 log.info("Github credentials are invalid, redirecting to installation page");
