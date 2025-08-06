@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.dtos.StartAssessmentDto;
+import com.delphi.delphi.entities.Assessment;
+import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.GithubService;
 
 /*
@@ -22,14 +24,17 @@ import com.delphi.delphi.services.GithubService;
 @RequestMapping("/api/assessments/live")
 public class CandidateAssessmentController {
 
+    private final AssessmentService assessmentService;
+
     private final RedisService redisService;
     private final GithubService githubService;
     private final String tokenCacheKeyPrefix = "candidate_github_token:";
     private final String usernameCacheKeyPrefix = "candidate_github_username:";
 
-    public CandidateAssessmentController(RedisService redisService, GithubService githubService) {
+    public CandidateAssessmentController(RedisService redisService, GithubService githubService, AssessmentService assessmentService) {
         this.redisService = redisService;
         this.githubService = githubService;
+        this.assessmentService = assessmentService;
     }
     
     /*
@@ -62,10 +67,15 @@ public class CandidateAssessmentController {
     @PostMapping("/start")
     public ResponseEntity<?> startAssessment(@RequestBody StartAssessmentDto startAssessmentDto) {
         String candidateEmail = startAssessmentDto.getCandidateEmail();
-        String assessmentId = startAssessmentDto.getAssessmentId();
+        Long assessmentId = startAssessmentDto.getAssessmentId();
         String languageOption = startAssessmentDto.getLanguageOption();
         String repoName = "assessment-" + assessmentId + "-" + candidateEmail.split("@")[0];
 
+        // TODO: store repository owner in assessment entity
+        Assessment assessment = assessmentService.getAssessmentById(assessmentId).orElseThrow(() -> new RuntimeException("Assessment not found"));
+        String templateOwner = assessment.getUser().getGithubUsername();
+        String templateRepoName = assessment.getGithubRepoName();
+        
         // check if the candidate has a github token
         Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + candidateEmail);
         Object candidateGithubUsername = redisService.get(usernameCacheKeyPrefix + candidateEmail);
@@ -76,7 +86,7 @@ public class CandidateAssessmentController {
         String githubAccessToken = candidateGithubToken.toString();
         String githubUsername = candidateGithubUsername.toString();
 
-        githubService.createPersonalRepo(githubAccessToken, repoName);
+        githubService.createPersonalRepoFromTemplate(githubAccessToken, templateOwner, templateRepoName, repoName);
 
         return ResponseEntity.ok("Assessment started: https://github.com/" + githubUsername + "/" + repoName);
     }

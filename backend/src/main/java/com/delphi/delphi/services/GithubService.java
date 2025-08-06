@@ -404,7 +404,61 @@ public class GithubService {
             log.error("Error creating personal repo: {}", e.getMessage(), e);
             throw new RuntimeException("Error creating repo: " + e.getMessage(), e);
         }
-    }    
+    }
+    
+    public GithubRepoContents createPersonalRepoFromTemplate(String token, String templateOwner, String templateRepoName, String repoName) {
+        try {
+            String githubAccessToken = token;
+            if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
+                githubAccessToken = encryptionService.decrypt(token);
+            }
+            // For GitHub App installation tokens, we need to create repo in the installation's account
+            String url = String.format("https://api.github.com/repos/%s/%s/generate", templateOwner, templateRepoName);
+
+            Map<String, Object> body = Map.of(
+                    "name", repoName,
+                    "description", "Assessment repository",
+                    "private", true,
+                    "auto_init", true,
+                    "include_all_branches", true,
+                    "include_all_tags", true);
+
+            log.info("Creating candidate repo '{}' from template repo '{}' with token: {}...", repoName, templateRepoName, githubAccessToken.substring(0, Math.min(10, token.length())));
+            
+            GithubRepoContents repo = webClient.post()
+                .uri(url)
+                .header("Authorization", "Bearer " + githubAccessToken)
+                .header("Accept", "application/vnd.github.v3+json")
+                .header("User-Agent", "Delphi-App/1.0")
+                .bodyValue(body)
+                .retrieve()
+                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), response -> {
+                    log.error("Error creating personal repo - Status: {}, Body: {}", response.statusCode(), response.bodyToMono(String.class).block());
+                    return response.bodyToMono(String.class)
+                        .flatMap(errorBody -> {
+                            log.error("GitHub API error - Status: {}, Body: {}", response.statusCode(), errorBody);
+                            return Mono.error(new RuntimeException(
+                                String.format("GitHub API error %d: %s", response.statusCode().value(), errorBody)
+                            ));
+                        });
+                })
+                .bodyToMono(GithubRepoContents.class)
+                .block();
+
+            if (repo == null) {
+                throw new RuntimeException("Failed to create personal repo: repo details from Github API response is null");
+            }
+
+            return repo;
+        } catch (RestClientException e) {
+            log.error("RestClient error creating repo: {}", e.getMessage(), e);
+            throw new RuntimeException("Error creating repo: " + e.getMessage(), e);
+        }
+        catch (Exception e) {
+            log.error("Error creating personal repo: {}", e.getMessage(), e);
+            throw new RuntimeException("Error creating repo: " + e.getMessage(), e);
+        }
+    }
 
     public GithubRepoContents createOrgRepo(String token, String orgName,String repoName) {
         try {

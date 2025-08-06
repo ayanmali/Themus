@@ -3,10 +3,10 @@ package com.delphi.delphi.dtos;
 public class StartAssessmentDto {
 
     private String candidateEmail;
-    private String assessmentId;
+    private Long assessmentId;
     private String languageOption;
 
-    public StartAssessmentDto(String candidateEmail, String assessmentId, String languageOption) {
+    public StartAssessmentDto(String candidateEmail, Long assessmentId, String languageOption) {
         this.candidateEmail = candidateEmail;
         this.assessmentId = assessmentId;
         this.languageOption = languageOption;
@@ -19,7 +19,7 @@ public class StartAssessmentDto {
         return candidateEmail;
     }
     
-    public String getAssessmentId() {
+    public Long getAssessmentId() {
         return assessmentId;
     }
 
