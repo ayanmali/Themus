@@ -14,9 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.dtos.StartAssessmentDto;
 import com.delphi.delphi.entities.Assessment;
+import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.services.AssessmentService;
+import com.delphi.delphi.services.CandidateService;
 import com.delphi.delphi.services.EncryptionService;
 import com.delphi.delphi.services.GithubService;
+import com.delphi.delphi.utils.AttemptStatus;
 
 /*
  * API endpoints for the candidate as they are taking the assessment
@@ -33,14 +36,16 @@ public class CandidateAssessmentController {
 
     private final RedisService redisService;
     private final GithubService githubService;
+    private final CandidateService candidateService;
     private final String tokenCacheKeyPrefix = "candidate_github_token:";
     private final String usernameCacheKeyPrefix = "candidate_github_username:";
 
-    public CandidateAssessmentController(RedisService redisService, GithubService githubService, AssessmentService assessmentService, EncryptionService encryptionService) {
+    public CandidateAssessmentController(RedisService redisService, GithubService githubService, AssessmentService assessmentService, EncryptionService encryptionService, CandidateService candidateService) {
         this.redisService = redisService;
         this.githubService = githubService;
         this.assessmentService = assessmentService;
         this.encryptionService = encryptionService;
+        this.candidateService = candidateService;
     }
     
     /*
@@ -72,6 +77,39 @@ public class CandidateAssessmentController {
         return ResponseEntity.ok("Github account already connected. You may close this tab.");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error connecting Github account: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/can-take-assessment")
+    public ResponseEntity<?> canTakeAssessment(@RequestParam Long assessmentId, @RequestParam String email) {
+        // TODO: check if this email address corresponds to a valid candidate attempt in the DB
+        // if it does, then we can just redirect to the assessment page
+        Assessment assessment = assessmentService.getAssessmentById(assessmentId).orElseThrow(() -> new RuntimeException("Assessment not found"));
+        Candidate candidate = candidateService.getCandidateByEmail(email).orElseThrow(() -> new RuntimeException("Candidate not found"));
+
+        if (assessment.getCandidateAttempts().stream().anyMatch(attempt -> attempt.getCandidate().getId().equals(candidate.getId()) && attempt.getStatus().equals(AttemptStatus.INVITED))) {
+            return ResponseEntity.ok(
+                Map.of("result", true,
+                "attemptId", assessment.getCandidateAttempts().stream().filter(attempt -> attempt.getCandidate().getId().equals(candidate.getId()) && attempt.getStatus().equals(AttemptStatus.INVITED)).findFirst().get().getId())
+            );
+        }
+        return ResponseEntity.ok(
+            Map.of("result", false)
+        );
+    }
+
+    @GetMapping("/has-valid-github-token")
+    public ResponseEntity<?> hasValidGithubToken(@RequestParam String email) {
+        try {
+            Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + email);
+    
+            // get a new token if the candidate doesn't have one or if the token is invalid
+            if (candidateGithubToken == null || githubService.validateGithubCredentials(encryptionService.decrypt(candidateGithubToken.toString())) == null) {
+                return ResponseEntity.ok(Map.of("result", false));
+            }
+            return ResponseEntity.ok(Map.of("result", true));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error checking if candidate has valid Github token: " + e.getMessage());
         }
     }
 

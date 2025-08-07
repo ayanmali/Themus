@@ -8,7 +8,7 @@ import { navigate } from 'wouter/use-browser-location';
 import { Candidate } from '@/lib/types/candidate';
 
 // Mock data for the assessment
-const assessmentData: Assessment = {
+const assessment: Assessment = {
     id: 5,
     employerId: "1",
     createdAt: new Date(),
@@ -72,6 +72,7 @@ export default function CandidateAssessmentPreview() {
     const [selectedLanguage, setSelectedLanguage] = useState('');
     const [email, setEmail] = useState('');
     const [isStarting, setIsStarting] = useState(false);
+    const [attemptId, setAttemptId] = useState<number | null>(null);
 
     // Email validation function
     const isValidEmail = (email: string) => {
@@ -94,7 +95,7 @@ export default function CandidateAssessmentPreview() {
 
         // TODO: check if this email address corresponds to a valid candidate attempt in the DB
         // if it does, then we can just redirect to the assessment page
-        const isAbleToTakeAssessment = await fetch(`${import.meta.env.VITE_API_URL}/api/assessments/live/can-take-assessment?email=${email}`, {
+        const isAbleToTakeAssessment = await fetch(`${import.meta.env.VITE_API_URL}/api/assessments/live/can-take-assessment?assessmentId=${assessment.id}&email=${email}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -102,15 +103,19 @@ export default function CandidateAssessmentPreview() {
         });
 
         const isAbleToTakeAssessmentData = await isAbleToTakeAssessment.json();
-        console.log(isAbleToTakeAssessmentData);
 
         if (!isAbleToTakeAssessmentData.result) {
             alert('You are not eligible to take this assessment. You either have not been invited, or have already taken the assessment. Please contact the employer to re-invite you.');
             return;
         }
 
+        setAttemptId(isAbleToTakeAssessmentData.attemptId);
+
+        // github app flow
+
         setIsStarting(true);
 
+        // check if the candidate has a valid github token
         const candidateHasValidGithubToken = await fetch(`${import.meta.env.VITE_API_URL}/api/assessments/live/has-valid-github-token?email=${email}`, {
             method: 'GET',
             headers: {
@@ -119,22 +124,69 @@ export default function CandidateAssessmentPreview() {
         });
 
         const candidateHasValidGithubTokenData = await candidateHasValidGithubToken.json();
-        console.log(candidateHasValidGithubTokenData);
 
         if (!candidateHasValidGithubTokenData.result) {
             // Open GitHub in a new tab
             window.open(GITHUB_CANDIDATE_INSTALL_URL, '_blank');
-            // Add polling to check if the candidate has connected their GitHub account
-            // const checkGitHubConnection = () => {
-            //     // TODO: Implement polling to check if the candidate has connected their GitHub account
-            // };
-            // checkGitHubConnection();
+            // Start polling for GitHub token validation
+            startPollingForGitHubToken();
+            return;
+        } else {
+            // redirect to starting page
+            setIsStarting(false);
+            navigate(`/${attemptId}/starting`);
         }
-        
-        // Reset the starting state after a short delay
-        // setTimeout(() => {
-        //     setIsStarting(false);
-        // }, 1000);
+    };
+
+    // Polling function to check if GitHub token is valid
+    const startPollingForGitHubToken = async () => {
+        const maxAttempts = 60; // 5 minutes with 5-second intervals
+        const pollInterval = 7000; // 7 seconds
+        let attempts = 0;
+
+        const poll = async () => {
+            if (attempts >= maxAttempts) {
+                console.log('Polling timeout reached');
+                setIsStarting(false);
+                alert('GitHub connection timeout. Please try again.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/assessments/live/has-valid-github-token?email=${email}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                const data = await response.json();
+                console.log('Polling attempt', attempts + 1, ':', data);
+
+                if (data.result) {
+                    // Valid token found, redirect to starting page
+                    console.log('Valid GitHub token found, redirecting...');
+                    setIsStarting(false);
+                    
+                    // Extract attempt_id from the response or use a default
+                    const attemptId = data.attemptId || 'default';
+                    // window.location.href = `/${attemptId}/starting`;
+                    navigate(`/${attemptId}/starting`);
+                    return;
+                }
+
+                // Continue polling
+                attempts++;
+                setTimeout(poll, pollInterval);
+            } catch (error) {
+                console.error('Polling error:', error);
+                attempts++;
+                setTimeout(poll, pollInterval);
+            }
+        };
+
+                // Start polling
+        poll();
     };
 
     return (
@@ -144,23 +196,23 @@ export default function CandidateAssessmentPreview() {
                 <div className="max-w-7xl mx-auto py-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-2xl font-bold text-white">{assessmentData.name}</h1>
-                            <p className="text-gray-400 mt-1">Position: {assessmentData.role} - EMPLOYER_NAME</p>
+                            <h1 className="text-2xl font-bold text-white">{assessment.name}</h1>
+                            <p className="text-gray-400 mt-1">Position: {assessment.role} - EMPLOYER_NAME</p>
                         </div>
                         <div className="flex items-center space-x-4">
                             <div className="flex items-center space-x-2 bg-blue-900/30 px-3 py-1 rounded-full">
-                                {assessmentData.type === "take-home" ? (
+                                {assessment.type === "take-home" ? (
                                     <BookOpen className="h-4 w-4 text-blue-400" />
                                 ) : (
                                     <Code className="h-4 w-4 text-green-400" />
                                 )}
-                                <span className="text-sm font-medium text-blue-300">{assessmentData.type === "take-home" ? "Take-Home Assessment" : "Live Coding Assessment"}</span>
+                                <span className="text-sm font-medium text-blue-300">{assessment.type === "take-home" ? "Take-Home Assessment" : "Live Coding Assessment"}</span>
                             </div>
                             <div className="flex items-center space-x-2 text-gray-400">
                                 <Clock className="h-4 w-4" />
                                 <span className="text-sm">
-                                    {assessmentData.type === "take-home" ? "Estimated Duration: " : "Duration: "}
-                                    {minutesToHours(assessmentData.duration ?? 0)} hours
+                                    {assessment.type === "take-home" ? "Estimated Duration: " : "Duration: "}
+                                    {minutesToHours(assessment.duration ?? 0)} hours
                                 </span>
                             </div>
                         </div>
@@ -178,8 +230,8 @@ export default function CandidateAssessmentPreview() {
                                 <Users className="h-5 w-5 text-purple-400" />
                                 <h2 className="text-xl font-semibold text-white">Skills & Competencies</h2>
                             </div>
-                            <div className={`grid gap-3 ${assessmentData.skills.length > 8 ? "grid-cols-3" : "grid-cols-2"}`}>
-                                {assessmentData.skills.map((skill, index) => (
+                            <div className={`grid gap-3 ${assessment.skills.length > 8 ? "grid-cols-3" : "grid-cols-2"}`}>
+                                {assessment.skills.map((skill, index) => (
                                     <div key={index} className="flex items-center space-x-2 bg-gray-700/50 rounded-lg p-3">
                                         <CheckCircle className="h-4 w-4 text-green-400 flex-shrink-0" />
                                         <span className="text-gray-300 text-sm">{skill}</span>
@@ -191,7 +243,7 @@ export default function CandidateAssessmentPreview() {
                         {/* Description */}
                         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
                             <h2 className="text-xl font-semibold text-white mb-4">Assessment Description</h2>
-                            <p className="text-gray-300 leading-relaxed">{assessmentData.description}</p>
+                            <p className="text-gray-300 leading-relaxed">{assessment.description}</p>
                         </div>
 
                         {/* Rules */}
@@ -201,7 +253,7 @@ export default function CandidateAssessmentPreview() {
                                 <h2 className="text-xl font-semibold text-white">Rules & Guidelines</h2>
                             </div>
                             <ul className="space-y-3">
-                                {assessmentData.rules?.map((rule, index) => (
+                                {assessment.rules?.map((rule, index) => (
                                     <li key={index} className="flex items-start space-x-3">
                                         <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 flex-shrink-0"></div>
                                         <span className="text-gray-300">{rule}</span>
@@ -217,7 +269,7 @@ export default function CandidateAssessmentPreview() {
                                 <h2 className="text-xl font-semibold text-white">Instructions</h2>
                             </div>
                             <ol className="space-y-3">
-                                {assessmentData.instructions?.map((instruction, index) => (
+                                {assessment.instructions?.map((instruction, index) => (
                                     <li key={index} className="flex items-start space-x-3">
                                         <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0">
                                             {index + 1}
@@ -232,7 +284,7 @@ export default function CandidateAssessmentPreview() {
                     {/* Sidebar */}
                     <div className="space-y-6">
                         {/* Language Selection */}
-                        {assessmentData.languageOptions?.length && (
+                        {assessment.languageOptions?.length && (
                             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
                                 <h3 className="text-lg font-semibold text-white mb-4">Choose your stack</h3>
                                 <div className="space-y-2">
@@ -245,7 +297,7 @@ export default function CandidateAssessmentPreview() {
                                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 >
                                     <option value="">Select your preferred language...</option>
-                                    {assessmentData.languageOptions?.map((option) => (
+                                    {assessment.languageOptions?.map((option) => (
                                         <option key={option.replace(" ", "-").toLowerCase()} value={option}>
                                             {option}
                                         </option>
@@ -261,7 +313,7 @@ export default function CandidateAssessmentPreview() {
                                         <SelectContent className="bg-slate-700 text-gray-100">
                                             <SelectGroup>
                                                 <SelectLabel>Languages/Frameworks</SelectLabel>
-                                                {assessmentData.languageOptions?.map((option) => (
+                                                {assessment.languageOptions?.map((option) => (
                                                     <SelectItem key={option.replace(" ", "-").toLowerCase()} value={option}>
                                                         {option}
                                                     </SelectItem>
@@ -284,7 +336,7 @@ export default function CandidateAssessmentPreview() {
                                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 >
                                     <option value="">Select your preferred language...</option>
-                                    {assessmentData.languageOptions?.map((option) => (
+                                    {assessment.languageOptions?.map((option) => (
                                         <option key={option.replace(" ", "-").toLowerCase()} value={option}>
                                             {option}
                                         </option>
@@ -304,7 +356,7 @@ export default function CandidateAssessmentPreview() {
                         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
                             <button
                                 onClick={handleStart}
-                                disabled={(!selectedLanguage && !!assessmentData.languageOptions?.length) || !email || !isValidEmail(email) || isStarting}
+                                disabled={(!selectedLanguage && !!assessment.languageOptions?.length) || !email || !isValidEmail(email) || isStarting}
                                 className="w-full  disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
                                 // className="w-full bg-gradient-to-r duration-1000 from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
                             >
@@ -320,7 +372,7 @@ export default function CandidateAssessmentPreview() {
                                     </>
                                 )}
                             </button>
-                            {!selectedLanguage && !!assessmentData.languageOptions?.length && (
+                            {!selectedLanguage && !!assessment.languageOptions?.length && (
                                 <p className="text-sm text-gray-400 mt-2 text-center">
                                     Please select a language combination first
                                 </p>
@@ -338,15 +390,15 @@ export default function CandidateAssessmentPreview() {
                             <div className="space-y-3">
                                 <div className="flex justify-between">
                                     <span className="text-gray-400">Type:</span>
-                                    <span className="text-gray-300">{assessmentData.type}</span>
+                                    <span className="text-gray-300">{assessment.type}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-400">Duration:</span>
-                                    <span className="text-gray-300">{assessmentData.duration}</span>
+                                    <span className="text-gray-300">{assessment.duration}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-400">Skills:</span>
-                                    <span className="text-gray-300">{assessmentData.skills.length} areas</span>
+                                    <span className="text-gray-300">{assessment.skills.length} areas</span>
                                 </div>
                             </div>
                         </div> */}
