@@ -5,6 +5,7 @@ import { minutesToHours } from '@/lib/utils';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { navigate } from 'wouter/use-browser-location';
+import { Candidate } from '@/lib/types/candidate';
 
 // Mock data for the assessment
 const assessmentData: Assessment = {
@@ -26,6 +27,15 @@ const assessmentData: Assessment = {
         "Docker",
         "Kubernetes",
         "TypeScript"
+    ],
+    candidateAttempts: [
+        {
+            id: 1,
+            candidateId: 1,
+            assessmentId: 5,
+            status: "invited",
+            startedAt: new Date(),
+        }
     ],
     description: "This comprehensive assessment evaluates your ability to build a complete web application from scratch. You'll be tasked with creating a task management system that demonstrates your proficiency in both frontend and backend development, including user authentication, data persistence, and responsive design.",
     rules: [
@@ -52,6 +62,12 @@ const assessmentData: Assessment = {
     repoLink: "https://github.com/user/repo",
 };
 
+const candidate: Candidate = {
+    id: 1,
+    email: "zainjdantes@gmail.com",
+    name: "Zain Dantes",
+}
+
 export default function CandidateAssessmentPreview() {
     const [selectedLanguage, setSelectedLanguage] = useState('');
     const [email, setEmail] = useState('');
@@ -63,7 +79,7 @@ export default function CandidateAssessmentPreview() {
         return emailRegex.test(email);
     };
 
-    const handleStart = () => {
+    const handleStart = async () => {
         // Github app installation URL with state parameter specifying this is a candidate installation
         const GITHUB_CANDIDATE_INSTALL_URL: string = import.meta.env.VITE_GITHUB_APP_CANDIDATE_INSTALL_URL + "?state=candidate_" + email;
 
@@ -78,16 +94,42 @@ export default function CandidateAssessmentPreview() {
 
         // TODO: check if this email address corresponds to a valid candidate attempt in the DB
         // if it does, then we can just redirect to the assessment page
+        const isAbleToTakeAssessment = await fetch(`${import.meta.env.VITE_API_URL}/api/assessments/live/can-take-assessment?email=${email}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        const isAbleToTakeAssessmentData = await isAbleToTakeAssessment.json();
+        console.log(isAbleToTakeAssessmentData);
+
+        if (!isAbleToTakeAssessmentData.result) {
+            alert('You are not eligible to take this assessment. You either have not been invited, or have already taken the assessment. Please contact the employer to re-invite you.');
+            return;
+        }
+
         setIsStarting(true);
-        
-        // Open GitHub in a new tab
-        window.open(GITHUB_CANDIDATE_INSTALL_URL, '_blank');
-        
-        // Add polling to check if the candidate has connected their GitHub account
-        // const checkGitHubConnection = () => {
-        //     // TODO: Implement polling to check if the candidate has connected their GitHub account
-        // };
-        // checkGitHubConnection();
+
+        const candidateHasValidGithubToken = await fetch(`${import.meta.env.VITE_API_URL}/api/assessments/live/has-valid-github-token?email=${email}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        const candidateHasValidGithubTokenData = await candidateHasValidGithubToken.json();
+        console.log(candidateHasValidGithubTokenData);
+
+        if (!candidateHasValidGithubTokenData.result) {
+            // Open GitHub in a new tab
+            window.open(GITHUB_CANDIDATE_INSTALL_URL, '_blank');
+            // Add polling to check if the candidate has connected their GitHub account
+            // const checkGitHubConnection = () => {
+            //     // TODO: Implement polling to check if the candidate has connected their GitHub account
+            // };
+            // checkGitHubConnection();
+        }
         
         // Reset the starting state after a short delay
         // setTimeout(() => {

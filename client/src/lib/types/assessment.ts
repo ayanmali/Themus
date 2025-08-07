@@ -1,3 +1,5 @@
+import { CandidateAttempt } from "./candidate-attempt";
+
 export type Assessment = {
     id: number;
     role: string; // ex. Software Engineering Intern, Senior Data Scientist, etc.
@@ -8,6 +10,7 @@ export type Assessment = {
     updatedAt: Date;
     name: string; // ex. "Backend SWE Microservices Assessment"; used for employer's dashboard
     status: 'active' | 'inactive';
+    candidateAttempts: CandidateAttempt[];
     startDate?: Date;
     endDate?: Date;
     duration?: number; // in minutes - for take home assessments, this is the estimated duration of the assessment in minutes. For live coding assessments, this is the duration of the assessment in minutes.

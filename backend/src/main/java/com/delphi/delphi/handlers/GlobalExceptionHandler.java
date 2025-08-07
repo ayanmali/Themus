@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import com.delphi.delphi.dtos.AuthErrorResponseDto;
-import com.delphi.delphi.utils.exceptions.AuthenticationException;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -18,7 +17,7 @@ public class GlobalExceptionHandler {
     
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
     
-    @ExceptionHandler(AuthenticationException.class)
+    @ExceptionHandler(com.delphi.delphi.utils.exceptions.AuthenticationException.class)
     public ResponseEntity<AuthErrorResponseDto> handleAuthenticationException(
             com.delphi.delphi.utils.exceptions.AuthenticationException ex, 
             HttpServletRequest request) {
@@ -67,7 +66,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
     }
     
-    @ExceptionHandler(AuthenticationException.class)
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
     public ResponseEntity<AuthErrorResponseDto> handleSpringAuthenticationException(
             org.springframework.security.core.AuthenticationException ex, 
             HttpServletRequest request) {
