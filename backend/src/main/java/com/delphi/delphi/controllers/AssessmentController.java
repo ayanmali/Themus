@@ -288,7 +288,7 @@ public class AssessmentController {
         }
     }
 
-    // Get all assessments with pagination and filtering
+    // Get all assessments with pagination and filtering for the current user
     @GetMapping("/filter")
     public ResponseEntity<?> getAllAssessments(
             @RequestParam(defaultValue = "0") int page,
@@ -307,7 +307,7 @@ public class AssessmentController {
                     : Sort.by(sortBy).ascending();
 
             Pageable pageable = PageRequest.of(page, size, sort);
-            Page<Assessment> assessments = assessmentService.getAssessmentsWithFilters(
+            Page<Assessment> assessments = assessmentService.getAssessmentsWithFiltersForUser(
                 user, status, assessmentType, startDate, endDate, pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
 

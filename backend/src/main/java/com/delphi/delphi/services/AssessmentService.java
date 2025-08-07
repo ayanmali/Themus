@@ -179,6 +179,14 @@ public class AssessmentService {
         return assessmentRepository.findWithFilters(status, assessmentType, startDate, endDate, pageable);
     }
 
+    // Get assessments with multiple filters for a specific user
+    @Cacheable(value = "assessments", key = "#user.id + ':' + #status + ':' + #assessmentType + ':' + #startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Transactional(readOnly = true)
+    public Page<Assessment> getAssessmentsWithFiltersForUser(User user, AssessmentStatus status, AssessmentType assessmentType, 
+                                                            LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+        return assessmentRepository.findWithFiltersForUser(user.getId(), status, assessmentType, startDate, endDate, pageable);
+    }
+
     // Update assessment
     public Assessment updateAssessment(Long id, Assessment assessmentUpdates) {
         Assessment existingAssessment = getAssessmentByIdOrThrow(id);

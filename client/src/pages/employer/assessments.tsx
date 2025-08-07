@@ -1,114 +1,47 @@
 import { useState } from "react";
-import { Calendar, Clock, MoreHorizontal, Plus, Eye } from "lucide-react";
+import { Calendar, Clock, MoreHorizontal, Plus, Eye, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AppShell } from "@/components/layout/app-shell";
 import { Assessment } from "@/lib/types/assessment";
 import AssessmentPagination from "@/components/ui/AssessmentPagination";
-import AssessmentDetails from "./assessment-details/assessment-details";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import useApi from "@/hooks/use-api";
 
 export default function EmployerAssessments() {
-    const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
-    const [editedAssessment, setEditedAssessment] = useState<Assessment | null>(null);
+    const [page, setPage] = useState(0);
+    const [size, setSize] = useState(10);
+    const { apiCall } = useApi();
+    const [, navigate] = useLocation();
 
-    // Sample assessment data
-    const assessments: Assessment[] = [
-        {
-            id: 1,
-            role: 'Senior Software Engineer',
-            employerId: '123',
-            description: 'Full-stack development assessment focusing on system design and microservices architecture. Candidates will build a scalable web application with proper testing and documentation.',
-            skills: ['React', 'Node.js', 'TypeScript', 'Python', 'SQL', 'Docker', 'Kubernetes'],
-            createdAt: new Date('2024-01-15'),
-            updatedAt: new Date('2024-02-01'),
-            name: 'Backend SWE Microservices Assessment',
-            status: 'active',
-            startDate: new Date('2025-06-01'),
-            endDate: new Date('2025-06-15'),
-            type: 'take-home',
-            repoLink: 'https://github.com/company/backend-swe-assessment',
-            metadata: {
-                'Duration': '7 days',
-                'Difficulty': 'Senior Level',
-                'Focus Areas': 'System Design, API Development'
+    // Fetch assessments using TanStack Query
+    const { data: assessmentsData, isLoading, error } = useQuery({
+        queryKey: ['assessments', 'user', page, size],
+        queryFn: async () => {
+            const response = await apiCall(`/api/assessments/filter?page=${page}&size=${size}`, {
+                method: 'GET',
+            });
+            
+            if (!response) {
+                throw new Error('Failed to fetch assessments');
             }
+            
+            return response;
         },
-        {
-            id: 2,
-            role: 'Data Scientist Intern',
-            employerId: '456',
-            description: 'Machine learning assessment covering data analysis, model building, and statistical interpretation. Focus on real-world data processing and visualization.',
-            skills: ['Python', 'Pandas', 'Scikit-learn', 'PyTorch', 'NumPy', 'Matplotlib', 'Seaborn'],
-            createdAt: new Date('2024-01-20'),
-            updatedAt: new Date('2024-01-25'),
-            name: 'ML Data Analysis Challenge',
-            status: 'inactive',
-            startDate: new Date('2025-06-07'),
-            endDate: new Date('2025-06-14'),
-            type: 'take-home',
-            repoLink: 'https://github.com/company/ml-data-assessment',
-            metadata: {
-                'Dataset Size': '10GB',
-                'Expected Output': 'Jupyter Notebook + Report'
-            }
-        },
-        {
-            id: 3,
-            role: 'Quantitative Development Intern',
-            employerId: '789',
-            description: 'Quantitative Development Intern assessment focusing on performant backtesting engine design. Candidates will build a backtesting engine in C++ that can backtest a trading strategy on a given dataset.',
-            skills: ['C++', 'Backtesting', 'Performance Optimization', 'Algorithmic Trading', 'Data Structures', 'Object-Oriented Programming', 'Testing', 'Documentation'],
-            createdAt: new Date('2024-01-25'),
-            updatedAt: new Date('2024-01-25'),
-            name: 'Quant Development Intern Assessment',
-            status: 'active',
-            startDate: new Date('2025-06-14'),
-            endDate: new Date('2025-06-21'),
-            type: 'take-home',
-            repoLink: 'https://github.com/company/quant-development-intern-assessment',
-            metadata: {
-                'Duration': '7 days',
-                'Difficulty': 'Junior Level',
-                'Focus Areas': 'System Design, API Development'
-            }
-        },
-        {
-            id: 4,
-            role: 'Backend SWE Intern',
-            employerId: '789',
-            description: 'Backend development Intern assessment focusing on proficiency in the Go programming language and concurrent programming.',
-            skills: ['Go', 'Mutexes', 'Goroutines', 'Concurrency', 'Channels', 'Multithreading'],
-            createdAt: new Date('2024-01-25'),
-            updatedAt: new Date('2024-01-25'),
-            name: 'Backend SWE Intern Assessment',
-            status: 'active',
-            startDate: new Date('2025-06-14'),
-            endDate: new Date('2025-06-21'),
-            type: 'take-home',
-            repoLink: 'https://github.com/company/backend-swe-intern-assessment',
-            metadata: {
-                'Duration': '7 days',
-                'Difficulty': 'Junior Level',
-                'Focus Areas': 'System Design, API Development'
-            }
-        }
-    ];
+    });
 
-    const formatDateRange = (assessment: Assessment) => {
-        if (assessment.type === 'live-coding') {
-            const duration = assessment.duration || 60;
-            return `Duration: ${duration} minutes`;
-        } else {
-            const start = assessment?.startDate?.toLocaleDateString();
-            const end = assessment?.endDate?.toLocaleDateString();
-            return `${start} - ${end}`;
-        }
+    // Extract assessments from the response
+    const assessments = assessmentsData?.content || [];
+
+    const formatDateRange = (assessment: any) => {
+        const start = assessment?.startDate ? new Date(assessment.startDate).toLocaleDateString() : '';
+        const end = assessment?.endDate ? new Date(assessment.endDate).toLocaleDateString() : '';
+        return `${start} - ${end}`;
     };
 
     const handleAssessmentSelect = (assessment: Assessment) => {
-        setSelectedAssessment(assessment);
-        setEditedAssessment({ ...assessment });
+        navigate(`/assessments/${assessment.id}`);
     };
 
     // const formatTimeSpent = (startedAt: Date | null | undefined) => {
@@ -118,12 +51,6 @@ export default function EmployerAssessments() {
     //     const minutes = Math.floor(timeDiff / (1000 * 60));
     //     return `Time spent: ${minutes} minutes`;
     // };
-
-    if (selectedAssessment) {
-        return (
-            <AssessmentDetails assessment={selectedAssessment} setSelectedAssessment={setSelectedAssessment} editedAssessment={editedAssessment} setEditedAssessment={setEditedAssessment} />
-        );
-    }
 
     return (
         <AppShell>
@@ -159,13 +86,46 @@ export default function EmployerAssessments() {
                     </div>
                 </div>
 
-                <div className="space-y-4">
-                    {assessments.map((assessment) => (
-                        <div
-                            key={assessment.id}
-                            className="bg-gray-800 border border-slate-700 rounded-lg p-6 hover:bg-gray-750 transition-colors cursor-pointer shadow-lg"
-                            onClick={() => handleAssessmentSelect(assessment)}
-                        >
+                {/* Loading State */}
+                {isLoading && (
+                    <div className="flex items-center justify-center py-12">
+                        <div className="flex items-center space-x-2">
+                            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                            <span className="text-gray-400">Loading assessments...</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Error State */}
+                {error && (
+                    <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                        <div className="flex">
+                            <div className="ml-3">
+                                <h3 className="text-sm font-medium text-red-800">
+                                    Error loading assessments
+                                </h3>
+                                <div className="mt-2 text-sm text-red-700">
+                                    <p>{error.message}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Assessments List */}
+                {!isLoading && !error && (
+                    <div className="space-y-4">
+                        {assessments.length === 0 ? (
+                            <div className="bg-slate-800 border border-slate-700 rounded-md p-8 text-center">
+                                <p className="text-gray-400">No assessments found</p>
+                            </div>
+                        ) : (
+                            assessments.map((assessment: Assessment) => (
+                                <div
+                                    key={assessment.id}
+                                    className="bg-gray-800 border border-slate-700 rounded-lg p-6 hover:bg-gray-750 transition-colors cursor-pointer shadow-lg"
+                                    onClick={() => handleAssessmentSelect(assessment)}
+                                >
                             <div className="flex items-center justify-between">
                                 <div className="flex-1">
                                     <div className="mb-3">
@@ -175,11 +135,11 @@ export default function EmployerAssessments() {
                                                 ? 'bg-green-600 text-white'
                                                 : 'bg-red-600 text-white'
                                                 }`}>
-                                                {assessment.status}
+                                                {assessment.status?.toLowerCase()}
                                             </span>
-                                            <span className="px-3 py-1 rounded-full text-sm font-medium capitalize bg-blue-600 text-white">
-                                                {assessment.type.replace('-', ' ')}
-                                            </span>
+                                            {/* <span className="px-3 py-1 rounded-full text-sm font-medium capitalize bg-blue-600 text-white">
+                                                {assessment.assessmentType?.replace('_', ' ').toLowerCase()}
+                                            </span> */}
                                         </div>
                                     </div>
 
@@ -193,11 +153,9 @@ export default function EmployerAssessments() {
                                             <span>Created: {assessment.createdAt.toLocaleDateString()}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            {assessment.type === 'live-coding' ? (
-                                                <Clock size={16} />
-                                            ) : (
+                                            (
                                                 <Calendar size={16} />
-                                            )}
+                                            )
                                             <span>{formatDateRange(assessment)}</span>
                                         </div>
                                     </div>
@@ -230,8 +188,10 @@ export default function EmployerAssessments() {
                                 </DropdownMenu>
                             </div>
                         </div>
-                    ))}
-                </div>
+                            ))
+                        )}
+                    </div>
+                )}
             </div>
             <AssessmentPagination />
         </AppShell>

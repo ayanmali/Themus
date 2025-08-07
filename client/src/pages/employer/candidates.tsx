@@ -1,54 +1,48 @@
 import { useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { CandidateCard } from "@/components/candidate-card";
 import { Candidate } from "@/lib/types/candidate";
+import { useQuery } from "@tanstack/react-query";
+import useApi from "@/hooks/use-api";
 
 export default function EmployerCandidates() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(10);
+  const { apiCall } = useApi();
 
-  // Mock candidates for demonstration
-  const candidates: Candidate[] = [
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john.doe@example.com",
-      //profileImage: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-      // currentAssessment: "Frontend Developer Assessment",
-      // assessmentStatus: "completed",
-      // completionDate: "Jan 15, 2023",
-      // skills: ["React", "JavaScript", "Frontend"]
+  // Fetch candidates using TanStack Query
+  const { data: candidatesData, isLoading, error } = useQuery({
+    queryKey: ['candidates', 'user', page, size],
+    queryFn: async () => {
+      const response = await apiCall(`/api/candidates/user?page=${page}&size=${size}`, {
+        method: 'GET',
+      });
+      
+      if (!response) {
+        throw new Error('Failed to fetch candidates');
+      }
+      
+      return response;
     },
-    {
-      id: 2,
-      name: "Alice Johnson",
-      email: "alice.johnson@example.com",
-      //profileImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-      // currentAssessment: "Backend Developer Assessment",
-      // assessmentStatus: "in_progress",
-      // daysRemaining: 2,
-      // skills: ["Node.js", "Express", "Backend"]
-    },
-    {
-      id: 3,
-      name: "Michael Smith",
-      email: "michael.smith@example.com",
-      //profileImage: "https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-      // assessmentStatus: "available",
-      // skills: ["DevOps", "Docker", "CI/CD"]
-    }
-  ];
+  });
+
+  // Extract candidates from the response
+  const candidates = candidatesData?.content || [];
+  const totalElements = candidatesData?.totalElements || 0;
+  const totalPages = candidatesData?.totalPages || 0;
 
   // Filter candidates based on search query
-  const filteredCandidates = candidates.filter(candidate => {
+  const filteredCandidates = candidates.filter((candidate: any) => {
     if (searchQuery === "") return true;
 
     return (
-      candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      candidate.email.toLowerCase().includes(searchQuery.toLowerCase())
+      candidate.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      candidate.email?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
 
@@ -145,28 +139,56 @@ export default function EmployerCandidates() {
         </div>
       </div>
 
-      {/* Candidate List */}
-      <div className="space-y-4">
-        {filteredCandidates.length === 0 ? (
-          <div className="bg-white shadow rounded-md p-8 text-center">
-            <p className="text-gray-500">No candidates found matching your search</p>
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center space-x-2">
+            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+            <span className="text-gray-400">Loading candidates...</span>
           </div>
-        ) : (
-          filteredCandidates.map(candidate => (
-            <CandidateCard
-              key={candidate.id}
-              id={candidate.id}
-              name={candidate.name}
-              email={candidate.email}
-            // currentAssessment={candidate.currentAssessment}
-            // assessmentStatus={candidate.assessmentStatus}
-            // completionDate={candidate.completionDate}
-            // daysRemaining={candidate.daysRemaining}
-            // skills={candidate.skills}
-            />
-          ))
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="flex">
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">
+                Error loading candidates
+              </h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>{error.message}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Candidate List */}
+      {!isLoading && !error && (
+        <div className="space-y-4">
+          {filteredCandidates.length === 0 ? (
+            <div className="bg-slate-800 border border-slate-700 rounded-md p-8 text-center">
+              <p className="text-gray-400">No candidates found matching your search</p>
+            </div>
+          ) : (
+            filteredCandidates.map((candidate: any) => (
+              <CandidateCard
+                key={candidate.id}
+                id={candidate.id}
+                name={candidate.name}
+                email={candidate.email}
+              // currentAssessment={candidate.currentAssessment}
+              // assessmentStatus={candidate.assessmentStatus}
+              // completionDate={candidate.completionDate}
+              // daysRemaining={candidate.daysRemaining}
+              // skills={candidate.skills}
+              />
+            ))
+          )}
+        </div>
+      )}
     </AppShell>
   );
 }

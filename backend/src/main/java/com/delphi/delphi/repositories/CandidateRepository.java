@@ -92,4 +92,30 @@ public interface CandidateRepository extends JpaRepository<Candidate, Long> {
                                    @Param("attemptCompletedAfter") LocalDateTime attemptCompletedAfter,
                                    @Param("attemptCompletedBefore") LocalDateTime attemptCompletedBefore,
                                    Pageable pageable);
+
+    // Find candidates with multiple optional filters for a specific user
+    @Query("SELECT DISTINCT c FROM Candidate c " +
+           "LEFT JOIN c.assessments a " +
+           "LEFT JOIN c.candidateAttempts ca " +
+           "WHERE c.user.id = :userId AND " +
+           "(:assessmentId IS NULL OR a.id = :assessmentId) AND " +
+           "(:attemptStatus IS NULL OR ca.status = :attemptStatus) AND " +
+           "(:emailDomain IS NULL OR c.email LIKE CONCAT('%@', :emailDomain)) AND " +
+           "(:firstName IS NULL OR LOWER(c.firstName) LIKE LOWER(CONCAT('%', :firstName, '%'))) AND " +
+           "(:lastName IS NULL OR LOWER(c.lastName) LIKE LOWER(CONCAT('%', :lastName, '%'))) AND " +
+           "(:createdAfter IS NULL OR c.createdDate >= :createdAfter) AND " +
+           "(:createdBefore IS NULL OR c.createdDate <= :createdBefore) AND " +
+           "(:attemptCompletedAfter IS NULL OR ca.completedDate >= :attemptCompletedAfter) AND " +
+           "(:attemptCompletedBefore IS NULL OR ca.completedDate <= :attemptCompletedBefore)")
+    Page<Candidate> findWithFiltersForUser(@Param("userId") Long userId,
+                                          @Param("assessmentId") Long assessmentId,
+                                          @Param("attemptStatus") com.delphi.delphi.utils.AttemptStatus attemptStatus,
+                                          @Param("emailDomain") String emailDomain,
+                                          @Param("firstName") String firstName,
+                                          @Param("lastName") String lastName,
+                                          @Param("createdAfter") LocalDateTime createdAfter,
+                                          @Param("createdBefore") LocalDateTime createdBefore,
+                                          @Param("attemptCompletedAfter") LocalDateTime attemptCompletedAfter,
+                                          @Param("attemptCompletedBefore") LocalDateTime attemptCompletedBefore,
+                                          Pageable pageable);
 }

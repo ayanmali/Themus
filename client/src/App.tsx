@@ -27,6 +27,7 @@ import {PricingPage, SubscriptionSuccessPage } from "./pages/pricing";
 import ForgotPassword from "./pages/auth/forgot-password";
 import Record from "./pages/candidate/starting-assessment/record";
 import Recordings from "./pages/candidate/starting-assessment/recordings";
+import AssessmentDetails from "./pages/employer/assessment-details/assessment-details";
 
 function Router() {
   return (
@@ -39,6 +40,7 @@ function Router() {
       {/* Protected Employer Routes */}
       <ProtectedRoute path="/dashboard" component={EmployerDashboard} />
       <ProtectedRoute path="/assessments" component={EmployerAssessments} />
+      <ProtectedRoute path="/assessments/:assessmentId" component={AssessmentDetails} />
       <ProtectedRoute path="/assessments/new" component={CreateAssessment} />
       <ProtectedRoute path="/candidates" component={EmployerCandidates} />
       <ProtectedRoute path="/reports" component={EmployerReports} />

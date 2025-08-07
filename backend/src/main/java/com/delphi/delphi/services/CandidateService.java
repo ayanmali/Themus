@@ -96,6 +96,18 @@ public class CandidateService {
         return candidateRepository.findWithFilters(assessmentId, attemptStatus, emailDomain, firstName, lastName,
                                                   createdAfter, createdBefore, attemptCompletedAfter, attemptCompletedBefore, pageable);
     }
+
+    // Get candidates with multiple filters for a specific user
+    @Cacheable(value = "candidates", key = "#userId + ':' + #assessmentId + ':' + #attemptStatus + ':' + #emailDomain + ':' + #firstName + ':' + #lastName + ':' + #createdAfter + ':' + #createdBefore + ':' + #attemptCompletedAfter + ':' + #attemptCompletedBefore + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Transactional(readOnly = true)
+    public Page<Candidate> getCandidatesWithFiltersForUser(Long userId, Long assessmentId, com.delphi.delphi.utils.AttemptStatus attemptStatus, 
+                                                          String emailDomain, String firstName, String lastName,
+                                                          LocalDateTime createdAfter, LocalDateTime createdBefore,
+                                                          LocalDateTime attemptCompletedAfter, LocalDateTime attemptCompletedBefore, 
+                                                          Pageable pageable) {
+        return candidateRepository.findWithFiltersForUser(userId, assessmentId, attemptStatus, emailDomain, firstName, lastName,
+                                                         createdAfter, createdBefore, attemptCompletedAfter, attemptCompletedBefore, pageable);
+    }
     
     // Update candidate
     @CachePut(value = "candidates", key = "#result.id")

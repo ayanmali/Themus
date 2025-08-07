@@ -112,7 +112,31 @@ public class CandidateController {
         }
     }
     
-    // Get all candidates with pagination and filtering
+    // Get all candidates for the current user
+    @GetMapping("/user")
+    public ResponseEntity<?> getCandidatesForCurrentUser(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDirection) {
+        try {
+            User user = getCurrentUser();
+            Sort sort = sortDirection.equalsIgnoreCase("desc") 
+                ? Sort.by(sortBy).descending() 
+                : Sort.by(sortBy).ascending();
+            
+            Pageable pageable = PageRequest.of(page, size, sort);
+            Page<Candidate> candidates = candidateService.getCandidatesByUserId(user.getId(), pageable);
+            Page<FetchCandidateDto> candidateDtos = candidates.map(FetchCandidateDto::new);
+            
+            return ResponseEntity.ok(candidateDtos);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error retrieving candidates: " + e.getMessage());
+        }
+    }
+
+    // Get all candidates with pagination and filtering for the current user
     @GetMapping("/filter")
     public ResponseEntity<?> getAllCandidates(
             @RequestParam(defaultValue = "0") int page,
@@ -129,13 +153,14 @@ public class CandidateController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime attemptCompletedAfter,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime attemptCompletedBefore) {
         try {
+            User user = getCurrentUser();
             Sort sort = sortDirection.equalsIgnoreCase("desc") 
                 ? Sort.by(sortBy).descending() 
                 : Sort.by(sortBy).ascending();
             
             Pageable pageable = PageRequest.of(page, size, sort);
-            Page<Candidate> candidates = candidateService.getCandidatesWithFilters(
-                assessmentId, attemptStatus, emailDomain, firstName, lastName,
+            Page<Candidate> candidates = candidateService.getCandidatesWithFiltersForUser(
+                user.getId(), assessmentId, attemptStatus, emailDomain, firstName, lastName,
                 createdAfter, createdBefore, attemptCompletedAfter, attemptCompletedBefore, pageable);
             Page<FetchCandidateDto> candidateDtos = candidates.map(FetchCandidateDto::new);
             

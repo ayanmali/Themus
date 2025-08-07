@@ -1,3 +1,5 @@
+import { Candidate } from './candidate';
+
 export type CandidateAttempt = {
     id: number;
     candidateId: number;
@@ -6,4 +8,14 @@ export type CandidateAttempt = {
     startedAt?: Date | null;
     submittedAt?: Date | null;
     evaluatedAt?: Date | null;
+    // API response fields
+    githubRepositoryLink?: string;
+    languageChoice?: string;
+    createdDate?: string;
+    updatedDate?: string;
+    startedDate?: string;
+    completedDate?: string;
+    evaluatedDate?: string;
+    evaluationId?: number;
+    candidate?: Candidate;
 }

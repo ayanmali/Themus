@@ -1,5 +1,5 @@
 import { Assessment } from "@/lib/types/assessment";
-import { ArrowLeft, Calendar, Check, ChevronLeft, ChevronRight, Clock, Command, Edit3, ExternalLink, Link2, MoreHorizontal, Plus, Trash2, X  } from "lucide-react"
+import { ArrowLeft, Calendar, Check, ChevronLeft, ChevronRight, Clock, Command, Edit3, ExternalLink, Link2, MoreHorizontal, Plus, Trash2, X, Loader2 } from "lucide-react"
 import { useState } from "react";
 import { CandidateAttempt } from "@/lib/types/candidate-attempt";
 import { Candidate } from "@/lib/types/candidate";
@@ -9,89 +9,125 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
 import { CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { ChatMessageListExample } from "@/pages/employer/assessment-details/chat-msg-list";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import useApi from "@/hooks/use-api";
+import { useToast } from "@/hooks/use-toast";
 
-interface AssessmentDetailsProps {
-    assessment: Assessment;
-    setSelectedAssessment: (assessment: Assessment | null) => void;
-    editedAssessment: Assessment | null;
-    setEditedAssessment: (assessment: Assessment | null) => void;
-}
+export default function AssessmentDetails() {
+    const { apiCall } = useApi();
+    const { toast } = useToast();
+    const queryClient = useQueryClient();
+    const [, navigate] = useLocation();
+    const [, params] = useRoute("/assessments/:assessmentId");
+    const assessmentId = params?.assessmentId;
 
-export default function AssessmentDetails({ assessment, setSelectedAssessment, editedAssessment, setEditedAssessment }: AssessmentDetailsProps) {
-    // const { user } = useAuth();
-    // const [match, params] = useRoute("/assessments/:id");
-
-    const [newMetadataKey, setNewMetadataKey] = useState('');
-    const [newMetadataValue, setNewMetadataValue] = useState('');
+    // State for editing
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [isEditingName, setIsEditingName] = useState(false);
     const [isEditingRole, setIsEditingRole] = useState(false);
-
-    const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
     const [tempDescription, setTempDescription] = useState('');
     const [tempName, setTempName] = useState('');
     const [tempRole, setTempRole] = useState('');
 
-    // Candidates pagination
-    const [currentCandidatePage, setCurrentCandidatePage] = useState(1);
-    const candidatesPerPage = 5;
+    // State for metadata editing
+    const [newMetadataKey, setNewMetadataKey] = useState('');
+    const [newMetadataValue, setNewMetadataValue] = useState('');
 
-    // Add these state variables after your existing useState declarations
+    // Candidates pagination and filtering
+    const [currentCandidatePage, setCurrentCandidatePage] = useState(1);
     const [candidateSearchTerm, setCandidateSearchTerm] = useState('');
     const [candidateStatusFilter, setCandidateStatusFilter] = useState<string>('all');
+    const candidatesPerPage = 5;
 
-    // Command open state
+    // Command dialog state
     const [isCommandOpen, setIsCommandOpen] = useState(false);
-
-    // Add this state variable with your other useState declarations at the top of the component
     const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([]);
 
-    // Sample candidates data
-    const candidates: Candidate[] = [
-        { id: 1, name: 'Alice Johnson', email: 'alice.johnson@email.com', appliedAt: new Date('2024-02-01') },
-        { id: 2, name: 'Bob Smith', email: 'bob.smith@email.com', appliedAt: new Date('2024-02-02') },
-        { id: 3, name: 'Carol Davis', email: 'carol.davis@email.com', appliedAt: new Date('2024-02-03') },
-        { id: 4, name: 'David Wilson', email: 'david.wilson@email.com', appliedAt: new Date('2024-02-04') },
-        { id: 5, name: 'Eva Brown', email: 'eva.brown@email.com', appliedAt: new Date('2024-02-05') },
-        { id: 6, name: 'Frank Miller', email: 'frank.miller@email.com', appliedAt: new Date('2024-02-06') },
-        { id: 7, name: 'Grace Lee', email: 'grace.lee@email.com', appliedAt: new Date('2024-02-07') },
-        { id: 8, name: 'Henry Taylor', email: 'henry.taylor@email.com', appliedAt: new Date('2024-02-08') },
-    ];
-
-    const candidateAttempts: CandidateAttempt[] = [
-        { id: 1, candidateId: 1, assessmentId: 1, status: 'evaluated', startedAt: new Date('2025-06-02'), submittedAt: new Date('2024-02-02'), evaluatedAt: new Date('2024-02-03') },
-        { id: 2, candidateId: 2, assessmentId: 2, status: 'submitted', startedAt: new Date('2025-06-08'), submittedAt: new Date('2024-02-05') },
-        { id: 3, candidateId: 3, assessmentId: 3, status: 'started', startedAt: new Date('2025-06-17') },
-        { id: 4, candidateId: 4, assessmentId: 4, status: 'evaluated', startedAt: new Date('2025-06-20'), submittedAt: new Date('2024-02-11'), evaluatedAt: new Date('2024-02-12') },
-        { id: 5, candidateId: 5, assessmentId: 1, status: 'submitted', startedAt: new Date('2025-06-04'), submittedAt: new Date('2024-02-02') },
-        { id: 6, candidateId: 6, assessmentId: 2, status: 'submitted', startedAt: new Date('2025-06-09'), submittedAt: new Date('2024-02-05') },
-        { id: 7, candidateId: 7, assessmentId: 3, status: 'started', startedAt: new Date('2025-06-13') },
-        { id: 8, candidateId: 8, assessmentId: 4, status: 'evaluated', startedAt: new Date('2025-06-18'), submittedAt: new Date('2024-02-11'), evaluatedAt: new Date('2024-02-12') },
-    ];
-
-    // Add this filtering logic before the pagination logic
-    // TODO: after getting all candidates for an assessment from the API, set the status on the frontend to "INVITED" if there is no attempt under their name. Otherwise, use the curent attempt status
-    const filteredCandidates = candidates.filter(candidate => {
-        const candidateAttempt = candidateAttempts.find(a => a.candidateId === candidate.id);
-        const matchesSearch = candidate?.name.toLowerCase().includes(candidateSearchTerm.toLowerCase()) ||
-            candidate?.email.toLowerCase().includes(candidateSearchTerm.toLowerCase());
-        const matchesStatus = candidateStatusFilter === 'all' || candidateAttempt?.status === candidateStatusFilter;
-        return matchesSearch && matchesStatus;
+    // Fetch assessment data
+    const { data: assessment, isLoading: assessmentLoading, error: assessmentError } = useQuery({
+        queryKey: ['assessment', assessmentId],
+        queryFn: async (): Promise<Assessment> => {
+            const response = await apiCall(`/api/assessments/${assessmentId}`, {
+                method: 'GET',
+            });
+            
+            if (!response) {
+                throw new Error('Failed to fetch assessment');
+            }
+            
+            return response;
+        },
+        enabled: !!assessmentId,
     });
 
-    // Update the pagination to use filtered candidates
-    const totalCandidatePages = Math.ceil(filteredCandidates.length / candidatesPerPage);
+    // Update assessment mutation
+    const updateAssessmentMutation = useMutation({
+        mutationFn: async (updatedAssessment: Partial<Assessment>) => {
+            const response = await apiCall(`/api/assessments/${assessmentId}`, {
+                method: 'PUT',
+                body: JSON.stringify(updatedAssessment),
+            });
+            
+            if (!response) {
+                throw new Error('Failed to update assessment');
+            }
+            
+            return response;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['assessment', assessmentId] });
+            queryClient.invalidateQueries({ queryKey: ['assessments', 'user'] });
+            toast({
+                title: "Success",
+                description: "Assessment updated successfully",
+            });
+        },
+        onError: (error: any) => {
+            toast({
+                title: "Error",
+                description: error.message || "Failed to update assessment",
+                variant: "destructive",
+            });
+        },
+    });
 
-    const paginatedCandidates = filteredCandidates.slice(
-        (currentCandidatePage - 1) * candidatesPerPage,
-        currentCandidatePage * candidatesPerPage
-    );
+    // Fetch candidate attempts for this assessment
+    const { data: attemptsData, isLoading: attemptsLoading, error: attemptsError } = useQuery({
+        queryKey: ['candidateAttempts', 'assessment', assessmentId, currentCandidatePage, candidateStatusFilter],
+        queryFn: async () => {
+            const statusParam = candidateStatusFilter !== 'all' ? `&status=${candidateStatusFilter.toUpperCase()}` : '';
+            const response = await apiCall(`/api/attempts/filter?assessmentId=${assessmentId}&page=${currentCandidatePage - 1}&size=${candidatesPerPage}${statusParam}`, {
+                method: 'GET',
+            });
+            
+            if (!response) {
+                throw new Error('Failed to fetch candidate attempts');
+            }
+            
+            return response;
+        },
+        enabled: !!assessmentId,
+    });
+
+    // Extract attempts from the response
+    const candidateAttempts = attemptsData?.content || [];
+    const totalAttempts = attemptsData?.totalElements || 0;
+    const totalAttemptsPages = attemptsData?.totalPages || 0;
+
+    // Filter candidate attempts based on search term
+    const filteredAttempts = candidateAttempts.filter((attempt: any) => {
+        const candidateName = attempt.candidate?.fullName || `${attempt.candidate?.firstName || ''} ${attempt.candidate?.lastName || ''}`.trim();
+        const candidateEmail = attempt.candidate?.email;
+        const matchesSearch = candidateSearchTerm === '' || 
+            candidateName?.toLowerCase().includes(candidateSearchTerm.toLowerCase()) ||
+            candidateEmail?.toLowerCase().includes(candidateSearchTerm.toLowerCase());
+        return matchesSearch;
+    });
 
     const formatDateRange = (assessment: Assessment) => {
-        if (assessment.type === 'live-coding') {
-            const duration = assessment.duration || 60;
-            return `Duration: ${duration} minutes`;
+        if (assessment.duration) {
+            return `Duration: ${assessment.duration} minutes`;
         } else {
             const start = assessment?.startDate?.toLocaleDateString();
             const end = assessment?.endDate?.toLocaleDateString();
@@ -99,72 +135,61 @@ export default function AssessmentDetails({ assessment, setSelectedAssessment, e
         }
     };
 
-    const toggleAssessmentStatus = (assessmentId: string) => {
-        console.log(`Toggling status for assessment ${assessmentId}`);
-        setActiveDropdown(null);
-    };
-
     const openRepository = (repoLink: string) => {
         window.open(repoLink, '_blank');
-        setActiveDropdown(null);
     };
 
+    // Metadata functions
     const addMetadataField = () => {
-        if (newMetadataKey && newMetadataValue && editedAssessment) {
-            setEditedAssessment({
-                ...editedAssessment,
-                metadata: {
-                    ...editedAssessment.metadata,
-                    [newMetadataKey]: newMetadataValue
-                }
+        if (newMetadataKey && newMetadataValue && assessment) {
+            const updatedMetadata = {
+                ...assessment.metadata,
+                [newMetadataKey]: newMetadataValue
+            };
+            
+            updateAssessmentMutation.mutate({
+                metadata: updatedMetadata
             });
+            
             setNewMetadataKey('');
             setNewMetadataValue('');
         }
     };
 
     const deleteMetadataField = (key: string) => {
-        if (editedAssessment) {
-            const newMetadata = { ...editedAssessment.metadata };
+        if (assessment) {
+            const newMetadata = { ...assessment.metadata };
             delete newMetadata[key];
-            setEditedAssessment({
-                ...editedAssessment,
+            
+            updateAssessmentMutation.mutate({
                 metadata: newMetadata
             });
         }
     };
 
     const updateMetadataField = (oldKey: string, newKey: string, newValue: string) => {
-        if (editedAssessment) {
-            const newMetadata = { ...editedAssessment.metadata };
+        if (assessment) {
+            const newMetadata = { ...assessment.metadata };
             if (oldKey !== newKey) {
                 delete newMetadata[oldKey];
             }
             newMetadata[newKey] = newValue;
-            setEditedAssessment({
-                ...editedAssessment,
+            
+            updateAssessmentMutation.mutate({
                 metadata: newMetadata
             });
-        }
-    };
-
-    const saveChanges = () => {
-        if (editedAssessment) {
-            console.log('Saving changes:', editedAssessment);
-            setSelectedAssessment(editedAssessment);
         }
     };
 
     // Editing functions
     const startEditingDescription = () => {
         setIsEditingDescription(true);
-        setTempDescription(editedAssessment?.description || '');
+        setTempDescription(assessment?.description || '');
     };
 
     const saveDescription = () => {
-        if (editedAssessment) {
-            setEditedAssessment({
-                ...editedAssessment,
+        if (assessment) {
+            updateAssessmentMutation.mutate({
                 description: tempDescription
             });
         }
@@ -178,13 +203,12 @@ export default function AssessmentDetails({ assessment, setSelectedAssessment, e
 
     const startEditingName = () => {
         setIsEditingName(true);
-        setTempName(editedAssessment?.name || '');
+        setTempName(assessment?.name || '');
     };
 
     const saveName = () => {
-        if (editedAssessment) {
-            setEditedAssessment({
-                ...editedAssessment,
+        if (assessment) {
+            updateAssessmentMutation.mutate({
                 name: tempName
             });
         }
@@ -198,13 +222,12 @@ export default function AssessmentDetails({ assessment, setSelectedAssessment, e
 
     const startEditingRole = () => {
         setIsEditingRole(true);
-        setTempRole(editedAssessment?.role || '');
+        setTempRole(assessment?.role || '');
     };
 
     const saveRole = () => {
-        if (editedAssessment) {
-            setEditedAssessment({
-                ...editedAssessment,
+        if (assessment) {
+            updateAssessmentMutation.mutate({
                 role: tempRole
             });
         }
@@ -226,12 +249,50 @@ export default function AssessmentDetails({ assessment, setSelectedAssessment, e
         }
     };
 
+    // Loading state
+    if (assessmentLoading) {
+        return (
+            <div className="min-h-screen bg-gray-900 text-white p-6">
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex items-center justify-center py-12">
+                        <div className="flex items-center space-x-2">
+                            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                            <span className="text-gray-400">Loading assessment...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Error state
+    if (assessmentError || !assessment) {
+        return (
+            <div className="min-h-screen bg-gray-900 text-white p-6">
+                <div className="max-w-7xl mx-auto">
+                    <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                        <div className="flex">
+                            <div className="ml-3">
+                                <h3 className="text-sm font-medium text-red-800">
+                                    Error loading assessment
+                                </h3>
+                                <div className="mt-2 text-sm text-red-700">
+                                    <p>{assessmentError?.message || "Assessment not found"}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gray-900 text-white p-6">
             <div className="max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-6">
                     <button
-                        onClick={() => setSelectedAssessment(null)}
+                        onClick={() => navigate("/assessments")}
                         className="flex items-center gap-2 text-blue-400 hover:text-blue-300 mb-6 transition-colors"
                     >
                         <ArrowLeft size={20} />
@@ -269,12 +330,12 @@ export default function AssessmentDetails({ assessment, setSelectedAssessment, e
                                                     onClick={cancelNameEdit}
                                                     className="p-2 text-red-400 hover:text-red-300 hover:bg-gray-700 rounded transition-colors"
                                                 >
-                                                    <X size={20} />
+                                                    <X size={16} />
                                                 </button>
                                             </div>
                                         ) : (
                                             <div className="flex items-center gap-2">
-                                                <h1 className="text-3xl font-bold">{editedAssessment?.name}</h1>
+                                                <h1 className="text-3xl font-bold">{assessment.name}</h1>
                                                 <button
                                                     onClick={startEditingName}
                                                     className="p-1 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
@@ -310,7 +371,7 @@ export default function AssessmentDetails({ assessment, setSelectedAssessment, e
                                             </div>
                                         ) : (
                                             <div className="flex items-center gap-2">
-                                                <p className="text-gray-300 text-lg">{editedAssessment?.role}</p>
+                                                <p className="text-gray-300 text-lg">{assessment.role}</p>
                                                 <button
                                                     onClick={startEditingRole}
                                                     className="p-1 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
@@ -343,9 +404,6 @@ export default function AssessmentDetails({ assessment, setSelectedAssessment, e
                                             }`}>
                                             {assessment.status}
                                         </span>
-                                        <span className="px-3 py-1 rounded-full text-sm font-medium capitalize bg-blue-600 text-white">
-                                            {assessment.type.replace('-', ' ')}
-                                        </span>
                                     </div>
 
                                     <div className="flex items-center gap-6 text-sm text-gray-400">
@@ -354,11 +412,7 @@ export default function AssessmentDetails({ assessment, setSelectedAssessment, e
                                             <span>Created: {assessment.createdAt.toLocaleDateString()}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            {assessment.type === 'live-coding' ? (
-                                                <Clock size={16} />
-                                            ) : (
-                                                <Calendar size={16} />
-                                            )}
+                                            <Calendar size={16} />
                                             <span>{formatDateRange(assessment)}</span>
                                         </div>
                                     </div>
@@ -385,26 +439,6 @@ export default function AssessmentDetails({ assessment, setSelectedAssessment, e
                                         <Plus size={16} />
                                         <span>Add</span>
                                     </Button>
-                                    {/* <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="default" className="w-1/12 p-2 hover:bg-slate-700 hover:text-white rounded-lg border border-slate-700 transition-colors">
-                                                    Add
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
-                                                <DropdownMenuGroup>
-                                                    <DropdownMenuItem
-                                                        className="hover:bg-slate-700 transition-colors hover:text-white"
-                                                        onClick={() => setIsCommandOpen(true)}
-                                                    >
-                                                        Add candidate to assessment
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                                                        Bulk import from CSV
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuGroup>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu> */}
                                 </div>
 
                                 <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -433,99 +467,137 @@ export default function AssessmentDetails({ assessment, setSelectedAssessment, e
                                     </div>
                                 </div>
 
-                                <div className="mb-4">
-                                    <p className="text-sm text-gray-400">
-                                        Showing {filteredCandidates.length} of {candidates.length} candidates
-                                    </p>
-                                </div>
-
-                                <div className="space-y-3">
-                                    {paginatedCandidates.length > 0 ? (
-                                        paginatedCandidates.map((candidate) => (
-                                            <div
-                                                key={candidate.id}
-                                                className="bg-gray-800 rounded-lg p-4 flex items-center justify-between hover:bg-gray-650 transition-colors"
-                                            >
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-4">
-                                                        <div>
-                                                            <h4 className="font-medium text-white">{candidate.name}</h4>
-                                                            <p className="text-sm text-gray-400">{candidate.email}</p>
-                                                            <p className="text-sm text-gray-400">{candidateAttempts.find(a => a.candidateId === candidate.id)?.startedAt ? 'Started at: ' + candidateAttempts.find(a => a.candidateId === candidate.id)?.startedAt?.toLocaleString() : ''}</p>
-                                                            <p className="text-sm text-gray-400">{candidateAttempts.find(a => a.candidateId === candidate.id)?.submittedAt ? 'Submitted at: ' + candidateAttempts.find(a => a.candidateId === candidate.id)?.submittedAt?.toLocaleString() : ''}</p>
-                                                            <p className="text-sm text-gray-400">{candidateAttempts.find(a => a.candidateId === candidate.id)?.evaluatedAt ? 'Evaluated at: ' + candidateAttempts.find(a => a.candidateId === candidate.id)?.evaluatedAt?.toLocaleString() : ''}</p>
-                                                            {/* <p className="text-sm text-gray-400">{candidateAttempts.find(a => a.candidateId === candidate.id)?.startedAt ? formatTimeSpent(candidateAttempts.find(a => a.candidateId === candidate.id)?.startedAt) : ''}</p> */}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-4">
-                                                    <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize text-white ${getStatusColor(candidateAttempts.find(a => a.candidateId === candidate.id)?.status || 'invited')}`}>
-                                                        {candidateAttempts.find(a => a.candidateId === candidate.id)?.status || 'Invited'}
-                                                    </span>
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" className="p-2 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
-                                                                <MoreHorizontal size={20} />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
-                                                            <DropdownMenuLabel>More Actions</DropdownMenuLabel>
-                                                            <DropdownMenuGroup>
-                                                                <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                                                                    Send email
-                                                                </DropdownMenuItem>
-                                                                {(candidateAttempts.find(a => a.candidateId === candidate.id)?.status.toLowerCase() === "submitted" || candidateAttempts.find(a => a.candidateId === candidate.id)?.status.toLowerCase() === "evaluated") ? (
-                                                                    <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                                                                        View Pull Request on GitHub
-                                                                    </DropdownMenuItem>
-                                                                ) : candidateAttempts.find(a => a.candidateId === candidate.id)?.status.toLowerCase() === "started" ? (
-                                                                    <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                                                                        View Repository on GitHub
-                                                                    </DropdownMenuItem>
-                                                                ) : (
-                                                                    <></>
-                                                                )}
-                                                                <DropdownMenuSeparator className="bg-slate-700" />
-                                                            </DropdownMenuGroup>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </div>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="bg-gray-700 rounded-lg p-8 text-center">
-                                            <p className="text-gray-400">No candidates found matching your search criteria.</p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {totalCandidatePages > 1 && (
-                                    <div className="flex items-center justify-between mt-6">
-                                        <p className="text-sm text-gray-400">
-                                            Showing {((currentCandidatePage - 1) * candidatesPerPage) + 1} to{' '}
-                                            {Math.min(currentCandidatePage * candidatesPerPage, filteredCandidates.length)} of{' '}
-                                            {filteredCandidates.length} filtered candidates
-                                        </p>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => setCurrentCandidatePage(prev => Math.max(prev - 1, 1))}
-                                                disabled={currentCandidatePage === 1}
-                                                className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                <ChevronLeft size={16} />
-                                            </button>
-                                            <span className="text-sm text-gray-300">
-                                                {currentCandidatePage} of {totalCandidatePages}
-                                            </span>
-                                            <button
-                                                onClick={() => setCurrentCandidatePage(prev => Math.min(prev + 1, totalCandidatePages))}
-                                                disabled={currentCandidatePage === totalCandidatePages}
-                                                className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                <ChevronRight size={16} />
-                                            </button>
+                                {/* Loading State for Attempts */}
+                                {attemptsLoading && (
+                                    <div className="flex items-center justify-center py-8">
+                                        <div className="flex items-center space-x-2">
+                                            <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                                            <span className="text-gray-400">Loading candidates...</span>
                                         </div>
                                     </div>
+                                )}
+
+                                {/* Error State for Attempts */}
+                                {attemptsError && (
+                                    <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+                                        <div className="flex">
+                                            <div className="ml-3">
+                                                <h3 className="text-sm font-medium text-red-800">
+                                                    Error loading candidates
+                                                </h3>
+                                                <div className="mt-2 text-sm text-red-700">
+                                                    <p>{attemptsError.message}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Candidates List */}
+                                {!attemptsLoading && !attemptsError && (
+                                    <>
+                                        <div className="mb-4">
+                                            <p className="text-sm text-gray-400">
+                                                Showing {candidateAttempts.length} of {totalAttempts} candidates
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            {candidateAttempts.length > 0 ? (
+                                                candidateAttempts.map((attempt: any) => (
+                                                    <div
+                                                        key={attempt.id}
+                                                        className="bg-gray-800 rounded-lg p-4 flex items-center justify-between hover:bg-gray-650 transition-colors"
+                                                    >
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center gap-4">
+                                                                <div>
+                                                                    <h4 className="font-medium text-white">
+                                                                        {attempt.candidate?.fullName || `${attempt.candidate?.firstName || ''} ${attempt.candidate?.lastName || ''}`.trim()}
+                                                                    </h4>
+                                                                    <p className="text-sm text-gray-400">{attempt.candidate?.email}</p>
+                                                                    <p className="text-sm text-gray-400">
+                                                                        {attempt.startedDate ? 'Started at: ' + new Date(attempt.startedDate).toLocaleString() : ''}
+                                                                    </p>
+                                                                    <p className="text-sm text-gray-400">
+                                                                        {attempt.completedDate ? 'Submitted at: ' + new Date(attempt.completedDate).toLocaleString() : ''}
+                                                                    </p>
+                                                                    <p className="text-sm text-gray-400">
+                                                                        {attempt.evaluatedDate ? 'Evaluated at: ' + new Date(attempt.evaluatedDate).toLocaleString() : ''}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-4">
+                                                            <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize text-white ${getStatusColor(attempt.status?.toLowerCase())}`}>
+                                                                {attempt.status?.toLowerCase()}
+                                                            </span>
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="ghost" className="p-2 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
+                                                                        <MoreHorizontal size={20} />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
+                                                                    <DropdownMenuLabel>More Actions</DropdownMenuLabel>
+                                                                    <DropdownMenuGroup>
+                                                                        <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                                            Send email
+                                                                        </DropdownMenuItem>
+                                                                        {(attempt.status?.toLowerCase() === "completed" || attempt.status?.toLowerCase() === "evaluated") ? (
+                                                                            <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                                                View Pull Request on GitHub
+                                                                            </DropdownMenuItem>
+                                                                        ) : attempt.status?.toLowerCase() === "started" ? (
+                                                                            <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                                                View Repository on GitHub
+                                                                            </DropdownMenuItem>
+                                                                        ) : (
+                                                                            <></>
+                                                                        )}
+                                                                        <DropdownMenuSeparator className="bg-slate-700" />
+                                                                    </DropdownMenuGroup>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="bg-gray-700 rounded-lg p-8 text-center">
+                                                    <p className="text-gray-400">No candidates found for this assessment.</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {totalAttemptsPages > 1 && (
+                                            <div className="flex items-center justify-between mt-6">
+                                                <p className="text-sm text-gray-400">
+                                                    Showing {((currentCandidatePage - 1) * candidatesPerPage) + 1} to{' '}
+                                                    {Math.min(currentCandidatePage * candidatesPerPage, totalAttempts)} of{' '}
+                                                    {totalAttempts} candidates
+                                                </p>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => setCurrentCandidatePage(prev => Math.max(prev - 1, 1))}
+                                                        disabled={currentCandidatePage === 1}
+                                                        className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        <ChevronLeft size={16} />
+                                                    </button>
+                                                    <span className="text-sm text-gray-300">
+                                                        {currentCandidatePage} of {totalAttemptsPages}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => setCurrentCandidatePage(prev => Math.min(prev + 1, totalAttemptsPages))}
+                                                        disabled={currentCandidatePage === totalAttemptsPages}
+                                                        className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        <ChevronRight size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </div>
 
@@ -551,34 +623,33 @@ export default function AssessmentDetails({ assessment, setSelectedAssessment, e
 
                                             <CommandList className="max-h-[300px] overflow-y-auto">
                                                 <CommandEmpty>No candidates found.</CommandEmpty>
-                                                <CommandGroup heading="Available Candidates">
-                                                    {candidates.map((candidate) => (
-                                                        <CommandItem
-                                                            key={candidate.id}
-                                                            className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-700"
-                                                            onSelect={() => {
-                                                                setSelectedCandidateIds(prev =>
-                                                                    prev.includes(candidate.id.toString())
-                                                                        ? prev.filter(id => id !== candidate.id.toString())
-                                                                        : [...prev, candidate.id.toString()]
-                                                                );
-                                                            }}
-                                                        >
-                                                            <div className="flex items-center justify-center w-4 h-4 border border-gray-400 rounded">
-                                                                {selectedCandidateIds.includes(candidate.id.toString()) && (
-                                                                    <Check size={12} className="text-blue-400" />
-                                                                )}
-                                                            </div>
-                                                            <div className="flex flex-col flex-1">
-                                                                <span className="font-medium text-white">{candidate.name}</span>
-                                                                <span className="text-sm text-gray-400">{candidate.email}</span>
-                                                            </div>
-                                                            {/* <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize text-white ${getStatusColor(candidate.status)}`}>
-                                                                    {candidate.status}
-                                                                </span> */}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
+                                                                                            <CommandGroup heading="Available Candidates">
+                                                {candidateAttempts.map((attempt: any) => (
+                                                    <CommandItem
+                                                        key={attempt.id}
+                                                        className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-700"
+                                                        onSelect={() => {
+                                                            setSelectedCandidateIds(prev =>
+                                                                prev.includes(attempt.id.toString())
+                                                                    ? prev.filter(id => id !== attempt.id.toString())
+                                                                    : [...prev, attempt.id.toString()]
+                                                            );
+                                                        }}
+                                                    >
+                                                        <div className="flex items-center justify-center w-4 h-4 border border-gray-400 rounded">
+                                                            {selectedCandidateIds.includes(attempt.id.toString()) && (
+                                                                <Check size={12} className="text-blue-400" />
+                                                            )}
+                                                        </div>
+                                                        <div className="flex flex-col flex-1">
+                                                            <span className="font-medium text-white">
+                                                                {attempt.candidate?.fullName || `${attempt.candidate?.firstName || ''} ${attempt.candidate?.lastName || ''}`.trim()}
+                                                            </span>
+                                                            <span className="text-sm text-gray-400">{attempt.candidate?.email}</span>
+                                                        </div>
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
                                             </CommandList>
                                         </Command>
                                     </div>
@@ -622,7 +693,7 @@ export default function AssessmentDetails({ assessment, setSelectedAssessment, e
                                 </div>
 
                                 <div className="space-y-4 mb-6">
-                                    {editedAssessment && Object.entries(editedAssessment?.metadata || {}).map(([key, value]) => (
+                                    {assessment && Object.entries(assessment?.metadata || {}).map(([key, value]) => (
                                         <div key={key} className="bg-gray-800 rounded-lg p-4 flex items-center gap-4">
                                             <div className="flex-1 grid grid-cols-2 gap-4">
                                                 <input
@@ -677,14 +748,12 @@ export default function AssessmentDetails({ assessment, setSelectedAssessment, e
                                 </div>
                             </div>
 
-                            {(isEditingDescription || JSON.stringify(assessment) !== JSON.stringify(editedAssessment)) && (
+                            {updateAssessmentMutation.isPending && (
                                 <div className="flex justify-end">
-                                    <button
-                                        onClick={saveChanges}
-                                        className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors font-medium"
-                                    >
-                                        Save Changes
-                                    </button>
+                                    <div className="flex items-center space-x-2">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <span>Saving changes...</span>
+                                    </div>
                                 </div>
                             )}
                         </div>

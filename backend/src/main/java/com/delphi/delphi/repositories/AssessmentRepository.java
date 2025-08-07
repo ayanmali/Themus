@@ -86,4 +86,17 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
                                    @Param("startDate") LocalDateTime startDate,
                                    @Param("endDate") LocalDateTime endDate,
                                    Pageable pageable);
+
+    // Find assessments with multiple optional filters for a specific user
+    @Query("SELECT a FROM Assessment a WHERE a.user.id = :userId AND " +
+           "(:status IS NULL OR a.status = :status) AND " +
+           "(:assessmentType IS NULL OR a.assessmentType = :assessmentType) AND " +
+           "(:startDate IS NULL OR a.createdDate >= :startDate) AND " +
+           "(:endDate IS NULL OR a.createdDate <= :endDate)")
+    Page<Assessment> findWithFiltersForUser(@Param("userId") Long userId,
+                                           @Param("status") AssessmentStatus status,
+                                           @Param("assessmentType") AssessmentType assessmentType,
+                                           @Param("startDate") LocalDateTime startDate,
+                                           @Param("endDate") LocalDateTime endDate,
+                                           Pageable pageable);
 }
