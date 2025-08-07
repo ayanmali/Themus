@@ -116,9 +116,7 @@ public class UserController {
             Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user.getGithubAccessToken());
 
             if (!userService.connectedGithub(user) || githubCredentialsValid == null) {
-                response.setHeader("Location", appInstallUrl);
-                response.setStatus(302);
-                return ResponseEntity.status(HttpStatus.FOUND).build();
+                return ResponseEntity.ok(false);
             }
 
             return ResponseEntity.ok(new FetchUserDto(user));

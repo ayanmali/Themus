@@ -218,7 +218,6 @@ export function CreateAssessmentForm() {
   // Create assessment mutation
   const createAssessmentMutation = useMutation({
     mutationFn: async (data: CreateAssessmentFormValues) => {
-      // TODO:
       const res = await apiCall("api/assessments/new", {
         method: "POST",
         body: JSON.stringify(data)
@@ -260,8 +259,7 @@ export function CreateAssessmentForm() {
       const response = await apiCall("api/users/is-connected-github", {
         method: "GET",
       });
-      // TODO: check if response is 2xx
-      return response || false;
+      return !!response;
     } catch (error) {
       console.error('Error checking GitHub token:', error);
       return false;
@@ -366,11 +364,6 @@ export function CreateAssessmentForm() {
       setIsCheckingGitHub(false);
     }
   };
-
-  const installGithubApp = () => {
-    // TODO:
-
-  }
 
   const commandSuggestions: CommandSuggestion[] = [
     {

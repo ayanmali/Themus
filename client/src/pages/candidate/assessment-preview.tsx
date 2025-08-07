@@ -86,13 +86,12 @@ export default function CandidateAssessmentPreview() {
             const response = await apiCall(`/api/assessments/live/${assessmentId}`, {
                 method: 'GET',
             });
-            console.log(response);
             
-            if (!response.ok) {
+            if (!response.id) {
                 throw new Error('Failed to fetch assessment');
             }
             
-            return response.json();
+            return response;
         },
         enabled: !!assessmentId, // Only run query if assessmentId is valid
     });
@@ -116,21 +115,17 @@ export default function CandidateAssessmentPreview() {
             return;
         }
 
-        // TODO: check if this email address corresponds to a valid candidate attempt in the DB
         // if it does, then we can just redirect to the assessment page
         const isAbleToTakeAssessment = await apiCall(`/api/assessments/live/can-take-assessment?assessmentId=${assessment?.id}&email=${email}`, {
             method: 'GET',
         });
-        console.log(isAbleToTakeAssessment);
 
-        const isAbleToTakeAssessmentData = await isAbleToTakeAssessment.json();
-
-        if (!isAbleToTakeAssessmentData.result) {
+        if (!isAbleToTakeAssessment.result) {
             alert('You are not eligible to take this assessment. You either have not been invited, or have already taken the assessment. Please contact the employer to re-invite you.');
             return;
         }
 
-        setAttemptId(isAbleToTakeAssessmentData.attemptId);
+        setAttemptId(isAbleToTakeAssessment.attemptId);
 
         // github app flow
 
