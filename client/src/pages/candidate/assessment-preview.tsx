@@ -6,6 +6,9 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Input } from '@/components/ui/input';
 import { navigate } from 'wouter/use-browser-location';
 import { Candidate } from '@/lib/types/candidate';
+import { useParams } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
+import useApi from '@/hooks/use-api';
 
 // Mock data for the assessment
 const assessment: Assessment = {
@@ -73,6 +76,27 @@ export default function CandidateAssessmentPreview() {
     const [email, setEmail] = useState('');
     const [isStarting, setIsStarting] = useState(false);
     const [attemptId, setAttemptId] = useState<number | null>(null);
+    const params = useParams();
+    const { apiCall } = useApi();
+    const assessmentId = Number(params.assessment_id);
+
+    // Fetch assessment data using Tanstack Query
+    const { data: assessment, isLoading, error } = useQuery({
+        queryKey: ['assessment', assessmentId],
+        queryFn: async (): Promise<Assessment> => {
+            const response = await apiCall(`/api/assessments/live/${assessmentId}`, {
+                method: 'GET',
+            });
+            console.log(response);
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch assessment');
+            }
+            
+            return response.json();
+        },
+        enabled: !!assessmentId, // Only run query if assessmentId is valid
+    });
 
     // Email validation function
     const isValidEmail = (email: string) => {
@@ -95,12 +119,10 @@ export default function CandidateAssessmentPreview() {
 
         // TODO: check if this email address corresponds to a valid candidate attempt in the DB
         // if it does, then we can just redirect to the assessment page
-        const isAbleToTakeAssessment = await fetch(`${import.meta.env.VITE_API_URL}/api/assessments/live/can-take-assessment?assessmentId=${assessment.id}&email=${email}`, {
+        const isAbleToTakeAssessment = await apiCall(`/api/assessments/live/can-take-assessment?assessmentId=${assessment?.id}&email=${email}`, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
         });
+        console.log(isAbleToTakeAssessment);
 
         const isAbleToTakeAssessmentData = await isAbleToTakeAssessment.json();
 
@@ -116,16 +138,11 @@ export default function CandidateAssessmentPreview() {
         setIsStarting(true);
 
         // check if the candidate has a valid github token
-        const candidateHasValidGithubToken = await fetch(`${import.meta.env.VITE_API_URL}/api/assessments/live/has-valid-github-token?email=${email}`, {
+        const candidateHasValidGithubToken = await apiCall(`/api/assessments/live/has-valid-github-token?email=${email}`, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
         });
 
-        const candidateHasValidGithubTokenData = await candidateHasValidGithubToken.json();
-
-        if (!candidateHasValidGithubTokenData.result) {
+        if (!candidateHasValidGithubToken.result) {
             // Open GitHub in a new tab
             window.open(GITHUB_CANDIDATE_INSTALL_URL, '_blank');
             // Start polling for GitHub token validation
@@ -153,23 +170,19 @@ export default function CandidateAssessmentPreview() {
             }
 
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/assessments/live/has-valid-github-token?email=${email}`, {
+                const response = await apiCall(`/api/assessments/live/has-valid-github-token?email=${email}`, {
                     method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
                 });
 
-                const data = await response.json();
-                console.log('Polling attempt', attempts + 1, ':', data);
+                console.log('Polling attempt', attempts + 1, ':', response);
 
-                if (data.result) {
+                if (response.result) {
                     // Valid token found, redirect to starting page
                     console.log('Valid GitHub token found, redirecting...');
                     setIsStarting(false);
                     
                     // Extract attempt_id from the response or use a default
-                    const attemptId = data.attemptId || 'default';
+                    const attemptId = response.attemptId || 'default';
                     // window.location.href = `/${attemptId}/starting`;
                     navigate(`/${attemptId}/starting`);
                     return;
@@ -188,6 +201,42 @@ export default function CandidateAssessmentPreview() {
                 // Start polling
         poll();
     };
+
+    // Show loading state
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                    <p className="text-gray-400">Loading assessment...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Show error state
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center">
+                <div className="text-center">
+                    <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <p className="text-red-400 mb-2">Failed to load assessment</p>
+                    <p className="text-gray-400 text-sm">{error.message}</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Show content when assessment is loaded
+    if (!assessment) {
+        return (
+            <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-gray-400">Assessment not found</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-900 text-gray-100">

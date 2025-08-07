@@ -5,6 +5,7 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.components.RedisService;
+import com.delphi.delphi.dtos.FetchAssessmentWithAttemptsDto;
 import com.delphi.delphi.dtos.StartAssessmentDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
@@ -47,6 +49,12 @@ public class CandidateAssessmentController {
         this.encryptionService = encryptionService;
         this.candidateService = candidateService;
     }
+
+    @GetMapping("/{assessmentId}")
+    public ResponseEntity<?> fetchAssessmentWithAttempts(@PathVariable Long assessmentId) {
+        Assessment assessment = assessmentService.getAssessmentById(assessmentId).orElseThrow(() -> new RuntimeException("Assessment not found"));
+        return ResponseEntity.ok(new FetchAssessmentWithAttemptsDto(assessment));
+    }
     
     /*
      * Storing the candidate's GitHub token
@@ -63,7 +71,7 @@ public class CandidateAssessmentController {
             Map<String, Object> accessTokenResponse = githubService.getAccessToken(code, true);
             String githubAccessToken = (String) accessTokenResponse.get("access_token");
             // get candidate's github username
-            // TODO: store github username and/or encryptedgithub token in DB candidate entity
+            // TODO: store github username and/or encrypted github token in DB candidate entity
             Map<String, Object> githubCredentialsResponse = githubService.validateGithubCredentials(githubAccessToken);
             String githubUsername = (String) githubCredentialsResponse.get("login");
             
@@ -117,7 +125,7 @@ public class CandidateAssessmentController {
      * Create candidate repo from the assessment template repo
      */
     @PostMapping("/start")
-    public ResponseEntity<?> startAssessment(@RequestBody StartAssessmentDto startAssessmentDto) {
+    public ResponseEntity<?> createCandidateRepo(@RequestBody StartAssessmentDto startAssessmentDto) {
         try {
         String candidateEmail = startAssessmentDto.getCandidateEmail();
         Long assessmentId = startAssessmentDto.getAssessmentId();
@@ -141,7 +149,7 @@ public class CandidateAssessmentController {
 
         githubService.createPersonalRepoFromTemplate(githubAccessToken, templateOwner, templateRepoName, repoName);
 
-        return ResponseEntity.ok("Assessment started: https://github.com/" + githubUsername + "/" + repoName);
+        return ResponseEntity.ok("Candidate repository created: https://github.com/" + githubUsername + "/" + repoName);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting assessment: " + e.getMessage());
         }

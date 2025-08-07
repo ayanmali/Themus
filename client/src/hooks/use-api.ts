@@ -9,10 +9,18 @@ let refreshPromise: Promise<boolean> | null = null;
 const useApi = () => {
   const auth = useAuth();
 
+  // Define endpoints that don't require authentication from the client
+  const unauthenticatedEndpoints = [
+    '/api/assessments/live/', // All candidate assessment endpoints
+  ];
+
+  const isUnauthenticatedEndpoint = (url: string): boolean => {
+    return unauthenticatedEndpoints.some(endpoint => url.includes(endpoint));
+  };
+
   const apiCall = useCallback(async (url: string, options: RequestInit = {}) => {
-    // Check authentication before making request
-    if (!auth.isAuthenticated) {
-      // navigate("/login")
+    // Skip authentication check for unauthenticated endpoints
+    if (!isUnauthenticatedEndpoint(url) && !auth.isAuthenticated) {
       throw new Error('User not authenticated');
     }
 
@@ -54,8 +62,8 @@ const useApi = () => {
     try {
       let response = await makeRequest();
 
-      // Handle 401 responses with automatic token refresh
-      if (response.status === 401) {
+      // Handle 401 responses with automatic token refresh (only for authenticated endpoints)
+      if (response.status === 401 && !isUnauthenticatedEndpoint(url)) {
         console.log('Access token expired, attempting refresh...');
 
         // // Try to refresh the token
