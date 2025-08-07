@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -17,7 +16,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import com.delphi.delphi.components.messaging.candidates.CandidateInvitationPublisher;
 import com.delphi.delphi.dtos.NewAssessmentDto;
@@ -30,7 +28,6 @@ import com.delphi.delphi.repositories.AssessmentRepository;
 import com.delphi.delphi.repositories.CandidateAttemptRepository;
 import com.delphi.delphi.utils.AssessmentCreationPrompts;
 import com.delphi.delphi.utils.AssessmentStatus;
-import com.delphi.delphi.utils.AssessmentType;
 import com.delphi.delphi.utils.AttemptStatus;
 import com.delphi.delphi.utils.git.GithubAccountType;
 
@@ -38,9 +35,6 @@ import com.delphi.delphi.utils.git.GithubAccountType;
 @Transactional
 // TODO: add cache annotations for other entity caches
 public class AssessmentService {
-
-    private final EncryptionService encryptionService;
-
     private final CandidateService candidateService;
     private final CandidateAttemptRepository candidateAttemptRepository;
     private final AssessmentRepository assessmentRepository;
@@ -49,10 +43,8 @@ public class AssessmentService {
     private final GithubService githubService;
     private final CandidateInvitationPublisher candidateInvitationPublisher;
     private final Logger log = LoggerFactory.getLogger(AssessmentService.class);
-    private final String PYTHON_SERVICE_URL;
-    private final WebClient webClient;
 
-    public AssessmentService(AssessmentRepository assessmentRepository, UserService userService, ChatService chatService, GithubService githubService, CandidateService candidateService, CandidateAttemptRepository candidateAttemptRepository, CandidateInvitationPublisher candidateInvitationPublisher, @Value("${python.service.url}") String PYTHON_SERVICE_URL, EncryptionService encryptionService) {
+    public AssessmentService(AssessmentRepository assessmentRepository, UserService userService, ChatService chatService, GithubService githubService, CandidateService candidateService, CandidateAttemptRepository candidateAttemptRepository, CandidateInvitationPublisher candidateInvitationPublisher) {
         this.assessmentRepository = assessmentRepository;
         this.userService = userService;
         this.chatService = chatService;
@@ -60,9 +52,6 @@ public class AssessmentService {
         this.candidateService = candidateService;
         this.candidateAttemptRepository = candidateAttemptRepository;
         this.candidateInvitationPublisher = candidateInvitationPublisher;
-        this.PYTHON_SERVICE_URL = PYTHON_SERVICE_URL;
-        this.webClient = WebClient.builder().baseUrl(PYTHON_SERVICE_URL).build();
-        this.encryptionService = encryptionService;
     }
 
     // Create a new assessment
@@ -95,7 +84,6 @@ public class AssessmentService {
         assessment.setName(newAssessmentDto.getName());
         assessment.setDescription(newAssessmentDto.getDescription());
         assessment.setRoleName(newAssessmentDto.getRoleName());
-        assessment.setAssessmentType(newAssessmentDto.getAssessmentType());
         assessment.setStartDate(newAssessmentDto.getStartDate());
         assessment.setEndDate(newAssessmentDto.getEndDate());
         assessment.setDuration(newAssessmentDto.getDuration());
@@ -174,17 +162,21 @@ public class AssessmentService {
     // Get assessments with multiple filters
     @Cacheable(value = "assessments", key = "#user.id + ':' + #status + ':' + #assessmentType + ':' + #startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<Assessment> getAssessmentsWithFilters(User user, AssessmentStatus status, AssessmentType assessmentType, 
+    public Page<Assessment> getAssessmentsWithFilters(User user, AssessmentStatus status, 
                                                      LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
-        return assessmentRepository.findWithFilters(status, assessmentType, startDate, endDate, pageable);
+        return assessmentRepository.findWithFilters(status, startDate, endDate, pageable);
     }
 
     // Get assessments with multiple filters for a specific user
     @Cacheable(value = "assessments", key = "#user.id + ':' + #status + ':' + #assessmentType + ':' + #startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<Assessment> getAssessmentsWithFiltersForUser(User user, AssessmentStatus status, AssessmentType assessmentType, 
-                                                            LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
-        return assessmentRepository.findWithFiltersForUser(user.getId(), status, assessmentType, startDate, endDate, pageable);
+    public Page<Assessment> getAssessmentsWithFiltersForUser(User user, AssessmentStatus status, 
+                                                            LocalDateTime startDate, LocalDateTime endDate,
+                                                            List<String> skills,
+                                                            Pageable pageable) {
+        boolean filterSkills = skills != null && !skills.isEmpty();
+        List<String> safeSkills = (skills == null) ? List.of() : skills;
+        return assessmentRepository.findWithFiltersForUser(user.getId(), status, startDate, endDate, filterSkills, safeSkills, pageable);
     }
 
     // Update assessment
@@ -203,9 +195,6 @@ public class AssessmentService {
         }
         if (assessmentUpdates.getStatus() != null) {
             existingAssessment.setStatus(assessmentUpdates.getStatus());
-        }
-        if (assessmentUpdates.getAssessmentType() != null) {
-            existingAssessment.setAssessmentType(assessmentUpdates.getAssessmentType());
         }
         if (assessmentUpdates.getStartDate() != null) {
             existingAssessment.setStartDate(assessmentUpdates.getStartDate());
@@ -260,13 +249,6 @@ public class AssessmentService {
     @Transactional(readOnly = true)
     public Page<Assessment> getAssessmentsByStatus(AssessmentStatus status, Pageable pageable) {
         return assessmentRepository.findByStatus(status, pageable);
-    }
-
-    // Get assessments by type
-    @Cacheable(value = "assessments", key = "#assessmentType + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
-    @Transactional(readOnly = true)
-    public Page<Assessment> getAssessmentsByType(AssessmentType assessmentType, Pageable pageable) {
-        return assessmentRepository.findByAssessmentType(assessmentType, pageable);
     }
 
     // Get assessments by user and status

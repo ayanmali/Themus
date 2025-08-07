@@ -3,13 +3,10 @@ package com.delphi.delphi.dtos;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import com.delphi.delphi.utils.AssessmentType;
-
 public class NewAssessmentDto {
     private String name; // title
     private String description; // description
     private String roleName; // role
-    private AssessmentType assessmentType; // type
     private LocalDateTime startDate; // start date
     private LocalDateTime endDate;
     private Integer duration; // estimated duration/time limit
@@ -21,11 +18,10 @@ public class NewAssessmentDto {
     public NewAssessmentDto() {
     }
 
-    public NewAssessmentDto(String name, String description, String roleName, AssessmentType assessmentType, LocalDateTime startDate, LocalDateTime endDate, Integer duration, List<String> skills, List<String> languageOptions, String otherDetails, String model) {
+    public NewAssessmentDto(String name, String description, String roleName, LocalDateTime startDate, LocalDateTime endDate, Integer duration, List<String> skills, List<String> languageOptions, String otherDetails, String model) {
         this.name = name;
         this.description = description;
         this.roleName = roleName;
-        this.assessmentType = assessmentType;
         this.startDate = startDate;
         this.endDate = endDate;
         this.duration = duration;
@@ -52,12 +48,6 @@ public class NewAssessmentDto {
     }
     public void setRoleName(String roleName) {
         this.roleName = roleName;
-    }
-    public AssessmentType getAssessmentType() {
-        return assessmentType;
-    }
-    public void setAssessmentType(AssessmentType assessmentType) {
-        this.assessmentType = assessmentType;
     }
     public LocalDateTime getStartDate() {
         return startDate;

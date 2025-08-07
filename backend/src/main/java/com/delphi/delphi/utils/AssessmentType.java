@@ -1,5 +1,5 @@
-package com.delphi.delphi.utils;
+// package com.delphi.delphi.utils;
 
-public enum AssessmentType {
-    TAKE_HOME, LIVE_CODING
-}
+// public enum AssessmentType {
+//     TAKE_HOME, LIVE_CODING
+// }

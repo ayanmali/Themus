@@ -8,7 +8,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import com.delphi.delphi.utils.AssessmentStatus;
-import com.delphi.delphi.utils.AssessmentType;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
@@ -69,9 +68,9 @@ public class Assessment {
     @Column(nullable = false)
     private AssessmentStatus status = AssessmentStatus.DRAFT;
     
-    @Enumerated(EnumType.STRING)
-    @Column(name = "assessment_type", nullable = false)
-    private AssessmentType assessmentType;
+    // @Enumerated(EnumType.STRING)
+    // @Column(name = "assessment_type", nullable = false)
+    // private AssessmentType assessmentType;
     
     @Future(message = "Start date must be in the future")
     @Column(name = "start_date")
@@ -140,11 +139,10 @@ public class Assessment {
         // Empty constructor for Hibernate
     }
 
-    public Assessment(String name, String description, String roleName, AssessmentType assessmentType, LocalDateTime startDate, LocalDateTime endDate, Integer duration, String githubRepositoryLink, User user, List<String> skills, List<String> languageOptions, Map<String, String> metadata) {
+    public Assessment(String name, String description, String roleName, LocalDateTime startDate, LocalDateTime endDate, Integer duration, String githubRepositoryLink, User user, List<String> skills, List<String> languageOptions, Map<String, String> metadata) {
         this.name = name;
         this.description = description;
         this.roleName = roleName;
-        this.assessmentType = assessmentType;
         this.startDate = startDate;
         this.endDate = endDate;
         this.duration = duration;
@@ -195,14 +193,6 @@ public class Assessment {
 
     public void setStatus(AssessmentStatus status) {
         this.status = status;
-    }
-
-    public AssessmentType getAssessmentType() {
-        return assessmentType;
-    }
-
-    public void setAssessmentType(AssessmentType assessmentType) {
-        this.assessmentType = assessmentType;
     }
 
     public LocalDateTime getStartDate() {

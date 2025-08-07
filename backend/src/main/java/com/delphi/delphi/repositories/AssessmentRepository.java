@@ -1,6 +1,7 @@
 package com.delphi.delphi.repositories;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,7 +12,6 @@ import org.springframework.stereotype.Repository;
 
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.utils.AssessmentStatus;
-import com.delphi.delphi.utils.AssessmentType;
 
 @Repository
 public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
@@ -23,9 +23,6 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
 
     // Find assessments by github repo name with pagination
     Page<Assessment> findByGithubRepoName(String repoName, Pageable pageable);
-    
-    // Find assessments by type with pagination
-    Page<Assessment> findByAssessmentType(AssessmentType assessmentType, Pageable pageable);
     
     // Find assessments by user and status
     Page<Assessment> findByUserIdAndStatus(Long userId, AssessmentStatus status, Pageable pageable);
@@ -76,27 +73,30 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
     Long countByUserIdAndStatus(@Param("userId") Long userId, @Param("status") AssessmentStatus status);
     
     // Find assessments with multiple optional filters
+    // Use COALESCE to avoid untyped `? is null` SQL parameters that break on PostgreSQL
     @Query("SELECT a FROM Assessment a WHERE " +
-           "(:status IS NULL OR a.status = :status) AND " +
-           "(:assessmentType IS NULL OR a.assessmentType = :assessmentType) AND " +
-           "(:startDate IS NULL OR a.createdDate >= :startDate) AND " +
-           "(:endDate IS NULL OR a.createdDate <= :endDate)")
+           "a.status = COALESCE(:status, a.status) AND " +
+           "a.createdDate >= COALESCE(:startDate, a.createdDate) AND " +
+           "a.createdDate <= COALESCE(:endDate, a.createdDate)")
     Page<Assessment> findWithFilters(@Param("status") AssessmentStatus status,
-                                   @Param("assessmentType") AssessmentType assessmentType,
                                    @Param("startDate") LocalDateTime startDate,
                                    @Param("endDate") LocalDateTime endDate,
                                    Pageable pageable);
 
     // Find assessments with multiple optional filters for a specific user
-    @Query("SELECT a FROM Assessment a WHERE a.user.id = :userId AND " +
-           "(:status IS NULL OR a.status = :status) AND " +
-           "(:assessmentType IS NULL OR a.assessmentType = :assessmentType) AND " +
-           "(:startDate IS NULL OR a.createdDate >= :startDate) AND " +
-           "(:endDate IS NULL OR a.createdDate <= :endDate)")
+    // Use COALESCE to preserve parameter types for databases like PostgreSQL
+    @Query("SELECT DISTINCT a FROM Assessment a " +
+           "LEFT JOIN a.skills s " +
+           "WHERE a.user.id = :userId AND " +
+           "a.status = COALESCE(:status, a.status) AND " +
+           "a.createdDate >= COALESCE(:startDate, a.createdDate) AND " +
+           "a.createdDate <= COALESCE(:endDate, a.createdDate) AND " +
+           "(:filterSkills = false OR s IN :skills)")
     Page<Assessment> findWithFiltersForUser(@Param("userId") Long userId,
                                            @Param("status") AssessmentStatus status,
-                                           @Param("assessmentType") AssessmentType assessmentType,
                                            @Param("startDate") LocalDateTime startDate,
                                            @Param("endDate") LocalDateTime endDate,
+                                           @Param("filterSkills") boolean filterSkills,
+                                           @Param("skills") List<String> skills,
                                            Pageable pageable);
 }

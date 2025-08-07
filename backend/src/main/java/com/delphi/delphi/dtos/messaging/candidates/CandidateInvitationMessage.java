@@ -4,7 +4,6 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 import com.delphi.delphi.entities.Candidate;
-import com.delphi.delphi.utils.AssessmentType;
 
 public class CandidateInvitationMessage implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -12,7 +11,6 @@ public class CandidateInvitationMessage implements Serializable {
     private Long assessmentId;
     private String assessmentName;
     private String assessmentDescription;
-    private AssessmentType assessmentType;
     private LocalDateTime assessmentStartDate;
     private LocalDateTime assessmentEndDate;
     private Integer assessmentDuration;
@@ -25,14 +23,13 @@ public class CandidateInvitationMessage implements Serializable {
     public CandidateInvitationMessage() {}
 
     public CandidateInvitationMessage(Long assessmentId, String assessmentName, String assessmentDescription,
-                                    AssessmentType assessmentType, LocalDateTime assessmentStartDate,
+                                    LocalDateTime assessmentStartDate,
                                     LocalDateTime assessmentEndDate, Integer assessmentDuration,
                                     Candidate candidate, Long userId, String userEmail,
                                     LocalDateTime invitationDate, String invitationId) {
         this.assessmentId = assessmentId;
         this.assessmentName = assessmentName;
         this.assessmentDescription = assessmentDescription;
-        this.assessmentType = assessmentType;
         this.assessmentStartDate = assessmentStartDate;
         this.assessmentEndDate = assessmentEndDate;
         this.assessmentDuration = assessmentDuration;
@@ -68,13 +65,6 @@ public class CandidateInvitationMessage implements Serializable {
         this.assessmentDescription = assessmentDescription;
     }
 
-    public AssessmentType getAssessmentType() {
-        return assessmentType;
-    }
-
-    public void setAssessmentType(AssessmentType assessmentType) {
-        this.assessmentType = assessmentType;
-    }
 
     public LocalDateTime getAssessmentStartDate() {
         return assessmentStartDate;

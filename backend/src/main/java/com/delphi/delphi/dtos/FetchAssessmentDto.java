@@ -6,7 +6,6 @@ import java.util.Map;
 
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.utils.AssessmentStatus;
-import com.delphi.delphi.utils.AssessmentType;
 
 public class FetchAssessmentDto {
     private Long id;
@@ -14,7 +13,6 @@ public class FetchAssessmentDto {
     private String description;
     private String roleName;
     private AssessmentStatus status;
-    private AssessmentType assessmentType;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private Integer duration;
@@ -31,7 +29,6 @@ public class FetchAssessmentDto {
         this.description = assessment.getDescription();
         this.roleName = assessment.getRoleName();
         this.status = assessment.getStatus();
-        this.assessmentType = assessment.getAssessmentType();
         this.startDate = assessment.getStartDate();
         this.endDate = assessment.getEndDate();
         this.duration = assessment.getDuration();
@@ -46,8 +43,7 @@ public class FetchAssessmentDto {
     public FetchAssessmentDto() {
     }
 
-    public FetchAssessmentDto(AssessmentType assessmentType, LocalDateTime createdDate, String description, Integer duration, LocalDateTime endDate, String githubRepositoryLink, Long id, List<String> languageOptions, Map<String, String> metadata, String name, String roleName, List<String> skills, LocalDateTime startDate, AssessmentStatus status, LocalDateTime updatedDate) {
-        this.assessmentType = assessmentType;
+    public FetchAssessmentDto(LocalDateTime createdDate, String description, Integer duration, LocalDateTime endDate, String githubRepositoryLink, Long id, List<String> languageOptions, Map<String, String> metadata, String name, String roleName, List<String> skills, LocalDateTime startDate, AssessmentStatus status, LocalDateTime updatedDate) {
         this.createdDate = createdDate;
         this.description = description;
         this.duration = duration;
@@ -102,14 +98,6 @@ public class FetchAssessmentDto {
 
     public void setStatus(AssessmentStatus status) {
         this.status = status;
-    }
-
-    public AssessmentType getAssessmentType() {
-        return assessmentType;
-    }
-
-    public void setAssessmentType(AssessmentType assessmentType) {
-        this.assessmentType = assessmentType;
     }
 
     public LocalDateTime getStartDate() {

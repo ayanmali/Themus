@@ -38,7 +38,6 @@ public class CandidateInvitationPublisher {
             assessment.getId(),
             assessment.getName(),
             assessment.getDescription(),
-            assessment.getAssessmentType(),
             assessment.getStartDate(),
             assessment.getEndDate(),
             assessment.getDuration(),

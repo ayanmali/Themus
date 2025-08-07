@@ -44,7 +44,6 @@ import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.AssessmentCreationPrompts;
 import com.delphi.delphi.utils.AssessmentStatus;
-import com.delphi.delphi.utils.AssessmentType;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -174,7 +173,6 @@ public class AssessmentController {
             String requestId = chatMessagePublisher.publishChatCompletionRequest(
                     AssessmentCreationPrompts.USER_PROMPT,
                     Map.of("ROLE", newAssessmentDto.getRoleName(),
-                            "ASSESSMENT_TYPE", newAssessmentDto.getAssessmentType(),
                             "DURATION", newAssessmentDto.getDuration(),
                             "SKILLS", newAssessmentDto.getSkills(),
                             "LANGUAGE_OPTIONS", newAssessmentDto.getLanguageOptions(),
@@ -296,9 +294,9 @@ public class AssessmentController {
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection,
             @RequestParam(required = false) AssessmentStatus status,
-            @RequestParam(required = false) AssessmentType assessmentType,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) List<String> skills) {
         try {
             User user = getCurrentUser();
 
@@ -308,7 +306,7 @@ public class AssessmentController {
 
             Pageable pageable = PageRequest.of(page, size, sort);
             Page<Assessment> assessments = assessmentService.getAssessmentsWithFiltersForUser(
-                user, status, assessmentType, startDate, endDate, pageable);
+                user, status, startDate, endDate, skills, pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
 
             return ResponseEntity.ok(assessmentDtos);
@@ -327,7 +325,6 @@ public class AssessmentController {
             updateAssessment.setName(assessmentUpdates.getName());
             updateAssessment.setDescription(assessmentUpdates.getDescription());
             updateAssessment.setRoleName(assessmentUpdates.getRoleName());
-            updateAssessment.setAssessmentType(assessmentUpdates.getAssessmentType());
             updateAssessment.setStartDate(assessmentUpdates.getStartDate());
             updateAssessment.setEndDate(assessmentUpdates.getEndDate());
             updateAssessment.setDuration(assessmentUpdates.getDuration());
