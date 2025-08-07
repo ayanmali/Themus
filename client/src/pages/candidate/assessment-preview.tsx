@@ -18,7 +18,6 @@ const assessment: Assessment = {
     updatedAt: new Date(),
     name: "Full Stack Developer Assessment",
     role: "Senior Full Stack Developer",
-    type: "take-home",
     duration: 180,
     skills: [
         "React.js/Vue.js",
@@ -246,22 +245,17 @@ export default function CandidateAssessmentPreview() {
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-2xl font-bold text-white">{assessment.name}</h1>
-                            <p className="text-gray-400 mt-1">Position: {assessment.role} - EMPLOYER_NAME</p>
+                            <p className="text-gray-400 mt-1">Position: {assessment.role} - {assessment.employerName}</p>
                         </div>
                         <div className="flex items-center space-x-4">
                             <div className="flex items-center space-x-2 bg-blue-900/30 px-3 py-1 rounded-full">
-                                {assessment.type === "take-home" ? (
-                                    <BookOpen className="h-4 w-4 text-blue-400" />
-                                ) : (
-                                    <Code className="h-4 w-4 text-green-400" />
-                                )}
-                                <span className="text-sm font-medium text-blue-300">{assessment.type === "take-home" ? "Take-Home Assessment" : "Live Coding Assessment"}</span>
+                                <Code className="h-4 w-4 text-green-400" />
+                                <span className="text-sm font-medium text-blue-300">Live Coding Assessment</span>
                             </div>
                             <div className="flex items-center space-x-2 text-gray-400">
                                 <Clock className="h-4 w-4" />
                                 <span className="text-sm">
-                                    {assessment.type === "take-home" ? "Estimated Duration: " : "Duration: "}
-                                    {minutesToHours(assessment.duration ?? 0)} hours
+                                    Time Limit: {minutesToHours(assessment.duration ?? 0)} hours
                                 </span>
                             </div>
                         </div>

@@ -42,9 +42,8 @@ const createAssessmentSchema = z.object({
   role: z.string().min(1, "Role is required").max(255, "Role must be less than 255 characters"),
   skills: z.string().min(1, "Skills are required").max(255, "Skills must be less than 255 characters"),
   description: z.string().min(1, "Description is required").max(255, "Description must be less than 255 characters"),
-  assessmentType: z.enum(["TAKE_HOME", "LIVE_CODING"]),
+  //assessmentType: z.enum(["TAKE_HOME", "LIVE_CODING"]),
   duration: z.number().min(1, "Duration must be at least 1 minute").max(255, "Duration must be less than 255 minutes"),
-  durationUnit: z.enum(["minutes", "hours", "days"]),
   techChoices: z.array(z.string()).max(5, "There can be no more than 5 technology choices."),
   startDate: z.coerce.date().min(new Date(), { message: "Start date must be in the future" }),
   endDate: z.coerce.date().min(new Date(), { message: "End date must be in the future" }),
@@ -112,7 +111,7 @@ interface CommandSuggestion {
   role: string;
   skills: string;
   duration: number;
-  durationUnit: "minutes" | "hours" | "days";
+  durationUnit: "minutes" | "hours"
 
 }
 
@@ -177,7 +176,7 @@ export function CreateAssessmentForm() {
   const [role, setRole] = useState("");
   const [skills, setSkills] = useState("");
   const [duration, setDuration] = useState(0);
-  const [durationUnit, setDurationUnit] = useState<"minutes" | "hours" | "days">("minutes");
+  const [durationUnit, setDurationUnit] = useState<"minutes" | "hours">("minutes");
   const [techChoices, setTechChoices] = useState<string[]>([]);
   const [formDesc, setFormDesc] = useState("");
   const [attachments, setAttachments] = useState<string[]>([]);
@@ -187,6 +186,7 @@ export function CreateAssessmentForm() {
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [recentCommand, setRecentCommand] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isCheckingGitHub, setIsCheckingGitHub] = useState(false);
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({
     minHeight: 60,
     maxHeight: 200,
@@ -208,8 +208,10 @@ export function CreateAssessmentForm() {
       role: "",
       skills: "",
       description: "",
-      assessmentType: "TAKE_HOME",
-      techChoices: []
+      techChoices: [],
+      duration: 0,
+      startDate: new Date(),
+      endDate: new Date()
     },
   });
 
@@ -240,13 +242,129 @@ export function CreateAssessmentForm() {
     },
   });
 
-  const onSubmit = (data: CreateAssessmentFormValues) => {
+  // Function to convert duration to minutes
+  const convertDurationToMinutes = (duration: number, unit: "minutes" | "hours"): number => {
+    switch (unit) {
+      case "minutes":
+        return duration;
+      case "hours":
+        return duration * 60;
+      default:
+        return duration;
+    }
+  };
+
+  // Function to check if user has valid GitHub token
+  const checkGitHubToken = async (): Promise<boolean> => {
+    try {
+      const response = await apiCall("api/users/is-connected-github", {
+        method: "GET",
+      });
+      // TODO: check if response is 2xx
+      return response || false;
+    } catch (error) {
+      console.error('Error checking GitHub token:', error);
+      return false;
+    }
+  };
+
+  // Function to poll for GitHub token validation
+  const pollForGitHubToken = async (): Promise<boolean> => {
+    const maxAttempts = 60; // 5 minutes with 7-second intervals
+    const pollInterval = 7000; // 7 seconds
+    let attempts = 0;
+
+    const poll = async (): Promise<boolean> => {
+      if (attempts >= maxAttempts) {
+        console.log('GitHub token polling timeout reached');
+        return false;
+      }
+
+      try {
+        const hasValidToken = await checkGitHubToken();
+        console.log('Polling attempt', attempts + 1, ':', hasValidToken);
+
+        if (hasValidToken) {
+          console.log('Valid GitHub token found');
+          return true;
+        }
+
+        // Continue polling
+        attempts++;
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        return poll();
+      } catch (error) {
+        console.error('Polling error:', error);
+        attempts++;
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        return poll();
+      }
+    };
+
+    return poll();
+  };
+
+  const onSubmit = async (data: CreateAssessmentFormValues) => {
     console.log('Form data with candidate choices:', data);
     
-    if (!user?.connectedGithub) {
-      installGithubApp();
+    // Convert duration to minutes before sending to API
+    const durationInMinutes = convertDurationToMinutes(duration, durationUnit);
+    
+    // Create the data object with converted duration
+    const apiData = {
+      ...data,
+      duration: durationInMinutes
+    };
+    
+    console.log('API data with duration in minutes:', apiData);
+    
+    setIsCheckingGitHub(true);
+    
+    try {
+      // Check if user has valid GitHub token
+      const hasValidGitHubToken = await checkGitHubToken();
+      
+      if (!hasValidGitHubToken) {
+        // Open GitHub app installation in new window
+        const githubInstallUrl = import.meta.env.VITE_GITHUB_APP_INSTALL_URL || "https://github.com/app/delphi-app/installations/new";
+        window.open(githubInstallUrl, '_blank');
+        
+        // Show loading state
+        toast({
+          title: "Connecting GitHub",
+          description: "Please complete the GitHub installation in the new window. This window will automatically proceed once connected.",
+        });
+        
+        // Poll for GitHub token validation
+        const tokenObtained = await pollForGitHubToken();
+        
+        if (!tokenObtained) {
+          toast({
+            title: "GitHub Connection Timeout",
+            description: "GitHub connection timed out. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        toast({
+          title: "GitHub Connected",
+          description: "GitHub account successfully connected!",
+        });
+      }
+      
+      // Proceed with assessment creation
+      createAssessmentMutation.mutate(apiData);
+    } catch (error) {
+      console.error('Error in form submission:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while processing your request. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCheckingGitHub(false);
     }
-    createAssessmentMutation.mutate(data);
   };
 
   const installGithubApp = () => {
@@ -398,10 +516,10 @@ export function CreateAssessmentForm() {
   //     }
   // };
 
-  const handleAttachFile = () => {
-    const mockFileName = `file-${Math.floor(Math.random() * 1000)}.pdf`;
-    setAttachments(prev => [...prev, mockFileName]);
-  };
+  // const handleAttachFile = () => {
+  //   const mockFileName = `file-${Math.floor(Math.random() * 1000)}.pdf`;
+  //   setAttachments(prev => [...prev, mockFileName]);
+  // };
 
   const removeAttachment = (index: number) => {
     setAttachments(prev => prev.filter((_, i) => i !== index));
@@ -452,10 +570,10 @@ export function CreateAssessmentForm() {
         <Button
           type="submit"
           form="assessment-form"
-          disabled={createAssessmentMutation.isPending}
+          disabled={createAssessmentMutation.isPending || isCheckingGitHub}
           className="bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-600/20 border-0"
         >
-          {createAssessmentMutation.isPending ? "Creating..." : "Create Assessment"}
+          {isCheckingGitHub ? "Checking GitHub..." : createAssessmentMutation.isPending ? "Creating..." : "Create Assessment"}
         </Button>
       </div>
 
@@ -639,7 +757,7 @@ export function CreateAssessmentForm() {
                 )}
               />
 
-              <FormField
+              {/* <FormField
                 control={form.control}
                 name="assessmentType"
                 render={({ field }) => (
@@ -661,14 +779,14 @@ export function CreateAssessmentForm() {
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+              /> */}
 
               <FormField
                 control={form.control}
                 name="duration"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-300 font-medium">{form.watch("assessmentType") === "TAKE_HOME" ? "Estimated Duration" : "Time Limit"}</FormLabel>
+                    <FormLabel className="text-slate-300 font-medium">Time Limit</FormLabel>
                     <div className="flex items-center gap-2">
                       <FormControl className="w-1/4">
                         <Input
@@ -689,7 +807,7 @@ export function CreateAssessmentForm() {
                         <Select
                           value={durationUnit}
                           onValueChange={(value) => {
-                            setDurationUnit(value as "minutes" | "hours" | "days");
+                            setDurationUnit(value as "minutes" | "hours");
                             field.onChange;
                           }}
                         >
@@ -699,7 +817,6 @@ export function CreateAssessmentForm() {
                           <SelectContent className="bg-slate-800/60 border-slate-700/50 text-gray-100">
                             <SelectItem value="minutes">Minutes</SelectItem>
                             <SelectItem value="hours">Hours</SelectItem>
-                            <SelectItem value="days">Days</SelectItem>
                           </SelectContent>
                         </Select>
                       </FormControl>
@@ -952,10 +1069,10 @@ export function CreateAssessmentForm() {
                 </Button> */}
                 <Button
                   type="submit"
-                  disabled={createAssessmentMutation.isPending}
+                  disabled={createAssessmentMutation.isPending || isCheckingGitHub}
                   className="bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-600/20 border-0"
                 >
-                  {createAssessmentMutation.isPending ? "Creating..." : "Create Assessment"}
+                  {isCheckingGitHub ? "Checking GitHub..." : createAssessmentMutation.isPending ? "Creating..." : "Create Assessment"}
                 </Button>
               </div>
             </form>
