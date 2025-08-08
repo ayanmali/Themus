@@ -173,6 +173,7 @@ Textarea.displayName = "Textarea"
 export function CreateAssessmentForm() {
   const [open, setOpen] = React.useState(false)
   const [modelValue, setModelValue] = React.useState("")
+  const [title, setTitle] = useState("");
   const [role, setRole] = useState("");
   const [skills, setSkills] = useState("");
   const [duration, setDuration] = useState(0);
@@ -214,6 +215,22 @@ export function CreateAssessmentForm() {
       endDate: new Date()
     },
   });
+
+  // Ensure a default model is selected so validation passes if user doesn't pick one
+  // useEffect(() => {
+  //   if (!modelValue && Array.isArray(models) && models.length > 0) {
+  //     const defaultModel = models[0];
+  //     setModelValue(defaultModel);
+  //     form.setValue("model", defaultModel, { shouldValidate: true, shouldDirty: true });
+  //   }
+  // // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, []);
+
+  if (!modelValue && Array.isArray(models) && models.length > 0) {
+    const defaultModel = models[0];
+    setModelValue(defaultModel);
+    form.setValue("model", defaultModel, { shouldValidate: true, shouldDirty: true });
+  }
 
   // Create assessment mutation
   const createAssessmentMutation = useMutation({
@@ -306,10 +323,10 @@ export function CreateAssessmentForm() {
     console.log('Form data with candidate choices:', data);
     
     // Convert duration to minutes before sending to API
-    const durationInMinutes = convertDurationToMinutes(duration, durationUnit);
+    const durationInMinutes = convertDurationToMinutes(data.duration, durationUnit);
     
     // Create the data object with converted duration
-    const apiData = {
+      const apiData = {
       ...data,
       duration: durationInMinutes
     };
@@ -473,11 +490,28 @@ export function CreateAssessmentForm() {
         e.preventDefault();
         if (activeSuggestion >= 0) {
           const selectedCommand = commandSuggestions[activeSuggestion];
+          setTitle(selectedCommand.label);
+
           setRole(selectedCommand.role);
           setSkills(selectedCommand.skills);
           setDuration(selectedCommand.duration);
           setDurationUnit(selectedCommand.durationUnit);
           setFormDesc(selectedCommand.prefix + ' ');
+          // Sync to form state so validation sees values
+          form.setValue("title", selectedCommand.label, { shouldValidate: true, shouldDirty: true });
+          form.setValue("role", selectedCommand.role, { shouldValidate: true, shouldDirty: true });
+          form.setValue("skills", selectedCommand.skills, { shouldValidate: true, shouldDirty: true });
+          form.setValue("duration", selectedCommand.duration, { shouldValidate: true, shouldDirty: true });
+          form.setValue("description", selectedCommand.prefix + ' ', { shouldValidate: true, shouldDirty: true });
+          // Provide a reasonable default title if empty
+          if (!form.getValues("title")) {
+            form.setValue("title", selectedCommand.label, { shouldValidate: true, shouldDirty: true });
+          }
+          // Ensure model is set
+          if (!form.getValues("model") && models.length > 0) {
+            form.setValue("model", models[0], { shouldValidate: true, shouldDirty: true });
+            setModelValue(models[0]);
+          }
           setShowCommandPalette(false);
 
           setRecentCommand(selectedCommand.label);
@@ -520,12 +554,27 @@ export function CreateAssessmentForm() {
 
   const selectCommandSuggestion = (index: number) => {
     const selectedCommand = commandSuggestions[index];
+    setTitle(selectedCommand.label);
     setRole(selectedCommand.role);
     setSkills(selectedCommand.skills);
     setDuration(selectedCommand.duration);
     setDurationUnit(selectedCommand.durationUnit);
     setFormDesc(selectedCommand.prefix + ' ');
     setShowCommandPalette(false);
+
+    // Sync to form state so validation sees values
+    form.setValue("title", selectedCommand.label, { shouldValidate: true, shouldDirty: true });
+    form.setValue("role", selectedCommand.role, { shouldValidate: true, shouldDirty: true });
+    form.setValue("skills", selectedCommand.skills, { shouldValidate: true, shouldDirty: true });
+    form.setValue("duration", selectedCommand.duration, { shouldValidate: true, shouldDirty: true });
+    form.setValue("description", selectedCommand.prefix + ' ', { shouldValidate: true, shouldDirty: true });
+    if (!form.getValues("title")) {
+      form.setValue("title", selectedCommand.label, { shouldValidate: true, shouldDirty: true });
+    }
+    if (!form.getValues("model") && models.length > 0) {
+      form.setValue("model", models[0], { shouldValidate: true, shouldDirty: true });
+      setModelValue(models[0]);
+    }
 
     setRecentCommand(selectedCommand.label);
     setTimeout(() => setRecentCommand(null), 2000);
@@ -664,8 +713,10 @@ export function CreateAssessmentForm() {
                                       key={model}
                                       value={model}
                                       onSelect={(currentValue) => {
-                                        setModelValue(currentValue === modelValue ? "" : currentValue)
-                                        setOpen(false)
+                                        const next = currentValue === modelValue ? "" : currentValue;
+                                        setModelValue(next);
+                                        form.setValue("model", next, { shouldValidate: true, shouldDirty: true });
+                                        setOpen(false);
                                       }}
                                     >
                                       {model}
@@ -698,6 +749,11 @@ export function CreateAssessmentForm() {
                       <Input
                         placeholder="e.g., Junior Full-Stack Dev - XXX Team, May 2025"
                         {...field}
+                        value={title}
+                        onChange={(e) => {
+                          setTitle(e.target.value);
+                          field.onChange(e.target.value);
+                        }}      
                         className="bg-slate-800/60 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-violet-500/20 backdrop-blur-sm"
                       />
                     </FormControl>
@@ -719,6 +775,7 @@ export function CreateAssessmentForm() {
                         value={role}
                         onChange={(e) => {
                           setRole(e.target.value);
+                          field.onChange(e.target.value);
                         }}
                         className="bg-slate-800/60 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-violet-500/20 backdrop-blur-sm"
                       />
@@ -741,6 +798,7 @@ export function CreateAssessmentForm() {
                         value={skills}
                         onChange={(e) => {
                           setSkills(e.target.value);
+                          field.onChange(e.target.value);
                         }}
                         className="bg-slate-800/60 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-violet-500/20 backdrop-blur-sm"
                       />
@@ -790,7 +848,9 @@ export function CreateAssessmentForm() {
                           {...field}
                           value={duration.toString()}
                           onChange={(e) => {
-                            setDuration(Number(e.target.value));
+                            const next = Number(e.target.value);
+                            setDuration(next);
+                            field.onChange(next);
                           }}
                           className="bg-slate-800/60 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-violet-500/20 backdrop-blur-sm"
                         />

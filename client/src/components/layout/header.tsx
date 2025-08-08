@@ -66,7 +66,9 @@ export function Header({ setSidebarOpen }: HeaderProps) {
             <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
               <DropdownMenuGroup>
                 <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                  New Assessment
+                  <Link to="/assessments/new">
+                    New Assessment
+                  </Link>
                 </DropdownMenuItem>
                 
               </DropdownMenuGroup>

@@ -41,7 +41,7 @@ export default function EmployerAssessments() {
     };
 
     const handleAssessmentSelect = (assessment: Assessment) => {
-        navigate(`/assessments/${assessment.id}`);
+        navigate(`/assessments/view/${assessment.id}`);
     };
 
     // const formatTimeSpent = (startedAt: Date | null | undefined) => {

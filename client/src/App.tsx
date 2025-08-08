@@ -40,7 +40,7 @@ function Router() {
       {/* Protected Employer Routes */}
       <ProtectedRoute path="/dashboard" component={EmployerDashboard} />
       <ProtectedRoute path="/assessments" component={EmployerAssessments} />
-      <ProtectedRoute path="/assessments/:assessmentId" component={AssessmentDetails} />
+      <ProtectedRoute path="/assessments/view/:assessmentId" component={AssessmentDetails} />
       <ProtectedRoute path="/assessments/new" component={CreateAssessment} />
       <ProtectedRoute path="/candidates" component={EmployerCandidates} />
       <ProtectedRoute path="/reports" component={EmployerReports} />
