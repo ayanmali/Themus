@@ -3,6 +3,8 @@ package com.delphi.delphi.controllers;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
+import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.dtos.FetchUserDto;
 import com.delphi.delphi.dtos.NewUserDto;
 import com.delphi.delphi.entities.User;
@@ -49,6 +52,12 @@ public class UserController {
 
     private final UserService userService;
 
+    private final RedisService redisService;
+
+    private final String appInstallBaseUrl;
+
+    private final String githubCacheKeyPrefix = "github:install_url_random_string:";
+
     // github client id and secret
     // private final String clientId;
 
@@ -69,16 +78,17 @@ public class UserController {
              */
             @Value("${app.client-domain}") String appClientDomain,
             @Value("${app.env}") String appEnv,
-            // @Value("${github.app.name}") String githubAppName,
-            GithubService githubService) {
+            @Value("${github.app.name}") String githubAppName,
+            GithubService githubService,
+            RedisService redisService) {
         this.userService = userService;
         // this.clientId = clientId;
         // this.clientSecret = clientSecret;
         this.githubService = githubService;
         this.appClientDomain = appClientDomain;
         this.appEnv = appEnv;
-
-        // this.appInstallUrl = String.format("https://github.com/app/%s/installations/new", githubAppName);
+        this.redisService = redisService;
+        this.appInstallBaseUrl = String.format("https://github.com/app/%s/installations/new", githubAppName);
     }
 
     private User getCurrentUser() {
@@ -122,7 +132,6 @@ public class UserController {
                     .body("Error checking if user is connected to github: " + e.getMessage());
         }
     }
-
 
     // Create a new user
     @PostMapping("/new")
@@ -362,6 +371,20 @@ public class UserController {
         }
     }
 
+    // for users to generate a github install url
+    @PostMapping("/github/generate-install-url")
+    public ResponseEntity<?> generateGitHubInstallUrl() {
+        try {
+            User user = getCurrentUser();
+            String randomString = UUID.randomUUID().toString();
+            redisService.setWithExpiration(githubCacheKeyPrefix + user.getEmail(), randomString, 10, TimeUnit.MINUTES);
+            String installUrl = String.format("%s?state=%s_user_%s", appInstallBaseUrl, randomString, user.getEmail());
+            return ResponseEntity.ok(installUrl);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error generating GitHub install URL: " + e.getMessage());
+        }
+    }
+
     // unauthenticated endpoint
     // @GetMapping("/github/callback")
     // public ResponseEntity<?> callback(@RequestParam String code, @RequestParam String state, HttpServletResponse response) {
@@ -394,7 +417,7 @@ public class UserController {
      * The access token is stored in the database.
      * The access token is used to authenticate the user with the GitHub API.
      */
-    public ModelAndView callback(@RequestParam String code) {
+    public ModelAndView callback(@RequestParam String code, @RequestParam String state) {
 
         // Map<String, String> map = new HashMap<>();
         // map.put("access_token", githubResponse.get("access_token"));
@@ -403,10 +426,19 @@ public class UserController {
         // map.put("expires_in", githubResponse.get("expires_in"));
         // map.put("status", "githubResponse");
         try {
-            // user is authenticating
-            // candidate is authenticating
-            log.info("Getting current user...");
-            User user = getCurrentUser();
+            String providedRandomString = state.split("_user_")[0];
+            String providedEmail = state.split("_user_")[1];
+
+            // check if the random string passed into the state parameteris valid for the email address
+            Object redisRandomString = redisService.get(githubCacheKeyPrefix + providedEmail);
+            if (redisRandomString == null || !redisRandomString.toString().equals(providedRandomString)) {
+                log.error("Invalid random string: {} for email: {}", providedRandomString, providedEmail);
+                throw new IllegalArgumentException("Invalid random string: " + providedRandomString + " for email: " + providedEmail);
+                // return new ModelAndView(
+                //         String.format("redirect:%s://%s/login", appEnv.equals("dev") ? "http" : "https", appClientDomain));
+            }
+
+            User user = userService.getUserByEmail(providedEmail);
             log.info("Current user: {}", user.getEmail());
             Map<String, Object> accessTokenResponse = githubService.getAccessToken(code, false);
             String githubAccessToken = (String) accessTokenResponse.get("access_token");

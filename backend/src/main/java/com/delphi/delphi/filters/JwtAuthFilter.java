@@ -46,7 +46,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         log.info("Processing request: {} {}", method, requestPath);
 
         // Skip JWT validation for permitted endpoints
-        if (requestPath.equals("/") || requestPath.startsWith("/api/auth/") || requestPath.startsWith("/api/recordings") || requestPath.startsWith("/api/assessments/live")) {
+        if (requestPath.equals("/") || requestPath.startsWith("/api/auth/") || requestPath.startsWith("/api/recordings") || requestPath.startsWith("/api/users/github/callback") || requestPath.startsWith("/api/assessments/live")) {
             log.info("Skipping JWT validation for permitted endpoint: {}", requestPath);
             filterChain.doFilter(request, response);
             return;

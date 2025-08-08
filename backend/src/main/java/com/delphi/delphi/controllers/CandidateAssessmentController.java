@@ -1,7 +1,10 @@
 package com.delphi.delphi.controllers;
 
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,19 +44,35 @@ public class CandidateAssessmentController {
     private final CandidateService candidateService;
     private final String tokenCacheKeyPrefix = "candidate_github_token:";
     private final String usernameCacheKeyPrefix = "candidate_github_username:";
+    private final String githubCacheKeyPrefix = "github:install_url_random_string:";
+    private final String appInstallBaseUrl;
 
-    public CandidateAssessmentController(RedisService redisService, GithubService githubService, AssessmentService assessmentService, EncryptionService encryptionService, CandidateService candidateService) {
+    public CandidateAssessmentController(RedisService redisService, GithubService githubService, AssessmentService assessmentService, EncryptionService encryptionService, CandidateService candidateService, @Value("${github.app.name}") String githubAppName) {
         this.redisService = redisService;
         this.githubService = githubService;
         this.assessmentService = assessmentService;
         this.encryptionService = encryptionService;
         this.candidateService = candidateService;
+        this.appInstallBaseUrl = String.format("https://github.com/app/%s/installations/new", githubAppName);
     }
 
     @GetMapping("/{assessmentId}")
     public ResponseEntity<?> fetchAssessmentWithAttempts(@PathVariable Long assessmentId) {
         Assessment assessment = assessmentService.getAssessmentById(assessmentId).orElseThrow(() -> new RuntimeException("Assessment not found"));
         return ResponseEntity.ok(new FetchAssessmentWithAttemptsDto(assessment));
+    }
+
+    // for candidates to generate a github install url
+    @PostMapping("/github/generate-install-url")
+    public ResponseEntity<?> generateGitHubInstallUrl(@RequestParam String candidateEmail) {
+        try {
+            String randomString = UUID.randomUUID().toString();
+            redisService.setWithExpiration(githubCacheKeyPrefix + candidateEmail, randomString, 10, TimeUnit.MINUTES);
+            String installUrl = String.format("%s?state=%s_candidate_%s", appInstallBaseUrl, randomString, candidateEmail);
+            return ResponseEntity.ok(installUrl);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error generating GitHub install URL: " + e.getMessage());
+        }
     }
     
     /*

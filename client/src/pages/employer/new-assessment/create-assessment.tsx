@@ -337,13 +337,15 @@ export function CreateAssessmentForm() {
       
       if (!hasValidGitHubToken) {
         // Open GitHub app installation in new window
-        const githubInstallUrl: string = import.meta.env.VITE_GITHUB_APP_INSTALL_URL;
+        const githubInstallUrl = await apiCall("/api/users/github/generate-install-url", {
+          method: "POST",
+        });
         window.open(githubInstallUrl, '_blank');
         
         // Show loading state
         toast({
           title: "Connecting GitHub",
-          description: "Please complete the GitHub installation in the new window. This window will automatically proceed once connected.",
+          description: "Please complete the GitHub installation in the new tab. This tab will automatically proceed once connected.",
         });
         
         // Poll for GitHub token validation
