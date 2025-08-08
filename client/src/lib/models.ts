@@ -8,3 +8,5 @@ export const models = [
     // xai
     "xai/grok-3", "xai/grok-3-mini", "xai/grok-3-fast", "xai/grok-3-mini-fast"
 ]
+
+export const defaultModel = models.find(model => model.includes("claude")) || models[0];

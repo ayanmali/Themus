@@ -44,7 +44,6 @@ public class UserController {
 
     private final String appClientDomain;
     private final String appEnv;
-    private final String appInstallUrl;
 
     private final GithubService githubService;
 
@@ -70,7 +69,7 @@ public class UserController {
              */
             @Value("${app.client-domain}") String appClientDomain,
             @Value("${app.env}") String appEnv,
-            @Value("${github.app.name}") String githubAppName,
+            // @Value("${github.app.name}") String githubAppName,
             GithubService githubService) {
         this.userService = userService;
         // this.clientId = clientId;
@@ -79,7 +78,7 @@ public class UserController {
         this.appClientDomain = appClientDomain;
         this.appEnv = appEnv;
 
-        this.appInstallUrl = String.format("https://github.com/app/%s/installations/new", githubAppName);
+        // this.appInstallUrl = String.format("https://github.com/app/%s/installations/new", githubAppName);
     }
 
     private User getCurrentUser() {
@@ -109,9 +108,7 @@ public class UserController {
             log.info("Checking if user is connected to github");
             User user = getCurrentUser();
             if (user.getGithubAccessToken() == null) {
-                response.setHeader("Location", appInstallUrl);
-                response.setStatus(302);
-                return ResponseEntity.status(HttpStatus.FOUND).build();
+                return ResponseEntity.ok(false);
             }
             Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user.getGithubAccessToken());
 
@@ -125,6 +122,7 @@ public class UserController {
                     .body("Error checking if user is connected to github: " + e.getMessage());
         }
     }
+
 
     // Create a new user
     @PostMapping("/new")
@@ -385,6 +383,8 @@ public class UserController {
     //     }
     // }
 
+
+
     @GetMapping("/github/callback")
     /*
      * This endpoint is automatically called by GitHub after the user has
@@ -393,7 +393,6 @@ public class UserController {
      * The access token is used to authenticate the user with the GitHub API.
      * The access token is stored in the database.
      * The access token is used to authenticate the user with the GitHub API.
-     * TODO: make this endpoint require authentication
      */
     public ModelAndView callback(@RequestParam String code) {
 

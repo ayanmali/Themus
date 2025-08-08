@@ -29,7 +29,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { models } from "@/lib/models";
+import { models, defaultModel } from "@/lib/models";
 import { TechChoices } from "./tech-choices";
 import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import useApi from "@/hooks/use-api";
@@ -217,17 +217,8 @@ export function CreateAssessmentForm() {
   });
 
   // Ensure a default model is selected so validation passes if user doesn't pick one
-  // useEffect(() => {
-  //   if (!modelValue && Array.isArray(models) && models.length > 0) {
-  //     const defaultModel = models[0];
-  //     setModelValue(defaultModel);
-  //     form.setValue("model", defaultModel, { shouldValidate: true, shouldDirty: true });
-  //   }
-  // // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, []);
 
   if (!modelValue && Array.isArray(models) && models.length > 0) {
-    const defaultModel = models[0];
     setModelValue(defaultModel);
     form.setValue("model", defaultModel, { shouldValidate: true, shouldDirty: true });
   }
@@ -235,19 +226,24 @@ export function CreateAssessmentForm() {
   // Create assessment mutation
   const createAssessmentMutation = useMutation({
     mutationFn: async (data: CreateAssessmentFormValues) => {
-      const res = await apiCall("api/assessments/new", {
+      const res = await apiCall("/api/assessments/new", {
         method: "POST",
         body: JSON.stringify(data)
       });
       return res;
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/assessments"] });
+      const newAssessmentId = data?.assessment?.id ?? data?.id;
       toast({
         title: "Assessment created",
         description: "Your assessment has been created successfully",
       });
-      navigate("/employer/assessments");
+      if (newAssessmentId) {
+        navigate(`/assessments/view/${newAssessmentId}`);
+      } else {
+        navigate("/assessments");
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -273,7 +269,7 @@ export function CreateAssessmentForm() {
   // Function to check if user has valid GitHub token
   const checkGitHubToken = async (): Promise<boolean> => {
     try {
-      const response = await apiCall("api/users/is-connected-github", {
+      const response = await apiCall("/api/users/is-connected-github", {
         method: "GET",
       });
       return !!response;
@@ -323,7 +319,7 @@ export function CreateAssessmentForm() {
     console.log('Form data with candidate choices:', data);
     
     // Convert duration to minutes before sending to API
-    const durationInMinutes = convertDurationToMinutes(data.duration, durationUnit);
+    const durationInMinutes = convertDurationToMinutes(duration, durationUnit);
     
     // Create the data object with converted duration
       const apiData = {
@@ -341,7 +337,7 @@ export function CreateAssessmentForm() {
       
       if (!hasValidGitHubToken) {
         // Open GitHub app installation in new window
-        const githubInstallUrl = import.meta.env.VITE_GITHUB_APP_INSTALL_URL || "https://github.com/app/delphi-app/installations/new";
+        const githubInstallUrl: string = import.meta.env.VITE_GITHUB_APP_INSTALL_URL;
         window.open(githubInstallUrl, '_blank');
         
         // Show loading state
@@ -422,7 +418,7 @@ export function CreateAssessmentForm() {
       prefix: `This assessment is for an iOS Engineer with 2+ years of experience. Have candidates build a mobile app with Swift and SwiftUI.`,
       role: "iOS Engineer",
       skills: "Swift, SwiftUI, iOS",
-      duration: 2.5,
+      duration: 2,
       durationUnit: "hours"
     },
   ];
@@ -509,7 +505,7 @@ export function CreateAssessmentForm() {
           }
           // Ensure model is set
           if (!form.getValues("model") && models.length > 0) {
-            form.setValue("model", models[0], { shouldValidate: true, shouldDirty: true });
+            form.setValue("model", defaultModel, { shouldValidate: true, shouldDirty: true });
             setModelValue(models[0]);
           }
           setShowCommandPalette(false);
@@ -568,11 +564,11 @@ export function CreateAssessmentForm() {
     form.setValue("skills", selectedCommand.skills, { shouldValidate: true, shouldDirty: true });
     form.setValue("duration", selectedCommand.duration, { shouldValidate: true, shouldDirty: true });
     form.setValue("description", selectedCommand.prefix + ' ', { shouldValidate: true, shouldDirty: true });
-    if (!form.getValues("title")) {
-      form.setValue("title", selectedCommand.label, { shouldValidate: true, shouldDirty: true });
-    }
+    // if (!form.getValues("title")) {
+    //   form.setValue("title", selectedCommand.label, { shouldValidate: true, shouldDirty: true });
+    // }
     if (!form.getValues("model") && models.length > 0) {
-      form.setValue("model", models[0], { shouldValidate: true, shouldDirty: true });
+      form.setValue("model", defaultModel, { shouldValidate: true, shouldDirty: true });
       setModelValue(models[0]);
     }
 
@@ -988,6 +984,8 @@ export function CreateAssessmentForm() {
                             onChange={(e) => {
                               setFormDesc(e.target.value);
                               adjustHeight();
+                              // keep form state in sync so description is submitted
+                              field.onChange(e.target.value);
                             }}
                             onKeyDown={handleKeyDown}
                             onFocus={() => setInputFocused(true)}
