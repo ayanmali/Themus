@@ -392,7 +392,6 @@ public class CandidateAttemptController {
         }
     }
 
-    // TODO: when candidate starts the assessment, we need to authenticate them based on their email
     @PostMapping("/{id}/authenticate-candidate")
     public ResponseEntity<?> inviteCandidateToAssessment(@PathVariable Long id, @RequestBody String email) {
         try {

@@ -44,7 +44,7 @@ public class CandidateAssessmentController {
     private final CandidateService candidateService;
     private final String tokenCacheKeyPrefix = "candidate_github_token:";
     private final String usernameCacheKeyPrefix = "candidate_github_username:";
-    private final String githubCacheKeyPrefix = "github:install_url_random_string:";
+    private final String githubCacheKeyPrefix = "github_install_url_random_string:";
     private final String appInstallBaseUrl;
 
     public CandidateAssessmentController(RedisService redisService, GithubService githubService, AssessmentService assessmentService, EncryptionService encryptionService, CandidateService candidateService, @Value("${github.app.name}") String githubAppName) {
@@ -64,46 +64,14 @@ public class CandidateAssessmentController {
 
     // for candidates to generate a github install url
     @PostMapping("/github/generate-install-url")
-    public ResponseEntity<?> generateGitHubInstallUrl(@RequestParam String candidateEmail) {
+    public ResponseEntity<?> generateGitHubInstallUrl(@RequestParam String email) {
         try {
             String randomString = UUID.randomUUID().toString();
-            redisService.setWithExpiration(githubCacheKeyPrefix + candidateEmail, randomString, 10, TimeUnit.MINUTES);
-            String installUrl = String.format("%s?state=%s_candidate_%s", appInstallBaseUrl, randomString, candidateEmail);
+            redisService.setWithExpiration(githubCacheKeyPrefix + email, randomString, 10, TimeUnit.MINUTES);
+            String installUrl = String.format("%s?state=%s_candidate_%s", appInstallBaseUrl, randomString, email);
             return ResponseEntity.ok(installUrl);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error generating GitHub install URL: " + e.getMessage());
-        }
-    }
-    
-    /*
-     * Storing the candidate's GitHub token
-     */
-    @GetMapping("/github/callback")
-    public ResponseEntity<?> githubCallback(@RequestParam String code, @RequestParam String state) {
-        try {
-        String email = state.split("_")[1];
-        Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + email);
-
-        // get a new token if the candidate doesn't have one or if the token is invalid
-        if (candidateGithubToken == null || githubService.validateGithubCredentials(encryptionService.decrypt(candidateGithubToken.toString())) == null) {
-            // request a token from github api
-            Map<String, Object> accessTokenResponse = githubService.getAccessToken(code, true);
-            String githubAccessToken = (String) accessTokenResponse.get("access_token");
-            // get candidate's github username
-            // TODO: store github username and/or encrypted github token in DB candidate entity
-            Map<String, Object> githubCredentialsResponse = githubService.validateGithubCredentials(githubAccessToken);
-            String githubUsername = (String) githubCredentialsResponse.get("login");
-            
-            // store the token and usernamein redis
-
-            redisService.set(tokenCacheKeyPrefix + email, encryptionService.encrypt(githubAccessToken));
-            redisService.set(usernameCacheKeyPrefix + email, githubUsername);
-            return ResponseEntity.ok("Github account connected: " + githubUsername);
-        }
-
-        return ResponseEntity.ok("Github account already connected. You may close this tab.");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error connecting Github account: " + e.getMessage());
         }
     }
 

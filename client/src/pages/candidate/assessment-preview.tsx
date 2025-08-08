@@ -104,9 +104,11 @@ export default function CandidateAssessmentPreview() {
 
     const handleStart = async () => {
         // Github app installation URL with state parameter specifying this is a candidate installation
-        const GITHUB_CANDIDATE_INSTALL_URL: string = import.meta.env.VITE_GITHUB_APP_CANDIDATE_INSTALL_URL + "?state=candidate_" + email;
+        const githubInstallUrl: string = await apiCall(`/api/assessments/live/github/generate-install-url?email=${email}`, {
+            method: 'POST',
+        });
 
-        if (!selectedLanguage) {
+        if (assessment?.languageOptions?.length && !selectedLanguage) {
             alert('Please select a language/framework combination before starting.');
             return;
         }
@@ -138,7 +140,7 @@ export default function CandidateAssessmentPreview() {
 
         if (!candidateHasValidGithubToken.result) {
             // Open GitHub in a new tab
-            window.open(GITHUB_CANDIDATE_INSTALL_URL, '_blank');
+            window.open(githubInstallUrl, '_blank');
             // Start polling for GitHub token validation
             startPollingForGitHubToken();
             return;
@@ -151,7 +153,7 @@ export default function CandidateAssessmentPreview() {
 
     // Polling function to check if GitHub token is valid
     const startPollingForGitHubToken = async () => {
-        const maxAttempts = 60; // 5 minutes with 5-second intervals
+        const maxAttempts = 60; // 5 minutes with 7-second intervals
         const pollInterval = 7000; // 7 seconds
         let attempts = 0;
 

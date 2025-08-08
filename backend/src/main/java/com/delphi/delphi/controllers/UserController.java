@@ -28,12 +28,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.ModelAndView;
 
 import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.dtos.FetchUserDto;
 import com.delphi.delphi.dtos.NewUserDto;
 import com.delphi.delphi.entities.User;
+import com.delphi.delphi.services.EncryptionService;
 import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.git.GithubAccountType;
@@ -45,8 +45,10 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/users")
 public class UserController {
 
-    private final String appClientDomain;
-    private final String appEnv;
+    private final EncryptionService encryptionService;
+
+    // private final String appClientDomain;
+    // private final String appEnv;
 
     private final GithubService githubService;
 
@@ -56,7 +58,9 @@ public class UserController {
 
     private final String appInstallBaseUrl;
 
-    private final String githubCacheKeyPrefix = "github:install_url_random_string:";
+    private final String tokenCacheKeyPrefix = "candidate_github_token:";
+    private final String usernameCacheKeyPrefix = "candidate_github_username:";
+    private final String githubCacheKeyPrefix = "github_install_url_random_string:";
 
     // github client id and secret
     // private final String clientId;
@@ -80,15 +84,16 @@ public class UserController {
             @Value("${app.env}") String appEnv,
             @Value("${github.app.name}") String githubAppName,
             GithubService githubService,
-            RedisService redisService) {
+            RedisService redisService, EncryptionService encryptionService) {
         this.userService = userService;
         // this.clientId = clientId;
         // this.clientSecret = clientSecret;
         this.githubService = githubService;
-        this.appClientDomain = appClientDomain;
-        this.appEnv = appEnv;
+        // this.appClientDomain = appClientDomain;
+        // this.appEnv = appEnv;
         this.redisService = redisService;
         this.appInstallBaseUrl = String.format("https://github.com/app/%s/installations/new", githubAppName);
+        this.encryptionService = encryptionService;
     }
 
     private User getCurrentUser() {
@@ -406,18 +411,44 @@ public class UserController {
     //     }
     // }
 
-
-
     @GetMapping("/github/callback")
+    public ResponseEntity<?> callbackRouter(@RequestParam String code, @RequestParam String state) {
+        String userOrCandidate;
+        if (state.contains("_user_")) {
+            userOrCandidate = "user";
+        } else if (state.contains("_candidate_")) {
+            userOrCandidate = "candidate";
+        } else {
+            throw new IllegalArgumentException("Invalid state: " + state + " - state must start with user_ or candidate_");
+        }
+        String providedRandomString = state.split("_" + userOrCandidate + "_")[0];
+        String providedEmail = state.split("_" + userOrCandidate + "_")[1];
+
+        // check if the random string passed into the state parameter is valid for the email address
+        Object redisRandomString = redisService.get(githubCacheKeyPrefix + providedEmail);
+        if (redisRandomString == null || !redisRandomString.toString().equals(providedRandomString)) {
+            log.error("Invalid random string: {} for email: {}", providedRandomString, providedEmail + " - state: " + state);
+            return ResponseEntity.badRequest().body("Invalid random string in state query parameter: " + providedRandomString + " for email: " + providedEmail + " - state: " + state);
+        }
+
+        switch (userOrCandidate) {
+            case "user" -> {
+                return userCallback(code, providedEmail);
+            }
+            case "candidate" -> {
+                return candidateCallback(code, providedEmail);
+            }
+            default -> {
+                return ResponseEntity.badRequest().body("Invalid state query parameter. Either \"_user_\" or \"_candidate_\" must be present in the state parameter.");
+            }
+        }
+    }
+
     /*
-     * This endpoint is automatically called by GitHub after the user has
-     * authenticated.
-     * Sends a POST request to the GitHub API to get an access token.
-     * The access token is used to authenticate the user with the GitHub API.
-     * The access token is stored in the database.
-     * The access token is used to authenticate the user with the GitHub API.
+     * Storing the user's GitHub token in the DB
+     * Makes a POST request to the GitHub API using the provided code to get an access token.
      */
-    public ModelAndView callback(@RequestParam String code, @RequestParam String state) {
+    private ResponseEntity<?> userCallback(String code, String providedEmail) {
 
         // Map<String, String> map = new HashMap<>();
         // map.put("access_token", githubResponse.get("access_token"));
@@ -426,18 +457,6 @@ public class UserController {
         // map.put("expires_in", githubResponse.get("expires_in"));
         // map.put("status", "githubResponse");
         try {
-            String providedRandomString = state.split("_user_")[0];
-            String providedEmail = state.split("_user_")[1];
-
-            // check if the random string passed into the state parameteris valid for the email address
-            Object redisRandomString = redisService.get(githubCacheKeyPrefix + providedEmail);
-            if (redisRandomString == null || !redisRandomString.toString().equals(providedRandomString)) {
-                log.error("Invalid random string: {} for email: {}", providedRandomString, providedEmail);
-                throw new IllegalArgumentException("Invalid random string: " + providedRandomString + " for email: " + providedEmail);
-                // return new ModelAndView(
-                //         String.format("redirect:%s://%s/login", appEnv.equals("dev") ? "http" : "https", appClientDomain));
-            }
-
             User user = userService.getUserByEmail(providedEmail);
             log.info("Current user: {}", user.getEmail());
             Map<String, Object> accessTokenResponse = githubService.getAccessToken(code, false);
@@ -457,12 +476,41 @@ public class UserController {
             userService.updateGithubCredentials(user, githubAccessToken, githubUsername, githubAccountType);
 
             log.info("Github credentials updated for user: {}", user.getEmail());
-            return new ModelAndView(String.format("redirect:%s://%s/assessments",
-                    appEnv.equals("dev") ? "http" : "https", appClientDomain));
+            return ResponseEntity.ok("Github account connected: " + githubUsername);
         } catch (Exception e) {
             log.error("Error updating GitHub access token: " + e.getMessage());
-            return new ModelAndView(
-                    String.format("redirect:%s://%s/login", appEnv.equals("dev") ? "http" : "https", appClientDomain));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error connecting Github account: " + e.getMessage());
+        }
+    }
+
+    /*
+     * Storing the candidate's GitHub token in Redis
+     * Makes a POST request to the GitHub API using the provided code to get an access token.
+     */
+    private ResponseEntity<?> candidateCallback(String code, String email) {
+        try {
+        Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + email);
+
+        // get a new token if the candidate doesn't have one or if the token is invalid
+        if (candidateGithubToken == null || githubService.validateGithubCredentials(encryptionService.decrypt(candidateGithubToken.toString())) == null) {
+            // request a token from github api
+            Map<String, Object> accessTokenResponse = githubService.getAccessToken(code, true);
+            String githubAccessToken = (String) accessTokenResponse.get("access_token");
+            // get candidate's github username
+            // TODO: store github username and/or encrypted github token in DB candidate entity
+            Map<String, Object> githubCredentialsResponse = githubService.validateGithubCredentials(githubAccessToken);
+            String githubUsername = (String) githubCredentialsResponse.get("login");
+            
+            // store the token and username in redis
+
+            redisService.set(tokenCacheKeyPrefix + email, encryptionService.encrypt(githubAccessToken));
+            redisService.set(usernameCacheKeyPrefix + email, githubUsername);
+            return ResponseEntity.ok("Github account connected: " + githubUsername);
+        }
+
+        return ResponseEntity.ok("Github account already connected. You may close this tab.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error connecting Github account: " + e.getMessage());
         }
     }
 
