@@ -31,7 +31,7 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
     Page<Assessment> findByNameContainingIgnoreCase(String name, Pageable pageable);
     
     // Find assessments by role name
-    Page<Assessment> findByRoleNameContainingIgnoreCase(String roleName, Pageable pageable);
+    Page<Assessment> findByRoleContainingIgnoreCase(String role, Pageable pageable);
     
     // Find assessments within date range
     @Query("SELECT a FROM Assessment a WHERE a.startDate >= :startDate AND a.endDate <= :endDate")

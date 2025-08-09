@@ -37,7 +37,7 @@ const CandidateDashboard = () => {
         {
             id: 1,
             assessmentName: "Full Stack E-commerce Platform",
-            roleName: "Senior Full Stack Developer",
+            role: "Senior Full Stack Developer",
             status: "evaluated",
             language: "React/Node.js",
             dateStarted: "2025-06-15",
@@ -49,7 +49,7 @@ const CandidateDashboard = () => {
         {
             id: 2,
             assessmentName: "Microservices API Gateway",
-            roleName: "Backend Engineer",
+            role: "Backend Engineer",
             status: "submitted",
             language: "Go",
             dateStarted: "2025-06-10",
@@ -61,7 +61,7 @@ const CandidateDashboard = () => {
         {
             id: 3,
             assessmentName: "React Component Library",
-            roleName: "Frontend Developer",
+            role: "Frontend Developer",
             status: "started",
             language: "React/TypeScript",
             dateStarted: "2025-06-22",
@@ -73,7 +73,7 @@ const CandidateDashboard = () => {
         {
             id: 4,
             assessmentName: "Data Pipeline Optimization",
-            roleName: "Data Engineer",
+            role: "Data Engineer",
             status: "evaluated",
             language: "Python/Django",
             dateStarted: "2025-06-01",
@@ -85,7 +85,7 @@ const CandidateDashboard = () => {
         {
             id: 5,
             assessmentName: "Mobile Banking App",
-            roleName: "Mobile Developer",
+            role: "Mobile Developer",
             status: "expired",
             language: "React Native",
             dateStarted: "2025-05-20",
@@ -97,7 +97,7 @@ const CandidateDashboard = () => {
         {
             id: 6,
             assessmentName: "DevOps Infrastructure",
-            roleName: "DevOps Engineer",
+            role: "DevOps Engineer",
             status: "evaluated",
             language: "Terraform/Docker",
             dateStarted: "2025-05-15",
@@ -172,7 +172,7 @@ const CandidateDashboard = () => {
 
     const filteredAssessments = assessments.filter(assessment => {
         const matchesSearch = assessment.assessmentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            assessment.roleName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            assessment.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
             assessment.language.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'all' || assessment.status === statusFilter;
         return matchesSearch && matchesStatus;
@@ -308,7 +308,7 @@ const CandidateDashboard = () => {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="py-4 px-4 text-gray-300">{assessment.roleName}</td>
+                                                <td className="py-4 px-4 text-gray-300">{assessment.role}</td>
                                                 <td className="py-4 px-4">{getStatusBadge(assessment.status)}</td>
                                                 <td className="py-4 px-4">
                                                     <div className="flex items-center space-x-2">

@@ -83,7 +83,7 @@ public class AssessmentService {
         Assessment assessment = new Assessment();
         assessment.setName(newAssessmentDto.getName());
         assessment.setDescription(newAssessmentDto.getDescription());
-        assessment.setRoleName(newAssessmentDto.getRoleName());
+        assessment.setRole(newAssessmentDto.getRole());
         assessment.setStartDate(newAssessmentDto.getStartDate());
         assessment.setEndDate(newAssessmentDto.getEndDate());
         assessment.setDuration(newAssessmentDto.getDuration());
@@ -104,6 +104,13 @@ public class AssessmentService {
         assessment.setGithubRepositoryLink("https://github.com/" + user.getGithubUsername().toLowerCase() + "/" + assessment.getGithubRepoName());
 
         log.info("set github repository link for assessment: {}", assessment);
+        log.info("assessment name: {}", assessment.getName());
+        log.info("assessment description: {}", assessment.getDescription());
+        log.info("assessment role: {}", assessment.getRole());
+        log.info("assessment start date: {}", assessment.getStartDate());
+        log.info("assessment end date: {}", assessment.getEndDate());
+        log.info("assessment duration: {}", assessment.getDuration());
+        log.info("assessment skills: {}", assessment.getSkills());
         // save assessment in DB
         Assessment savedAssessment = assessmentRepository.save(assessment);
 
@@ -190,8 +197,8 @@ public class AssessmentService {
         if (assessmentUpdates.getDescription() != null) {
             existingAssessment.setDescription(assessmentUpdates.getDescription());
         }
-        if (assessmentUpdates.getRoleName() != null) {
-            existingAssessment.setRoleName(assessmentUpdates.getRoleName());
+        if (assessmentUpdates.getRole() != null) {
+            existingAssessment.setRole(assessmentUpdates.getRole());
         }
         if (assessmentUpdates.getStatus() != null) {
             existingAssessment.setStatus(assessmentUpdates.getStatus());
@@ -266,10 +273,10 @@ public class AssessmentService {
     }
 
     // Search assessments by role name
-    @Cacheable(value = "assessments", key = "#user.id + ':' + #roleName + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Cacheable(value = "assessments", key = "#user.id + ':' + #role + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<Assessment> searchAssessmentsByRoleName(User user, String roleName, Pageable pageable) {
-        return assessmentRepository.findByRoleNameContainingIgnoreCase(roleName, pageable);
+    public Page<Assessment> searchAssessmentsByRoleName(User user, String role, Pageable pageable) {
+        return assessmentRepository.findByRoleContainingIgnoreCase(role, pageable);
     }
 
     // Get assessments within date range

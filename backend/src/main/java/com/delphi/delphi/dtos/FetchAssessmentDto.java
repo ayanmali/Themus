@@ -11,7 +11,7 @@ public class FetchAssessmentDto {
     private Long id;
     private String name;
     private String description;
-    private String roleName;
+    private String role;
     private AssessmentStatus status;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
@@ -27,7 +27,7 @@ public class FetchAssessmentDto {
         this.id = assessment.getId();
         this.name = assessment.getName();
         this.description = assessment.getDescription();
-        this.roleName = assessment.getRoleName();
+        this.role = assessment.getRole();
         this.status = assessment.getStatus();
         this.startDate = assessment.getStartDate();
         this.endDate = assessment.getEndDate();
@@ -43,7 +43,7 @@ public class FetchAssessmentDto {
     public FetchAssessmentDto() {
     }
 
-    public FetchAssessmentDto(LocalDateTime createdDate, String description, Integer duration, LocalDateTime endDate, String githubRepositoryLink, Long id, List<String> languageOptions, Map<String, String> metadata, String name, String roleName, List<String> skills, LocalDateTime startDate, AssessmentStatus status, LocalDateTime updatedDate) {
+    public FetchAssessmentDto(LocalDateTime createdDate, String description, Integer duration, LocalDateTime endDate, String githubRepositoryLink, Long id, List<String> languageOptions, Map<String, String> metadata, String name, String role, List<String> skills, LocalDateTime startDate, AssessmentStatus status, LocalDateTime updatedDate) {
         this.createdDate = createdDate;
         this.description = description;
         this.duration = duration;
@@ -53,7 +53,7 @@ public class FetchAssessmentDto {
         this.languageOptions = languageOptions;
         this.metadata = metadata;
         this.name = name;
-        this.roleName = roleName;
+        this.role = role;
         this.skills = skills;
         this.startDate = startDate;
         this.status = status;
@@ -84,12 +84,12 @@ public class FetchAssessmentDto {
         this.description = description;
     }
 
-    public String getRoleName() {
-        return roleName;
+    public String getRole() {
+        return role;
     }
 
-    public void setRoleName(String roleName) {
-        this.roleName = roleName;
+    public void setRoleName(String role) {
+        this.role = role;
     }
 
     public AssessmentStatus getStatus() {

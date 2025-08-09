@@ -34,73 +34,74 @@ import { TechChoices } from "./tech-choices";
 import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import useApi from "@/hooks/use-api";
 import { useAuth } from "@/contexts/AuthContext";
+import { Textarea } from "@/components/ui/textarea";
 
 // Create a schema for the assessment creation form
 const createAssessmentSchema = z.object({
   model: z.string().min(1, "Model is required").max(255, "Model must be less than 255 characters"),
-  title: z.string().min(1, "Title is required").max(255, "Title must be less than 255 characters"),
+  name: z.string().min(1, "Title is required").max(255, "Title must be less than 255 characters"),
   role: z.string().min(1, "Role is required").max(255, "Role must be less than 255 characters"),
-  skills: z.string().min(1, "Skills are required").max(255, "Skills must be less than 255 characters"),
+  skills: z.array(z.string()).min(1, "Skills are required"),
   description: z.string().min(1, "Description is required").max(255, "Description must be less than 255 characters"),
   //assessmentType: z.enum(["TAKE_HOME", "LIVE_CODING"]),
   duration: z.number().min(1, "Duration must be at least 1 minute").max(255, "Duration must be less than 255 minutes"),
-  techChoices: z.array(z.string()).max(5, "There can be no more than 5 technology choices."),
+  languageOptions: z.array(z.string()).max(5, "There can be no more than 5 technology choices."),
   startDate: z.coerce.date().min(new Date(), { message: "Start date must be in the future" }),
   endDate: z.coerce.date().min(new Date(), { message: "End date must be in the future" }),
 });
 
 type CreateAssessmentFormValues = z.infer<typeof createAssessmentSchema>;
 
-interface UseAutoResizeTextareaProps {
-  minHeight: number;
-  maxHeight?: number;
-}
+// interface UseAutoResizeTextareaProps {
+//   minHeight: number;
+//   maxHeight?: number;
+// }
 
-function useAutoResizeTextarea({
-  minHeight,
-  maxHeight,
-}: UseAutoResizeTextareaProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+// function useAutoResizeTextarea({
+//   minHeight,
+//   maxHeight,
+// }: UseAutoResizeTextareaProps) {
+//   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const adjustHeight = useCallback(
-    (reset?: boolean) => {
-      const textarea = textareaRef.current;
-      if (!textarea) return;
+//   const adjustHeight = useCallback(
+//     (reset?: boolean) => {
+//       const textarea = textareaRef.current;
+//       if (!textarea) return;
 
-      if (reset) {
-        textarea.style.height = `${minHeight}px`;
-        return;
-      }
+//       if (reset) {
+//         textarea.style.height = `${minHeight}px`;
+//         return;
+//       }
 
-      textarea.style.height = `${minHeight}px`;
-      const newHeight = Math.max(
-        minHeight,
-        Math.min(
-          textarea.scrollHeight,
-          maxHeight ?? Number.POSITIVE_INFINITY
-        )
-      );
+//       textarea.style.height = `${minHeight}px`;
+//       const newHeight = Math.max(
+//         minHeight,
+//         Math.min(
+//           textarea.scrollHeight,
+//           maxHeight ?? Number.POSITIVE_INFINITY
+//         )
+//       );
 
-      textarea.style.height = `${newHeight}px`;
-    },
-    [minHeight, maxHeight]
-  );
+//       textarea.style.height = `${newHeight}px`;
+//     },
+//     [minHeight, maxHeight]
+//   );
 
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = `${minHeight}px`;
-    }
-  }, [minHeight]);
+//   useEffect(() => {
+//     const textarea = textareaRef.current;
+//     if (textarea) {
+//       textarea.style.height = `${minHeight}px`;
+//     }
+//   }, [minHeight]);
 
-  useEffect(() => {
-    const handleResize = () => adjustHeight();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [adjustHeight]);
+//   useEffect(() => {
+//     const handleResize = () => adjustHeight();
+//     window.addEventListener("resize", handleResize);
+//     return () => window.removeEventListener("resize", handleResize);
+//   }, [adjustHeight]);
 
-  return { textareaRef, adjustHeight };
-}
+//   return { textareaRef, adjustHeight };
+// }
 
 interface CommandSuggestion {
   icon: React.ReactNode;
@@ -109,119 +110,82 @@ interface CommandSuggestion {
 
   prefix: string;
   role: string;
-  skills: string;
+  skills: string[];
   duration: number;
   durationUnit: "minutes" | "hours"
 
 }
 
-interface TextareaProps
-  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  containerClassName?: string;
-  showRing?: boolean;
-}
-
-const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, containerClassName, showRing = true, ...props }, ref) => {
-    const [isFocused, setIsFocused] = React.useState(false);
-
-    return (
-      <div className={cn(
-        "relative",
-        containerClassName
-      )}>
-        <textarea
-          className={cn(
-            "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
-            "transition-all duration-200 ease-in-out",
-            "placeholder:text-muted-foreground",
-            "disabled:cursor-not-allowed disabled:opacity-50",
-            showRing ? "focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0" : "",
-            className
-          )}
-          ref={ref}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          {...props}
-        />
-
-        {showRing && isFocused && (
-          <motion.span
-            className="absolute inset-0 rounded-md pointer-events-none ring-2 ring-offset-0 ring-violet-500/30"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          />
-        )}
-
-        {props.onChange && (
-          <div
-            className="absolute bottom-2 right-2 opacity-0 w-2 h-2 bg-violet-500 rounded-full"
-            style={{
-              animation: 'none',
-            }}
-            id="textarea-ripple"
-          />
-        )}
-      </div>
-    )
-  }
-)
-Textarea.displayName = "Textarea"
-
 export function CreateAssessmentForm() {
   const [open, setOpen] = React.useState(false)
   const [modelValue, setModelValue] = React.useState("")
-  const [title, setTitle] = useState("");
   const [role, setRole] = useState("");
-  const [skills, setSkills] = useState("");
+  const [skills, setSkills] = useState<string>("");
   const [duration, setDuration] = useState(0);
   const [durationUnit, setDurationUnit] = useState<"minutes" | "hours">("minutes");
-  const [techChoices, setTechChoices] = useState<string[]>([]);
+  const [languageOptions, setLanguageOptions] = useState<string[]>([]);
+  const [name, setName] = useState<string>("");
   const [formDesc, setFormDesc] = useState("");
   const [attachments, setAttachments] = useState<string[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
+  //const [isTyping, setIsTyping] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [activeSuggestion, setActiveSuggestion] = useState<number>(-1);
-  const [showCommandPalette, setShowCommandPalette] = useState(false);
-  const [recentCommand, setRecentCommand] = useState<string | null>(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  //const [activeSuggestion, setActiveSuggestion] = useState<number>(-1);
+  //const [showCommandPalette, setShowCommandPalette] = useState(false);
+  //const [recentCommand, setRecentCommand] = useState<string | null>(null);
+  //const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isCheckingGitHub, setIsCheckingGitHub] = useState(false);
-  const { textareaRef, adjustHeight } = useAutoResizeTextarea({
-    minHeight: 60,
-    maxHeight: 200,
-  });
+  //const { textareaRef, adjustHeight } = useAutoResizeTextarea({
+  //  minHeight: 60,
+  //  maxHeight: 200,
+  //});
   const [inputFocused, setInputFocused] = useState(false);
   const commandPaletteRef = useRef<HTMLDivElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const [, navigate] = useLocation();
-  const { apiCall } = useApi();
-
-  // Setup form with updated default values
+  // Setup form with updated default values (declare before any watchers)
   const form = useForm<CreateAssessmentFormValues>({
     resolver: zodResolver(createAssessmentSchema),
     defaultValues: {
-      title: "",
-      // model: "anthropic/claude-sonnet-4",
+      name: "",
       role: "",
-      skills: "",
+      skills: [],
       description: "",
-      techChoices: [],
+      languageOptions: [],
       duration: 0,
       startDate: new Date(),
       endDate: new Date()
     },
   });
 
+  const adjustDescriptionHeight = useCallback(() => {
+    const el = descriptionRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
+
+  useEffect(() => {
+    adjustDescriptionHeight();
+  }, [adjustDescriptionHeight]);
+
+  const descriptionValue = form.watch("description");
+  useEffect(() => {
+    adjustDescriptionHeight();
+  }, [descriptionValue, adjustDescriptionHeight]);
+
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
+  const { apiCall } = useApi();
+
+  // form already initialized above
+
   // Ensure a default model is selected so validation passes if user doesn't pick one
 
-  if (!modelValue && Array.isArray(models) && models.length > 0) {
-    setModelValue(defaultModel);
-    form.setValue("model", defaultModel, { shouldValidate: true, shouldDirty: true });
-  }
+  // if (!modelValue && Array.isArray(models) && models.length > 0) {
+  //   setModelValue(defaultModel);
+  //   form.setValue("model", defaultModel, { shouldValidate: true, shouldDirty: true });
+  // }
 
   // Create assessment mutation
   const createAssessmentMutation = useMutation({
@@ -320,11 +284,13 @@ export function CreateAssessmentForm() {
     
     // Convert duration to minutes before sending to API
     const durationInMinutes = convertDurationToMinutes(duration, durationUnit);
-    
+    const skillsArray = skills.split(',').map(skill => skill.trim());
+
     // Create the data object with converted duration
       const apiData = {
       ...data,
-      duration: durationInMinutes
+      duration: durationInMinutes,
+      skills: skillsArray
     };
     
     console.log('API data with duration in minutes:', apiData);
@@ -388,7 +354,7 @@ export function CreateAssessmentForm() {
       prefix:
         `Have candidates build a web application with Next, using a Postgres database. Have them Dockerize the app and include a docker-compose.yml file in their submission.`,
       role: "Software Engineering Intern",
-      skills: "Next.js, Tailwind CSS, TypeScript, Docker, Prisma",
+      skills: ["Next.js", "Tailwind CSS", "TypeScript", "Docker", "Prisma"],
       duration: 180,
       durationUnit: "minutes"
     },
@@ -399,7 +365,7 @@ export function CreateAssessmentForm() {
       prefix:
         `This assessment is for a mid-level backend engineer with 3+ years of experience. Have candidates ship a REST API, with paginated endpoints, rate limiting, and caching.`,
       role: "Mid-Level Backend Engineer",
-      skills: "Go, REST API Design, ORM, Redis, Caching, Rate limiting",
+      skills: ["Go", "REST API Design", "ORM", "Redis", "Caching", "Rate limiting"],
       duration: 3,
       durationUnit: "hours"
     },
@@ -409,7 +375,7 @@ export function CreateAssessmentForm() {
       description: "MLOps Engineer",
       prefix: `Create an assessment for a Senior MLOps Engineer with 5+ years of experience. Test applicants on their proficiency in MLFlow, ML Studio, and Azure ML.`,
       role: "Senior MLOps Engineer",
-      skills: "MLFlow, ML Studio, Azure ML",
+      skills: ["MLFlow", "ML Studio", "Azure ML"],
       duration: 2,
       durationUnit: "hours"
     },
@@ -419,7 +385,7 @@ export function CreateAssessmentForm() {
       description: "iOS Engineer",
       prefix: `This assessment is for an iOS Engineer with 2+ years of experience. Have candidates build a mobile app with Swift and SwiftUI.`,
       role: "iOS Engineer",
-      skills: "Swift, SwiftUI, iOS",
+      skills: ["Swift", "SwiftUI", "iOS"],
       duration: 2,
       durationUnit: "hours"
     },
@@ -472,61 +438,61 @@ export function CreateAssessmentForm() {
   //   };
   // }, []);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (showCommandPalette) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setActiveSuggestion(prev =>
-          prev < commandSuggestions.length - 1 ? prev + 1 : 0
-        );
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setActiveSuggestion(prev =>
-          prev > 0 ? prev - 1 : commandSuggestions.length - 1
-        );
-      } else if (e.key === 'Tab' || e.key === 'Enter') {
-        e.preventDefault();
-        if (activeSuggestion >= 0) {
-          const selectedCommand = commandSuggestions[activeSuggestion];
-          setTitle(selectedCommand.label);
+  // const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  //   if (showCommandPalette) {
+  //     if (e.key === 'ArrowDown') {
+  //       e.preventDefault();
+  //       setActiveSuggestion(prev =>
+  //         prev < commandSuggestions.length - 1 ? prev + 1 : 0
+  //       );
+  //     } else if (e.key === 'ArrowUp') {
+  //       e.preventDefault();
+  //       setActiveSuggestion(prev =>
+  //         prev > 0 ? prev - 1 : commandSuggestions.length - 1
+  //       );
+  //     } else if (e.key === 'Tab' || e.key === 'Enter') {
+  //       e.preventDefault();
+  //       if (activeSuggestion >= 0) {
+  //         const selectedCommand = commandSuggestions[activeSuggestion];
+  //         setTitle(selectedCommand.label);
 
-          setRole(selectedCommand.role);
-          setSkills(selectedCommand.skills);
-          setDuration(selectedCommand.duration);
-          setDurationUnit(selectedCommand.durationUnit);
-          setFormDesc(selectedCommand.prefix + ' ');
-          // Sync to form state so validation sees values
-          form.setValue("title", selectedCommand.label, { shouldValidate: true, shouldDirty: true });
-          form.setValue("role", selectedCommand.role, { shouldValidate: true, shouldDirty: true });
-          form.setValue("skills", selectedCommand.skills, { shouldValidate: true, shouldDirty: true });
-          form.setValue("duration", selectedCommand.duration, { shouldValidate: true, shouldDirty: true });
-          form.setValue("description", selectedCommand.prefix + ' ', { shouldValidate: true, shouldDirty: true });
-          // Provide a reasonable default title if empty
-          if (!form.getValues("title")) {
-            form.setValue("title", selectedCommand.label, { shouldValidate: true, shouldDirty: true });
-          }
-          // Ensure model is set
-          if (!form.getValues("model") && models.length > 0) {
-            form.setValue("model", defaultModel, { shouldValidate: true, shouldDirty: true });
-            setModelValue(models[0]);
-          }
-          setShowCommandPalette(false);
+  //         setRole(selectedCommand.role);
+  //         setSkills(selectedCommand.skills);
+  //         setDuration(selectedCommand.duration);
+  //         setDurationUnit(selectedCommand.durationUnit);
+  //         setFormDesc(selectedCommand.prefix + ' ');
+  //         // Sync to form state so validation sees values
+  //         form.setValue("title", selectedCommand.label, { shouldValidate: true, shouldDirty: true });
+  //         form.setValue("role", selectedCommand.role, { shouldValidate: true, shouldDirty: true });
+  //         form.setValue("skills", selectedCommand.skills, { shouldValidate: true, shouldDirty: true });
+  //         form.setValue("duration", selectedCommand.duration, { shouldValidate: true, shouldDirty: true });
+  //         form.setValue("description", selectedCommand.prefix + ' ', { shouldValidate: true, shouldDirty: true });
+  //         // Provide a reasonable default title if empty
+  //         if (!form.getValues("title")) {
+  //           form.setValue("title", selectedCommand.label, { shouldValidate: true, shouldDirty: true });
+  //         }
+  //         // Ensure model is set
+  //         if (!form.getValues("model") && models.length > 0) {
+  //           form.setValue("model", defaultModel, { shouldValidate: true, shouldDirty: true });
+  //           setModelValue(models[0]);
+  //         }
+  //         setShowCommandPalette(false);
 
-          setRecentCommand(selectedCommand.label);
-          setTimeout(() => setRecentCommand(null), 3500);
-        }
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        setShowCommandPalette(false);
-      }
-    }
-    // else if (e.key === "Enter" && !e.shiftKey) {
-    //     e.preventDefault();
-    //     if (value.trim()) {
-    //         handleSendMessage();
-    //     }
-    // }
-  };
+  //         setRecentCommand(selectedCommand.label);
+  //         setTimeout(() => setRecentCommand(null), 3500);
+  //       }
+  //     } else if (e.key === 'Escape') {
+  //       e.preventDefault();
+  //       setShowCommandPalette(false);
+  //     }
+  //   }
+  //   // else if (e.key === "Enter" && !e.shiftKey) {
+  //   //     e.preventDefault();
+  //   //     if (value.trim()) {
+  //   //         handleSendMessage();
+  //   //     }
+  //   // }
+  // };
 
   // const handleSendMessage = () => {
   //     if (value.trim()) {
@@ -552,16 +518,16 @@ export function CreateAssessmentForm() {
 
   const selectCommandSuggestion = (index: number) => {
     const selectedCommand = commandSuggestions[index];
-    setTitle(selectedCommand.label);
+    setName(selectedCommand.label);
     setRole(selectedCommand.role);
-    setSkills(selectedCommand.skills);
+    setSkills(selectedCommand.skills.join(', '));
     setDuration(selectedCommand.duration);
     setDurationUnit(selectedCommand.durationUnit);
     setFormDesc(selectedCommand.prefix + ' ');
-    setShowCommandPalette(false);
+    // setShowCommandPalette(false);
 
     // Sync to form state so validation sees values
-    form.setValue("title", selectedCommand.label, { shouldValidate: true, shouldDirty: true });
+    form.setValue("name", selectedCommand.label, { shouldValidate: true, shouldDirty: true });
     form.setValue("role", selectedCommand.role, { shouldValidate: true, shouldDirty: true });
     form.setValue("skills", selectedCommand.skills, { shouldValidate: true, shouldDirty: true });
     form.setValue("duration", selectedCommand.duration, { shouldValidate: true, shouldDirty: true });
@@ -574,8 +540,8 @@ export function CreateAssessmentForm() {
       setModelValue(models[0]);
     }
 
-    setRecentCommand(selectedCommand.label);
-    setTimeout(() => setRecentCommand(null), 2000);
+    // setRecentCommand(selectedCommand.label);
+    // setTimeout(() => setRecentCommand(null), 2000);
   };
 
   return (
@@ -739,17 +705,17 @@ export function CreateAssessmentForm() {
               />
               <FormField
                 control={form.control}
-                name="title"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-300 font-medium">Assessment Title</FormLabel>
+                    <FormLabel className="text-slate-300 font-medium">Assessment Name</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="e.g., Junior Full-Stack Dev - XXX Team, May 2025"
                         {...field}
-                        value={title}
+                        value={name}
                         onChange={(e) => {
-                          setTitle(e.target.value);
+                          setName(e.target.value);
                           field.onChange(e.target.value);
                         }}      
                         className="bg-slate-800/60 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-violet-500/20 backdrop-blur-sm"
@@ -912,7 +878,7 @@ export function CreateAssessmentForm() {
 
               <FormField
                 control={form.control}
-                name="techChoices"
+                name="languageOptions"
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
@@ -937,11 +903,11 @@ export function CreateAssessmentForm() {
                         transition={{ delay: 0.1 }}
                       >
 
-                        <AnimatePresence>
+                        {/* <AnimatePresence>
 
-                          {showCommandPalette && (
+                          {showCommandPalette && ( 
                             <motion.div
-                              ref={commandPaletteRef}
+                              //ref={commandPaletteRef}
                               className="absolute left-4 right-4 bottom-full mb-2 backdrop-blur-xl bg-slate-900/95 rounded-lg z-50 shadow-lg border border-slate-700/50 overflow-hidden"
                               initial={{ opacity: 0, y: 5 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -954,7 +920,7 @@ export function CreateAssessmentForm() {
                                     key={suggestion.prefix}
                                     className={cn(
                                       "flex items-center gap-2 px-3 py-2 text-xs transition-colors cursor-pointer",
-                                      activeSuggestion === index
+                                      //activeSuggestion === index
                                         ? "bg-violet-600/20 text-white"
                                         : "text-slate-300 hover:bg-slate-800/50"
                                     )}
@@ -976,46 +942,20 @@ export function CreateAssessmentForm() {
                             </motion.div>
                           )}
 
-                        </AnimatePresence>
+                        </AnimatePresence> */}
 
-                        <div className="p-4">
-
-                          <Textarea
-                            ref={textareaRef}
-                            value={formDesc}
-                            onChange={(e) => {
-                              setFormDesc(e.target.value);
-                              adjustHeight();
-                              // keep form state in sync so description is submitted
-                              field.onChange(e.target.value);
-                            }}
-                            onKeyDown={handleKeyDown}
-                            onFocus={() => setInputFocused(true)}
-                            onBlur={() => setInputFocused(false)}
-                            placeholder={`Enter any other important information about the assessment, role, or company, such as:
-                                        - the job description
-                                        - the team this role applies to
-                                        - technical constraints to follow
-                                        - specific problems, bugs, or tasks for candidates to solve, or features to implement`}
-                            containerClassName="w-full"
-                            className={cn(
-                              "w-full px-4 py-3",
-                              "resize-none",
-                              "bg-transparent",
-                              "border-none",
-                              "text-white text-sm",
-                              "focus:outline-none",
-                              "placeholder:text-slate-500",
-                              "min-h-[60px]",
-                              "justify-start",
-                              "text-left"
-                            )}
-                            style={{
-                              overflow: "hidden",
-                            }}
-                            showRing={false}
-                          />
-                        </div>
+                        <Textarea
+                          placeholder="Describe what the candidate needs to do in this assessment"
+                          value={field.value ?? ""}
+                          onChange={(e) => {
+                            setFormDesc(e.target.value);
+                            field.onChange(e.target.value);
+                            adjustDescriptionHeight();
+                          }}
+                          ref={descriptionRef}
+                          rows={1}
+                          className="bg-slate-800/60 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-violet-500/20 backdrop-blur-sm resize-none overflow-hidden"
+                        />
 
                         <AnimatePresence>
                           {attachments.length > 0 && (
@@ -1046,7 +986,8 @@ export function CreateAssessmentForm() {
                           )}
                         </AnimatePresence>
 
-                        <div className="p-4 border-t border-slate-700/50 flex items-center justify-between gap-4">
+                        {/* TODO: add support for file attachments */}
+                        {/* <div className="p-4 border-t border-slate-700/50 flex items-center justify-between gap-4"> */}
                           {/* <div className="flex items-center gap-3">
                             <motion.button
                               type="button"
@@ -1103,7 +1044,7 @@ export function CreateAssessmentForm() {
                                         )}
                                         <span>Send</span>
                                     </motion.button> */}
-                        </div>
+                        {/* </div> */}
                       </motion.div>
                     </FormControl>
                     <FormMessage />
@@ -1134,7 +1075,7 @@ export function CreateAssessmentForm() {
         </motion.div>
       </div>
 
-      <AnimatePresence>
+      {/* <AnimatePresence>
         {isTyping && (
           <motion.div
             className="fixed bottom-8 mx-auto transform -translate-x-1/2 backdrop-blur-xl bg-slate-800/90 rounded-full px-4 py-2 shadow-lg border border-slate-700/50"
@@ -1153,9 +1094,9 @@ export function CreateAssessmentForm() {
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence> */}
 
-      {inputFocused && (
+      {/* {inputFocused && (
         <motion.div
           className="fixed w-[50rem] h-[50rem] rounded-full pointer-events-none z-0 opacity-[0.03] bg-gradient-to-r from-violet-500 via-fuchsia-500 to-indigo-500 blur-[96px]"
           animate={{
@@ -1169,81 +1110,81 @@ export function CreateAssessmentForm() {
             mass: 0.5,
           }}
         />
-      )}
+      )} */}
     </div>
   );
 }
 
-function TypingDots() {
-  return (
-    <div className="flex items-center ml-1">
-      {[1, 2, 3].map((dot) => (
-        <motion.div
-          key={dot}
-          className="w-1.5 h-1.5 bg-white rounded-full mx-0.5"
-          initial={{ opacity: 0.3 }}
-          animate={{
-            opacity: [0.3, 0.9, 0.3],
-            scale: [0.85, 1.1, 0.85]
-          }}
-          transition={{
-            duration: 1.2,
-            repeat: Infinity,
-            delay: dot * 0.15,
-            ease: "easeInOut",
-          }}
-          style={{
-            boxShadow: "0 0 4px rgba(255, 255, 255, 0.3)"
-          }}
-        />
-      ))}
-    </div>
-  );
-}
+// function TypingDots() {
+//   return (
+//     <div className="flex items-center ml-1">
+//       {[1, 2, 3].map((dot) => (
+//         <motion.div
+//           key={dot}
+//           className="w-1.5 h-1.5 bg-white rounded-full mx-0.5"
+//           initial={{ opacity: 0.3 }}
+//           animate={{
+//             opacity: [0.3, 0.9, 0.3],
+//             scale: [0.85, 1.1, 0.85]
+//           }}
+//           transition={{
+//             duration: 1.2,
+//             repeat: Infinity,
+//             delay: dot * 0.15,
+//             ease: "easeInOut",
+//           }}
+//           style={{
+//             boxShadow: "0 0 4px rgba(255, 255, 255, 0.3)"
+//           }}
+//         />
+//       ))}
+//     </div>
+//   );
+// }
 
-interface ActionButtonProps {
-  icon: React.ReactNode;
-  label: string;
-}
+// interface ActionButtonProps {
+//   icon: React.ReactNode;
+//   label: string;
+// }
 
-function ActionButton({ icon, label }: ActionButtonProps) {
-  const [isHovered, setIsHovered] = useState(false);
+// function ActionButton({ icon, label }: ActionButtonProps) {
+//   const [isHovered, setIsHovered] = useState(false);
 
-  return (
-    <motion.button
-      type="button"
-      whileHover={{ scale: 1.05, y: -2 }}
-      whileTap={{ scale: 0.97 }}
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
-      className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 rounded-full border border-neutral-800 text-neutral-400 hover:text-white transition-all relative overflow-hidden group"
-    >
-      <div className="relative z-10 flex items-center gap-2">
-        {icon}
-        <span className="text-xs relative z-10">{label}</span>
-      </div>
+//   return (
+//     <motion.button
+//       type="button"
+//       whileHover={{ scale: 1.05, y: -2 }}
+//       whileTap={{ scale: 0.97 }}
+//       onHoverStart={() => setIsHovered(true)}
+//       onHoverEnd={() => setIsHovered(false)}
+//       className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 rounded-full border border-neutral-800 text-neutral-400 hover:text-white transition-all relative overflow-hidden group"
+//     >
+//       <div className="relative z-10 flex items-center gap-2">
+//         {icon}
+//         <span className="text-xs relative z-10">{label}</span>
+//       </div>
 
-      <AnimatePresence>
-        {isHovered && (
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-violet-500/10 to-indigo-500/10"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          />
-        )}
-      </AnimatePresence>
+//       <AnimatePresence>
+//         {isHovered && (
+//           <motion.div
+//             className="absolute inset-0 bg-gradient-to-r from-violet-500/10 to-indigo-500/10"
+//             initial={{ opacity: 0 }}
+//             animate={{ opacity: 1 }}
+//             exit={{ opacity: 0 }}
+//             transition={{ duration: 0.2 }}
+//           />
+//         )}
+//       </AnimatePresence>
 
-      <motion.span
-        className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-violet-500 to-indigo-500"
-        initial={{ width: 0 }}
-        whileHover={{ width: "100%" }}
-        transition={{ duration: 0.3 }}
-      />
-    </motion.button>
-  );
-}
+//       <motion.span
+//         className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-violet-500 to-indigo-500"
+//         initial={{ width: 0 }}
+//         whileHover={{ width: "100%" }}
+//         transition={{ duration: 0.3 }}
+//       />
+//     </motion.button>
+//   );
+// }
 
 const rippleKeyframes = `
 @keyframes ripple {

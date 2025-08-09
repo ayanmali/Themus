@@ -59,10 +59,10 @@ public class Assessment {
     @Column(columnDefinition = "TEXT")
     private String description;
     
-    @NotBlank(message = "Role name is required")
+    @NotBlank(message = "Role is required")
     @Size(max = 100, message = "Role name must not exceed 100 characters")
-    @Column(name = "role_name", nullable = false, length = 100)
-    private String roleName;
+    @Column(name = "role", nullable = false, length = 100)
+    private String role;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -139,10 +139,10 @@ public class Assessment {
         // Empty constructor for Hibernate
     }
 
-    public Assessment(String name, String description, String roleName, LocalDateTime startDate, LocalDateTime endDate, Integer duration, String githubRepositoryLink, User user, List<String> skills, List<String> languageOptions, Map<String, String> metadata) {
+    public Assessment(String name, String description, String role, LocalDateTime startDate, LocalDateTime endDate, Integer duration, String githubRepositoryLink, User user, List<String> skills, List<String> languageOptions, Map<String, String> metadata) {
         this.name = name;
         this.description = description;
-        this.roleName = roleName;
+        this.role = role;
         this.startDate = startDate;
         this.endDate = endDate;
         this.duration = duration;
@@ -179,12 +179,12 @@ public class Assessment {
         this.description = description;
     }
 
-    public String getRoleName() {
-        return roleName;
+    public String getRole() {
+        return role;
     }
 
-    public void setRoleName(String roleName) {
-        this.roleName = roleName;
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public AssessmentStatus getStatus() {

@@ -106,7 +106,7 @@ public class AssessmentController {
 
     // // get chat completion from the LLM
     // chatService.getChatCompletion(AssessmentCreationPrompts.USER_PROMPT,
-    // Map.of("ROLE", newAssessmentDto.getRoleName(),
+    // Map.of("ROLE", newAssessmentDto.getRole(),
     // "ASSESSMENT_TYPE", newAssessmentDto.getAssessmentType(),
     // "DURATION", newAssessmentDto.getDuration(),
     // "SKILLS", newAssessmentDto.getSkills(),
@@ -119,7 +119,7 @@ public class AssessmentController {
 
     // // agent loop
     // // userChatService.getChatCompletion(assessmentCreationSystemPromptMessage,
-    // // Map.of("role", newAssessmentDto.getRoleName(), "experienceLevel",
+    // // Map.of("role", newAssessmentDto.getRole(), "experienceLevel",
     // // newAssessmentDto.getExperienceLevel(), "languages",
     // // newAssessmentDto.getLanguages(), "libraries",
     // // newAssessmentDto.getLibraries(), "frameworks",
@@ -172,11 +172,11 @@ public class AssessmentController {
             // Publish to chat message queue instead of direct call
             String requestId = chatMessagePublisher.publishChatCompletionRequest(
                     AssessmentCreationPrompts.USER_PROMPT,
-                    Map.of("ROLE", newAssessmentDto.getRoleName(),
+                    Map.of("ROLE", newAssessmentDto.getRole(),
                             "DURATION", newAssessmentDto.getDuration(),
                             "SKILLS", newAssessmentDto.getSkills(),
                             "LANGUAGE_OPTIONS", newAssessmentDto.getLanguageOptions(),
-                            "OTHER_DETAILS", newAssessmentDto.getOtherDetails()),
+                            "OTHER_DETAILS", newAssessmentDto.getDescription()),
                     newAssessmentDto.getModel(),
                     assessment.getId(),
                     user.getId(),
@@ -324,7 +324,7 @@ public class AssessmentController {
             Assessment updateAssessment = new Assessment();
             updateAssessment.setName(assessmentUpdates.getName());
             updateAssessment.setDescription(assessmentUpdates.getDescription());
-            updateAssessment.setRoleName(assessmentUpdates.getRoleName());
+            updateAssessment.setRole(assessmentUpdates.getRole());
             updateAssessment.setStartDate(assessmentUpdates.getStartDate());
             updateAssessment.setEndDate(assessmentUpdates.getEndDate());
             updateAssessment.setDuration(assessmentUpdates.getDuration());
@@ -431,13 +431,13 @@ public class AssessmentController {
     // Search assessments by role name
     @GetMapping("/search/role")
     public ResponseEntity<?> searchAssessmentsByRoleName(
-            @RequestParam String roleName,
+            @RequestParam String role,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
             User user = getCurrentUser();
             Pageable pageable = PageRequest.of(page, size);
-            Page<Assessment> assessments = assessmentService.searchAssessmentsByRoleName(user, roleName, pageable);
+            Page<Assessment> assessments = assessmentService.searchAssessmentsByRoleName(user, role, pageable);
             Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
 
             return ResponseEntity.ok(assessmentDtos);

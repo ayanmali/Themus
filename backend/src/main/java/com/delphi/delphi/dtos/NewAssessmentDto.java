@@ -6,28 +6,26 @@ import java.util.List;
 public class NewAssessmentDto {
     private String name; // title
     private String description; // description
-    private String roleName; // role
+    private String role; // role
     private LocalDateTime startDate; // start date
     private LocalDateTime endDate;
     private Integer duration; // estimated duration/time limit
     private List<String> skills;
     private List<String> languageOptions;
-    private String otherDetails; // provided in the user in the text box
     private String model; // model to use for the chat completion
 
     public NewAssessmentDto() {
     }
 
-    public NewAssessmentDto(String name, String description, String roleName, LocalDateTime startDate, LocalDateTime endDate, Integer duration, List<String> skills, List<String> languageOptions, String otherDetails, String model) {
+    public NewAssessmentDto(String name, String description, String role, LocalDateTime startDate, LocalDateTime endDate, Integer duration, List<String> skills, List<String> languageOptions, String model) {
         this.name = name;
         this.description = description;
-        this.roleName = roleName;
+        this.role = role;
         this.startDate = startDate;
         this.endDate = endDate;
         this.duration = duration;
         this.skills = skills;
         this.languageOptions = languageOptions;
-        this.otherDetails = otherDetails;
         this.model = model;
     }
 
@@ -43,11 +41,11 @@ public class NewAssessmentDto {
     public void setDescription(String description) {
         this.description = description;
     }
-    public String getRoleName() {
-        return roleName;
+    public String getRole() {
+        return role;
     }
-    public void setRoleName(String roleName) {
-        this.roleName = roleName;
+    public void setRole(String role) {
+        this.role = role;
     }
     public LocalDateTime getStartDate() {
         return startDate;
@@ -80,17 +78,9 @@ public class NewAssessmentDto {
         this.languageOptions = languageOptions;
     }
 
-    public String getOtherDetails() {
-        return otherDetails;
-    }
-
-    public void setOtherDetails(String otherDetails) {
-        this.otherDetails = otherDetails;
-    }
-
     public String getModel() {
         return model;
-    }
+    }   
     public void setModel(String model) {
         this.model = model;
     }
