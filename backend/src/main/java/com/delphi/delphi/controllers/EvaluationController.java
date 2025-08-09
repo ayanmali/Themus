@@ -1,10 +1,11 @@
 package com.delphi.delphi.controllers;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -106,8 +107,10 @@ public class EvaluationController {
                 : Sort.by(sortBy).ascending();
             
             Pageable pageable = PageRequest.of(page, size, sort);
-            Page<Evaluation> evaluations = evaluationService.getAllEvaluations(pageable);
-            Page<FetchEvaluationDto> evaluationDtos = evaluations.map(FetchEvaluationDto::new);
+            List<Evaluation> evaluations = evaluationService.getAllEvaluations(pageable);
+            List<FetchEvaluationDto> evaluationDtos = evaluations.stream()
+                    .map(FetchEvaluationDto::new)
+                    .collect(Collectors.toList());
             
             return ResponseEntity.ok(evaluationDtos);
         } catch (Exception e) {
@@ -172,8 +175,10 @@ public class EvaluationController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<Evaluation> evaluations = evaluationService.getEvaluationsCreatedBetween(startDate, endDate, pageable);
-            Page<FetchEvaluationDto> evaluationDtos = evaluations.map(FetchEvaluationDto::new);
+            List<Evaluation> evaluations = evaluationService.getEvaluationsCreatedBetween(startDate, endDate, pageable);
+            List<FetchEvaluationDto> evaluationDtos = evaluations.stream()
+                    .map(FetchEvaluationDto::new)
+                    .collect(Collectors.toList());
             
             return ResponseEntity.ok(evaluationDtos);
         } catch (Exception e) {
@@ -190,8 +195,10 @@ public class EvaluationController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<Evaluation> evaluations = evaluationService.getEvaluationsByCandidateId(candidateId, pageable);
-            Page<FetchEvaluationDto> evaluationDtos = evaluations.map(FetchEvaluationDto::new);
+            List<Evaluation> evaluations = evaluationService.getEvaluationsByCandidateId(candidateId, pageable);
+            List<FetchEvaluationDto> evaluationDtos = evaluations.stream()
+                    .map(FetchEvaluationDto::new)
+                    .collect(Collectors.toList());
             
             return ResponseEntity.ok(evaluationDtos);
         } catch (Exception e) {
@@ -208,8 +215,10 @@ public class EvaluationController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<Evaluation> evaluations = evaluationService.getEvaluationsByAssessmentId(assessmentId, pageable);
-            Page<FetchEvaluationDto> evaluationDtos = evaluations.map(FetchEvaluationDto::new);
+            List<Evaluation> evaluations = evaluationService.getEvaluationsByAssessmentId(assessmentId, pageable);
+            List<FetchEvaluationDto> evaluationDtos = evaluations.stream()
+                    .map(FetchEvaluationDto::new)
+                    .collect(Collectors.toList());
             
             return ResponseEntity.ok(evaluationDtos);
         } catch (Exception e) {
@@ -226,8 +235,10 @@ public class EvaluationController {
         try {
             User user = getCurrentUser();
             Pageable pageable = PageRequest.of(page, size);
-            Page<Evaluation> evaluations = evaluationService.getEvaluationsByUserId(user.getId(), pageable);
-            Page<FetchEvaluationDto> evaluationDtos = evaluations.map(FetchEvaluationDto::new);
+            List<Evaluation> evaluations = evaluationService.getEvaluationsByUserId(user.getId(), pageable);
+            List<FetchEvaluationDto> evaluationDtos = evaluations.stream()
+                    .map(FetchEvaluationDto::new)
+                    .collect(Collectors.toList());
             
             return ResponseEntity.ok(evaluationDtos);
         } catch (Exception e) {
@@ -272,8 +283,10 @@ public class EvaluationController {
         try {
             User user = getCurrentUser();
             Pageable pageable = PageRequest.of(page, size);
-            Page<Evaluation> evaluations = evaluationService.getRecentEvaluationsByUserId(user.getId(), pageable);
-            Page<FetchEvaluationDto> evaluationDtos = evaluations.map(FetchEvaluationDto::new);
+            List<Evaluation> evaluations = evaluationService.getRecentEvaluationsByUserId(user.getId(), pageable);
+            List<FetchEvaluationDto> evaluationDtos = evaluations.stream()
+                    .map(FetchEvaluationDto::new)
+                    .collect(Collectors.toList());
             
             return ResponseEntity.ok(evaluationDtos);
         } catch (Exception e) {

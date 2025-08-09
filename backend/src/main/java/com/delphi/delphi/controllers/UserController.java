@@ -1,15 +1,16 @@
 package com.delphi.delphi.controllers;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -205,9 +206,11 @@ public class UserController {
                     : Sort.by(sortBy).ascending();
 
             Pageable pageable = PageRequest.of(page, size, sort);
-            Page<User> users = userService.getUsersWithFilters(name, organizationName, createdAfter, createdBefore,
+            List<User> users = userService.getUsersWithFilters(name, organizationName, createdAfter, createdBefore,
                     pageable);
-            Page<FetchUserDto> userDtos = users.map(FetchUserDto::new);
+            List<FetchUserDto> userDtos = users.stream()
+                    .map(FetchUserDto::new)
+                    .collect(Collectors.toList());
 
             return ResponseEntity.ok(userDtos);
         } catch (Exception e) {
@@ -258,8 +261,10 @@ public class UserController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<User> users = userService.searchUsersByOrganization(organizationName, pageable);
-            Page<FetchUserDto> userDtos = users.map(FetchUserDto::new);
+            List<User> users = userService.searchUsersByOrganization(organizationName, pageable);
+            List<FetchUserDto> userDtos = users.stream()
+                    .map(FetchUserDto::new)
+                    .collect(Collectors.toList());
 
             return ResponseEntity.ok(userDtos);
         } catch (Exception e) {
@@ -276,8 +281,10 @@ public class UserController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<User> users = userService.searchUsersByName(name, pageable);
-            Page<FetchUserDto> userDtos = users.map(FetchUserDto::new);
+            List<User> users = userService.searchUsersByName(name, pageable);
+            List<FetchUserDto> userDtos = users.stream()
+                    .map(FetchUserDto::new)
+                    .collect(Collectors.toList());
 
             return ResponseEntity.ok(userDtos);
         } catch (Exception e) {
@@ -295,8 +302,10 @@ public class UserController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<User> users = userService.getUsersCreatedBetween(startDate, endDate, pageable);
-            Page<FetchUserDto> userDtos = users.map(FetchUserDto::new);
+            List<User> users = userService.getUsersCreatedBetween(startDate, endDate, pageable);
+            List<FetchUserDto> userDtos = users.stream()
+                    .map(FetchUserDto::new)
+                    .collect(Collectors.toList());
 
             return ResponseEntity.ok(userDtos);
         } catch (Exception e) {
@@ -312,8 +321,10 @@ public class UserController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<User> users = userService.getUsersWithActiveAssessments(pageable);
-            Page<FetchUserDto> userDtos = users.map(FetchUserDto::new);
+            List<User> users = userService.getUsersWithActiveAssessments(pageable);
+            List<FetchUserDto> userDtos = users.stream()
+                    .map(FetchUserDto::new)
+                    .collect(Collectors.toList());
 
             return ResponseEntity.ok(userDtos);
         } catch (Exception e) {

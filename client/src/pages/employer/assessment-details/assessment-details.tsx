@@ -381,7 +381,7 @@ export default function AssessmentDetails() {
                                             </div>
                                         )}
                                         <button
-                                            onClick={() => openRepository(assessment.repoLink)}
+                                            onClick={() => openRepository(assessment.githubRepositoryLink)}
                                             className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg transition-colors text-sm"
                                         >
                                             <ExternalLink size={16} />
@@ -389,7 +389,7 @@ export default function AssessmentDetails() {
                                         </button>
 
                                         <button
-                                            onClick={() => openRepository(assessment.repoLink)}
+                                            onClick={() => openRepository(assessment.githubRepositoryLink)}
                                             className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg transition-colors text-sm"
                                         >
                                             <ExternalLink size={16} />
@@ -409,7 +409,7 @@ export default function AssessmentDetails() {
                                     <div className="flex items-center gap-6 text-sm text-gray-400">
                                         <div className="flex items-center gap-2">
                                             <Calendar size={16} />
-                                            <span>Created: {assessment.createdAt.toLocaleDateString()}</span>
+                                            <span>Created: {assessment.createdDate.toString()}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Calendar size={16} />

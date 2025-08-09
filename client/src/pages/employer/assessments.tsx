@@ -22,18 +22,19 @@ export default function EmployerAssessments() {
             const response = await apiCall(`/api/assessments/filter?page=${page}&size=${size}`, {
                 method: 'GET',
             });
-            
+
             if (!response) {
                 throw new Error('Failed to fetch assessments');
             }
-            
+
             return response;
         },
     });
 
     // Extract assessments from the response
-    const assessments = assessmentsData?.content || [];
+    const assessments = assessmentsData || [];
 
+    // TODO: add date range for active assessments
     const formatDateRange = (assessment: any) => {
         const start = assessment?.startDate ? new Date(assessment.startDate).toLocaleDateString() : '';
         const end = assessment?.endDate ? new Date(assessment.endDate).toLocaleDateString() : '';
@@ -124,70 +125,69 @@ export default function EmployerAssessments() {
                                 <div
                                     key={assessment.id}
                                     className="bg-gray-800 border border-slate-700 rounded-lg p-6 hover:bg-gray-750 transition-colors cursor-pointer shadow-lg"
-                                    onClick={() => handleAssessmentSelect(assessment)}
                                 >
-                            <div className="flex items-center justify-between">
-                                <div className="flex-1">
-                                    <div className="mb-3">
-                                        <h3 className="text-xl font-semibold text-white mb-2">{assessment.name}</h3>
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${assessment.status === 'active'
-                                                ? 'bg-green-600 text-white'
-                                                : 'bg-red-600 text-white'
-                                                }`}>
-                                                {assessment.status?.toLowerCase()}
-                                            </span>
-                                            {/* <span className="px-3 py-1 rounded-full text-sm font-medium capitalize bg-blue-600 text-white">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex-1" onClick={() => handleAssessmentSelect(assessment)}>
+                                            <div className="mb-3">
+                                                <h3 className="text-xl font-semibold text-white mb-2">{assessment.name}</h3>
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${assessment.status === 'active'
+                                                        ? 'bg-green-600 text-white'
+                                                        : 'bg-red-600 text-white'
+                                                        }`}>
+                                                        {assessment.status?.toLowerCase()}
+                                                    </span>
+                                                    {/* <span className="px-3 py-1 rounded-full text-sm font-medium capitalize bg-blue-600 text-white">
                                                 {assessment.assessmentType?.replace('_', ' ').toLowerCase()}
                                             </span> */}
-                                        </div>
-                                    </div>
+                                                </div>
+                                            </div>
 
-                                    <p className="text-gray-300 mb-3">
-                                        <span className="font-medium">{assessment.role}</span>
-                                    </p>
+                                            <p className="text-gray-300 mb-3">
+                                                <span className="font-medium">{assessment.role}</span>
+                                            </p>
 
-                                    <div className="flex items-center gap-6 text-sm text-gray-400">
-                                        <div className="flex items-center gap-2">
-                                            <Calendar size={16} />
-                                            <span>Created: {assessment.createdAt.toLocaleDateString()}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-6 text-sm text-gray-400">
+                                                <div className="flex items-center gap-2">
+                                                    <Calendar size={16} />
+                                                    <span>Created {assessment.createdDate.toString()}</span>
+                                                </div>
+                                                {/* <div className="flex items-center gap-2">
                                             (
                                                 <Calendar size={16} />
                                             )
                                             <span>{formatDateRange(assessment)}</span>
+                                        </div> */}
+                                            </div>
                                         </div>
+
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="p-2 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
+                                                    <MoreHorizontal size={20} />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
+                                                <DropdownMenuLabel>More Actions</DropdownMenuLabel>
+                                                <DropdownMenuGroup>
+                                                    <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white" onClick={() => navigator.clipboard.writeText(`${import.meta.env.VITE_APP_URL}/assessments/preview/${assessment.id}`)}>
+                                                        Copy link
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                        {assessment.status === 'active' ? 'Deactivate Assessment' : 'Activate Assessment'}
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white" onClick={() => window.open(assessment.githubRepositoryLink, '_blank')}>
+                                                        View Repository on GitHub
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator className="bg-slate-700" />
+                                                    <DropdownMenuItem className="hover:bg-slate-700 text-red-400 transition-colors hover:text-white">
+                                                        Delete Assessment
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuGroup>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </div>
                                 </div>
-
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" className="p-2 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
-                                            <MoreHorizontal size={20} />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
-                                        <DropdownMenuLabel>More Actions</DropdownMenuLabel>
-                                        <DropdownMenuGroup>
-                                            <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                                                Copy link
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                                                {assessment.status === 'active' ? 'Deactivate Assessment' : 'Activate Assessment'}
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                                                View Repository on GitHub
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator className="bg-slate-700" />
-                                            <DropdownMenuItem className="hover:bg-slate-700 text-red-400 transition-colors hover:text-white">
-                                                Delete Assessment
-                                            </DropdownMenuItem>
-                                        </DropdownMenuGroup>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                        </div>
                             ))
                         )}
                     </div>

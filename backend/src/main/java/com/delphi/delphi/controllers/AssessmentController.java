@@ -4,11 +4,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -42,7 +42,6 @@ import com.delphi.delphi.entities.User;
 import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.UserService;
-import com.delphi.delphi.utils.AssessmentCreationPrompts;
 import com.delphi.delphi.utils.AssessmentStatus;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -304,9 +303,11 @@ public class AssessmentController {
                     : Sort.by(sortBy).ascending();
 
             Pageable pageable = PageRequest.of(page, size, sort);
-            Page<Assessment> assessments = assessmentService.getAssessmentsWithFiltersForUser(
+            List<Assessment> assessments = assessmentService.getAssessmentsWithFiltersForUser(
                 user, status, startDate, endDate, skills, pageable);
-            Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
+            List<FetchAssessmentDto> assessmentDtos = assessments.stream()
+                    .map(FetchAssessmentDto::new)
+                    .collect(Collectors.toList());
 
             return ResponseEntity.ok(assessmentDtos);
         } catch (Exception e) {
@@ -417,8 +418,10 @@ public class AssessmentController {
         try {
             User user = getCurrentUser();
             Pageable pageable = PageRequest.of(page, size);
-            Page<Assessment> assessments = assessmentService.searchAssessmentsByName(user, name, pageable);
-            Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
+            List<Assessment> assessments = assessmentService.searchAssessmentsByName(user, name, pageable);
+            List<FetchAssessmentDto> assessmentDtos = assessments.stream()
+                    .map(FetchAssessmentDto::new)
+                    .collect(Collectors.toList());
 
             return ResponseEntity.ok(assessmentDtos);
         } catch (Exception e) {
@@ -436,8 +439,10 @@ public class AssessmentController {
         try {
             User user = getCurrentUser();
             Pageable pageable = PageRequest.of(page, size);
-            Page<Assessment> assessments = assessmentService.searchAssessmentsByRoleName(user, role, pageable);
-            Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
+            List<Assessment> assessments = assessmentService.searchAssessmentsByRoleName(user, role, pageable);
+            List<FetchAssessmentDto> assessmentDtos = assessments.stream()
+                    .map(FetchAssessmentDto::new)
+                    .collect(Collectors.toList());
 
             return ResponseEntity.ok(assessmentDtos);
         } catch (Exception e) {
@@ -512,8 +517,10 @@ public class AssessmentController {
         try {
             User user = getCurrentUser();
             Pageable pageable = PageRequest.of(page, size);
-            Page<Assessment> assessments = assessmentService.getAssessmentsBySkill(user, skill, pageable);
-            Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
+            List<Assessment> assessments = assessmentService.getAssessmentsBySkill(user, skill, pageable);
+            List<FetchAssessmentDto> assessmentDtos = assessments.stream()
+                    .map(FetchAssessmentDto::new)
+                    .collect(Collectors.toList());
 
             return ResponseEntity.ok(assessmentDtos);
         } catch (Exception e) {

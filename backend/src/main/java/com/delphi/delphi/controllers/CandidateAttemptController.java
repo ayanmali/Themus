@@ -1,9 +1,10 @@
 package com.delphi.delphi.controllers;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -107,10 +108,12 @@ public class CandidateAttemptController {
                 : Sort.by(sortBy).ascending();
             
             Pageable pageable = PageRequest.of(page, size, sort);
-            Page<CandidateAttempt> attempts = candidateAttemptService.getCandidateAttemptsWithFilters(
+            List<CandidateAttempt> attempts = candidateAttemptService.getCandidateAttemptsWithFilters(
                 candidateId, assessmentId, status, startedAfter, startedBefore, 
                 completedAfter, completedBefore, pageable);
-            Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
+            List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
+                    .map(FetchCandidateAttemptDto::new)
+                    .collect(Collectors.toList());
             
             return ResponseEntity.ok(attemptDtos);
         } catch (Exception e) {
@@ -232,8 +235,10 @@ public class CandidateAttemptController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsByLanguageChoice(languageChoice, pageable);
-            Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
+            List<CandidateAttempt> attempts = candidateAttemptService.getAttemptsByLanguageChoice(languageChoice, pageable);
+            List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
+                    .map(FetchCandidateAttemptDto::new)
+                    .collect(Collectors.toList());
             
             return ResponseEntity.ok(attemptDtos);
         } catch (Exception e) {
@@ -306,8 +311,10 @@ public class CandidateAttemptController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<CandidateAttempt> attempts = candidateAttemptService.getOverdueAttempts(pageable);
-            Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
+            List<CandidateAttempt> attempts = candidateAttemptService.getOverdueAttempts(pageable);
+            List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
+                    .map(FetchCandidateAttemptDto::new)
+                    .collect(Collectors.toList());
             
             return ResponseEntity.ok(attemptDtos);
         } catch (Exception e) {
@@ -323,8 +330,10 @@ public class CandidateAttemptController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsWithEvaluation(pageable);
-            Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
+            List<CandidateAttempt> attempts = candidateAttemptService.getAttemptsWithEvaluation(pageable);
+            List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
+                    .map(FetchCandidateAttemptDto::new)
+                    .collect(Collectors.toList());
             
             return ResponseEntity.ok(attemptDtos);
         } catch (Exception e) {
@@ -340,8 +349,10 @@ public class CandidateAttemptController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<CandidateAttempt> attempts = candidateAttemptService.getSubmittedAttemptsWithoutEvaluation(pageable);
-            Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
+            List<CandidateAttempt> attempts = candidateAttemptService.getSubmittedAttemptsWithoutEvaluation(pageable);
+            List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
+                    .map(FetchCandidateAttemptDto::new)
+                    .collect(Collectors.toList());
             
             return ResponseEntity.ok(attemptDtos);
         } catch (Exception e) {

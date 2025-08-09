@@ -18,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.delphi.delphi.components.messaging.candidates.CandidateInvitationPublisher;
 import com.delphi.delphi.dtos.NewAssessmentDto;
+import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
+import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
+import com.delphi.delphi.dtos.cache.CandidateCacheDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
@@ -25,6 +28,7 @@ import com.delphi.delphi.entities.ChatMessage;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.repositories.AssessmentRepository;
 import com.delphi.delphi.repositories.CandidateAttemptRepository;
+import com.delphi.delphi.repositories.UserRepository;
 import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.AttemptStatus;
 import com.delphi.delphi.utils.git.GithubAccountType;
@@ -33,29 +37,31 @@ import com.delphi.delphi.utils.git.GithubAccountType;
 @Transactional
 // TODO: add cache annotations for other entity caches
 public class AssessmentService {
+
+    private final UserRepository userRepository;
     private final CandidateService candidateService;
     private final CandidateAttemptRepository candidateAttemptRepository;
     private final AssessmentRepository assessmentRepository;
-    private final UserService userService;
     private final GithubService githubService;
     private final CandidateInvitationPublisher candidateInvitationPublisher;
     private final Logger log = LoggerFactory.getLogger(AssessmentService.class);
 
-    public AssessmentService(AssessmentRepository assessmentRepository, UserService userService, GithubService githubService, CandidateService candidateService, CandidateAttemptRepository candidateAttemptRepository, CandidateInvitationPublisher candidateInvitationPublisher) {
+    public AssessmentService(AssessmentRepository assessmentRepository, GithubService githubService, CandidateService candidateService, CandidateAttemptRepository candidateAttemptRepository, CandidateInvitationPublisher candidateInvitationPublisher, UserRepository userRepository) {
         this.assessmentRepository = assessmentRepository;
-        this.userService = userService;
         this.githubService = githubService;
         this.candidateService = candidateService;
         this.candidateAttemptRepository = candidateAttemptRepository;
         this.candidateInvitationPublisher = candidateInvitationPublisher;
+        this.userRepository = userRepository;
     }
 
     // Create a new assessment
     @CachePut(value = "assessments", key = "#assessment.id")
-    public Assessment createAssessment(Assessment assessment) {
+    public AssessmentCacheDto createAssessment(Assessment assessment) {
         // Validate that the associated user exists
         if (assessment.getUser() != null && assessment.getUser().getId() != null) {
-            User user = userService.getUserByIdOrThrow(assessment.getUser().getId());
+            User user = userRepository.findById(assessment.getUser().getId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + assessment.getUser().getId()));
             assessment.setUser(user);
         }
 
@@ -75,11 +81,11 @@ public class AssessmentService {
             assessment.setChatMessages(List.of());
         }
 
-        return assessmentRepository.save(assessment);
+        return new AssessmentCacheDto(assessmentRepository.save(assessment));
     }
 
     @CachePut(value = "assessments", key = "#result.id")
-    public Assessment createAssessment(NewAssessmentDto newAssessmentDto, User user) throws Exception {
+    public AssessmentCacheDto createAssessment(NewAssessmentDto newAssessmentDto, User user) throws Exception {
         Assessment assessment = new Assessment();
         assessment.setName(newAssessmentDto.getName());
         assessment.setDescription(newAssessmentDto.getDescription());
@@ -122,15 +128,16 @@ public class AssessmentService {
         log.info("assessment github repository link: {}", assessment.getGithubRepositoryLink());
         log.info("assessment language options: {}", assessment.getLanguageOptions());
         // save assessment in DB
-        return assessmentRepository.save(assessment);
+        return new AssessmentCacheDto(assessmentRepository.save(assessment));
 
     }
 
     // Get assessment by ID
     @Cacheable(value = "assessments", key = "#id")
     @Transactional(readOnly = true)
-    public Optional<Assessment> getAssessmentById(Long id) {
-        return assessmentRepository.findById(id);
+    public AssessmentCacheDto getAssessmentById(Long id) {
+        return new AssessmentCacheDto(assessmentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id)));
     }
 
     // Get chat history by assessment ID
@@ -145,41 +152,42 @@ public class AssessmentService {
     // Get assessment by ID or throw exception
     @Cacheable(value = "assessments", key = "#id")
     @Transactional(readOnly = true)
-    public Assessment getAssessmentByIdOrThrow(Long id) {
-        return assessmentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id));
+    public AssessmentCacheDto getAssessmentByIdOrThrow(Long id) {
+        return new AssessmentCacheDto(assessmentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id)));
     }
 
     // Get all assessments with pagination
     @Cacheable(value = "assessments", key = "#pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Assessment> getAllAssessments(Pageable pageable) {
-        return assessmentRepository.findAll(pageable).getContent();
+    public List<AssessmentCacheDto> getAllAssessments(Pageable pageable) {
+        return assessmentRepository.findAll(pageable).getContent().stream().map(AssessmentCacheDto::new).collect(Collectors.toList());
     }
 
     // Get assessments with multiple filters
     @Cacheable(value = "assessments", key = "#user.id + ':' + #status + ':' + #assessmentType + ':' + #startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Assessment> getAssessmentsWithFilters(User user, AssessmentStatus status, 
+    public List<AssessmentCacheDto> getAssessmentsWithFilters(User user, AssessmentStatus status, 
                                                      LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
-        return assessmentRepository.findWithFilters(status, startDate, endDate, pageable).getContent();
+        return assessmentRepository.findWithFilters(status, startDate, endDate, pageable).getContent().stream().map(AssessmentCacheDto::new).collect(Collectors.toList());
     }
 
     // Get assessments with multiple filters for a specific user
     @Cacheable(value = "assessments", key = "#user.id + ':' + #status + ':' + #assessmentType + ':' + #startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Assessment> getAssessmentsWithFiltersForUser(User user, AssessmentStatus status, 
+    public List<AssessmentCacheDto> getAssessmentsWithFiltersForUser(User user, AssessmentStatus status, 
                                                             LocalDateTime startDate, LocalDateTime endDate,
                                                             List<String> skills,
                                                             Pageable pageable) {
         boolean filterSkills = skills != null && !skills.isEmpty();
         List<String> safeSkills = (skills == null) ? List.of() : skills;
-        return assessmentRepository.findWithFiltersForUser(user.getId(), status, startDate, endDate, filterSkills, safeSkills, pageable).getContent();
+        return assessmentRepository.findWithFiltersForUser(user.getId(), status, startDate, endDate, filterSkills, safeSkills, pageable).getContent().stream().map(AssessmentCacheDto::new).collect(Collectors.toList());
     }
 
     // Update assessment
-    public Assessment updateAssessment(Long id, Assessment assessmentUpdates) {
-        Assessment existingAssessment = getAssessmentByIdOrThrow(id);
+    public AssessmentCacheDto updateAssessment(Long id, Assessment assessmentUpdates) {
+        Assessment existingAssessment = assessmentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id));
 
         // Update fields if provided
         if (assessmentUpdates.getName() != null) {
@@ -223,7 +231,7 @@ public class AssessmentService {
             }
         }
 
-        return assessmentRepository.save(existingAssessment);
+        return new AssessmentCacheDto(assessmentRepository.save(existingAssessment));
     }
 
     // Delete assessment
@@ -238,87 +246,87 @@ public class AssessmentService {
     // Get assessments by user ID
     @Cacheable(value = "assessments", key = "#userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Assessment> getAssessmentsByUserId(Long userId, Pageable pageable) {
-        return assessmentRepository.findByUserId(userId, pageable).getContent();
+    public List<AssessmentCacheDto> getAssessmentsByUserId(Long userId, Pageable pageable) {
+        return assessmentRepository.findByUserId(userId, pageable).getContent().stream().map(AssessmentCacheDto::new).collect(Collectors.toList());
     }
 
     // Get assessments by status
     @Cacheable(value = "assessments", key = "#status + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Assessment> getAssessmentsByStatus(AssessmentStatus status, Pageable pageable) {
-        return assessmentRepository.findByStatus(status, pageable).getContent();
+    public List<AssessmentCacheDto> getAssessmentsByStatus(AssessmentStatus status, Pageable pageable) {
+        return assessmentRepository.findByStatus(status, pageable).getContent().stream().map(AssessmentCacheDto::new).collect(Collectors.toList());
     }
 
     // Get assessments by user and status
     @Cacheable(value = "assessments", key = "#userId + ':' + #status + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Assessment> getAssessmentsByUserAndStatus(Long userId, AssessmentStatus status, Pageable pageable) {
-        return assessmentRepository.findByUserIdAndStatus(userId, status, pageable).getContent();
+    public List<AssessmentCacheDto> getAssessmentsByUserAndStatus(Long userId, AssessmentStatus status, Pageable pageable) {
+        return assessmentRepository.findByUserIdAndStatus(userId, status, pageable).getContent().stream().map(AssessmentCacheDto::new).collect(Collectors.toList());
     }
 
     // Search assessments by name
     @Cacheable(value = "assessments", key = "#user.id + ':' + #name + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Assessment> searchAssessmentsByName(User user, String name, Pageable pageable) {
-        return assessmentRepository.findByNameContainingIgnoreCase(name, pageable).getContent();
+    public List<AssessmentCacheDto> searchAssessmentsByName(User user, String name, Pageable pageable) {
+        return assessmentRepository.findByNameContainingIgnoreCase(name, pageable).getContent().stream().map(AssessmentCacheDto::new).collect(Collectors.toList());
     }
 
     // Search assessments by role name
     @Cacheable(value = "assessments", key = "#user.id + ':' + #role + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Assessment> searchAssessmentsByRoleName(User user, String role, Pageable pageable) {
-        return assessmentRepository.findByRoleContainingIgnoreCase(role, pageable).getContent();
+    public List<AssessmentCacheDto> searchAssessmentsByRoleName(User user, String role, Pageable pageable) {
+        return assessmentRepository.findByRoleContainingIgnoreCase(role, pageable).getContent().stream().map(AssessmentCacheDto::new).collect(Collectors.toList());
     }
 
     // Get assessments within date range
     @Cacheable(value = "assessments", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Assessment> getAssessmentsInDateRange(LocalDateTime startDate, LocalDateTime endDate,
+    public List<AssessmentCacheDto> getAssessmentsInDateRange(LocalDateTime startDate, LocalDateTime endDate,
             Pageable pageable) {
-        return assessmentRepository.findByDateRange(startDate, endDate, pageable).getContent();
+        return assessmentRepository.findByDateRange(startDate, endDate, pageable).getContent().stream().map(AssessmentCacheDto::new).collect(Collectors.toList());
     }
 
     // Get active assessments within current date
     @Cacheable(value = "assessments", key = "#currentDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Assessment> getActiveAssessmentsInDateRange(LocalDateTime currentDate, Pageable pageable) {
-        return assessmentRepository.findActiveAssessmentsInDateRange(currentDate, pageable).getContent();
+    public List<AssessmentCacheDto> getActiveAssessmentsInDateRange(LocalDateTime currentDate, Pageable pageable) {
+        return assessmentRepository.findActiveAssessmentsInDateRange(currentDate, pageable).getContent().stream().map(AssessmentCacheDto::new).collect(Collectors.toList());
     }
 
     // Get assessments by duration range
     @Cacheable(value = "assessments", key = "#minDuration + ':' + #maxDuration + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Assessment> getAssessmentsByDurationRange(Integer minDuration, Integer maxDuration, Pageable pageable) {
-        return assessmentRepository.findByDurationBetween(minDuration, maxDuration, pageable).getContent();
+    public List<AssessmentCacheDto> getAssessmentsByDurationRange(Integer minDuration, Integer maxDuration, Pageable pageable) {
+        return assessmentRepository.findByDurationBetween(minDuration, maxDuration, pageable).getContent().stream().map(AssessmentCacheDto::new).collect(Collectors.toList());
     }
 
     // Get assessments by skill
     @Cacheable(value = "assessments", key = "#user.id + ':' + #skill + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Assessment> getAssessmentsBySkill(User user, String skill, Pageable pageable) {
-        return assessmentRepository.findBySkill(skill, pageable).getContent();
+    public List<AssessmentCacheDto> getAssessmentsBySkill(User user, String skill, Pageable pageable) {
+        return assessmentRepository.findBySkill(skill, pageable).getContent().stream().map(AssessmentCacheDto::new).collect(Collectors.toList());
     }
 
     // Get assessments by language option
     @Cacheable(value = "assessments", key = "#language + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Assessment> getAssessmentsByLanguageOption(String language, Pageable pageable) {
-        return assessmentRepository.findByLanguageOption(language, pageable).getContent();
+    public List<AssessmentCacheDto> getAssessmentsByLanguageOption(String language, Pageable pageable) {
+        return assessmentRepository.findByLanguageOption(language, pageable).getContent().stream().map(AssessmentCacheDto::new).collect(Collectors.toList());
     }
 
     // Get assessments with attempt count
-    @Cacheable(value = "assessments", key = "#pageable.pageNumber + ':' + #pageable.pageSize")
-    @Transactional(readOnly = true)
-    public List<Object[]> getAssessmentsWithAttemptCount(Pageable pageable) {
-        return assessmentRepository.findAssessmentsWithAttemptCount(pageable).getContent();
-    }
+    // @Cacheable(value = "assessments", key = "#pageable.pageNumber + ':' + #pageable.pageSize")
+    // @Transactional(readOnly = true)
+    // public List<Object[]> getAssessmentsWithAttemptCount(Pageable pageable) {
+    //     return assessmentRepository.findAssessmentsWithAttemptCount(pageable).getContent().stream().map(AssessmentCacheDto::new).collect(Collectors.toList());
+    // }
 
     // Get assessments created by user in date range
     @Cacheable(value = "assessments", key = "#userId + ':' + #startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Assessment> getAssessmentsByUserInDateRange(Long userId, LocalDateTime startDate, LocalDateTime endDate,
+    public List<AssessmentCacheDto> getAssessmentsByUserInDateRange(Long userId, LocalDateTime startDate, LocalDateTime endDate,
             Pageable pageable) {
-        return assessmentRepository.findByUserIdAndCreatedDateBetween(userId, startDate, endDate, pageable).getContent();
+        return assessmentRepository.findByUserIdAndCreatedDateBetween(userId, startDate, endDate, pageable).getContent().stream().map(AssessmentCacheDto::new).collect(Collectors.toList());
     }
 
     // Count assessments by status for a user
@@ -330,46 +338,51 @@ public class AssessmentService {
 
     // Activate assessment
     @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
-    public Assessment activateAssessment(Long id) {
-        Assessment assessment = getAssessmentByIdOrThrow(id);
+    public AssessmentCacheDto activateAssessment(Long id) {
+        Assessment assessment = assessmentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id));
         assessment.setStatus(AssessmentStatus.ACTIVE);
-        return assessmentRepository.save(assessment);
+        return new AssessmentCacheDto(assessmentRepository.save(assessment));
     }
 
     // Deactivate assessment
     @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
-    public Assessment deactivateAssessment(Long id) {
-        Assessment assessment = getAssessmentByIdOrThrow(id);
+    public AssessmentCacheDto deactivateAssessment(Long id) {
+        Assessment assessment = assessmentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id));
         assessment.setStatus(AssessmentStatus.INACTIVE);
-        return assessmentRepository.save(assessment);
+        return new AssessmentCacheDto(assessmentRepository.save(assessment));
     }
 
     // Publish assessment (change from draft to active)
     @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
-    public Assessment publishAssessment(Long id) {
-        Assessment assessment = getAssessmentByIdOrThrow(id);
+    public AssessmentCacheDto publishAssessment(Long id) {
+        Assessment assessment = assessmentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id));
         if (assessment.getStatus() != AssessmentStatus.DRAFT) {
             throw new IllegalStateException("Only draft assessments can be published");
         }
         assessment.setStatus(AssessmentStatus.ACTIVE);
-        return assessmentRepository.save(assessment);
+        return new AssessmentCacheDto(assessmentRepository.save(assessment));
     }
 
     // Add skill to assessment
     @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
-    public Assessment addSkill(Long id, String skill) {
-        Assessment assessment = getAssessmentByIdOrThrow(id);
+    public AssessmentCacheDto addSkill(Long id, String skill) {
+        Assessment assessment = assessmentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id));
         if (assessment.getSkills() != null && !assessment.getSkills().contains(skill)) {
             assessment.getSkills().add(skill);
         }
-        return assessmentRepository.save(assessment);
+        return new AssessmentCacheDto(assessmentRepository.save(assessment));
     }
 
     // Add candidate from existing candidate
     @CacheEvict(value = "assessments", beforeInvocation = true, key = "#assessmentId")
     // TODO: add cache annotation for candidate attempt
-    public CandidateAttempt addCandidateFromExisting(Long assessmentId, Long candidateId) {
-        Assessment assessment = getAssessmentByIdOrThrow(assessmentId);
+    public CandidateAttemptCacheDto addCandidateFromExisting(Long assessmentId, Long candidateId) {
+        Assessment assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + assessmentId));
         Candidate candidate = candidateService.getCandidateByIdOrThrow(candidateId);
         assessment.addCandidate(candidate);
         assessmentRepository.save(assessment);
@@ -386,7 +399,8 @@ public class AssessmentService {
         // Create a new candidate attempt and set the status to INVITED
         CandidateAttempt candidateAttempt = new CandidateAttempt();
         candidateAttempt.setCandidate(candidateService.getCandidateByIdOrThrow(candidateId));
-        candidateAttempt.setAssessment(getAssessmentByIdOrThrow(assessmentId));
+        candidateAttempt.setAssessment(assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + assessmentId)));
         candidateAttempt.setStatus(AttemptStatus.INVITED);
 
         // Send message to message queue to add candidate to assessment in python service
@@ -397,13 +411,14 @@ public class AssessmentService {
             assessment.getUser().getEmail()
         );
 
-        return candidateAttemptRepository.save(candidateAttempt);
+        return new CandidateAttemptCacheDto(candidateAttemptRepository.save(candidateAttempt));
     }
 
     // Add a new candidate to the assessment that doesn't already exist in the database
     @CacheEvict(value = "assessments", beforeInvocation = true, key = "#assessmentId")
-    public CandidateAttempt addCandidateFromNew(Long assessmentId, String firstName, String lastName, String email) {
-        Assessment assessment = getAssessmentByIdOrThrow(assessmentId);
+    public CandidateAttemptCacheDto addCandidateFromNew(Long assessmentId, String firstName, String lastName, String email) {
+        Assessment assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + assessmentId));
         Candidate candidate = candidateService.createCandidate(firstName, lastName, email, assessment.getUser());
         assessment.addCandidate(candidate);
         assessmentRepository.save(assessment);
@@ -411,7 +426,8 @@ public class AssessmentService {
         // Create a new candidate attempt and set the status to INVITED
         CandidateAttempt candidateAttempt = new CandidateAttempt();
         candidateAttempt.setCandidate(candidate);
-        candidateAttempt.setAssessment(getAssessmentByIdOrThrow(assessmentId));
+        candidateAttempt.setAssessment(assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + assessmentId)));
         candidateAttempt.setStatus(AttemptStatus.INVITED);
 
         // Send message to message queue to add candidate to assessment in python service
@@ -422,49 +438,54 @@ public class AssessmentService {
             assessment.getUser().getEmail()
         );
 
-        return candidateAttemptRepository.save(candidateAttempt);
+        return new CandidateAttemptCacheDto(candidateAttemptRepository.save(candidateAttempt));
     }
 
     // Remove skill from assessment
     @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
-    public Assessment removeSkill(Long id, String skill) {
-        Assessment assessment = getAssessmentByIdOrThrow(id);
+    public AssessmentCacheDto removeSkill(Long id, String skill) {
+        Assessment assessment = assessmentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id));
         if (assessment.getSkills() != null) {
             assessment.getSkills().remove(skill);
         }
-        return assessmentRepository.save(assessment);
+        return new AssessmentCacheDto(assessmentRepository.save(assessment));
     }
 
     // Update skills
     @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
-    public Assessment updateSkills(Long id, List<String> skills) {
-        Assessment assessment = getAssessmentByIdOrThrow(id);
+    public AssessmentCacheDto updateSkills(Long id, List<String> skills) {
+        Assessment assessment = assessmentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id));
         assessment.setSkills(skills);
-        return assessmentRepository.save(assessment);
+        return new AssessmentCacheDto(assessmentRepository.save(assessment));
     }
 
     @CacheEvict(value = "assessments", beforeInvocation = true, key = "#assessmentId")
-    public Candidate removeCandidateFromAssessment(Long assessmentId, Long candidateId) {
-        Assessment assessment = getAssessmentByIdOrThrow(assessmentId);
+    public CandidateCacheDto removeCandidateFromAssessment(Long assessmentId, Long candidateId) {
+        Assessment assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + assessmentId));
         Candidate candidate = candidateService.getCandidateByIdOrThrow(candidateId);
         assessment.setCandidates(assessment.getCandidates().stream().filter(c -> !c.getId().equals(candidateId)).collect(Collectors.toList()));
         assessmentRepository.save(assessment);
-        return candidate;
+        return new CandidateCacheDto(candidate);
     }
 
     // Update language options
     @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
-    public Assessment updateLanguageOptions(Long id, List<String> languageOptions) {
-        Assessment assessment = getAssessmentByIdOrThrow(id);
+    public AssessmentCacheDto updateLanguageOptions(Long id, List<String> languageOptions) {
+        Assessment assessment = assessmentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id));
         assessment.setLanguageOptions(languageOptions);
-        return assessmentRepository.save(assessment);
+        return new AssessmentCacheDto(assessmentRepository.save(assessment));
     }
 
     // Update metadata
     @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
-    public Assessment updateMetadata(Long id, Map<String, String> metadata) {
-        Assessment assessment = getAssessmentByIdOrThrow(id);
+    public AssessmentCacheDto updateMetadata(Long id, Map<String, String> metadata) {
+        Assessment assessment = assessmentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id));
         assessment.setMetadata(metadata);
-        return assessmentRepository.save(assessment);
+        return new AssessmentCacheDto(assessmentRepository.save(assessment));
     }
 }

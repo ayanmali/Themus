@@ -65,13 +65,13 @@ function Router() {
       {/* <Route path="/candidate/dashboard" component={CandidateDashboard} /> */}
       
       {/* Candidate Assessment Preview - preview before they begin */}
-      <Route path="/:assessment_id/preview" component={CandidateAssessmentPreview} />
+      <Route path="/assessments/preview/:assessment_id" component={CandidateAssessmentPreview} />
       {/* <Route path="/assessments-overview" component={CandidateDashboard} /> */}
       <ProtectedRoute path="/candidate/assessments" component={CandidateAssessments} role="candidate" />
       <ProtectedRoute path="/candidate/profile" component={CandidateProfile} role="candidate" />
 
       {/* Candidate Assessment Routes */}
-      <Route path="/:attempt_id/starting" component={Record} />
+      <Route path="/assessments/starting/:attempt_id" component={Record} />
       <Route path="/candidate/recordings" component={Recordings} />
       
       {/* Fallback to 404 */}

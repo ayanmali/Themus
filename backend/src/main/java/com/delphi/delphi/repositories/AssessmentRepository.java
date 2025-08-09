@@ -58,8 +58,8 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
     Page<Assessment> findByLanguageOption(@Param("language") String language, Pageable pageable);
     
     // Find assessments with candidate attempts count
-    @Query("SELECT a, COUNT(ca) as attemptCount FROM Assessment a LEFT JOIN a.candidateAttempts ca GROUP BY a.id")
-    Page<Object[]> findAssessmentsWithAttemptCount(Pageable pageable);
+//     @Query("SELECT a, COUNT(ca) as attemptCount FROM Assessment a LEFT JOIN a.candidateAttempts ca GROUP BY a.id")
+//     Page<Object[]> findAssessmentsWithAttemptCount(Pageable pageable);
     
     // Find assessments created by user in date range
     @Query("SELECT a FROM Assessment a WHERE a.user.id = :userId AND a.createdDate BETWEEN :startDate AND :endDate")

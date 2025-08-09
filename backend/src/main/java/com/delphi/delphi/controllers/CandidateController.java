@@ -1,10 +1,11 @@
 package com.delphi.delphi.controllers;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -126,8 +127,10 @@ public class CandidateController {
                 : Sort.by(sortBy).ascending();
             
             Pageable pageable = PageRequest.of(page, size, sort);
-            Page<Candidate> candidates = candidateService.getCandidatesByUserId(user.getId(), pageable);
-            Page<FetchCandidateDto> candidateDtos = candidates.map(FetchCandidateDto::new);
+            List<Candidate> candidates = candidateService.getCandidatesByUserId(user.getId(), pageable);
+            List<FetchCandidateDto> candidateDtos = candidates.stream()
+                    .map(FetchCandidateDto::new)
+                    .collect(Collectors.toList());
             
             return ResponseEntity.ok(candidateDtos);
         } catch (Exception e) {
@@ -159,10 +162,12 @@ public class CandidateController {
                 : Sort.by(sortBy).ascending();
             
             Pageable pageable = PageRequest.of(page, size, sort);
-            Page<Candidate> candidates = candidateService.getCandidatesWithFiltersForUser(
+            List<Candidate> candidates = candidateService.getCandidatesWithFiltersForUser(
                 user.getId(), assessmentId, attemptStatus, emailDomain, firstName, lastName,
                 createdAfter, createdBefore, attemptCompletedAfter, attemptCompletedBefore, pageable);
-            Page<FetchCandidateDto> candidateDtos = candidates.map(FetchCandidateDto::new);
+            List<FetchCandidateDto> candidateDtos = candidates.stream()
+                    .map(FetchCandidateDto::new)
+                    .collect(Collectors.toList());
             
             return ResponseEntity.ok(candidateDtos);
         } catch (Exception e) {
@@ -230,8 +235,10 @@ public class CandidateController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<Candidate> candidates = candidateService.searchCandidatesByFirstName(firstName, pageable);
-            Page<FetchCandidateDto> candidateDtos = candidates.map(FetchCandidateDto::new);
+            List<Candidate> candidates = candidateService.searchCandidatesByFirstName(firstName, pageable);
+            List<FetchCandidateDto> candidateDtos = candidates.stream()
+                    .map(FetchCandidateDto::new)
+                    .collect(Collectors.toList());
             
             return ResponseEntity.ok(candidateDtos);
         } catch (Exception e) {
@@ -248,8 +255,10 @@ public class CandidateController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<Candidate> candidates = candidateService.searchCandidatesByLastName(lastName, pageable);
-            Page<FetchCandidateDto> candidateDtos = candidates.map(FetchCandidateDto::new);
+            List<Candidate> candidates = candidateService.searchCandidatesByLastName(lastName, pageable);
+            List<FetchCandidateDto> candidateDtos = candidates.stream()
+                    .map(FetchCandidateDto::new)
+                    .collect(Collectors.toList());
             
             return ResponseEntity.ok(candidateDtos);
         } catch (Exception e) {
@@ -266,8 +275,10 @@ public class CandidateController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<Candidate> candidates = candidateService.searchCandidatesByFullName(fullName, pageable);
-            Page<FetchCandidateDto> candidateDtos = candidates.map(FetchCandidateDto::new);
+            List<Candidate> candidates = candidateService.searchCandidatesByFullName(fullName, pageable);
+            List<FetchCandidateDto> candidateDtos = candidates.stream()
+                    .map(FetchCandidateDto::new)
+                    .collect(Collectors.toList());
             
             return ResponseEntity.ok(candidateDtos);
         } catch (Exception e) {
@@ -284,8 +295,10 @@ public class CandidateController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<Candidate> candidates = candidateService.getCandidatesByEmailDomain(domain, pageable);
-            Page<FetchCandidateDto> candidateDtos = candidates.map(FetchCandidateDto::new);
+            List<Candidate> candidates = candidateService.getCandidatesByEmailDomain(domain, pageable);
+            List<FetchCandidateDto> candidateDtos = candidates.stream()
+                    .map(FetchCandidateDto::new)
+                    .collect(Collectors.toList());
             
             return ResponseEntity.ok(candidateDtos);
         } catch (Exception e) {
@@ -338,8 +351,10 @@ public class CandidateController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<Candidate> candidates = candidateService.getCandidatesWithNoAttempts(pageable);
-            Page<FetchCandidateDto> candidateDtos = candidates.map(FetchCandidateDto::new);
+            List<Candidate> candidates = candidateService.getCandidatesWithNoAttempts(pageable);
+            List<FetchCandidateDto> candidateDtos = candidates.stream()
+                    .map(FetchCandidateDto::new)
+                    .collect(Collectors.toList());
             
             return ResponseEntity.ok(candidateDtos);
         } catch (Exception e) {
