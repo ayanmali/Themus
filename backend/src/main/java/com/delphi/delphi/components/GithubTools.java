@@ -83,15 +83,15 @@ public class GithubTools {
         }
     }
 
-    private Long getCurrentChatHistoryId(Object chatHistoryIdObj) {
+    private Long getCurrentAssessmentId(Object assessmentIdObj) {
         try {
-            Long chatHistoryId = (Long) chatHistoryIdObj;
-            return chatHistoryId;
+            Long assessmentId = (Long) assessmentIdObj;
+            return assessmentId;
         } catch (NullPointerException e) {
-            throw new IllegalStateException("Chat history ID not set in context", e);
+            throw new IllegalStateException("Assessment ID not set in context", e);
         }
         catch (ClassCastException e) {
-            throw new IllegalStateException("Chat history ID must be a Long", e);
+            throw new IllegalStateException("Assessment ID must be a Long", e);
         }
     }
 
@@ -232,7 +232,11 @@ public class GithubTools {
     public ChatMessage sendMessageToUser(
         @ToolParam(required = true, description = "The message to send to the user") String message,
         ToolContext toolContext) {
-        return githubService.sendMessageToUser(message, getCurrentChatHistoryId(toolContext.getContext().get("chatHistoryId")), (String) toolContext.getContext().get("model"));
+        return githubService.sendMessageToUser(
+            message, 
+            getCurrentAssessmentId(toolContext.getContext().get("assessmentId")), 
+            (String) toolContext.getContext().get("model")
+        );
     }
 
 }

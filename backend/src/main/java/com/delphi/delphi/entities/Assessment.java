@@ -132,7 +132,7 @@ public class Assessment {
     @ManyToMany(mappedBy = "assessments", fetch = FetchType.LAZY)
     private List<Candidate> candidates;
 
-    // One-to-one relationship with ChatHistory
+    // One-to-many relationship with ChatMessages
     @OneToMany(mappedBy = "assessment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinColumn(name = "assessment_id")
     private List<ChatMessage> chatMessages;

@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -30,6 +31,8 @@ import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.AttemptStatus;
 import com.delphi.delphi.utils.git.GithubAccountType;
 
+import com.delphi.delphi.utils.AssessmentCreationPrompts;
+
 @Service
 @Transactional
 // TODO: add cache annotations for other entity caches
@@ -38,15 +41,13 @@ public class AssessmentService {
     private final CandidateAttemptRepository candidateAttemptRepository;
     private final AssessmentRepository assessmentRepository;
     private final UserService userService;
-    private final ChatService chatService;
     private final GithubService githubService;
     private final CandidateInvitationPublisher candidateInvitationPublisher;
     private final Logger log = LoggerFactory.getLogger(AssessmentService.class);
 
-    public AssessmentService(AssessmentRepository assessmentRepository, UserService userService, ChatService chatService, GithubService githubService, CandidateService candidateService, CandidateAttemptRepository candidateAttemptRepository, CandidateInvitationPublisher candidateInvitationPublisher) {
+    public AssessmentService(AssessmentRepository assessmentRepository, UserService userService, GithubService githubService, CandidateService candidateService, CandidateAttemptRepository candidateAttemptRepository, CandidateInvitationPublisher candidateInvitationPublisher) {
         this.assessmentRepository = assessmentRepository;
         this.userService = userService;
-        this.chatService = chatService;
         this.githubService = githubService;
         this.candidateService = candidateService;
         this.candidateAttemptRepository = candidateAttemptRepository;
@@ -72,6 +73,10 @@ public class AssessmentService {
             if (!assessment.getEndDate().isAfter(assessment.getStartDate())) {
                 throw new IllegalArgumentException("End date must be after start date");
             }
+        }
+
+        if (assessment.getChatMessages() == null) {
+            assessment.setChatMessages(List.of());
         }
 
         return assessmentRepository.save(assessment);
@@ -115,10 +120,14 @@ public class AssessmentService {
         // save assessment in DB
         Assessment savedAssessment = assessmentRepository.save(assessment);
 
-        log.info("assessment w/ repo URL saved in DB, creating chat history");
-        // Create chat history for the assessment
+        log.info("assessment w/ repo URL saved in DB, adding system prompt to chat history");
+
+        // Initialize chat history w/ system prompt for the assessment
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setAssessment(savedAssessment);
+        chatMessage.setMessageType(MessageType.SYSTEM);
+        chatMessage.setModel("N/A");
+        chatMessage.setText(AssessmentCreationPrompts.SYSTEM_PROMPT);
 
         savedAssessment.setChatMessages(List.of(chatMessage));
         // save assessment with chat history in DB
