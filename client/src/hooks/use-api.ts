@@ -114,6 +114,7 @@ const useApi = () => {
       }
 
       if (!response.ok) {
+        console.log('Response invalid:', response);
         // Try to parse error response for structured errors
         let errorData;
         try {

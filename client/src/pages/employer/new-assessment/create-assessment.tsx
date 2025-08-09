@@ -300,13 +300,13 @@ export function CreateAssessmentForm() {
     try {
       // Check if user has valid GitHub token
       const hasValidGitHubToken = await checkGitHubToken();
-      
       if (!hasValidGitHubToken) {
         // Open GitHub app installation in new window
         const githubInstallUrl = await apiCall("/api/users/github/generate-install-url", {
           method: "POST",
         });
-        window.open(githubInstallUrl, '_blank');
+        console.log('GitHub install URL:', githubInstallUrl.url);
+        window.open(githubInstallUrl.url, '_blank');
         
         // Show loading state
         toast({
@@ -537,7 +537,7 @@ export function CreateAssessmentForm() {
     // }
     if (!form.getValues("model") && models.length > 0) {
       form.setValue("model", defaultModel, { shouldValidate: true, shouldDirty: true });
-      setModelValue(models[0]);
+      setModelValue(defaultModel);
     }
 
     // setRecentCommand(selectedCommand.label);

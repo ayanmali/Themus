@@ -27,6 +27,7 @@ public class ChatResponseSubscriber {
             // TODO: send via WebSocket to the client
             // webSocketHandler.sendToUser(response.getRequestId(), response.getChatResponse());
             log.info("Chat completion successful for request: {}", response.getRequestId());
+            log.info("Chat completion response: {}", response.getChatResponse().toString());
         } else {
             // Handle error response
             log.error("Chat completion failed for request {}: {}", response.getRequestId(), response.getError());

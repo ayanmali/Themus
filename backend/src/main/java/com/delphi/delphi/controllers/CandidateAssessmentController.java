@@ -53,7 +53,7 @@ public class CandidateAssessmentController {
         this.assessmentService = assessmentService;
         this.encryptionService = encryptionService;
         this.candidateService = candidateService;
-        this.appInstallBaseUrl = String.format("https://github.com/app/%s/installations/new", githubAppName);
+        this.appInstallBaseUrl = String.format("https://github.com/apps/%s/installations/new", githubAppName);
     }
 
     @GetMapping("/{assessmentId}")

@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -247,7 +248,10 @@ public class UserService {
     }
     
     // Update user's GitHub credentials
-    @CacheEvict(value = "users", beforeInvocation = true, key = "#user.id")
+    @Caching(put = {
+        @CachePut(value = "users", key = "#user.id"),
+        @CachePut(value = "users", key = "#user.email")
+    })
     @Transactional
     public User updateGithubCredentials(User user, String githubAccessToken, String githubUsername, GithubAccountType githubAccountType) throws Exception {        
         // // Check if GitHub username is already taken by another user
@@ -271,7 +275,10 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    @CacheEvict(value = "users", beforeInvocation = true, key = "#user.id")
+    @Caching(evict = {
+        @CacheEvict(value = "users", beforeInvocation = true, key = "#user.id"),
+        @CacheEvict(value = "users", beforeInvocation = true, key = "#user.email")
+    })
     @Transactional
     public User removeGithubCredentials(User user) throws Exception {
         user.setGithubAccessToken(null);

@@ -92,7 +92,7 @@ public class UserController {
         // this.appClientDomain = appClientDomain;
         // this.appEnv = appEnv;
         this.redisService = redisService;
-        this.appInstallBaseUrl = String.format("https://github.com/app/%s/installations/new", githubAppName);
+        this.appInstallBaseUrl = String.format("https://github.com/apps/%s/installations/new", githubAppName);
         this.encryptionService = encryptionService;
     }
 
@@ -123,10 +123,12 @@ public class UserController {
             log.info("Checking if user is connected to github");
             User user = getCurrentUser();
             if (user.getGithubAccessToken() == null) {
+                log.info("Github credentials not found in DB");
                 return ResponseEntity.ok(false);
             }
             Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user.getGithubAccessToken());
 
+            log.info("Github credentials valid: {}", githubCredentialsValid);
             if (!userService.connectedGithub(user) || githubCredentialsValid == null) {
                 return ResponseEntity.ok(false);
             }
@@ -384,7 +386,7 @@ public class UserController {
             String randomString = UUID.randomUUID().toString();
             redisService.setWithExpiration(githubCacheKeyPrefix + user.getEmail(), randomString, 10, TimeUnit.MINUTES);
             String installUrl = String.format("%s?state=%s_user_%s", appInstallBaseUrl, randomString, user.getEmail());
-            return ResponseEntity.ok(installUrl);
+            return ResponseEntity.ok(Map.of("url", installUrl));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error generating GitHub install URL: " + e.getMessage());
         }
