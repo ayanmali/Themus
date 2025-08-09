@@ -19,7 +19,6 @@ import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -418,8 +417,8 @@ public class ChatService {
 
     @Cacheable(value = "chatMessages", key = "#assessmentId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<ChatMessage> getMessagesByAssessmentId(Long assessmentId, Pageable pageable) {
-        return chatMessageRepository.findByAssessmentId(assessmentId, pageable);
+    public List<ChatMessage> getMessagesByAssessmentId(Long assessmentId, Pageable pageable) {
+        return chatMessageRepository.findByAssessmentId(assessmentId, pageable).getContent();
     }
 
     // public ChatMessage updateMessage(Long id, ChatMessage message) throws Exception {

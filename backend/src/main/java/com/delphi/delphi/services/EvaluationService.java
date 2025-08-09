@@ -1,13 +1,13 @@
 package com.delphi.delphi.services;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,8 +66,8 @@ public class EvaluationService {
     // Get all evaluations with pagination
     @Cacheable(value = "evaluations", key = "#pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<Evaluation> getAllEvaluations(Pageable pageable) {
-        return evaluationRepository.findAll(pageable);
+    public List<Evaluation> getAllEvaluations(Pageable pageable) {
+        return evaluationRepository.findAll(pageable).getContent();
     }
     
     // Update evaluation
@@ -102,29 +102,29 @@ public class EvaluationService {
     // Get evaluations created within date range
     @Cacheable(value = "evaluations", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<Evaluation> getEvaluationsCreatedBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
-        return evaluationRepository.findByCreatedDateBetween(startDate, endDate, pageable);
+    public List<Evaluation> getEvaluationsCreatedBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+        return evaluationRepository.findByCreatedDateBetween(startDate, endDate, pageable).getContent();
     }
     
     // Get evaluations by candidate ID
     @Cacheable(value = "evaluations", key = "#candidateId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<Evaluation> getEvaluationsByCandidateId(Long candidateId, Pageable pageable) {
-        return evaluationRepository.findByCandidateId(candidateId, pageable);
+    public List<Evaluation> getEvaluationsByCandidateId(Long candidateId, Pageable pageable) {
+        return evaluationRepository.findByCandidateId(candidateId, pageable).getContent();
     }
     
     // Get evaluations by assessment ID
     @Cacheable(value = "evaluations", key = "#assessmentId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
         @Transactional(readOnly = true)
-    public Page<Evaluation> getEvaluationsByAssessmentId(Long assessmentId, Pageable pageable) {
-        return evaluationRepository.findByAssessmentId(assessmentId, pageable);
+    public List<Evaluation> getEvaluationsByAssessmentId(Long assessmentId, Pageable pageable) {
+        return evaluationRepository.findByAssessmentId(assessmentId, pageable).getContent();
     }
     
     // Get evaluations by user ID
     @Cacheable(value = "evaluations", key = "#userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<Evaluation> getEvaluationsByUserId(Long userId, Pageable pageable) {
-        return evaluationRepository.findByUserId(userId, pageable);
+    public List<Evaluation> getEvaluationsByUserId(Long userId, Pageable pageable) {
+        return evaluationRepository.findByUserId(userId, pageable).getContent();
     }
     
     // Get evaluation with full details
@@ -144,8 +144,8 @@ public class EvaluationService {
     // Get recent evaluations for a user
     @Cacheable(value = "evaluations", key = "recent + ':' + #userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<Evaluation> getRecentEvaluationsByUserId(Long userId, Pageable pageable) {
-        return evaluationRepository.findRecentEvaluationsByUserId(userId, pageable);
+    public List<Evaluation> getRecentEvaluationsByUserId(Long userId, Pageable pageable) {
+        return evaluationRepository.findRecentEvaluationsByUserId(userId, pageable).getContent();
     }
     
     // Update evaluation metadata

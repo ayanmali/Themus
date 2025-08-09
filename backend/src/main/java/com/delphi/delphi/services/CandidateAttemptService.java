@@ -1,12 +1,12 @@
 package com.delphi.delphi.services;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -87,20 +87,20 @@ public class CandidateAttemptService {
     // Get all candidate attempts with pagination
     @Cacheable(value = "candidateAttempts", key = "#pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<CandidateAttempt> getAllCandidateAttempts(Pageable pageable) {
-        return candidateAttemptRepository.findAll(pageable);
+    public List<CandidateAttempt> getAllCandidateAttempts(Pageable pageable) {
+        return candidateAttemptRepository.findAll(pageable).getContent();
     }
 
     // Get candidate attempts with multiple filters
     @Cacheable(value = "candidateAttempts", key = "#candidateId + ':' + #assessmentId + ':' + #status + ':' + #startedAfter + ':' + #startedBefore + ':' + #completedAfter + ':' + #completedBefore + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<CandidateAttempt> getCandidateAttemptsWithFilters(Long candidateId, Long assessmentId, 
+    public List<CandidateAttempt> getCandidateAttemptsWithFilters(Long candidateId, Long assessmentId, 
                                                                  AttemptStatus status, LocalDateTime startedAfter, 
                                                                  LocalDateTime startedBefore, LocalDateTime completedAfter, 
                                                                  LocalDateTime completedBefore, Pageable pageable) {
         return candidateAttemptRepository.findWithFilters(candidateId, assessmentId, status, 
                                                          startedAfter, startedBefore, completedAfter, 
-                                                         completedBefore, pageable);
+                                                         completedBefore, pageable).getContent();
     }
 
     // Update candidate attempt
@@ -139,22 +139,22 @@ public class CandidateAttemptService {
     // Get attempts by candidate ID
     @Cacheable(value = "candidateAttempts", key = "#candidateId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<CandidateAttempt> getAttemptsByCandidateId(Long candidateId, Pageable pageable) {
-        return candidateAttemptRepository.findByCandidateId(candidateId, pageable);
+    public List<CandidateAttempt> getAttemptsByCandidateId(Long candidateId, Pageable pageable) {
+        return candidateAttemptRepository.findByCandidateId(candidateId, pageable).getContent();
     }
 
     // Get attempts by assessment ID
     @Cacheable(value = "candidateAttempts", key = "#assessmentId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<CandidateAttempt> getAttemptsByAssessmentId(Long assessmentId, Pageable pageable) {
-        return candidateAttemptRepository.findByAssessmentId(assessmentId, pageable);
+    public List<CandidateAttempt> getAttemptsByAssessmentId(Long assessmentId, Pageable pageable) {
+        return candidateAttemptRepository.findByAssessmentId(assessmentId, pageable).getContent();
     }
 
     // Get attempts by status
     @Cacheable(value = "candidateAttempts", key = "#status + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<CandidateAttempt> getAttemptsByStatus(AttemptStatus status, Pageable pageable) {
-        return candidateAttemptRepository.findByStatus(status, pageable);
+    public List<CandidateAttempt> getAttemptsByStatus(AttemptStatus status, Pageable pageable) {
+        return candidateAttemptRepository.findByStatus(status, pageable).getContent();
     }
 
     // Get attempt by candidate and assessment
@@ -167,76 +167,76 @@ public class CandidateAttemptService {
     // Get attempts by candidate and status
     @Cacheable(value = "candidateAttempts", key = "#candidateId + ':' + #status + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<CandidateAttempt> getAttemptsByCandidateAndStatus(Long candidateId, AttemptStatus status,
+    public List<CandidateAttempt> getAttemptsByCandidateAndStatus(Long candidateId, AttemptStatus status,
             Pageable pageable) {
-        return candidateAttemptRepository.findByCandidateIdAndStatus(candidateId, status, pageable);
+        return candidateAttemptRepository.findByCandidateIdAndStatus(candidateId, status, pageable).getContent();
     }
 
     // Get attempts by assessment and status
     @Cacheable(value = "candidateAttempts", key = "#assessmentId + ':' + #status + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<CandidateAttempt> getAttemptsByAssessmentAndStatus(Long assessmentId, AttemptStatus status,
+    public List<CandidateAttempt> getAttemptsByAssessmentAndStatus(Long assessmentId, AttemptStatus status,
             Pageable pageable) {
-        return candidateAttemptRepository.findByAssessmentIdAndStatus(assessmentId, status, pageable);
+        return candidateAttemptRepository.findByAssessmentIdAndStatus(assessmentId, status, pageable).getContent();
     }
 
     // Get attempts by language choice
     @Cacheable(value = "candidateAttempts", key = "#languageChoice + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<CandidateAttempt> getAttemptsByLanguageChoice(String languageChoice, Pageable pageable) {
-        return candidateAttemptRepository.findByLanguageChoiceIgnoreCase(languageChoice, pageable);
+    public List<CandidateAttempt> getAttemptsByLanguageChoice(String languageChoice, Pageable pageable) {
+        return candidateAttemptRepository.findByLanguageChoiceIgnoreCase(languageChoice, pageable).getContent();
     }
 
     // Get attempts created within date range
     @Cacheable(value = "candidateAttempts", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<CandidateAttempt> getAttemptsCreatedBetween(LocalDateTime startDate, LocalDateTime endDate,
+    public List<CandidateAttempt> getAttemptsCreatedBetween(LocalDateTime startDate, LocalDateTime endDate,
             Pageable pageable) {
-        return candidateAttemptRepository.findByCreatedDateBetween(startDate, endDate, pageable);
+        return candidateAttemptRepository.findByCreatedDateBetween(startDate, endDate, pageable).getContent();
     }
 
     // Get attempts started within date range
     @Cacheable(value = "candidateAttempts", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<CandidateAttempt> getAttemptsStartedBetween(LocalDateTime startDate, LocalDateTime endDate,
+    public List<CandidateAttempt> getAttemptsStartedBetween(LocalDateTime startDate, LocalDateTime endDate,
             Pageable pageable) {
-        return candidateAttemptRepository.findByStartedDateBetween(startDate, endDate, pageable);
+        return candidateAttemptRepository.findByStartedDateBetween(startDate, endDate, pageable).getContent();
     }
 
     // Get attempts submitted within date range
     @Cacheable(value = "candidateAttempts", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<CandidateAttempt> getAttemptsSubmittedBetween(LocalDateTime startDate, LocalDateTime endDate,
+    public List<CandidateAttempt> getAttemptsSubmittedBetween(LocalDateTime startDate, LocalDateTime endDate,
             Pageable pageable) {
-        return candidateAttemptRepository.findByCompletedDateBetween(startDate, endDate, pageable);
+        return candidateAttemptRepository.findByCompletedDateBetween(startDate, endDate, pageable).getContent();
     }
 
     // Get overdue attempts
     @Cacheable(value = "candidateAttempts", key = "overdue + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<CandidateAttempt> getOverdueAttempts(Pageable pageable) {
-        return candidateAttemptRepository.findOverdueAttempts(LocalDateTime.now(), pageable);
+    public List<CandidateAttempt> getOverdueAttempts(Pageable pageable) {
+        return candidateAttemptRepository.findOverdueAttempts(LocalDateTime.now(), pageable).getContent();
     }
 
     // Get attempts by user
     @Cacheable(value = "candidateAttempts", key = "#userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<CandidateAttempt> getAttemptsByUserId(Long userId, Pageable pageable) {
-        return candidateAttemptRepository.findByUserId(userId, pageable);
+    public List<CandidateAttempt> getAttemptsByUserId(Long userId, Pageable pageable) {
+        return candidateAttemptRepository.findByUserId(userId, pageable).getContent();
     }
 
     // Get attempts with evaluation
     @Cacheable(value = "candidateAttempts", key = "withEvaluation + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<CandidateAttempt> getAttemptsWithEvaluation(Pageable pageable) {
-        return candidateAttemptRepository.findAttemptsWithEvaluation(pageable);
+    public List<CandidateAttempt> getAttemptsWithEvaluation(Pageable pageable) {
+        return candidateAttemptRepository.findAttemptsWithEvaluation(pageable).getContent();
     }
 
     // Get submitted attempts without evaluation
     @Cacheable(value = "candidateAttempts", key = "submittedWithoutEvaluation + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<CandidateAttempt> getSubmittedAttemptsWithoutEvaluation(Pageable pageable) {
-        return candidateAttemptRepository.findSubmittedAttemptsWithoutEvaluation(pageable);
+    public List<CandidateAttempt> getSubmittedAttemptsWithoutEvaluation(Pageable pageable) {
+        return candidateAttemptRepository.findSubmittedAttemptsWithoutEvaluation(pageable).getContent();
     }
 
     // Count attempts by assessment and status
@@ -263,15 +263,15 @@ public class CandidateAttemptService {
     // Get recent attempts by user
     @Cacheable(value = "candidateAttempts", key = "recent + ':' + #userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<CandidateAttempt> getRecentAttemptsByUserId(Long userId, Pageable pageable) {
-        return candidateAttemptRepository.findRecentAttemptsByUserId(userId, pageable);
+    public List<CandidateAttempt> getRecentAttemptsByUserId(Long userId, Pageable pageable) {
+        return candidateAttemptRepository.findRecentAttemptsByUserId(userId, pageable).getContent();
     }
 
     // Get attempts by assessment user
     @Cacheable(value = "candidateAttempts", key = "byAssessmentUser + ':' + #userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<CandidateAttempt> getAttemptsByAssessmentUserId(Long userId, Pageable pageable) {
-        return candidateAttemptRepository.findByAssessmentUserId(userId, pageable);
+    public List<CandidateAttempt> getAttemptsByAssessmentUserId(Long userId, Pageable pageable) {
+        return candidateAttemptRepository.findByAssessmentUserId(userId, pageable).getContent();
     }
 
     // Start attempt that is already created (i.e. status is INVITED)

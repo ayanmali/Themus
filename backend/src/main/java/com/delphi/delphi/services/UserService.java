@@ -1,6 +1,7 @@
 package com.delphi.delphi.services;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -9,7 +10,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -95,16 +95,16 @@ public class UserService {
     // Get all users with pagination
     @Cacheable(value = "users", key = "#pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<User> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable);
+    public List<User> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable).getContent();
     }
 
     // Get users with multiple filters
     @Cacheable(value = "users", key = "#name + ':' + #organizationName + ':' + #createdAfter + ':' + #createdBefore + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<User> getUsersWithFilters(String name, String organizationName, LocalDateTime createdAfter, 
+    public List<User> getUsersWithFilters(String name, String organizationName, LocalDateTime createdAfter, 
                                          LocalDateTime createdBefore, Pageable pageable) {
-        return userRepository.findWithFilters(name, organizationName, createdAfter, createdBefore, pageable);
+        return userRepository.findWithFilters(name, organizationName, createdAfter, createdBefore, pageable).getContent();
     }
     
     // Update user
@@ -157,29 +157,29 @@ public class UserService {
     // Search users by organization name
     @Cacheable(value = "users", key = "#organizationName + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<User> searchUsersByOrganization(String organizationName, Pageable pageable) {
-        return userRepository.findByOrganizationNameContainingIgnoreCase(organizationName, pageable);
+    public List<User> searchUsersByOrganization(String organizationName, Pageable pageable) {
+        return userRepository.findByOrganizationNameContainingIgnoreCase(organizationName, pageable).getContent();
     }
     
     // Search users by name
     @Cacheable(value = "users", key = "#name + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<User> searchUsersByName(String name, Pageable pageable) {
-        return userRepository.findByNameContainingIgnoreCase(name, pageable);
+    public List<User> searchUsersByName(String name, Pageable pageable) {
+        return userRepository.findByNameContainingIgnoreCase(name, pageable).getContent();
     }
     
     // Get users created within date range
     @Cacheable(value = "users", key = "createdBetween + ':' + #startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<User> getUsersCreatedBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
-        return userRepository.findByCreatedDateBetween(startDate, endDate, pageable);
+    public List<User> getUsersCreatedBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+        return userRepository.findByCreatedDateBetween(startDate, endDate, pageable).getContent();
     }
     
     // Get users with active assessments
     @Cacheable(value = "users", key = "activeAssessments + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<User> getUsersWithActiveAssessments(Pageable pageable) {
-        return userRepository.findUsersWithActiveAssessments(pageable);
+    public List<User> getUsersWithActiveAssessments(Pageable pageable) {
+        return userRepository.findUsersWithActiveAssessments(pageable).getContent();
     }
     
     // Count users by organization

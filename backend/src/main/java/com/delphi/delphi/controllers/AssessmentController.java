@@ -169,22 +169,22 @@ public class AssessmentController {
             Assessment assessment = assessmentService.createAssessment(newAssessmentDto, user);
             log.info("assessment created: {}", assessment);
 
-            log.info("Passing form data to chat message queue");
+            //log.info("Passing form data to chat message queue");
             // Publish to chat message queue instead of direct call
-            String requestId = chatMessagePublisher.publishChatCompletionRequest(
-                    AssessmentCreationPrompts.USER_PROMPT,
-                    Map.of("ROLE", newAssessmentDto.getRole(),
-                            "DURATION", newAssessmentDto.getDuration(),
-                            "SKILLS", newAssessmentDto.getSkills(),
-                            "LANGUAGE_OPTIONS", newAssessmentDto.getLanguageOptions(),
-                            "OTHER_DETAILS", newAssessmentDto.getDescription()),
-                    newAssessmentDto.getModel(),
-                    assessment.getId(),
-                    user.getId());
+            // String requestId = chatMessagePublisher.publishChatCompletionRequest(
+            //         AssessmentCreationPrompts.USER_PROMPT,
+            //         Map.of("ROLE", newAssessmentDto.getRole(),
+            //                 "DURATION", newAssessmentDto.getDuration(),
+            //                 "SKILLS", newAssessmentDto.getSkills(),
+            //                 "LANGUAGE_OPTIONS", newAssessmentDto.getLanguageOptions(),
+            //                 "OTHER_DETAILS", newAssessmentDto.getDescription()),
+            //         newAssessmentDto.getModel(),
+            //         assessment.getId(),
+            //         user.getId());
 
             return ResponseEntity.status(HttpStatus.CREATED).body(
-                    Map.of("assessment", new FetchAssessmentDto(assessment),
-                            "chatRequestId", requestId));
+                    Map.of("assessment", new FetchAssessmentDto(assessment)));
+                            //"chatRequestId", requestId));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error creating assessment: " + e.getMessage());

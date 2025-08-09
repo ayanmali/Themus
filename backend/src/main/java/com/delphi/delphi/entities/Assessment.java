@@ -134,7 +134,6 @@ public class Assessment {
 
     // One-to-many relationship with ChatMessages
     @OneToMany(mappedBy = "assessment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JoinColumn(name = "assessment_id")
     private List<ChatMessage> chatMessages;
 
     public Assessment() {
