@@ -26,9 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.delphi.delphi.components.GithubTools;
 import com.delphi.delphi.entities.Assessment;
-import com.delphi.delphi.entities.ChatHistory;
 import com.delphi.delphi.entities.ChatMessage;
-import com.delphi.delphi.repositories.ChatHistoryRepository;
+import com.delphi.delphi.repositories.AssessmentRepository;
 import com.delphi.delphi.repositories.ChatMessageRepository;
 import com.delphi.delphi.utils.OpenAiToolCall;
 
@@ -46,7 +45,7 @@ import com.delphi.delphi.utils.OpenAiToolCall;
  */
 public class ChatService {
 
-    private final ChatHistoryRepository chatHistoryRepository;
+    private final AssessmentRepository assessmentRepository;
 
     private final ChatMessageRepository chatMessageRepository;
 
@@ -56,13 +55,12 @@ public class ChatService {
 
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
 
-    public ChatService(ChatHistoryRepository chatHistoryRepository,
-            ChatMessageRepository chatMessageRepository, ChatModel chatModel, GithubTools githubTools) {
-        this.chatHistoryRepository = chatHistoryRepository;
+    public ChatService(ChatMessageRepository chatMessageRepository, ChatModel chatModel, GithubTools githubTools, AssessmentRepository assessmentRepository) {
         this.chatMessageRepository = chatMessageRepository;
         this.chatModel = chatModel;
         this.githubTools = githubTools;
         log.info("ChatService initialized with Spring AI ChatModel, targeting OpenRouter.");
+        this.assessmentRepository = assessmentRepository;
     }
 
     /**
@@ -73,9 +71,11 @@ public class ChatService {
      * Get a chat completion from the AI model
      */
     //@Cacheable(value = "chatCompletions", key = "#chatHistoryId")
-    public ChatResponse getChatCompletion(String userMessage, String model, Long assessmentId, Long userId, Long chatHistoryId) {
+    public ChatResponse getChatCompletion(String userMessage, String model, Long assessmentId, Long userId) {
         log.info("Sending prompt to OpenRouter model '{}':\nUSER MESSAGE: '{}'", model, userMessage);
         try {
+            Assessment assessment = assessmentRepository.findById(assessmentId)
+                    .orElseThrow(() -> new Exception("Assessment not found with id: " + assessmentId));
             // The Spring AI ChatModel handles the call to OpenRouter based on application.properties
 
             // Create a system message from a template and substitute the values
@@ -83,15 +83,14 @@ public class ChatService {
             // Message systemMessage = systemPromptTemplate.createMessage(Map.of("adjective", "offensive", "topic", "old people"));
 
             // add the user message to the chat history
-            addMessageToChatHistory(userMessage, MessageType.USER, List.of(), chatHistoryId, model);
+            addMessageToChatHistory(userMessage, MessageType.USER, List.of(), assessment, model);
             // add the user message to the messages list
             //messages.add(new ChatMessage(userMessage, chatHistory, MessageType.USER, model));
 
             // get the chat history
-            ChatHistory chatHistory = getChatHistoryById(chatHistoryId);
 
             // get the messages from the chat history
-            List<Message> messages = chatHistory.getMessagesAsSpringMessages();
+            List<Message> messages = assessment.getMessagesAsSpringMessages();
 
             // create a prompt message from template
             // PromptTemplate pt = new PromptTemplate("You are a helpful assistant. You are given a conversation history and a user message. You need to respond to the user message based on the conversation history. The conversation history is: {conversationHistory}. The user message is: {userMessage}. The response should be in the same language as the conversation history.");
@@ -104,7 +103,7 @@ public class ChatService {
                 OpenAiChatOptions.builder()
                     .model(model)
                     .toolCallbacks(ToolCallbacks.from(githubTools))
-                    .toolContext(Map.of("assessmentId", assessmentId, "userId", userId, "chatHistoryId", chatHistoryId, "model", model))
+                    .toolContext(Map.of("assessmentId", assessmentId, "userId", userId, "model", model))
                     //.internalToolExecutionEnabled(false) // disable framework-enabled tool execution
                     .temperature(0.75) // double between 0 and 1
                     .build()
@@ -119,7 +118,7 @@ public class ChatService {
             ChatResponse response = chatModel.call(prompt);
             log.info("Response: {}", response.getResults().stream().map(r -> r.getOutput().getText()).collect(Collectors.joining("\n")));
             for (Generation generation : response.getResults()) {
-                addMessageToChatHistory(generation.getOutput(), chatHistoryId, model);
+                addMessageToChatHistory(generation.getOutput(), assessment, model);
             }
             return response;
         } catch (Exception e) {
@@ -132,7 +131,7 @@ public class ChatService {
      * Get a chat completion from the AI model using a user prompt template
      */
     //@Cacheable(value = "chatCompletions", key = "#chatHistoryId")
-    public ChatResponse getChatCompletion(String userPromptTemplateMessage, Map<String, Object> userPromptVariables, String model, Long assessmentId, Long userId, Long chatHistoryId) {
+    public ChatResponse getChatCompletion(String userPromptTemplateMessage, Map<String, Object> userPromptVariables, String model, Long assessmentId, Long userId) {
         log.info("Sending prompt to OpenRouter model '{}':\nUSER MESSAGE: '{}'", model, userPromptTemplateMessage);
         try {
             // The Spring AI ChatModel handles the call to OpenRouter based on application.properties
@@ -142,18 +141,18 @@ public class ChatService {
             // Message systemMessage = systemPromptTemplate.createMessage(Map.of("adjective", "offensive", "topic", "old people"));
 
             // create a user message from the template and substitute the values
+            Assessment assessment = assessmentRepository.findById(assessmentId)
+                    .orElseThrow(() -> new Exception("Assessment not found with id: " + assessmentId));
+
             PromptTemplate userPromptTemplate = new PromptTemplate(userPromptTemplateMessage);
             Message userMessage = userPromptTemplate.createMessage(userPromptVariables);
 
-            addMessageToChatHistory(userMessage.getText(), MessageType.USER, List.of(), chatHistoryId, model);
+            addMessageToChatHistory(userMessage.getText(), MessageType.USER, List.of(), assessment, model);
             // add the user message to the messages list
             //messages.add(new ChatMessage(userMessage, chatHistory, MessageType.USER, model));
 
-            // get the chat history
-            ChatHistory chatHistory = getChatHistoryById(chatHistoryId);
-
             // get the messages from the chat history
-            List<Message> messages = chatHistory.getMessagesAsSpringMessages();
+            List<Message> messages = assessment.getMessagesAsSpringMessages();
 
             // create a prompt message from template
             // PromptTemplate pt = new PromptTemplate("You are a helpful assistant. You are given a conversation history and a user message. You need to respond to the user message based on the conversation history. The conversation history is: {conversationHistory}. The user message is: {userMessage}. The response should be in the same language as the conversation history.");
@@ -166,7 +165,7 @@ public class ChatService {
                 OpenAiChatOptions.builder()
                     .model(model)
                     .toolCallbacks(ToolCallbacks.from(githubTools))
-                    .toolContext(Map.of("assessmentId", assessmentId, "userId", userId, "chatHistoryId", chatHistoryId, "model", model))
+                    .toolContext(Map.of("assessmentId", assessmentId, "userId", userId, "model", model))
                     //.internalToolExecutionEnabled(false) // disable framework-enabled tool execution
                     .temperature(0.75) // double between 0 and 1
                     .build()
@@ -181,7 +180,7 @@ public class ChatService {
             ChatResponse response = chatModel.call(prompt);
             log.info("Response: {}", response.getResults().stream().map(r -> r.getOutput().getText()).collect(Collectors.joining("\n")));
             for (Generation generation : response.getResults()) {
-                addMessageToChatHistory(generation.getOutput(), chatHistoryId, model);
+                addMessageToChatHistory(generation.getOutput(), assessment, model);
             }
             return response;
         } catch (Exception e) {
@@ -285,85 +284,88 @@ public class ChatService {
      * Database Repository Methods
      */
 
-    @CachePut(value = "chatHistories", key = "#chatHistory.id")
-    public ChatHistory createChatHistory(ChatHistory chatHistory, String systemMessage) throws Exception {
-        // adding system prompt to chat history
-        ChatHistory savedChatHistory = chatHistoryRepository.save(chatHistory);
-        addMessageToChatHistory(systemMessage, MessageType.SYSTEM, List.of(), savedChatHistory.getId(), "N/A");
-        // save chat history
-        return savedChatHistory;
-    }
+    // @CachePut(value = "chatHistories", key = "#chatHistory.id")
+    // public ChatHistory createChatHistory(ChatHistory chatHistory, String systemMessage) throws Exception {
+    //     // adding system prompt to chat history
+    //     log.info("Creating chat history with system message: {}", systemMessage.substring(0, Math.min(systemMessage.length(), 100)) + "...");
+    //     ChatHistory savedChatHistory = chatHistoryRepository.save(chatHistory);
+    //     log.info("Chat history saved in DB with id: {} - adding system message to chat history...", savedChatHistory.getId());
+    //     addMessageToChatHistory(systemMessage, MessageType.SYSTEM, List.of(), savedChatHistory, "N/A");
+    //     log.info("System message added to chat history in DB with id: {}", savedChatHistory.getId());
+    //     // save chat history
+    //     return savedChatHistory;
+    // }
 
-    @Cacheable(value = "chatHistories", key = "#id")
-    public ChatHistory getChatHistoryById(Long id) throws Exception {
-        try {
-            return chatHistoryRepository.findById(id)
-                    .orElseThrow(() -> new Exception("Chat history not found with id: " + id));
-        } catch (Exception e) {
-            throw new Exception("Chat history not found with id: " + id);
-        }
-    }
+    // @Cacheable(value = "chatHistories", key = "#id")
+    // public ChatHistory getChatHistoryById(Long id) throws Exception {
+    //     try {
+    //         return chatHistoryRepository.findById(id)
+    //                 .orElseThrow(() -> new Exception("Chat history not found with id: " + id));
+    //     } catch (Exception e) {
+    //         throw new Exception("Chat history not found with id: " + id);
+    //     }
+    // }
 
-    @Cacheable(value = "chatHistories", key = "#assessmentId")
-    public ChatHistory getChatHistoryByAssessmentId(Long assessmentId) throws Exception {
-        try {
-            return chatHistoryRepository.findByAssessmentId(assessmentId);
-        } catch (Exception e) {
-            throw new Exception("Chat history not found with assessment id: " + assessmentId);
-        }
-    }
+    // @Cacheable(value = "chatHistories", key = "#assessmentId")
+    // public ChatHistory getChatHistoryByAssessmentId(Long assessmentId) throws Exception {
+    //     try {
+    //         return chatHistoryRepository.findByAssessmentId(assessmentId);
+    //     } catch (Exception e) {
+    //         throw new Exception("Chat history not found with assessment id: " + assessmentId);
+    //     }
+    // }
 
-    @CachePut(value = "chatHistories", key = "#result.id")
-    public ChatHistory updateChatHistory(Long id, ChatHistory chatHistory) throws Exception {
-        ChatHistory existingChatHistory = getChatHistoryById(id);
-        existingChatHistory.setAssessment(chatHistory.getAssessment());
-        return chatHistoryRepository.save(existingChatHistory);
-    }
+    // @CachePut(value = "chatHistories", key = "#result.id")
+    // public ChatHistory updateChatHistory(Long id, ChatHistory chatHistory) throws Exception {
+    //     ChatHistory existingChatHistory = getChatHistoryById(id);
+    //     existingChatHistory.setAssessment(chatHistory.getAssessment());
+    //     return chatHistoryRepository.save(existingChatHistory);
+    // }
 
-    @CachePut(value = "chatHistories", key = "#result.id")
-    public ChatHistory updateChatHistory(Long id, Assessment assessment) throws Exception {
-        ChatHistory existingChatHistory = getChatHistoryById(id);
-        existingChatHistory.setAssessment(assessment);
-        return chatHistoryRepository.save(existingChatHistory);
-    }
+    // @CachePut(value = "chatHistories", key = "#result.id")
+    // public ChatHistory updateChatHistory(Long id, Assessment assessment) throws Exception {
+    //     ChatHistory existingChatHistory = getChatHistoryById(id);
+    //     existingChatHistory.setAssessment(assessment);
+    //     return chatHistoryRepository.save(existingChatHistory);
+    // }
 
-    @CacheEvict(value = "chatHistories", key = "#id")
-    public void deleteChatHistory(Long id) throws Exception {
-        ChatHistory existingChatHistory = getChatHistoryById(id);
-        chatHistoryRepository.delete(existingChatHistory);
-    }
+    // @CacheEvict(value = "chatHistories", key = "#id")
+    // public void deleteChatHistory(Long id) throws Exception {
+    //     ChatHistory existingChatHistory = getChatHistoryById(id);
+    //     chatHistoryRepository.delete(existingChatHistory);
+    // }
 
-    @Cacheable(value = "chatHistories")
-    public List<ChatHistory> getAllChatHistories() {
-        return chatHistoryRepository.findAll();
-    }
+    // @Cacheable(value = "chatHistories")
+    // public List<ChatHistory> getAllChatHistories() {
+    //     return chatHistoryRepository.findAll();
+    // }
 
     @CachePut(value = "chatHistories", key = "#result.id")
     public ChatMessage addMessageToChatHistory(ChatMessage message) throws Exception {
-        ChatHistory existingChatHistory = getChatHistoryById(message.getChatHistory().getId());
-        existingChatHistory.addMessage(message);
-        // existingChatHistory.getMessages().add(message);
-        chatHistoryRepository.save(existingChatHistory);
+        Assessment assessment = assessmentRepository.findById(message.getAssessment().getId())
+                .orElseThrow(() -> new Exception("Assessment not found with id: " + message.getAssessment().getId()));
+        assessment.addMessage(message);
+        assessmentRepository.save(assessment);
         return message;
     }
 
     @CachePut(value = "chatHistories", key = "#result.id")
-    public ChatMessage addMessageToChatHistory(AssistantMessage message, Long chatHistoryId, String model) throws Exception {
+    public ChatMessage addMessageToChatHistory(AssistantMessage message, Assessment assessment, String model) throws Exception {
         // TODO: integrate message.getToolCalls() and store tool calls in message entities
-        ChatHistory existingChatHistory = getChatHistoryById(chatHistoryId);
-        ChatMessage chatMessage = new ChatMessage(message, existingChatHistory, model);
+        ChatMessage chatMessage = new ChatMessage(message, assessment, model);
 
-        existingChatHistory.addMessage(chatMessage);
+        assessment.addMessage(chatMessage);
         // existingChatHistory.getMessages().add(new ChatMessage(message, existingChatHistory, model));
-        chatHistoryRepository.save(existingChatHistory);
+        assessmentRepository.save(assessment);
         return chatMessage;
     }
 
     @CachePut(value = "chatHistories", key = "#result.id")
-    public ChatMessage addMessageToChatHistory(String text, MessageType messageType, List<OpenAiToolCall> toolCalls, Long chatHistoryId, String model) throws Exception {
+    public ChatMessage addMessageToChatHistory(String text, MessageType messageType, List<OpenAiToolCall> toolCalls, Assessment assessment, String model) throws Exception {
+        log.info("Adding chat message to DB with id: {} - message: {}", assessment.getId(), text.substring(0, Math.min(text.length(), 100)) + "...");
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setText(text);
-        chatMessage.setChatHistory(getChatHistoryById(chatHistoryId));
+        chatMessage.setAssessment(assessment);
         chatMessage.setMessageType(messageType);
         chatMessage.setModel(model);
         if (!toolCalls.isEmpty()) {
@@ -371,10 +373,32 @@ public class ChatService {
         }
         // chatMessage.setMetadata(metadata);
         chatMessageRepository.save(chatMessage);
+        log.info("Message added to DB with id: {}", chatMessage.getId());
+        assessment.addMessage(chatMessage);
+        assessmentRepository.save(assessment);
+        log.info("ChatMessage added to assessment chat history in DB with id: {}", chatMessage.getId());
+        return chatMessage;
+    }
 
-        ChatHistory existingChatHistory = getChatHistoryById(chatHistoryId);
-        existingChatHistory.getMessages().add(chatMessage);
-        chatHistoryRepository.save(existingChatHistory);
+    @CachePut(value = "chatHistories", key = "#result.id")
+    public ChatMessage addMessageToChatHistory(String text, MessageType messageType, List<OpenAiToolCall> toolCalls, Long assessmentId, String model) throws Exception {
+        log.info("Adding chat message to DB with id: {} - message: {}", assessmentId, text.substring(0, Math.min(text.length(), 100)) + "...");
+        Assessment assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new Exception("Assessment not found with id: " + assessmentId));
+        ChatMessage chatMessage = new ChatMessage();
+        chatMessage.setText(text);
+        chatMessage.setAssessment(assessment); // TODO: this is not needed, the chat history is already set in the chat message
+        chatMessage.setMessageType(messageType);
+        chatMessage.setModel(model);
+        if (!toolCalls.isEmpty()) {
+            chatMessage.setToolCalls(toolCalls);
+        }
+        // chatMessage.setMetadata(metadata);
+        chatMessageRepository.save(chatMessage);
+        log.info("Message added to DB with id: {}", chatMessage.getId());
+        assessment.addMessage(chatMessage);
+        assessmentRepository.save(assessment);
+        log.info("ChatMessage added to assessment chat history in DB with id: {}", chatMessage.getId());
         return chatMessage;
     }
 
@@ -392,10 +416,10 @@ public class ChatService {
     // return chatMessageRepository.save(message);
     // }
 
-    @Cacheable(value = "chatMessages", key = "#chatHistoryId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Cacheable(value = "chatMessages", key = "#assessmentId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public Page<ChatMessage> getMessagesByChatId(Long chatHistoryId, Pageable pageable) {
-        return chatMessageRepository.findByChatHistoryId(chatHistoryId, pageable);
+    public Page<ChatMessage> getMessagesByAssessmentId(Long assessmentId, Pageable pageable) {
+        return chatMessageRepository.findByAssessmentId(assessmentId, pageable);
     }
 
     // public ChatMessage updateMessage(Long id, ChatMessage message) throws Exception {

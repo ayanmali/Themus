@@ -88,10 +88,9 @@ public class RabbitMQTests {
         String model = "gpt-4o-mini";
         Long assessmentId = 1L;
         Long userId = 1L;
-        Long chatHistoryId = 1L;
 
         ChatResponse mockResponse = createMockChatResponse("Hello! How can I help you?");
-        when(chatService.getChatCompletion(anyString(), anyString(), anyLong(), anyLong(), anyLong()))
+        when(chatService.getChatCompletion(anyString(), anyString(), anyLong(), anyLong()))
                 .thenReturn(mockResponse);
 
         CountDownLatch latch = new CountDownLatch(1);
@@ -107,7 +106,7 @@ public class RabbitMQTests {
 
         // Act
         String requestId = chatMessagePublisher.publishChatCompletionRequest(
-                userMessage, model, assessmentId, userId, chatHistoryId);
+                userMessage, model, assessmentId, userId);
 
         // Assert
         assertThat(requestId).isNotNull();
@@ -118,7 +117,7 @@ public class RabbitMQTests {
                 .until(() -> {
                     try {
                         verify(chatService, times(1)).getChatCompletion(
-                                eq(userMessage), eq(model), eq(assessmentId), eq(userId), eq(chatHistoryId));
+                                eq(userMessage), eq(model), eq(assessmentId), eq(userId));
                         return true;
                     } catch (Exception e) {
                         return false;
@@ -149,15 +148,14 @@ public class RabbitMQTests {
         String model = "gpt-4o-mini";
         Long assessmentId = 1L;
         Long userId = 1L;
-        Long chatHistoryId = 1L;
 
         ChatResponse mockResponse = createMockChatResponse("This is a simple Java class.");
-        when(chatService.getChatCompletion(anyString(), any(Map.class), anyString(), anyLong(), anyLong(), anyLong()))
+        when(chatService.getChatCompletion(anyString(), any(Map.class), anyString(), anyLong(), anyLong()))
                 .thenReturn(mockResponse);
 
         // Act
         String requestId = chatMessagePublisher.publishChatCompletionRequest(
-                template, variables, model, assessmentId, userId, chatHistoryId);
+                template, variables, model, assessmentId, userId);
 
         // Assert
         assertThat(requestId).isNotNull();
@@ -167,7 +165,7 @@ public class RabbitMQTests {
                 .until(() -> {
                     try {
                         verify(chatService, times(1)).getChatCompletion(
-                                eq(template), eq(variables), eq(model), eq(assessmentId), eq(userId), eq(chatHistoryId));
+                                eq(template), eq(variables), eq(model), eq(assessmentId), eq(userId));
                         return true;
                     } catch (Exception e) {
                         return false;
@@ -181,15 +179,14 @@ public class RabbitMQTests {
         String userMessage = "This will fail";
         String model = "gpt-4o-mini";
         Long assessmentId = 1L;
-        Long userId = 1L;
-        Long chatHistoryId = 1L;
+        Long userId = 1L;       
 
-        when(chatService.getChatCompletion(anyString(), anyString(), anyLong(), anyLong(), anyLong()))
+        when(chatService.getChatCompletion(anyString(), anyString(), anyLong(), anyLong()))
                 .thenThrow(new RuntimeException("AI service unavailable"));
 
         // Act
         String requestId = chatMessagePublisher.publishChatCompletionRequest(
-                userMessage, model, assessmentId, userId, chatHistoryId);
+                userMessage, model, assessmentId, userId);
 
         // Assert
         await().atMost(Duration.ofSeconds(5))
@@ -212,7 +209,6 @@ public class RabbitMQTests {
         invalidRequest.setModel("gpt-4o-mini");
         invalidRequest.setAssessmentId(1L);
         invalidRequest.setUserId(1L);
-        invalidRequest.setChatHistoryId(1L);
         // Both userMessage and userPromptTemplate are null
 
         // Act
@@ -236,13 +232,12 @@ public class RabbitMQTests {
     void testMessageSerialization() {
         // Test ChatCompletionRequestDto serialization
         ChatCompletionRequestDto request = new ChatCompletionRequestDto(
-                "Hello", "gpt-4o-mini", 1L, 1L, 1L, UUID.randomUUID().toString());
+                "Hello", "gpt-4o-mini", 1L, 1L, UUID.randomUUID().toString());
 
         assertThat(request.getUserMessage()).isEqualTo("Hello");
         assertThat(request.getModel()).isEqualTo("gpt-4o-mini");
         assertThat(request.getAssessmentId()).isEqualTo(1L);
         assertThat(request.getUserId()).isEqualTo(1L);
-        assertThat(request.getChatHistoryId()).isEqualTo(1L);
         assertThat(request.getRequestId()).isNotNull();
 
         // Test ChatCompletionResponseDto serialization
@@ -272,13 +267,13 @@ public class RabbitMQTests {
         CountDownLatch latch = new CountDownLatch(numberOfRequests);
         
         ChatResponse mockResponse = createMockChatResponse("Concurrent response");
-        when(chatService.getChatCompletion(anyString(), anyString(), anyLong(), anyLong(), anyLong()))
+        when(chatService.getChatCompletion(anyString(), anyString(), anyLong(), anyLong()))
                 .thenReturn(mockResponse);
 
         // Act - Send multiple concurrent requests
         for (int i = 0; i < numberOfRequests; i++) {
             chatMessagePublisher.publishChatCompletionRequest(
-                    "Message " + i, "gpt-4o-mini", 1L, 1L, 1L);
+                    "Message " + i, "gpt-4o-mini", 1L, 1L);
         }
 
         // Assert - All requests should be processed
@@ -286,7 +281,7 @@ public class RabbitMQTests {
                 .until(() -> {
                     try {
                         verify(chatService, times(numberOfRequests)).getChatCompletion(
-                                anyString(), anyString(), anyLong(), anyLong(), anyLong());
+                                            anyString(), anyString(), anyLong(), anyLong());
                         return true;
                     } catch (Exception e) {
                         return false;

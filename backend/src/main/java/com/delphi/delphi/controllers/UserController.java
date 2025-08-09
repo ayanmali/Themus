@@ -415,6 +415,9 @@ public class UserController {
 
     @GetMapping("/github/callback")
     public ResponseEntity<?> callbackRouter(@RequestParam String code, @RequestParam String state) {
+        if (state == null) {
+            return ResponseEntity.badRequest().body("State query parameter is required");
+        }
         String userOrCandidate;
         if (state.contains("_user_")) {
             userOrCandidate = "user";

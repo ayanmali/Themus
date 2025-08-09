@@ -24,9 +24,9 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.core.ParameterizedTypeReference;
 
-import com.delphi.delphi.entities.ChatHistory;
+import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.ChatMessage;
-import com.delphi.delphi.repositories.ChatHistoryRepository;
+import com.delphi.delphi.repositories.AssessmentRepository;
 import com.delphi.delphi.utils.git.GithubBranchDetails;
 import com.delphi.delphi.utils.git.GithubFile;
 import com.delphi.delphi.utils.git.GithubReference;
@@ -54,10 +54,11 @@ import com.delphi.delphi.utils.git.GithubRepoBranch;
 
 public class GithubService {
 
+    private final AssessmentRepository assessmentRepository;
+
     private final EncryptionService encryptionService;
 
     private final Logger log = LoggerFactory.getLogger(GithubService.class);
-    private final ChatHistoryRepository chatHistoryRepository;
 
     // private final ChatMessageRepository chatMessageRepository;
     private final String appId;
@@ -82,7 +83,7 @@ public class GithubService {
                         @Value("${github.candidate.app.client-secret}") String candidateAppClientSecret,
                         @Value("${spring.security.oauth2.client.registration.github.scope}") String githubScope,
                         Map<String, String> author,
-                        ChatHistoryRepository chatHistoryRepository, EncryptionService encryptionService) {
+                        EncryptionService encryptionService, AssessmentRepository assessmentRepository) {
         this.appId = appId;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
@@ -100,10 +101,14 @@ public class GithubService {
         loadPrivateKey();
 
         // this.chatMessageRepository = chatMessageRepository;
-        this.chatHistoryRepository = chatHistoryRepository;
 
         // this.chatMessageRepository = chatMessageRepository;
         this.encryptionService = encryptionService;
+
+        // this.chatMessageRepository = chatMessageRepository;
+
+        // this.chatMessageRepository = chatMessageRepository;
+        this.assessmentRepository = assessmentRepository;
     }
 
     private void loadPrivateKey() {
@@ -359,6 +364,7 @@ public class GithubService {
             if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
                 githubAccessToken = encryptionService.decrypt(token);
             }
+            log.info("Creating personal repo with token: {}...", githubAccessToken);
             // For GitHub App installation tokens, we need to create repo in the installation's account
             String url = "https://api.github.com/user/repos";
 
@@ -711,25 +717,23 @@ public class GithubService {
         }
     }
 
-    public ChatMessage sendMessageToUser(String text, Long chatHistoryId, String model) {
+    public ChatMessage sendMessageToUser(String text, Long assessmentId, String model) {
         try {
+            Assessment assessment = assessmentRepository.findById(assessmentId)
+                    .orElseThrow(() -> new Exception("Assessment not found with id: " + assessmentId));
             ChatMessage chatMessage = new ChatMessage();
             chatMessage.setText(text);
-            chatMessage.setChatHistory(chatHistoryRepository.findById(chatHistoryId)
-                    .orElseThrow(() -> new Exception("Chat history not found with id: " + chatHistoryId)));
+            chatMessage.setAssessment(assessment);
 
             chatMessage.setMessageType(MessageType.ASSISTANT);
             chatMessage.setModel(model);
             // TODO: add this back?
             // chatMessageRepository.save(chatMessage);
 
-            ChatHistory existingChatHistory = chatHistoryRepository.findById(chatHistoryId)
-                    .orElseThrow(() -> new Exception("Chat history not found with id: " + chatHistoryId));
-
             // TODO: add this back?
             // existingChatHistory.getMessages().add(chatMessage);
-            existingChatHistory.addMessage(chatMessage);
-            chatHistoryRepository.save(existingChatHistory);
+            assessment.addMessage(chatMessage);
+            assessmentRepository.save(assessment);
             return chatMessage;
         } catch (Exception e) {
             throw new RuntimeException("Error sending message: " + e.getMessage());

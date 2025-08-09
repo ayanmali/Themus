@@ -169,6 +169,7 @@ public class AssessmentController {
             Assessment assessment = assessmentService.createAssessment(newAssessmentDto, user);
             log.info("assessment created: {}", assessment);
 
+            log.info("Passing form data to chat message queue");
             // Publish to chat message queue instead of direct call
             String requestId = chatMessagePublisher.publishChatCompletionRequest(
                     AssessmentCreationPrompts.USER_PROMPT,
@@ -179,8 +180,7 @@ public class AssessmentController {
                             "OTHER_DETAILS", newAssessmentDto.getDescription()),
                     newAssessmentDto.getModel(),
                     assessment.getId(),
-                    user.getId(),
-                    assessment.getChatHistory().getId());
+                    user.getId());
 
             return ResponseEntity.status(HttpStatus.CREATED).body(
                     Map.of("assessment", new FetchAssessmentDto(assessment),
@@ -217,8 +217,7 @@ public class AssessmentController {
                     messageDto.getMessage(),
                     messageDto.getModel(),
                     messageDto.getAssessmentId(),
-                    user.getId(),
-                    assessmentService.getChatHistoryById(messageDto.getAssessmentId()).getId()
+                    user.getId()
             );
 
             // Return request ID for client to track the async response

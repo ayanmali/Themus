@@ -45,8 +45,8 @@ public class ChatMessage {
     private String model;
     
     @ManyToOne
-    @JoinColumn(name = "chat_history_id", nullable = false)
-    private ChatHistory chatHistory;
+    @JoinColumn(name = "assessment_id", nullable = false)
+    private Assessment assessment;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "message_type", nullable = false)
@@ -67,9 +67,9 @@ public class ChatMessage {
     public ChatMessage() {
     }
 
-    public ChatMessage(String text, List<OpenAiToolCall> toolCalls, ChatHistory chatHistory, MessageType messageType, String model) {
+    public ChatMessage(String text, List<OpenAiToolCall> toolCalls, Assessment assessment, MessageType messageType, String model) {
         this.text = text;
-        this.chatHistory = chatHistory;
+        this.assessment = assessment;
         this.model = model;
         this.messageType = messageType;
         if (!toolCalls.isEmpty()) {
@@ -77,9 +77,9 @@ public class ChatMessage {
         }
     }
 
-    public ChatMessage(AssistantMessage message, ChatHistory chatHistory, String model) {
+    public ChatMessage(AssistantMessage message, Assessment assessment, String model) {
         this.text = message.getText();
-        this.chatHistory = chatHistory;
+        this.assessment = assessment;
         this.messageType = message.getMessageType();
         this.model = model;
         if (!message.getToolCalls().isEmpty()) {
@@ -113,12 +113,12 @@ public class ChatMessage {
         this.text = text;
     }
 
-    public ChatHistory getChatHistory() {
-        return chatHistory;
+    public Assessment getAssessment() {
+        return assessment;
     }
 
-    public void setChatHistory(ChatHistory chatHistory) {
-        this.chatHistory = chatHistory;
+    public void setAssessment(Assessment assessment) {
+        this.assessment = assessment;
     }
 
     public String getModel() {

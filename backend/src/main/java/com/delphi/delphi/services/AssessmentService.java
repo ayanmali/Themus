@@ -22,11 +22,10 @@ import com.delphi.delphi.dtos.NewAssessmentDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
-import com.delphi.delphi.entities.ChatHistory;
+import com.delphi.delphi.entities.ChatMessage;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.repositories.AssessmentRepository;
 import com.delphi.delphi.repositories.CandidateAttemptRepository;
-import com.delphi.delphi.utils.AssessmentCreationPrompts;
 import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.AttemptStatus;
 import com.delphi.delphi.utils.git.GithubAccountType;
@@ -84,14 +83,13 @@ public class AssessmentService {
         assessment.setName(newAssessmentDto.getName());
         assessment.setDescription(newAssessmentDto.getDescription());
         assessment.setRole(newAssessmentDto.getRole());
-        assessment.setStartDate(newAssessmentDto.getStartDate());
-        assessment.setEndDate(newAssessmentDto.getEndDate());
         assessment.setDuration(newAssessmentDto.getDuration());
         assessment.setSkills(newAssessmentDto.getSkills());
         assessment.setLanguageOptions(newAssessmentDto.getLanguageOptions());
         // TODO: replace w/ something else?
         assessment.setGithubRepoName(newAssessmentDto.getName().toLowerCase().replace(" ", "-") + "-" + String.valueOf(Instant.now().getEpochSecond()));
         assessment.setUser(user);
+        assessment.setStatus(AssessmentStatus.DRAFT);
 
         // create github repo for the assessment
         if (user.getGithubAccountType() == GithubAccountType.USER) {
@@ -111,25 +109,20 @@ public class AssessmentService {
         log.info("assessment end date: {}", assessment.getEndDate());
         log.info("assessment duration: {}", assessment.getDuration());
         log.info("assessment skills: {}", assessment.getSkills());
+        log.info("assessment github repo name: {}", assessment.getGithubRepoName());
+        log.info("assessment github repository link: {}", assessment.getGithubRepositoryLink());
+        log.info("assessment language options: {}", assessment.getLanguageOptions());
         // save assessment in DB
         Assessment savedAssessment = assessmentRepository.save(assessment);
 
         log.info("assessment w/ repo URL saved in DB, creating chat history");
         // Create chat history for the assessment
-        ChatHistory chatHistory = new ChatHistory();
-        chatHistory.setAssessment(savedAssessment);
-        chatHistory.setMessages(List.of());
+        ChatMessage chatMessage = new ChatMessage();
+        chatMessage.setAssessment(savedAssessment);
 
-        log.info("creating chat history for assessment: {}", assessment);
-        // create chat history in DB and add system prompt
-        chatHistory = chatService.createChatHistory(chatHistory, AssessmentCreationPrompts.SYSTEM_PROMPT);
-        
-        // store the chat history in the assessment in DB
-        savedAssessment.setChatHistory(chatHistory);
-
+        savedAssessment.setChatMessages(List.of(chatMessage));
         // save assessment with chat history in DB
-        assessmentRepository.save(savedAssessment); // save assessment with chat history
-
+        assessmentRepository.save(savedAssessment);
         // save assessment with github repo in DB
         return savedAssessment;
 
@@ -145,10 +138,10 @@ public class AssessmentService {
     // Get chat history by assessment ID
     //@Cacheable(value = "chatHistories", key = "#id")
     @Transactional(readOnly = true)
-    public ChatHistory getChatHistoryById(Long id) {
+    public List<ChatMessage> getChatMessagesById(Long id) {
         return assessmentRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id))
-                .getChatHistory();
+                .getChatMessages();
     }
 
     // Get assessment by ID or throw exception

@@ -25,11 +25,11 @@ public class ChatMessagePublisher {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    public String publishChatCompletionRequest(String userMessage, String model, Long assessmentId, Long userId, Long chatHistoryId) {
+    public String publishChatCompletionRequest(String userMessage, String model, Long assessmentId, Long userId) {
         String requestId = UUID.randomUUID().toString();
         
         ChatCompletionRequestDto request = new ChatCompletionRequestDto(
-            userMessage, model, assessmentId, userId, chatHistoryId, requestId
+            userMessage, model, assessmentId, userId, requestId
         );
 
         log.info("Publishing chat completion request with ID: {} for model: {}", requestId, model);
@@ -47,12 +47,11 @@ public class ChatMessagePublisher {
                                              Map<String, Object> userPromptVariables,
                                              String model, 
                                              Long assessmentId, 
-                                             Long userId, 
-                                             Long chatHistoryId) {
+                                             Long userId) {
         String requestId = UUID.randomUUID().toString();
         
         ChatCompletionRequestDto request = new ChatCompletionRequestDto(
-            userPromptTemplate, userPromptVariables, model, assessmentId, userId, chatHistoryId, requestId
+            userPromptTemplate, userPromptVariables, model, assessmentId, userId, requestId
         );
 
         log.info("Publishing template-based chat completion request with ID: {} for model: {}", requestId, model);

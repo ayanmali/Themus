@@ -46,8 +46,8 @@ const createAssessmentSchema = z.object({
   //assessmentType: z.enum(["TAKE_HOME", "LIVE_CODING"]),
   duration: z.number().min(1, "Duration must be at least 1 minute").max(255, "Duration must be less than 255 minutes"),
   languageOptions: z.array(z.string()).max(5, "There can be no more than 5 technology choices."),
-  startDate: z.coerce.date().min(new Date(), { message: "Start date must be in the future" }),
-  endDate: z.coerce.date().min(new Date(), { message: "End date must be in the future" }),
+  // startDate: z.coerce.date().min(new Date(), { message: "Start date must be in the future" }),
+  // endDate: z.coerce.date().min(new Date(), { message: "End date must be in the future" }),
 });
 
 type CreateAssessmentFormValues = z.infer<typeof createAssessmentSchema>;
@@ -152,8 +152,6 @@ export function CreateAssessmentForm() {
       description: "",
       languageOptions: [],
       duration: 0,
-      startDate: new Date(),
-      endDate: new Date()
     },
   });
 
@@ -174,7 +172,6 @@ export function CreateAssessmentForm() {
   }, [descriptionValue, adjustDescriptionHeight]);
 
   const { toast } = useToast();
-  const { user } = useAuth();
   const [, navigate] = useLocation();
   const { apiCall } = useApi();
 
@@ -863,7 +860,8 @@ export function CreateAssessmentForm() {
                                 )}
                             /> */}
 
-              <div>
+              {/* TODO: add date range picker to the assessments details page and enforce a valid date range before setting status to active*/}
+              {/* <div>
                 <FormLabel className="text-slate-300 font-medium">Date Range</FormLabel>
 
                 <div className="flex items-center gap-2 mt-2 justify-center">
@@ -874,7 +872,7 @@ export function CreateAssessmentForm() {
                     <DatePicker />
                   </FormControl>
                 </div>
-              </div>
+              </div> */}
 
               <FormField
                 control={form.control}

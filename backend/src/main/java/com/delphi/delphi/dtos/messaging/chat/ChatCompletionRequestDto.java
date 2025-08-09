@@ -11,30 +11,27 @@ public class ChatCompletionRequestDto implements Serializable {
     private String model;
     private Long assessmentId;
     private Long userId;
-    private Long chatHistoryId;
     private String requestId; // For tracking async responses
 
     // Constructors
     public ChatCompletionRequestDto() {}
 
     // For simple user message
-    public ChatCompletionRequestDto(String userMessage, String model, Long assessmentId, Long userId, Long chatHistoryId, String requestId) {
+    public ChatCompletionRequestDto(String userMessage, String model, Long assessmentId, Long userId, String requestId) {
         this.userMessage = userMessage;
         this.model = model;
         this.assessmentId = assessmentId;
         this.userId = userId;
-        this.chatHistoryId = chatHistoryId;
         this.requestId = requestId;
     }
 
     // For template-based message
-    public ChatCompletionRequestDto(String userPromptTemplate, Map<String, Object> userPromptVariables, String model, Long assessmentId, Long userId, Long chatHistoryId, String requestId) {
+    public ChatCompletionRequestDto(String userPromptTemplate, Map<String, Object> userPromptVariables, String model, Long assessmentId, Long userId, String requestId) {
         this.userPromptTemplate = userPromptTemplate;
         this.userPromptVariables = userPromptVariables;
         this.model = model;
         this.assessmentId = assessmentId;
-        this.userId = userId;
-        this.chatHistoryId = chatHistoryId;
+        this.userId = userId;        
         this.requestId = requestId;
     }
 
@@ -56,9 +53,6 @@ public class ChatCompletionRequestDto implements Serializable {
     
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
-    
-    public Long getChatHistoryId() { return chatHistoryId; }
-    public void setChatHistoryId(Long chatHistoryId) { this.chatHistoryId = chatHistoryId; }
     
     public String getRequestId() { return requestId; }
     public void setRequestId(String requestId) { this.requestId = requestId; }

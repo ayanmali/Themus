@@ -39,8 +39,7 @@ public class ChatMessageSubscriber {
                     request.getUserMessage(),
                     request.getModel(),
                     request.getAssessmentId(),
-                    request.getUserId(),
-                    request.getChatHistoryId()
+                    request.getUserId()
                 );
             } else if (request.getUserPromptTemplate() != null) {
                 // Template-based message
@@ -49,8 +48,7 @@ public class ChatMessageSubscriber {
                     request.getUserPromptVariables(),
                     request.getModel(),
                     request.getAssessmentId(),
-                    request.getUserId(),
-                    request.getChatHistoryId()
+                    request.getUserId()
                 );
             } else {
                 throw new IllegalArgumentException("Either userMessage or userPromptTemplate must be provided");

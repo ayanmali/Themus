@@ -3,9 +3,11 @@ package com.delphi.delphi.entities;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.ai.chat.messages.Message;
 
 import com.delphi.delphi.utils.AssessmentStatus;
 
@@ -25,7 +27,6 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapKeyColumn;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Future;
@@ -132,8 +133,9 @@ public class Assessment {
     private List<Candidate> candidates;
 
     // One-to-one relationship with ChatHistory
-    @OneToOne(mappedBy = "assessment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private ChatHistory chatHistory;
+    @OneToMany(mappedBy = "assessment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinColumn(name = "assessment_id")
+    private List<ChatMessage> chatMessages;
 
     public Assessment() {
         // Empty constructor for Hibernate
@@ -291,16 +293,24 @@ public class Assessment {
         this.candidates = candidates;
     }
 
+    public void addMessage(ChatMessage chatMessage) {
+        this.chatMessages.add(chatMessage);
+    }
+
     public void addCandidate(Candidate candidate) {
         this.candidates.add(candidate);
     }
 
-    public ChatHistory getChatHistory() {
-        return chatHistory;
+    public List<ChatMessage> getChatMessages() {
+        return chatMessages;
     }
 
-    public void setChatHistory(ChatHistory chatHistory) {
-        this.chatHistory = chatHistory;
+    public void setChatMessages(List<ChatMessage> chatMessages) {
+        this.chatMessages = chatMessages;
+    }
+
+    public List<Message> getMessagesAsSpringMessages() {
+        return this.chatMessages.stream().map(ChatMessage::toMessage).collect(Collectors.toList());
     }
 
     @AssertTrue(message = "End date must be after start date")
