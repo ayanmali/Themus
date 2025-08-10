@@ -3,6 +3,7 @@ package com.delphi.delphi.dtos;
 import java.time.LocalDateTime;
 import java.util.Map;
 
+import com.delphi.delphi.dtos.cache.CandidateCacheDto;
 import com.delphi.delphi.entities.Candidate;
 
 public class FetchCandidateDto {
@@ -25,6 +26,15 @@ public class FetchCandidateDto {
         this.metadata = candidate.getMetadata();
     }
 
+    public FetchCandidateDto(CandidateCacheDto candidate) {
+        this.id = candidate.getId();
+        this.fullName = candidate.getFirstName() + " " + candidate.getLastName();
+        this.email = candidate.getEmail();
+        this.createdDate = candidate.getCreatedDate();
+        this.updatedDate = candidate.getUpdatedDate();
+        this.metadata = candidate.getMetadata();
+    }
+    
     public Long getId() {
         return id;
     }

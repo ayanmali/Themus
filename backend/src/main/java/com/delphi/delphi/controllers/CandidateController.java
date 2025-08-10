@@ -3,7 +3,6 @@ package com.delphi.delphi.controllers;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
@@ -33,6 +32,9 @@ import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.CandidateService;
 import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.AttemptStatus;
+import com.delphi.delphi.dtos.cache.CandidateCacheDto;
+import com.delphi.delphi.dtos.cache.UserCacheDto;
+import com.delphi.delphi.repositories.UserRepository;
 
 import jakarta.validation.Valid;
 
@@ -42,13 +44,15 @@ public class CandidateController {
     
     private final UserService userService;
     private final CandidateService candidateService;
+    private final UserRepository userRepository;
 
-    public CandidateController(CandidateService candidateService, UserService userService, AssessmentService assessmentService) {
+    public CandidateController(CandidateService candidateService, UserService userService, AssessmentService assessmentService, UserRepository userRepository) {
         this.candidateService = candidateService;
         this.userService = userService;
+        this.userRepository = userRepository;
     }
 
-    private User getCurrentUser() {
+    private UserCacheDto getCurrentUser() {
         return userService.getUserByEmail(getCurrentUserEmail());
     }
 
@@ -68,10 +72,10 @@ public class CandidateController {
             candidate.setEmail(newCandidateDto.getEmail());
             
             // Set user relationship
-            User user = getCurrentUser();
+            User user = userRepository.findByEmail(getCurrentUserEmail()).orElseThrow(() -> new IllegalArgumentException("User not found"));
             candidate.setUser(user);
             
-            Candidate createdCandidate = candidateService.createCandidate(candidate);
+            CandidateCacheDto createdCandidate = candidateService.createCandidate(candidate);
             return ResponseEntity.status(HttpStatus.CREATED).body(new FetchCandidateDto(createdCandidate));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error creating candidate: " + e.getMessage());
@@ -85,12 +89,8 @@ public class CandidateController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getCandidateById(@PathVariable Long id) {
         try {
-            Optional<Candidate> candidate = candidateService.getCandidateById(id);
-            if (candidate.isPresent()) {
-                return ResponseEntity.ok(new FetchCandidateDto(candidate.get()));
-            } else {
-                return ResponseEntity.notFound().build();
-            }
+            CandidateCacheDto candidate = candidateService.getCandidateById(id);
+            return ResponseEntity.ok(new FetchCandidateDto(candidate));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error retrieving candidate: " + e.getMessage());
@@ -101,12 +101,8 @@ public class CandidateController {
     @GetMapping("/email/{email}")
     public ResponseEntity<?> getCandidateByEmail(@PathVariable String email) {
         try {
-            Optional<Candidate> candidate = candidateService.getCandidateByEmail(email);
-            if (candidate.isPresent()) {
-                return ResponseEntity.ok(new FetchCandidateDto(candidate.get()));
-            } else {
-                return ResponseEntity.notFound().build();
-            }
+            CandidateCacheDto candidate = candidateService.getCandidateByEmail(email);
+            return ResponseEntity.ok(new FetchCandidateDto(candidate));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error retrieving candidate: " + e.getMessage());
@@ -121,13 +117,13 @@ public class CandidateController {
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection) {
         try {
-            User user = getCurrentUser();
+            UserCacheDto user = getCurrentUser();
             Sort sort = sortDirection.equalsIgnoreCase("desc") 
                 ? Sort.by(sortBy).descending() 
                 : Sort.by(sortBy).ascending();
             
             Pageable pageable = PageRequest.of(page, size, sort);
-            List<Candidate> candidates = candidateService.getCandidatesByUserId(user.getId(), pageable);
+            List<CandidateCacheDto> candidates = candidateService.getCandidatesByUserId(user.getId(), pageable);
             List<FetchCandidateDto> candidateDtos = candidates.stream()
                     .map(FetchCandidateDto::new)
                     .collect(Collectors.toList());
@@ -156,13 +152,13 @@ public class CandidateController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime attemptCompletedAfter,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime attemptCompletedBefore) {
         try {
-            User user = getCurrentUser();
+            UserCacheDto user = getCurrentUser();
             Sort sort = sortDirection.equalsIgnoreCase("desc") 
                 ? Sort.by(sortBy).descending() 
                 : Sort.by(sortBy).ascending();
             
             Pageable pageable = PageRequest.of(page, size, sort);
-            List<Candidate> candidates = candidateService.getCandidatesWithFiltersForUser(
+            List<CandidateCacheDto> candidates = candidateService.getCandidatesWithFiltersForUser(
                 user.getId(), assessmentId, attemptStatus, emailDomain, firstName, lastName,
                 createdAfter, createdBefore, attemptCompletedAfter, attemptCompletedBefore, pageable);
             List<FetchCandidateDto> candidateDtos = candidates.stream()
@@ -185,7 +181,7 @@ public class CandidateController {
             updateCandidate.setLastName(candidateUpdates.getLastName());
             updateCandidate.setEmail(candidateUpdates.getEmail());
             
-            Candidate updatedCandidate = candidateService.updateCandidate(id, updateCandidate);
+            CandidateCacheDto updatedCandidate = candidateService.updateCandidate(id, updateCandidate);
             return ResponseEntity.ok(new FetchCandidateDto(updatedCandidate));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error updating candidate: " + e.getMessage());
@@ -235,7 +231,7 @@ public class CandidateController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            List<Candidate> candidates = candidateService.searchCandidatesByFirstName(firstName, pageable);
+            List<CandidateCacheDto> candidates = candidateService.searchCandidatesByFirstName(firstName, pageable);
             List<FetchCandidateDto> candidateDtos = candidates.stream()
                     .map(FetchCandidateDto::new)
                     .collect(Collectors.toList());
@@ -255,7 +251,7 @@ public class CandidateController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            List<Candidate> candidates = candidateService.searchCandidatesByLastName(lastName, pageable);
+            List<CandidateCacheDto> candidates = candidateService.searchCandidatesByLastName(lastName, pageable);
             List<FetchCandidateDto> candidateDtos = candidates.stream()
                     .map(FetchCandidateDto::new)
                     .collect(Collectors.toList());
@@ -275,7 +271,7 @@ public class CandidateController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            List<Candidate> candidates = candidateService.searchCandidatesByFullName(fullName, pageable);
+            List<CandidateCacheDto> candidates = candidateService.searchCandidatesByFullName(fullName, pageable);
             List<FetchCandidateDto> candidateDtos = candidates.stream()
                     .map(FetchCandidateDto::new)
                     .collect(Collectors.toList());
@@ -295,7 +291,7 @@ public class CandidateController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            List<Candidate> candidates = candidateService.getCandidatesByEmailDomain(domain, pageable);
+            List<CandidateCacheDto> candidates = candidateService.getCandidatesByEmailDomain(domain, pageable);
             List<FetchCandidateDto> candidateDtos = candidates.stream()
                     .map(FetchCandidateDto::new)
                     .collect(Collectors.toList());
@@ -351,7 +347,7 @@ public class CandidateController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            List<Candidate> candidates = candidateService.getCandidatesWithNoAttempts(pageable);
+            List<CandidateCacheDto> candidates = candidateService.getCandidatesWithNoAttempts(pageable);
             List<FetchCandidateDto> candidateDtos = candidates.stream()
                     .map(FetchCandidateDto::new)
                     .collect(Collectors.toList());
@@ -367,7 +363,7 @@ public class CandidateController {
     @GetMapping("/count")
     public ResponseEntity<?> countCandidatesByUser() {
         try {
-            User user = getCurrentUser();
+            UserCacheDto user = getCurrentUser();
             Long count = candidateService.countCandidatesByUser(user.getId());
             return ResponseEntity.ok(count);
         } catch (Exception e) {
@@ -382,7 +378,7 @@ public class CandidateController {
             @PathVariable Long id,
             @RequestBody Map<String, String> metadata) {
         try {
-            Candidate updatedCandidate = candidateService.updateCandidateMetadata(id, metadata);
+            CandidateCacheDto updatedCandidate = candidateService.updateCandidateMetadata(id, metadata);
             return ResponseEntity.ok(new FetchCandidateDto(updatedCandidate));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error updating metadata: " + e.getMessage());
@@ -399,7 +395,7 @@ public class CandidateController {
             @RequestParam String key,
             @RequestParam String value) {
         try {
-            Candidate updatedCandidate = candidateService.addMetadata(id, key, value);
+            CandidateCacheDto updatedCandidate = candidateService.addMetadata(id, key, value);
             return ResponseEntity.ok(new FetchCandidateDto(updatedCandidate));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error adding metadata: " + e.getMessage());
@@ -415,7 +411,7 @@ public class CandidateController {
             @PathVariable Long id,
             @PathVariable String key) {
         try {
-            Candidate updatedCandidate = candidateService.removeMetadata(id, key);
+            CandidateCacheDto updatedCandidate = candidateService.removeMetadata(id, key);
             return ResponseEntity.ok(new FetchCandidateDto(updatedCandidate));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error removing metadata: " + e.getMessage());

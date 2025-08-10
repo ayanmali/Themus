@@ -2,7 +2,6 @@ package com.delphi.delphi.controllers;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
@@ -22,6 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.dtos.FetchCandidateAttemptDto;
 import com.delphi.delphi.dtos.NewCandidateAttemptDto;
+import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
+import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.services.AssessmentService;
@@ -46,7 +47,7 @@ public class CandidateAttemptController {
     @PostMapping("/start")
     public ResponseEntity<?> startCandidateAttempt(@Valid @RequestBody NewCandidateAttemptDto newCandidateAttemptDto) {
         try {
-            Assessment assessment = assessmentService.getAssessmentByIdOrThrow(newCandidateAttemptDto.getAssessmentId());
+            AssessmentCacheDto assessment = assessmentService.getAssessmentByIdOrThrow(newCandidateAttemptDto.getAssessmentId());
             // return error if an invalid language choice is provided
             if (!assessment.getLanguageOptions().isEmpty() && newCandidateAttemptDto.getLanguageChoice().isPresent() && !assessment.getLanguageOptions().contains(newCandidateAttemptDto.getLanguageChoice().get())) {
                 return ResponseEntity.badRequest().body("Language choice not supported for this assessment");
@@ -57,7 +58,7 @@ public class CandidateAttemptController {
                 return ResponseEntity.badRequest().body("This assessment does not support language choice.");
             }
 
-            CandidateAttempt createdAttempt = candidateAttemptService.startAttempt(
+            CandidateAttemptCacheDto createdAttempt = candidateAttemptService.startAttempt(
                                                 newCandidateAttemptDto.getCandidateId(), 
                                                 newCandidateAttemptDto.getAssessmentId(), 
                                                 newCandidateAttemptDto.getLanguageChoice(),
@@ -76,12 +77,8 @@ public class CandidateAttemptController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getCandidateAttemptById(@PathVariable Long id) {
         try {
-            Optional<CandidateAttempt> attempt = candidateAttemptService.getCandidateAttemptById(id);
-            if (attempt.isPresent()) {
-                return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt.get()));
-            } else {
-                return ResponseEntity.notFound().build();
-            }
+            CandidateAttemptCacheDto attempt = candidateAttemptService.getCandidateAttemptById(id);
+            return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error retrieving candidate attempt: " + e.getMessage());
@@ -108,7 +105,7 @@ public class CandidateAttemptController {
                 : Sort.by(sortBy).ascending();
             
             Pageable pageable = PageRequest.of(page, size, sort);
-            List<CandidateAttempt> attempts = candidateAttemptService.getCandidateAttemptsWithFilters(
+            List<CandidateAttemptCacheDto> attempts = candidateAttemptService.getCandidateAttemptsWithFilters(
                 candidateId, assessmentId, status, startedAfter, startedBefore, 
                 completedAfter, completedBefore, pageable);
             List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
@@ -131,7 +128,7 @@ public class CandidateAttemptController {
             updateAttempt.setLanguageChoice(attemptUpdates.getLanguageChoice().orElse(null));
             updateAttempt.setStatus(attemptUpdates.getStatus());
             
-            CandidateAttempt updatedAttempt = candidateAttemptService.updateCandidateAttempt(id, updateAttempt);
+            CandidateAttemptCacheDto updatedAttempt = candidateAttemptService.updateCandidateAttempt(id, updateAttempt);
             return ResponseEntity.ok(new FetchCandidateAttemptDto(updatedAttempt));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error updating candidate attempt: " + e.getMessage());
@@ -235,7 +232,7 @@ public class CandidateAttemptController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            List<CandidateAttempt> attempts = candidateAttemptService.getAttemptsByLanguageChoice(languageChoice, pageable);
+            List<CandidateAttemptCacheDto> attempts = candidateAttemptService.getAttemptsByLanguageChoice(languageChoice, pageable);
             List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
                     .map(FetchCandidateAttemptDto::new)
                     .collect(Collectors.toList());
@@ -311,7 +308,7 @@ public class CandidateAttemptController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            List<CandidateAttempt> attempts = candidateAttemptService.getOverdueAttempts(pageable);
+            List<CandidateAttemptCacheDto> attempts = candidateAttemptService.getOverdueAttempts(pageable);
             List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
                     .map(FetchCandidateAttemptDto::new)
                     .collect(Collectors.toList());
@@ -330,7 +327,7 @@ public class CandidateAttemptController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            List<CandidateAttempt> attempts = candidateAttemptService.getAttemptsWithEvaluation(pageable);
+            List<CandidateAttemptCacheDto> attempts = candidateAttemptService.getAttemptsWithEvaluation(pageable);
             List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
                     .map(FetchCandidateAttemptDto::new)
                     .collect(Collectors.toList());
@@ -349,7 +346,7 @@ public class CandidateAttemptController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            List<CandidateAttempt> attempts = candidateAttemptService.getSubmittedAttemptsWithoutEvaluation(pageable);
+            List<CandidateAttemptCacheDto> attempts = candidateAttemptService.getSubmittedAttemptsWithoutEvaluation(pageable);
             List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
                     .map(FetchCandidateAttemptDto::new)
                     .collect(Collectors.toList());
@@ -391,12 +388,8 @@ public class CandidateAttemptController {
     @GetMapping("/{id}/details")
     public ResponseEntity<?> getAttemptWithDetails(@PathVariable Long id) {
         try {
-            Optional<CandidateAttempt> attempt = candidateAttemptService.getAttemptWithDetails(id);
-            if (attempt.isPresent()) {
-                return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt.get()));
-            } else {
-                return ResponseEntity.notFound().build();
-            }
+            CandidateAttemptCacheDto attempt = candidateAttemptService.getAttemptWithDetails(id);
+            return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error retrieving attempt details: " + e.getMessage());
@@ -406,7 +399,7 @@ public class CandidateAttemptController {
     @PostMapping("/{id}/authenticate-candidate")
     public ResponseEntity<?> inviteCandidateToAssessment(@PathVariable Long id, @RequestBody String email) {
         try {
-            Assessment assessment = assessmentService.getAssessmentByIdOrThrow(id);
+            Assessment assessment = assessmentService.getAssessmentById(id);
             if (assessment.getCandidates().stream().anyMatch(c -> c.getEmail().toLowerCase().equals(email.toLowerCase()))) {
                 return ResponseEntity.ok("Candidate authenticated");
             }
@@ -453,7 +446,7 @@ public class CandidateAttemptController {
             @PathVariable Long id,
             @RequestParam(required = false) String githubRepositoryLink) {
         try {
-            CandidateAttempt attempt = candidateAttemptService.submitAttempt(id, githubRepositoryLink);
+            CandidateAttemptCacheDto attempt = candidateAttemptService.submitAttempt(id, githubRepositoryLink);
             return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt));
         } catch (IllegalStateException | IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error submitting attempt: " + e.getMessage());
@@ -467,7 +460,7 @@ public class CandidateAttemptController {
     @PostMapping("/{id}/evaluate")
     public ResponseEntity<?> markAsEvaluated(@PathVariable Long id) {
         try {
-            CandidateAttempt attempt = candidateAttemptService.markAsEvaluated(id);
+            CandidateAttemptCacheDto attempt = candidateAttemptService.markAsEvaluated(id);
             return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt));
         } catch (IllegalStateException | IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error marking as evaluated: " + e.getMessage());

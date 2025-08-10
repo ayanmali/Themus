@@ -27,9 +27,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.dtos.FetchEvaluationDto;
 import com.delphi.delphi.dtos.NewEvaluationDto;
+import com.delphi.delphi.dtos.cache.EvaluationCacheDto;
+import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.entities.Evaluation;
-import com.delphi.delphi.entities.User;
 import com.delphi.delphi.services.EvaluationService;
 import com.delphi.delphi.services.UserService;
 
@@ -48,7 +49,7 @@ public class EvaluationController {
         this.userService = userService;
     }
 
-    private User getCurrentUser() {
+    private UserCacheDto getCurrentUser() {
         return userService.getUserByEmail(getCurrentUserEmail());
     }
 
@@ -68,7 +69,7 @@ public class EvaluationController {
             candidateAttempt.setId(newEvaluationDto.getCandidateAttemptId());
             evaluation.setCandidateAttempt(candidateAttempt);
             
-            Evaluation createdEvaluation = evaluationService.createEvaluation(evaluation);
+            EvaluationCacheDto createdEvaluation = evaluationService.createEvaluation(evaluation);
             return ResponseEntity.status(HttpStatus.CREATED).body(new FetchEvaluationDto(createdEvaluation));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error creating evaluation: " + e.getMessage());
@@ -82,12 +83,8 @@ public class EvaluationController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getEvaluationById(@PathVariable Long id) {
         try {
-            Optional<Evaluation> evaluation = evaluationService.getEvaluationById(id);
-            if (evaluation.isPresent()) {
-                return ResponseEntity.ok(new FetchEvaluationDto(evaluation.get()));
-            } else {
-                return ResponseEntity.notFound().build();
-            }
+            EvaluationCacheDto evaluation = evaluationService.getEvaluationById(id);
+            return ResponseEntity.ok(new FetchEvaluationDto(evaluation));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error retrieving evaluation: " + e.getMessage());
@@ -107,7 +104,7 @@ public class EvaluationController {
                 : Sort.by(sortBy).ascending();
             
             Pageable pageable = PageRequest.of(page, size, sort);
-            List<Evaluation> evaluations = evaluationService.getAllEvaluations(pageable);
+            List<EvaluationCacheDto> evaluations = evaluationService.getAllEvaluations(pageable);
             List<FetchEvaluationDto> evaluationDtos = evaluations.stream()
                     .map(FetchEvaluationDto::new)
                     .collect(Collectors.toList());
@@ -126,7 +123,7 @@ public class EvaluationController {
             Evaluation updateEvaluation = new Evaluation();
             // Only metadata can be updated for evaluations based on the service
             
-            Evaluation updatedEvaluation = evaluationService.updateEvaluation(id, updateEvaluation);
+            EvaluationCacheDto updatedEvaluation = evaluationService.updateEvaluation(id, updateEvaluation);
             return ResponseEntity.ok(new FetchEvaluationDto(updatedEvaluation));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error updating evaluation: " + e.getMessage());
@@ -154,7 +151,7 @@ public class EvaluationController {
     @GetMapping("/candidate-attempt/{candidateAttemptId}")
     public ResponseEntity<?> getEvaluationByCandidateAttemptId(@PathVariable Long candidateAttemptId) {
         try {
-            Optional<Evaluation> evaluation = evaluationService.getEvaluationByCandidateAttemptId(candidateAttemptId);
+            Optional<EvaluationCacheDto> evaluation = evaluationService.getEvaluationByCandidateAttemptId(candidateAttemptId);
             if (evaluation.isPresent()) {
                 return ResponseEntity.ok(new FetchEvaluationDto(evaluation.get()));
             } else {
@@ -175,7 +172,7 @@ public class EvaluationController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            List<Evaluation> evaluations = evaluationService.getEvaluationsCreatedBetween(startDate, endDate, pageable);
+            List<EvaluationCacheDto> evaluations = evaluationService.getEvaluationsCreatedBetween(startDate, endDate, pageable);
             List<FetchEvaluationDto> evaluationDtos = evaluations.stream()
                     .map(FetchEvaluationDto::new)
                     .collect(Collectors.toList());
@@ -195,7 +192,7 @@ public class EvaluationController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            List<Evaluation> evaluations = evaluationService.getEvaluationsByCandidateId(candidateId, pageable);
+            List<EvaluationCacheDto> evaluations = evaluationService.getEvaluationsByCandidateId(candidateId, pageable);
             List<FetchEvaluationDto> evaluationDtos = evaluations.stream()
                     .map(FetchEvaluationDto::new)
                     .collect(Collectors.toList());
@@ -215,7 +212,7 @@ public class EvaluationController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            List<Evaluation> evaluations = evaluationService.getEvaluationsByAssessmentId(assessmentId, pageable);
+            List<EvaluationCacheDto> evaluations = evaluationService.getEvaluationsByAssessmentId(assessmentId, pageable);
             List<FetchEvaluationDto> evaluationDtos = evaluations.stream()
                     .map(FetchEvaluationDto::new)
                     .collect(Collectors.toList());
@@ -233,9 +230,9 @@ public class EvaluationController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
-            User user = getCurrentUser();
+            UserCacheDto user = getCurrentUser();
             Pageable pageable = PageRequest.of(page, size);
-            List<Evaluation> evaluations = evaluationService.getEvaluationsByUserId(user.getId(), pageable);
+            List<EvaluationCacheDto> evaluations = evaluationService.getEvaluationsByUserId(user.getId(), pageable);
             List<FetchEvaluationDto> evaluationDtos = evaluations.stream()
                     .map(FetchEvaluationDto::new)
                     .collect(Collectors.toList());
@@ -251,12 +248,8 @@ public class EvaluationController {
     @GetMapping("/{id}/details")
     public ResponseEntity<?> getEvaluationWithDetails(@PathVariable Long id) {
         try {
-            Optional<Evaluation> evaluation = evaluationService.getEvaluationWithDetails(id);
-            if (evaluation.isPresent()) {
-                return ResponseEntity.ok(new FetchEvaluationDto(evaluation.get()));
-            } else {
-                return ResponseEntity.notFound().build();
-            }
+            EvaluationCacheDto evaluation = evaluationService.getEvaluationWithDetails(id);
+            return ResponseEntity.ok(new FetchEvaluationDto(evaluation));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error retrieving evaluation details: " + e.getMessage());
@@ -281,9 +274,9 @@ public class EvaluationController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
-            User user = getCurrentUser();
+            UserCacheDto user = getCurrentUser();
             Pageable pageable = PageRequest.of(page, size);
-            List<Evaluation> evaluations = evaluationService.getRecentEvaluationsByUserId(user.getId(), pageable);
+            List<EvaluationCacheDto> evaluations = evaluationService.getRecentEvaluationsByUserId(user.getId(), pageable);
             List<FetchEvaluationDto> evaluationDtos = evaluations.stream()
                     .map(FetchEvaluationDto::new)
                     .collect(Collectors.toList());
@@ -301,7 +294,7 @@ public class EvaluationController {
             @PathVariable Long id,
             @RequestBody Map<String, String> metadata) {
         try {
-            Evaluation updatedEvaluation = evaluationService.updateEvaluationMetadata(id, metadata);
+            EvaluationCacheDto updatedEvaluation = evaluationService.updateEvaluationMetadata(id, metadata);
             return ResponseEntity.ok(new FetchEvaluationDto(updatedEvaluation));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error updating metadata: " + e.getMessage());
@@ -318,7 +311,7 @@ public class EvaluationController {
             @RequestParam String key,
             @RequestParam String value) {
         try {
-            Evaluation updatedEvaluation = evaluationService.addMetadata(id, key, value);
+            EvaluationCacheDto updatedEvaluation = evaluationService.addMetadata(id, key, value);
             return ResponseEntity.ok(new FetchEvaluationDto(updatedEvaluation));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error adding metadata: " + e.getMessage());
@@ -334,7 +327,7 @@ public class EvaluationController {
             @PathVariable Long id,
             @PathVariable String key) {
         try {
-            Evaluation updatedEvaluation = evaluationService.removeMetadata(id, key);
+            EvaluationCacheDto updatedEvaluation = evaluationService.removeMetadata(id, key);
             return ResponseEntity.ok(new FetchEvaluationDto(updatedEvaluation));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error removing metadata: " + e.getMessage());

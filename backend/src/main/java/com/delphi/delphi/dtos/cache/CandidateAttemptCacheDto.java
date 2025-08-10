@@ -15,7 +15,7 @@ public class CandidateAttemptCacheDto {
     private LocalDateTime startedDate;
     private LocalDateTime completedDate;
     private LocalDateTime evaluatedDate;
-    private Long candidateId;
+    private CandidateCacheDto candidate;
     private Long assessmentId;
     private Long evaluationId;
 
@@ -29,7 +29,7 @@ public class CandidateAttemptCacheDto {
         this.startedDate = candidateAttempt.getStartedDate();
         this.completedDate = candidateAttempt.getCompletedDate();
         this.evaluatedDate = candidateAttempt.getEvaluatedDate();
-        this.candidateId = candidateAttempt.getCandidate().getId();
+        this.candidate = new CandidateCacheDto(candidateAttempt.getCandidate());
         this.assessmentId = candidateAttempt.getAssessment().getId();
         this.evaluationId = candidateAttempt.getEvaluation().getId();
     }
@@ -88,11 +88,11 @@ public class CandidateAttemptCacheDto {
     public void setEvaluatedDate(LocalDateTime evaluatedDate) {
         this.evaluatedDate = evaluatedDate;
     }
-    public Long getCandidateId() {
-        return candidateId;
+    public CandidateCacheDto getCandidate() {
+        return candidate;
     }
-    public void setCandidateId(Long candidateId) {
-        this.candidateId = candidateId;
+    public void setCandidate(CandidateCacheDto candidate) {
+        this.candidate = candidate;
     }
     public Long getAssessmentId() {
         return assessmentId;

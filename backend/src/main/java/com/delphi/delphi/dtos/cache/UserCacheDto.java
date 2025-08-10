@@ -1,15 +1,21 @@
 package com.delphi.delphi.dtos.cache;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.utils.git.GithubAccountType;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
-public class UserCacheDto {
+public class UserCacheDto implements UserDetails {
     private Long id;
     private String name;
     private String email;
@@ -55,12 +61,6 @@ public class UserCacheDto {
     }
     public void setEmail(String email) {
         this.email = email;
-    }
-    public String getEncryptedPassword() {
-        return encryptedPassword;
-    }
-    public void setEncryptedPassword(String encryptedPassword) {
-        this.encryptedPassword = encryptedPassword;
     }
     public String getOrganizationName() {
         return organizationName;
@@ -111,5 +111,45 @@ public class UserCacheDto {
         this.candidateIds = candidateIds;
     }
 
-    
+    @Override
+    @JsonIgnore
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+    }
+
+    @Override
+    @JsonIgnore
+    public String getUsername() {
+        return this.email;
+    }
+
+    @Override
+    @JsonIgnore
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    @JsonIgnore
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    @JsonIgnore
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    @JsonIgnore
+    public boolean isEnabled() {
+        return true;
+    }
+
+    @Override
+    public String getPassword() {
+        return encryptedPassword;
+    }
+
 }

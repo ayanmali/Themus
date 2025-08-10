@@ -7,7 +7,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.delphi.delphi.entities.User;
+import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.services.UserService;
 
 @SpringBootApplication
@@ -24,7 +24,7 @@ public class DelphiApplication {
     }
 	// TODO: add authorization to all endpoints
 	// TODO: add more endpoints for data access
-	private User getCurrentUser() {
+	private UserCacheDto getCurrentUser() {
         return userService.getUserByEmail(getCurrentUserEmail());
     }
 
@@ -41,7 +41,7 @@ public class DelphiApplication {
 
 	@GetMapping("/health")
 	public String health() {
-		User user = getCurrentUser();
+		UserCacheDto user = getCurrentUser();
 		return "Welcome, " + user.getName() + "!";
 	}
 

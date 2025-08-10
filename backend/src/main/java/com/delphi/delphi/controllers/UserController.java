@@ -3,7 +3,6 @@ package com.delphi.delphi.controllers;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -33,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.dtos.FetchUserDto;
 import com.delphi.delphi.dtos.NewUserDto;
+import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.services.EncryptionService;
 import com.delphi.delphi.services.GithubService;
@@ -97,7 +97,7 @@ public class UserController {
         this.encryptionService = encryptionService;
     }
 
-    private User getCurrentUser() {
+    private UserCacheDto getCurrentUser() {
         return userService.getUserByEmail(getCurrentUserEmail());
     }
 
@@ -122,7 +122,7 @@ public class UserController {
     public ResponseEntity<?> isConnectedGithub(HttpServletResponse response) {
         try {
             log.info("Checking if user is connected to github");
-            User user = getCurrentUser();
+            UserCacheDto user = getCurrentUser();
             if (user.getGithubAccessToken() == null) {
                 log.info("Github credentials not found in DB");
                 return ResponseEntity.ok(false);
@@ -151,7 +151,7 @@ public class UserController {
             user.setOrganizationName(newUserDto.getOrganizationName());
             user.setPassword(newUserDto.getPassword());
 
-            User createdUser = userService.createUser(user);
+            UserCacheDto createdUser = userService.createUser(user);
             return ResponseEntity.status(HttpStatus.CREATED).body(new FetchUserDto(createdUser));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error creating user: " + e.getMessage());
@@ -165,9 +165,9 @@ public class UserController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(@PathVariable Long id) {
         try {
-            Optional<User> user = userService.getUserById(id);
-            if (user.isPresent()) {
-                return ResponseEntity.ok(new FetchUserDto(user.get()));
+            UserCacheDto user = userService.getUserByIdOrThrow(id);
+            if (user != null) {
+                return ResponseEntity.ok(new FetchUserDto(user));
             } else {
                 return ResponseEntity.notFound().build();
             }
@@ -181,7 +181,7 @@ public class UserController {
     @GetMapping("/email/{email}")
     public ResponseEntity<?> getUserByEmail(@PathVariable String email) {
         try {
-            User user = userService.getUserByEmail(email);
+            UserCacheDto user = userService.getUserByEmail(email);
             return ResponseEntity.ok(new FetchUserDto(user));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -206,7 +206,7 @@ public class UserController {
                     : Sort.by(sortBy).ascending();
 
             Pageable pageable = PageRequest.of(page, size, sort);
-            List<User> users = userService.getUsersWithFilters(name, organizationName, createdAfter, createdBefore,
+            List<UserCacheDto> users = userService.getUsersWithFilters(name, organizationName, createdAfter, createdBefore,
                     pageable);
             List<FetchUserDto> userDtos = users.stream()
                     .map(FetchUserDto::new)
@@ -261,7 +261,7 @@ public class UserController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            List<User> users = userService.searchUsersByOrganization(organizationName, pageable);
+            List<UserCacheDto> users = userService.searchUsersByOrganization(organizationName, pageable);
             List<FetchUserDto> userDtos = users.stream()
                     .map(FetchUserDto::new)
                     .collect(Collectors.toList());
@@ -281,7 +281,7 @@ public class UserController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            List<User> users = userService.searchUsersByName(name, pageable);
+            List<UserCacheDto> users = userService.searchUsersByName(name, pageable);
             List<FetchUserDto> userDtos = users.stream()
                     .map(FetchUserDto::new)
                     .collect(Collectors.toList());
@@ -302,7 +302,7 @@ public class UserController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            List<User> users = userService.getUsersCreatedBetween(startDate, endDate, pageable);
+            List<UserCacheDto> users = userService.getUsersCreatedBetween(startDate, endDate, pageable);
             List<FetchUserDto> userDtos = users.stream()
                     .map(FetchUserDto::new)
                     .collect(Collectors.toList());
@@ -321,7 +321,7 @@ public class UserController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            List<User> users = userService.getUsersWithActiveAssessments(pageable);
+            List<UserCacheDto> users = userService.getUsersWithActiveAssessments(pageable);
             List<FetchUserDto> userDtos = users.stream()
                     .map(FetchUserDto::new)
                     .collect(Collectors.toList());
@@ -393,7 +393,7 @@ public class UserController {
     @PostMapping("/github/generate-install-url")
     public ResponseEntity<?> generateGitHubInstallUrl() {
         try {
-            User user = getCurrentUser();
+            UserCacheDto user = getCurrentUser();
             String randomString = UUID.randomUUID().toString();
             redisService.setWithExpiration(githubCacheKeyPrefix + user.getEmail(), randomString, 10, TimeUnit.MINUTES);
             String installUrl = String.format("%s?state=%s_user_%s", appInstallBaseUrl, randomString, user.getEmail());
@@ -473,7 +473,7 @@ public class UserController {
         // map.put("expires_in", githubResponse.get("expires_in"));
         // map.put("status", "githubResponse");
         try {
-            User user = userService.getUserByEmail(providedEmail);
+            UserCacheDto user = userService.getUserByEmail(providedEmail);
             log.info("Current user: {}", user.getEmail());
             Map<String, Object> accessTokenResponse = githubService.getAccessToken(code, false);
             String githubAccessToken = (String) accessTokenResponse.get("access_token");
@@ -489,7 +489,7 @@ public class UserController {
                     .equals("user") ? GithubAccountType.USER : GithubAccountType.ORG;
 
             log.info("Updating github credentials for user: {}", user.getEmail());
-            userService.updateGithubCredentials(user, githubAccessToken, githubUsername, githubAccountType);
+            userService.updateGithubCredentials(user.getId(), githubAccessToken, githubUsername, githubAccountType);
 
             log.info("Github credentials updated for user: {}", user.getEmail());
             return ResponseEntity.ok("Github account connected: " + githubUsername);

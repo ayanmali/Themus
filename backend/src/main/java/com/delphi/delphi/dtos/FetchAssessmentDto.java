@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.utils.AssessmentStatus;
 
@@ -24,6 +25,23 @@ public class FetchAssessmentDto {
     private Map<String, String> metadata;
 
     public FetchAssessmentDto(Assessment assessment) {
+        this.id = assessment.getId();
+        this.name = assessment.getName();
+        this.description = assessment.getDescription();
+        this.role = assessment.getRole();
+        this.status = assessment.getStatus();
+        this.startDate = assessment.getStartDate();
+        this.endDate = assessment.getEndDate();
+        this.duration = assessment.getDuration();
+        this.githubRepositoryLink = assessment.getGithubRepositoryLink();
+        this.createdDate = assessment.getCreatedDate();
+        this.updatedDate = assessment.getUpdatedDate();
+        this.skills = assessment.getSkills();
+        this.languageOptions = assessment.getLanguageOptions();
+        this.metadata = assessment.getMetadata();
+    }
+
+    public FetchAssessmentDto(AssessmentCacheDto assessment) {
         this.id = assessment.getId();
         this.name = assessment.getName();
         this.description = assessment.getDescription();

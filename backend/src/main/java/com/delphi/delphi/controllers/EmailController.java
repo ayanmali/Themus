@@ -10,9 +10,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.components.ResendService;
+import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.dtos.messaging.emails.EmailRequestDto;
 import com.delphi.delphi.dtos.messaging.emails.ScheduledEmailRequestDto;
-import com.delphi.delphi.entities.User;
 import com.delphi.delphi.services.UserService;
 
 @RestController
@@ -27,7 +27,7 @@ public class EmailController {
         this.userService = userService;
     }
 
-    private User getCurrentUser() {
+    private UserCacheDto getCurrentUser() {
         return userService.getUserByEmail(getCurrentUserEmail());
     }
 

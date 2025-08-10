@@ -2,6 +2,7 @@ package com.delphi.delphi.dtos;
 
 import java.time.LocalDateTime;
 
+import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.entities.User;
 
 public class FetchUserDto {
@@ -24,6 +25,16 @@ public class FetchUserDto {
         this.createdDate = user.getCreatedDate();
         this.updatedDate = user.getUpdatedDate();
         this.connectedGithub = user.getGithubUsername() != null;
+    }
+
+    public FetchUserDto(UserCacheDto user) {
+        this.id = user.getId();
+        this.name = user.getName();
+        this.email = user.getEmail();
+        this.organizationName = user.getOrganizationName();
+        this.createdDate = user.getCreatedDate();
+        this.updatedDate = user.getUpdatedDate();
+        this.connectedGithub = user.getGithubAccessToken() != null;
     }
 
     public Long getId() {

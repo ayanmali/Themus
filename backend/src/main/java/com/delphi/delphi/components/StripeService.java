@@ -7,7 +7,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import com.delphi.delphi.entities.User;
+import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.utils.payments.StripeSubCache;
 import com.stripe.Stripe;
 import com.stripe.exception.SignatureVerificationException;
@@ -67,7 +67,7 @@ public class StripeService {
         this.STRIPE_SUCCESS_URL = stripeSuccessUrl;
     }
 
-    public Customer createCustomer(User user) {
+    public Customer createCustomer(UserCacheDto user) {
         try {
             String customerId = (String) redisService.get("stripe:user:" + user.getId());
 

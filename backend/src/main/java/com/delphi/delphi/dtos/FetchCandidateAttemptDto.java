@@ -2,6 +2,7 @@ package com.delphi.delphi.dtos;
 
 import java.time.LocalDateTime;
 
+import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
 import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.utils.AttemptStatus;
 
@@ -34,6 +35,21 @@ public class FetchCandidateAttemptDto {
         this.evaluatedDate = candidateAttempt.getEvaluatedDate();
         this.assessmentId = candidateAttempt.getAssessment().getId();
         this.evaluationId = candidateAttempt.getEvaluation().getId();
+        this.candidate = new FetchCandidateDto(candidateAttempt.getCandidate());
+    }
+
+    public FetchCandidateAttemptDto(CandidateAttemptCacheDto candidateAttempt) {
+        this.id = candidateAttempt.getId();
+        this.githubRepositoryLink = candidateAttempt.getGithubRepositoryLink();
+        this.status = candidateAttempt.getStatus();
+        this.languageChoice = candidateAttempt.getLanguageChoice();
+        this.createdDate = candidateAttempt.getCreatedDate();
+        this.updatedDate = candidateAttempt.getUpdatedDate();
+        this.startedDate = candidateAttempt.getStartedDate();
+        this.completedDate = candidateAttempt.getCompletedDate();
+        this.evaluatedDate = candidateAttempt.getEvaluatedDate();
+        this.assessmentId = candidateAttempt.getAssessmentId();
+        this.evaluationId = candidateAttempt.getEvaluationId();
         this.candidate = new FetchCandidateDto(candidateAttempt.getCandidate());
     }
 

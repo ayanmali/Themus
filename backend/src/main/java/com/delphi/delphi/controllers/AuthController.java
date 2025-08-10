@@ -28,6 +28,8 @@ import com.delphi.delphi.dtos.AuthErrorResponseDto;
 import com.delphi.delphi.dtos.FetchUserDto;
 import com.delphi.delphi.dtos.NewUserDto;
 import com.delphi.delphi.dtos.PasswordLoginDto;
+import com.delphi.delphi.dtos.cache.RefreshTokenCacheDto;
+import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.entities.RefreshToken;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.services.GithubService;
@@ -100,7 +102,7 @@ public class AuthController {
     //     }
     // }
 
-    private User authenticateUser(String email, String password, HttpServletResponse response) {
+    private UserCacheDto authenticateUser(String email, String password, HttpServletResponse response) {
         try {
             log.debug("Starting authentication for email: {}", email);
             
@@ -113,15 +115,15 @@ public class AuthController {
             // Set the authentication in the security context
             SecurityContextHolder.getContext().setAuthentication(authentication);
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            User user = userService.getUserByEmail(email);
+            UserCacheDto user = userService.getUserByEmail(email);
 
             // Delete any existing refresh token for this user before creating a new one
             // This prevents the unique constraint violation since RefreshToken has @OneToOne with User
-            refreshTokenService.deleteRefreshToken(user);
+            refreshTokenService.deleteRefreshToken(user.getId());
 
             // Generate tokens
             String accessToken = jwtService.generateAccessToken(userDetails);
-            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+            RefreshTokenCacheDto refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
             // Set the access token in the cookie
             Cookie accessCookie = new Cookie("accessToken", accessToken);
@@ -360,7 +362,7 @@ public class AuthController {
             log.info("Login attempt for email: {}", passwordLoginDto.getEmail());
             
             // add cookies to response
-            User user = authenticateUser(passwordLoginDto.getEmail(), passwordLoginDto.getPassword(), response);
+            UserCacheDto user = authenticateUser(passwordLoginDto.getEmail(), passwordLoginDto.getPassword(), response);
 
             log.info("Login successful for user: {}", user.getEmail());
             return ResponseEntity.ok(new FetchUserDto(user));
@@ -429,7 +431,7 @@ public class AuthController {
 
             // Generate new tokens
             String newAccessToken = jwtService.generateAccessToken(userDetails);
-            RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
+            RefreshTokenCacheDto newRefreshToken = refreshTokenService.createRefreshToken(user.getId());
 
             // Set new access token cookie
             Cookie accessCookie = new Cookie("accessToken", newAccessToken);

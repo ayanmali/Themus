@@ -18,8 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.dtos.FetchAssessmentWithAttemptsDto;
 import com.delphi.delphi.dtos.StartAssessmentDto;
+import com.delphi.delphi.dtos.cache.CandidateCacheDto;
 import com.delphi.delphi.entities.Assessment;
-import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.CandidateService;
 import com.delphi.delphi.services.EncryptionService;
@@ -58,7 +58,7 @@ public class CandidateAssessmentController {
 
     @GetMapping("/{assessmentId}")
     public ResponseEntity<?> fetchAssessmentWithAttempts(@PathVariable Long assessmentId) {
-        Assessment assessment = assessmentService.getAssessmentById(assessmentId).orElseThrow(() -> new RuntimeException("Assessment not found"));
+        Assessment assessment = assessmentService.getAssessmentById(assessmentId);
         return ResponseEntity.ok(new FetchAssessmentWithAttemptsDto(assessment));
     }
 
@@ -79,8 +79,8 @@ public class CandidateAssessmentController {
     public ResponseEntity<?> canTakeAssessment(@RequestParam Long assessmentId, @RequestParam String email) {
         // TODO: check if this email address corresponds to a valid candidate attempt in the DB
         // if it does, then we can just redirect to the assessment page
-        Assessment assessment = assessmentService.getAssessmentById(assessmentId).orElseThrow(() -> new RuntimeException("Assessment not found"));
-        Candidate candidate = candidateService.getCandidateByEmail(email).orElseThrow(() -> new RuntimeException("Candidate not found"));
+        Assessment assessment = assessmentService.getAssessmentById(assessmentId);
+        CandidateCacheDto candidate = candidateService.getCandidateByEmail(email);
 
         if (assessment.getCandidateAttempts().stream().anyMatch(attempt -> attempt.getCandidate().getId().equals(candidate.getId()) && attempt.getStatus().equals(AttemptStatus.INVITED))) {
             return ResponseEntity.ok(
@@ -120,7 +120,7 @@ public class CandidateAssessmentController {
         String repoName = "assessment-" + assessmentId + "-" + candidateEmail.split("@")[0];
 
         // TODO: store repository owner in assessment entity
-        Assessment assessment = assessmentService.getAssessmentById(assessmentId).orElseThrow(() -> new RuntimeException("Assessment not found"));
+        Assessment assessment = assessmentService.getAssessmentById(assessmentId);
         String templateOwner = assessment.getUser().getGithubUsername();
         String templateRepoName = assessment.getGithubRepoName();
         

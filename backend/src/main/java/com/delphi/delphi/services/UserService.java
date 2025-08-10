@@ -103,7 +103,7 @@ public class UserService {
     
     // Update user
     @CacheEvict(value = "users", beforeInvocation = true, key = "#id" )
-    public UserCacheDto updateUser(Long id, User userUpdates) {
+    public User updateUser(Long id, User userUpdates) {
         User existingUser = userRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
         
@@ -124,7 +124,7 @@ public class UserService {
             existingUser.setPassword(passwordEncoder.encode(userUpdates.getPassword()));
         }
         
-        return new UserCacheDto(userRepository.save(existingUser));
+        return userRepository.save(existingUser);
     }
     
     // Delete user
@@ -139,6 +139,12 @@ public class UserService {
     // checks if user's github credentials exist (not necessarily valid; validateGithubCredentials() should be called to check if they are valid)
     @Transactional(readOnly = true)
     public boolean connectedGithub(User user) {
+        return user.getGithubUsername() != null && user.getGithubAccessToken() != null;
+    }
+
+    // checks if user's github credentials exist (not necessarily valid; validateGithubCredentials() should be called to check if they are valid)
+    @Transactional(readOnly = true)
+    public boolean connectedGithub(UserCacheDto user) {
         return user.getGithubUsername() != null && user.getGithubAccessToken() != null;
     }
     
@@ -253,7 +259,7 @@ public class UserService {
         @CachePut(value = "users", key = "#user.email")
     })
     @Transactional
-    public UserCacheDto updateGithubCredentials(User user, String githubAccessToken, String githubUsername, GithubAccountType githubAccountType) throws Exception {        
+    public UserCacheDto updateGithubCredentials(Long userId, String githubAccessToken, String githubUsername, GithubAccountType githubAccountType) throws Exception {        
         // // Check if GitHub username is already taken by another user
         // if (githubUsername != null && !githubUsername.equals(user.getGithubUsername()) && userRepository.existsByGithubUsername(githubUsername)) {
         //     throw new IllegalArgumentException("GitHub username " + githubUsername + " is already in use");
@@ -267,6 +273,8 @@ public class UserService {
         // }
         
         // store the encrypted access token in the DB
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
         log.info("Encrypting github access token for user: {}", user.getEmail());
         String encryptedAccessToken = encryptionService.encrypt(githubAccessToken);
         user.setGithubAccessToken(encryptedAccessToken);
@@ -280,11 +288,11 @@ public class UserService {
         @CacheEvict(value = "users", beforeInvocation = true, key = "#user.email")
     })
     @Transactional
-    public UserCacheDto removeGithubCredentials(User user) throws Exception {
+    public User removeGithubCredentials(User user) throws Exception {
         user.setGithubAccessToken(null);
         user.setGithubUsername(null);
         user.setGithubAccountType(null);
-        return new UserCacheDto(userRepository.save(user));
+        return userRepository.save(user);
     }
 
     // Update user's GitHub access token
@@ -301,12 +309,12 @@ public class UserService {
     // Remove user's GitHub credentials
     @CacheEvict(value = "users", beforeInvocation = true, key = "#userId")
     @Transactional
-    public UserCacheDto removeGithubCredentials(Long userId) {
+    public User removeGithubCredentials(Long userId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
         user.setGithubAccessToken(null);
         user.setGithubUsername(null);
-        return new UserCacheDto(userRepository.save(user));
+        return userRepository.save(user);
     }
     
     // Find or create user by GitHub credentials

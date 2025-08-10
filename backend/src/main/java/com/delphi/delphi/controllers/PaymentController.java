@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.components.StripeService;
-import com.delphi.delphi.entities.User;
+import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.payments.StripeSubCache;
 import com.stripe.model.Customer;
@@ -37,7 +37,7 @@ public class PaymentController {
         this.userService = userService;
     }
 
-    private User getCurrentUser() {
+    private UserCacheDto getCurrentUser() {
         return userService.getUserByEmail(getCurrentUserEmail());
     }
 
@@ -49,7 +49,7 @@ public class PaymentController {
 
     @GetMapping("/initiate-checkout")
     public ResponseEntity<?> initiateStripeCheckout() {
-        User user = getCurrentUser();
+        UserCacheDto user = getCurrentUser();
         log.info("Creating Stripe customer and initiating checkoutfor user: {}", user.getId());
         Customer customer = stripeService.createCustomer(user);
         Session session = stripeService.createCheckoutSession(customer.getId());
@@ -88,7 +88,7 @@ public class PaymentController {
 
     @GetMapping("/checkout/success")
     public ResponseEntity<?> checkoutSuccess() {
-        User user = getCurrentUser();
+        UserCacheDto user = getCurrentUser();
         log.info("Processing checkout success for user: {}", user.getId());
         // get stripe customer id from redis
         String stripeCustomerId = (String)redisService.get("stripe:user:" + user.getId());
@@ -113,7 +113,7 @@ public class PaymentController {
     @GetMapping("/subscription")    
     public ResponseEntity<?> getSubscription() {
         try {
-            User user = getCurrentUser();
+            UserCacheDto user = getCurrentUser();
             log.info("Getting subscription for user: {}", user.getId());
             StripeSubCache subData = stripeService.getSubscription(user.getId());
             if (subData == null) {
@@ -157,7 +157,7 @@ public class PaymentController {
     public ResponseEntity<?> getPaymentStatus(@PathVariable Long userId) {
         try {
             // Only allow users to check their own status or admin users
-            User currentUser = getCurrentUser();
+            UserCacheDto currentUser = getCurrentUser();
             if (!currentUser.getId().equals(userId) /*&& !isAdmin(currentUser)*/) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body("Access denied");

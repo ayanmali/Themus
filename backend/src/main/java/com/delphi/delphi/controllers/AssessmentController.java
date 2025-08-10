@@ -3,7 +3,6 @@ package com.delphi.delphi.controllers;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -35,10 +34,11 @@ import com.delphi.delphi.dtos.FetchCandidateDto;
 import com.delphi.delphi.dtos.NewAssessmentDto;
 import com.delphi.delphi.dtos.NewCandidateDto;
 import com.delphi.delphi.dtos.NewUserMessageDto;
+import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
+import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
-import com.delphi.delphi.entities.User;
 import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.UserService;
@@ -70,7 +70,7 @@ public class AssessmentController {
         this.appInstallUrl = String.format("https://github.com/apps/%s/installations/new", githubAppName);
     }
 
-    private User getCurrentUser() {
+    private UserCacheDto getCurrentUser() {
         return userService.getUserByEmail(getCurrentUserEmail());
     }
 
@@ -139,7 +139,7 @@ public class AssessmentController {
     @PostMapping("/new")
     public ResponseEntity<?> createAssessment(@Valid @RequestBody NewAssessmentDto newAssessmentDto, HttpServletResponse response) {
         try {
-            User user = getCurrentUser();
+            UserCacheDto user = getCurrentUser();
             log.info("User's email: {}", user.getEmail());
             log.info("User's id: {}", user.getId());
             log.info("User's github access token: {}", user.getGithubAccessToken());
@@ -165,7 +165,7 @@ public class AssessmentController {
             log.info("Github credentials are valid, creating assessment");
             // if user is not connected to github, redirect them to the installation page
             log.info("assessment creation request received: {}", newAssessmentDto);
-            Assessment assessment = assessmentService.createAssessment(newAssessmentDto, user);
+            AssessmentCacheDto assessment = assessmentService.createAssessment(newAssessmentDto, user);
             log.info("assessment created: {}", assessment);
 
             //log.info("Passing form data to chat message queue");
@@ -210,7 +210,7 @@ public class AssessmentController {
     @PostMapping("/chat")
     public ResponseEntity<?> chat(@RequestBody NewUserMessageDto messageDto) {
         try {
-            User user = getCurrentUser();
+            UserCacheDto user = getCurrentUser();
             // publish chat completion request to the chat message queue
             String requestId = chatMessagePublisher.publishChatCompletionRequest(
                     messageDto.getMessage(),
@@ -272,9 +272,9 @@ public class AssessmentController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getAssessmentById(@PathVariable Long id) {
         try {
-            Optional<Assessment> assessment = assessmentService.getAssessmentById(id);
-            if (assessment.isPresent() && assessment.get().getStatus() == AssessmentStatus.ACTIVE) {
-                return ResponseEntity.ok(new FetchAssessmentDto(assessment.get()));
+            AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(id);
+            if (assessment.getStatus() == AssessmentStatus.ACTIVE) {
+                return ResponseEntity.ok(new FetchAssessmentDto(assessment));
             } else {
                 return ResponseEntity.notFound().build();
             }
@@ -296,14 +296,14 @@ public class AssessmentController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @RequestParam(required = false) List<String> skills) {
         try {
-            User user = getCurrentUser();
+            UserCacheDto user = getCurrentUser();
 
             Sort sort = sortDirection.equalsIgnoreCase("desc")
                     ? Sort.by(sortBy).descending()
                     : Sort.by(sortBy).ascending();
 
             Pageable pageable = PageRequest.of(page, size, sort);
-            List<Assessment> assessments = assessmentService.getAssessmentsWithFiltersForUser(
+            List<AssessmentCacheDto> assessments = assessmentService.getAssessmentsWithFiltersForUser(
                 user, status, startDate, endDate, skills, pageable);
             List<FetchAssessmentDto> assessmentDtos = assessments.stream()
                     .map(FetchAssessmentDto::new)
@@ -331,7 +331,7 @@ public class AssessmentController {
             updateAssessment.setSkills(assessmentUpdates.getSkills());
             updateAssessment.setLanguageOptions(assessmentUpdates.getLanguageOptions());
 
-            Assessment updatedAssessment = assessmentService.updateAssessment(id, updateAssessment);
+            AssessmentCacheDto updatedAssessment = assessmentService.updateAssessment(id, updateAssessment);
             return ResponseEntity.ok(new FetchAssessmentDto(updatedAssessment));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error updating assessment: " + e.getMessage());
@@ -416,9 +416,9 @@ public class AssessmentController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
-            User user = getCurrentUser();
+            UserCacheDto user = getCurrentUser();
             Pageable pageable = PageRequest.of(page, size);
-            List<Assessment> assessments = assessmentService.searchAssessmentsByName(user, name, pageable);
+            List<AssessmentCacheDto> assessments = assessmentService.searchAssessmentsByName(user, name, pageable);
             List<FetchAssessmentDto> assessmentDtos = assessments.stream()
                     .map(FetchAssessmentDto::new)
                     .collect(Collectors.toList());
@@ -437,9 +437,9 @@ public class AssessmentController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
-            User user = getCurrentUser();
+            UserCacheDto user = getCurrentUser();
             Pageable pageable = PageRequest.of(page, size);
-            List<Assessment> assessments = assessmentService.searchAssessmentsByRoleName(user, role, pageable);
+            List<AssessmentCacheDto> assessments = assessmentService.searchAssessmentsByRoleName(user, role, pageable);
             List<FetchAssessmentDto> assessmentDtos = assessments.stream()
                     .map(FetchAssessmentDto::new)
                     .collect(Collectors.toList());
@@ -515,9 +515,9 @@ public class AssessmentController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
-            User user = getCurrentUser();
+            UserCacheDto user = getCurrentUser();
             Pageable pageable = PageRequest.of(page, size);
-            List<Assessment> assessments = assessmentService.getAssessmentsBySkill(user, skill, pageable);
+            List<AssessmentCacheDto> assessments = assessmentService.getAssessmentsBySkill(user, skill, pageable);
             List<FetchAssessmentDto> assessmentDtos = assessments.stream()
                     .map(FetchAssessmentDto::new)
                     .collect(Collectors.toList());
@@ -552,7 +552,7 @@ public class AssessmentController {
     public ResponseEntity<?> countAssessmentsByUserAndStatus(
             @PathVariable AssessmentStatus status) {
         try {
-            User user = getCurrentUser();
+            UserCacheDto user = getCurrentUser();
             Long count = assessmentService.countAssessmentsByUserAndStatus(user, status);
             return ResponseEntity.ok(count);
         } catch (Exception e) {
@@ -673,7 +673,7 @@ public class AssessmentController {
             @PathVariable Long id,
             @RequestBody Map<String, String> metadata) {
         try {
-            Assessment assessment = assessmentService.updateMetadata(id, metadata);
+                Assessment assessment = assessmentService.updateMetadata(id, metadata);
             return ResponseEntity.ok(new FetchAssessmentDto(assessment));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error updating metadata: " + e.getMessage());

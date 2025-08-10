@@ -16,6 +16,12 @@ public class FetchAssessmentWithAttemptsDto extends FetchAssessmentDto {
         this.candidateAttemptDtos = assessment.getCandidateAttempts().stream().map(FetchCandidateAttemptDto::new).collect(Collectors.toList());
     }
 
+    // public FetchAssessmentWithAttemptsDto(AssessmentCacheDto assessment) {
+    //     super(assessment);
+    //     this.employerName = assessment.getUserId().toString();
+    //     this.candidateAttemptDtos = assessment.getCandidateAttemptIds().stream().map(FetchCandidateAttemptDto::new).collect(Collectors.toList());
+    // }
+
     public List<FetchCandidateAttemptDto> getCandidateAttemptDtos() {
         return candidateAttemptDtos;
     }
