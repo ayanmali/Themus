@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.delphi.delphi.components.JwtService;
+import com.delphi.delphi.dtos.cache.RefreshTokenCacheDto;
 import com.delphi.delphi.entities.RefreshToken;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.repositories.RefreshTokenRepository;
@@ -30,18 +31,18 @@ public class RefreshTokenService {
 
     @CachePut(value = "refreshTokens", key = "#user.id")
     @Transactional
-    public RefreshToken createRefreshToken(User user) {
+    public RefreshTokenCacheDto createRefreshToken(User user) {
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setToken(jwtService.generateRefreshToken((UserDetails) user));
         refreshToken.setUser(user);
         refreshToken.setExpiryDate(Instant.now().plusSeconds(refreshTokenExpiration / 1000));
-        return refreshTokenRepository.save(refreshToken);
+        return new RefreshTokenCacheDto(refreshTokenRepository.save(refreshToken));
     }
 
     @CachePut(value = "refreshTokens", key = "#refreshToken.user.id")
     @Transactional
-    public void save(RefreshToken refreshToken) {
-        refreshTokenRepository.save(refreshToken);
+    public RefreshTokenCacheDto save(RefreshToken refreshToken) {
+        return new RefreshTokenCacheDto(refreshTokenRepository.save(refreshToken));
     }
 
     //@Cacheable(value = "refreshTokens", key = "verify + ':' + #token")

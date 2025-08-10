@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
@@ -12,30 +13,33 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.delphi.delphi.dtos.cache.EvaluationCacheDto;
 import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.entities.Evaluation;
+import com.delphi.delphi.repositories.CandidateAttemptRepository;
 import com.delphi.delphi.repositories.EvaluationRepository;
 
 @Service
 @Transactional
 // TODO: add cache annotations for other entity caches
 public class EvaluationService {
+
+    private final CandidateAttemptRepository candidateAttemptRepository;
     
     private final EvaluationRepository evaluationRepository;
     
-    private final CandidateAttemptService candidateAttemptService;
-
-    public EvaluationService(EvaluationRepository evaluationRepository, CandidateAttemptService candidateAttemptService) {
+    public EvaluationService(EvaluationRepository evaluationRepository, CandidateAttemptRepository candidateAttemptRepository) {
         this.evaluationRepository = evaluationRepository;
-        this.candidateAttemptService = candidateAttemptService;
+        this.candidateAttemptRepository = candidateAttemptRepository;
     }
     
     // Create a new evaluation
     @CachePut(value = "evaluations", key = "#result.id")
-    public Evaluation createEvaluation(Evaluation evaluation) {
+    public EvaluationCacheDto createEvaluation(Evaluation evaluation) {
         // Validate that the associated candidate attempt exists
         if (evaluation.getCandidateAttempt() != null && evaluation.getCandidateAttempt().getId() != null) {
-            CandidateAttempt candidateAttempt = candidateAttemptService.getCandidateAttemptByIdOrThrow(evaluation.getCandidateAttempt().getId());
+            CandidateAttempt candidateAttempt = candidateAttemptRepository.findById(evaluation.getCandidateAttempt().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Candidate attempt not found with id: " + evaluation.getCandidateAttempt().getId()));
             evaluation.setCandidateAttempt(candidateAttempt);
             
             // Check if evaluation already exists for this candidate attempt
@@ -45,42 +49,44 @@ public class EvaluationService {
             }
         }
         
-        return evaluationRepository.save(evaluation);
+        return new EvaluationCacheDto(evaluationRepository.save(evaluation));
     }
     
     // Get evaluation by ID
     @Cacheable(value = "evaluations", key = "#id")
     @Transactional(readOnly = true)
-    public Optional<Evaluation> getEvaluationById(Long id) {
-        return evaluationRepository.findById(id);
+    public EvaluationCacheDto getEvaluationById(Long id) {
+        return new EvaluationCacheDto(evaluationRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Evaluation not found with id: " + id)));
     }
     
     // Get evaluation by ID or throw exception
     @Cacheable(value = "evaluations", key = "#id")
     @Transactional(readOnly = true)
-    public Evaluation getEvaluationByIdOrThrow(Long id) {
-        return evaluationRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Evaluation not found with id: " + id));
+    public EvaluationCacheDto getEvaluationByIdOrThrow(Long id) {
+        return new EvaluationCacheDto(evaluationRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Evaluation not found with id: " + id)));
     }
     
     // Get all evaluations with pagination
     @Cacheable(value = "evaluations", key = "#pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Evaluation> getAllEvaluations(Pageable pageable) {
-        return evaluationRepository.findAll(pageable).getContent();
+    public List<EvaluationCacheDto> getAllEvaluations(Pageable pageable) {
+        return evaluationRepository.findAll(pageable).getContent().stream().map(EvaluationCacheDto::new).collect(Collectors.toList());
     }
     
     // Update evaluation
     @CachePut(value = "evaluations", key = "#result.id")
-    public Evaluation updateEvaluation(Long id, Evaluation evaluationUpdates) {
-        Evaluation existingEvaluation = getEvaluationByIdOrThrow(id);
+    public EvaluationCacheDto updateEvaluation(Long id, Evaluation evaluationUpdates) {
+        Evaluation existingEvaluation = evaluationRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Evaluation not found with id: " + id));
         
         // Update fields if provided
         if (evaluationUpdates.getMetadata() != null) {
             existingEvaluation.setMetadata(evaluationUpdates.getMetadata());
         }
         
-        return evaluationRepository.save(existingEvaluation);
+        return new EvaluationCacheDto(evaluationRepository.save(existingEvaluation));
     }
     
     // Delete evaluation
@@ -95,43 +101,45 @@ public class EvaluationService {
     // Get evaluation by candidate attempt ID
     @Cacheable(value = "evaluations", key = "#candidateAttemptId")
     @Transactional(readOnly = true)
-    public Optional<Evaluation> getEvaluationByCandidateAttemptId(Long candidateAttemptId) {
-        return evaluationRepository.findByCandidateAttemptId(candidateAttemptId);
+    public Optional<EvaluationCacheDto> getEvaluationByCandidateAttemptId(Long candidateAttemptId) {
+        return evaluationRepository.findByCandidateAttemptId(candidateAttemptId)
+                .map(EvaluationCacheDto::new);
     }
     
     // Get evaluations created within date range
     @Cacheable(value = "evaluations", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Evaluation> getEvaluationsCreatedBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
-        return evaluationRepository.findByCreatedDateBetween(startDate, endDate, pageable).getContent();
+    public List<EvaluationCacheDto> getEvaluationsCreatedBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+        return evaluationRepository.findByCreatedDateBetween(startDate, endDate, pageable).getContent().stream().map(EvaluationCacheDto::new).collect(Collectors.toList());
     }
     
     // Get evaluations by candidate ID
     @Cacheable(value = "evaluations", key = "#candidateId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Evaluation> getEvaluationsByCandidateId(Long candidateId, Pageable pageable) {
-        return evaluationRepository.findByCandidateId(candidateId, pageable).getContent();
+    public List<EvaluationCacheDto> getEvaluationsByCandidateId(Long candidateId, Pageable pageable) {
+        return evaluationRepository.findByCandidateId(candidateId, pageable).getContent().stream().map(EvaluationCacheDto::new).collect(Collectors.toList());
     }
     
     // Get evaluations by assessment ID
     @Cacheable(value = "evaluations", key = "#assessmentId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
         @Transactional(readOnly = true)
-    public List<Evaluation> getEvaluationsByAssessmentId(Long assessmentId, Pageable pageable) {
-        return evaluationRepository.findByAssessmentId(assessmentId, pageable).getContent();
+    public List<EvaluationCacheDto> getEvaluationsByAssessmentId(Long assessmentId, Pageable pageable) {
+        return evaluationRepository.findByAssessmentId(assessmentId, pageable).getContent().stream().map(EvaluationCacheDto::new).collect(Collectors.toList());
     }
     
     // Get evaluations by user ID
     @Cacheable(value = "evaluations", key = "#userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Evaluation> getEvaluationsByUserId(Long userId, Pageable pageable) {
-        return evaluationRepository.findByUserId(userId, pageable).getContent();
+    public List<EvaluationCacheDto> getEvaluationsByUserId(Long userId, Pageable pageable) {
+        return evaluationRepository.findByUserId(userId, pageable).getContent().stream().map(EvaluationCacheDto::new).collect(Collectors.toList());
     }
     
     // Get evaluation with full details
     @Cacheable(value = "evaluations", key = "withDetails + ':' + #evaluationId")
     @Transactional(readOnly = true)
-    public Optional<Evaluation> getEvaluationWithDetails(Long evaluationId) {
-        return evaluationRepository.findByIdWithDetails(evaluationId);
+    public EvaluationCacheDto getEvaluationWithDetails(Long evaluationId) {
+        return new EvaluationCacheDto(evaluationRepository.findByIdWithDetails(evaluationId)
+                .orElseThrow(() -> new IllegalArgumentException("Evaluation not found with id: " + evaluationId)));
     }
     
     // Count evaluations by assessment
@@ -144,37 +152,40 @@ public class EvaluationService {
     // Get recent evaluations for a user
     @Cacheable(value = "evaluations", key = "recent + ':' + #userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<Evaluation> getRecentEvaluationsByUserId(Long userId, Pageable pageable) {
-        return evaluationRepository.findRecentEvaluationsByUserId(userId, pageable).getContent();
+    public List<EvaluationCacheDto> getRecentEvaluationsByUserId(Long userId, Pageable pageable) {
+        return evaluationRepository.findRecentEvaluationsByUserId(userId, pageable).getContent().stream().map(EvaluationCacheDto::new).collect(Collectors.toList());
     }
     
     // Update evaluation metadata
     @CachePut(value = "evaluations", key = "#result.id")
-    public Evaluation updateEvaluationMetadata(Long id, Map<String, String> metadata) {
-        Evaluation evaluation = getEvaluationByIdOrThrow(id);
+    public EvaluationCacheDto updateEvaluationMetadata(Long id, Map<String, String> metadata) {
+        Evaluation evaluation = evaluationRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Evaluation not found with id: " + id));
         evaluation.setMetadata(metadata);
-        return evaluationRepository.save(evaluation);
+        return new EvaluationCacheDto(evaluationRepository.save(evaluation));
     }
     
     // Add metadata entry
     @CachePut(value = "evaluations", key = "#result.id")
-    public Evaluation addMetadata(Long id, String key, String value) {
-        Evaluation evaluation = getEvaluationByIdOrThrow(id);
+    public EvaluationCacheDto addMetadata(Long id, String key, String value) {
+        Evaluation evaluation = evaluationRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Evaluation not found with id: " + id));
         if (evaluation.getMetadata() == null) {
             evaluation.setMetadata(Map.of(key, value));
         } else {
             evaluation.getMetadata().put(key, value);
         }
-        return evaluationRepository.save(evaluation);
+        return new EvaluationCacheDto(evaluationRepository.save(evaluation));
     }
     
     // Remove metadata entry
     @CachePut(value = "evaluations", key = "#result.id")
-    public Evaluation removeMetadata(Long id, String key) {
-        Evaluation evaluation = getEvaluationByIdOrThrow(id);
+    public EvaluationCacheDto removeMetadata(Long id, String key) {
+        Evaluation evaluation = evaluationRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Evaluation not found with id: " + id));
         if (evaluation.getMetadata() != null) {
             evaluation.getMetadata().remove(key);
         }
-        return evaluationRepository.save(evaluation);
+        return new EvaluationCacheDto(evaluationRepository.save(evaluation));
     }
 }

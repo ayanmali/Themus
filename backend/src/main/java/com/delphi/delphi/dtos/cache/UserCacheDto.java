@@ -2,7 +2,11 @@ package com.delphi.delphi.dtos.cache;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import com.delphi.delphi.entities.Assessment;
+import com.delphi.delphi.entities.Candidate;
+import com.delphi.delphi.entities.User;
 import com.delphi.delphi.utils.git.GithubAccountType;
 
 public class UserCacheDto {
@@ -18,7 +22,22 @@ public class UserCacheDto {
     private LocalDateTime updatedDate;
     private List<Long> assessmentIds;
     private List<Long> candidateIds;
-    
+
+    public UserCacheDto(User user) {
+        this.id = user.getId();
+        this.name = user.getName();
+        this.email = user.getEmail();
+        this.encryptedPassword = user.getPassword();
+        this.organizationName = user.getOrganizationName();
+        this.githubAccessToken = user.getGithubAccessToken();
+        this.githubUsername = user.getGithubUsername();
+        this.githubAccountType = user.getGithubAccountType();
+        this.createdDate = user.getCreatedDate();
+        this.updatedDate = user.getUpdatedDate();
+        this.assessmentIds = user.getAssessments().stream().map(Assessment::getId).collect(Collectors.toList());
+        this.candidateIds = user.getCandidates().stream().map(Candidate::getId).collect(Collectors.toList());
+    }
+
     public Long getId() {
         return id;
     }

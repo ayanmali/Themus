@@ -3,6 +3,7 @@ package com.delphi.delphi.services;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
 import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.repositories.CandidateAttemptRepository;
 import com.delphi.delphi.utils.AttemptStatus;
@@ -28,7 +30,7 @@ public class CandidateAttemptService {
 
     // Start a new candidate attempt: change status to from INVITED to STARTED
     @CachePut(value = "candidateAttempts", key = "#result.id")
-    public CandidateAttempt startAttempt(Long candidateId, Long assessmentId, Optional<String> languageChoice, AttemptStatus status, LocalDateTime startedDate) {
+    public CandidateAttemptCacheDto startAttempt(Long candidateId, Long assessmentId, Optional<String> languageChoice, AttemptStatus status, LocalDateTime startedDate) {
         // Check if candidate already has an attempt for this assessment
         Optional<CandidateAttempt> existingAttempt = candidateAttemptRepository.findByCandidateIdAndAssessmentId(
                 candidateId,
@@ -41,12 +43,12 @@ public class CandidateAttemptService {
         existingAttempt.get().setStatus(AttemptStatus.STARTED);
         existingAttempt.get().setStartedDate(startedDate);
 
-        return candidateAttemptRepository.save(existingAttempt.get());
+        return new CandidateAttemptCacheDto(candidateAttemptRepository.save(existingAttempt.get()));
     }
 
     // Create a new candidate attempt
     @CachePut(value = "candidateAttempts", key = "#result.id")
-    public CandidateAttempt startAttempt(CandidateAttempt candidateAttempt) {
+    public CandidateAttemptCacheDto startAttempt(CandidateAttempt candidateAttempt) {
         // Check if candidate already has an attempt for this assessment
         Optional<CandidateAttempt> existingAttempt = candidateAttemptRepository.findByCandidateIdAndAssessmentId(
                 candidateAttempt.getCandidate().getId(),
@@ -66,47 +68,49 @@ public class CandidateAttemptService {
             candidateAttempt.setStartedDate(LocalDateTime.now());
         }
 
-        return candidateAttemptRepository.save(candidateAttempt);
+        return new CandidateAttemptCacheDto(candidateAttemptRepository.save(candidateAttempt));
     }
 
     // Get candidate attempt by ID
     @Cacheable(value = "candidateAttempts", key = "#id")
     @Transactional(readOnly = true)
-    public Optional<CandidateAttempt> getCandidateAttemptById(Long id) {
-        return candidateAttemptRepository.findById(id);
+    public CandidateAttemptCacheDto getCandidateAttemptById(Long id) {
+        return new CandidateAttemptCacheDto(candidateAttemptRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("CandidateAttempt not found with id: " + id)));
     }
 
     // Get candidate attempt by ID or throw exception
     @Cacheable(value = "candidateAttempts", key = "#id")
     @Transactional(readOnly = true)
-    public CandidateAttempt getCandidateAttemptByIdOrThrow(Long id) {
-        return candidateAttemptRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("CandidateAttempt not found with id: " + id));
+    public CandidateAttemptCacheDto getCandidateAttemptByIdOrThrow(Long id) {
+        return new CandidateAttemptCacheDto(candidateAttemptRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("CandidateAttempt not found with id: " + id)));
     }
 
     // Get all candidate attempts with pagination
     @Cacheable(value = "candidateAttempts", key = "#pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<CandidateAttempt> getAllCandidateAttempts(Pageable pageable) {
-        return candidateAttemptRepository.findAll(pageable).getContent();
+    public List<CandidateAttemptCacheDto> getAllCandidateAttempts(Pageable pageable) {
+        return candidateAttemptRepository.findAll(pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Get candidate attempts with multiple filters
     @Cacheable(value = "candidateAttempts", key = "#candidateId + ':' + #assessmentId + ':' + #status + ':' + #startedAfter + ':' + #startedBefore + ':' + #completedAfter + ':' + #completedBefore + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<CandidateAttempt> getCandidateAttemptsWithFilters(Long candidateId, Long assessmentId, 
+    public List<CandidateAttemptCacheDto> getCandidateAttemptsWithFilters(Long candidateId, Long assessmentId, 
                                                                  AttemptStatus status, LocalDateTime startedAfter, 
                                                                  LocalDateTime startedBefore, LocalDateTime completedAfter, 
                                                                  LocalDateTime completedBefore, Pageable pageable) {
         return candidateAttemptRepository.findWithFilters(candidateId, assessmentId, status, 
                                                          startedAfter, startedBefore, completedAfter, 
-                                                         completedBefore, pageable).getContent();
+                                                         completedBefore, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Update candidate attempt
     @CachePut(value = "candidateAttempts", key = "#id")
-    public CandidateAttempt updateCandidateAttempt(Long id, CandidateAttempt attemptUpdates) {
-        CandidateAttempt existingAttempt = getCandidateAttemptByIdOrThrow(id);
+    public CandidateAttemptCacheDto updateCandidateAttempt(Long id, CandidateAttempt attemptUpdates) {
+        CandidateAttempt existingAttempt = candidateAttemptRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("CandidateAttempt not found with id: " + id));
 
         // Update fields if provided
         if (attemptUpdates.getGithubRepositoryLink() != null) {
@@ -124,7 +128,7 @@ public class CandidateAttemptService {
             existingAttempt.setLanguageChoice(attemptUpdates.getLanguageChoice());
         }
 
-        return candidateAttemptRepository.save(existingAttempt);
+        return new CandidateAttemptCacheDto(candidateAttemptRepository.save(existingAttempt));
     }
 
     // Delete candidate attempt
@@ -139,104 +143,106 @@ public class CandidateAttemptService {
     // Get attempts by candidate ID
     @Cacheable(value = "candidateAttempts", key = "#candidateId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<CandidateAttempt> getAttemptsByCandidateId(Long candidateId, Pageable pageable) {
-        return candidateAttemptRepository.findByCandidateId(candidateId, pageable).getContent();
+    public List<CandidateAttemptCacheDto> getAttemptsByCandidateId(Long candidateId, Pageable pageable) {
+        return candidateAttemptRepository.findByCandidateId(candidateId, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Get attempts by assessment ID
     @Cacheable(value = "candidateAttempts", key = "#assessmentId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<CandidateAttempt> getAttemptsByAssessmentId(Long assessmentId, Pageable pageable) {
-        return candidateAttemptRepository.findByAssessmentId(assessmentId, pageable).getContent();
+    public List<CandidateAttemptCacheDto> getAttemptsByAssessmentId(Long assessmentId, Pageable pageable) {
+        return candidateAttemptRepository.findByAssessmentId(assessmentId, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Get attempts by status
     @Cacheable(value = "candidateAttempts", key = "#status + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<CandidateAttempt> getAttemptsByStatus(AttemptStatus status, Pageable pageable) {
-        return candidateAttemptRepository.findByStatus(status, pageable).getContent();
+    public List<CandidateAttemptCacheDto> getAttemptsByStatus(AttemptStatus status, Pageable pageable) {
+        return candidateAttemptRepository.findByStatus(status, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Get attempt by candidate and assessment
     @Cacheable(value = "candidateAttempts", key = "#candidateId + ':' + #assessmentId")
     @Transactional(readOnly = true)
-    public Optional<CandidateAttempt> getAttemptByCandidateAndAssessment(Long candidateId, Long assessmentId) {
-        return candidateAttemptRepository.findByCandidateIdAndAssessmentId(candidateId, assessmentId);
+    public CandidateAttemptCacheDto getAttemptByCandidateAndAssessment(Long candidateId, Long assessmentId) {
+        return candidateAttemptRepository.findByCandidateIdAndAssessmentId(candidateId, assessmentId)
+                .map(CandidateAttemptCacheDto::new)
+                .orElseThrow(() -> new IllegalArgumentException("CandidateAttempt not found with candidate id: " + candidateId + " and assessment id: " + assessmentId));
     }
 
     // Get attempts by candidate and status
     @Cacheable(value = "candidateAttempts", key = "#candidateId + ':' + #status + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<CandidateAttempt> getAttemptsByCandidateAndStatus(Long candidateId, AttemptStatus status,
+    public List<CandidateAttemptCacheDto> getAttemptsByCandidateAndStatus(Long candidateId, AttemptStatus status,
             Pageable pageable) {
-        return candidateAttemptRepository.findByCandidateIdAndStatus(candidateId, status, pageable).getContent();
+        return candidateAttemptRepository.findByCandidateIdAndStatus(candidateId, status, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Get attempts by assessment and status
     @Cacheable(value = "candidateAttempts", key = "#assessmentId + ':' + #status + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<CandidateAttempt> getAttemptsByAssessmentAndStatus(Long assessmentId, AttemptStatus status,
+    public List<CandidateAttemptCacheDto> getAttemptsByAssessmentAndStatus(Long assessmentId, AttemptStatus status,
             Pageable pageable) {
-        return candidateAttemptRepository.findByAssessmentIdAndStatus(assessmentId, status, pageable).getContent();
+        return candidateAttemptRepository.findByAssessmentIdAndStatus(assessmentId, status, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Get attempts by language choice
     @Cacheable(value = "candidateAttempts", key = "#languageChoice + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<CandidateAttempt> getAttemptsByLanguageChoice(String languageChoice, Pageable pageable) {
-        return candidateAttemptRepository.findByLanguageChoiceIgnoreCase(languageChoice, pageable).getContent();
+    public List<CandidateAttemptCacheDto> getAttemptsByLanguageChoice(String languageChoice, Pageable pageable) {
+        return candidateAttemptRepository.findByLanguageChoiceIgnoreCase(languageChoice, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Get attempts created within date range
     @Cacheable(value = "candidateAttempts", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<CandidateAttempt> getAttemptsCreatedBetween(LocalDateTime startDate, LocalDateTime endDate,
+    public List<CandidateAttemptCacheDto> getAttemptsCreatedBetween(LocalDateTime startDate, LocalDateTime endDate,
             Pageable pageable) {
-        return candidateAttemptRepository.findByCreatedDateBetween(startDate, endDate, pageable).getContent();
+        return candidateAttemptRepository.findByCreatedDateBetween(startDate, endDate, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Get attempts started within date range
     @Cacheable(value = "candidateAttempts", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<CandidateAttempt> getAttemptsStartedBetween(LocalDateTime startDate, LocalDateTime endDate,
+    public List<CandidateAttemptCacheDto> getAttemptsStartedBetween(LocalDateTime startDate, LocalDateTime endDate,
             Pageable pageable) {
-        return candidateAttemptRepository.findByStartedDateBetween(startDate, endDate, pageable).getContent();
+        return candidateAttemptRepository.findByStartedDateBetween(startDate, endDate, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Get attempts submitted within date range
     @Cacheable(value = "candidateAttempts", key = "#startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<CandidateAttempt> getAttemptsSubmittedBetween(LocalDateTime startDate, LocalDateTime endDate,
+    public List<CandidateAttemptCacheDto> getAttemptsSubmittedBetween(LocalDateTime startDate, LocalDateTime endDate,
             Pageable pageable) {
-        return candidateAttemptRepository.findByCompletedDateBetween(startDate, endDate, pageable).getContent();
+        return candidateAttemptRepository.findByCompletedDateBetween(startDate, endDate, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Get overdue attempts
     @Cacheable(value = "candidateAttempts", key = "overdue + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<CandidateAttempt> getOverdueAttempts(Pageable pageable) {
-        return candidateAttemptRepository.findOverdueAttempts(LocalDateTime.now(), pageable).getContent();
+    public List<CandidateAttemptCacheDto> getOverdueAttempts(Pageable pageable) {
+        return candidateAttemptRepository.findOverdueAttempts(LocalDateTime.now(), pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Get attempts by user
     @Cacheable(value = "candidateAttempts", key = "#userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<CandidateAttempt> getAttemptsByUserId(Long userId, Pageable pageable) {
-        return candidateAttemptRepository.findByUserId(userId, pageable).getContent();
+    public List<CandidateAttemptCacheDto> getAttemptsByUserId(Long userId, Pageable pageable) {
+        return candidateAttemptRepository.findByUserId(userId, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Get attempts with evaluation
     @Cacheable(value = "candidateAttempts", key = "withEvaluation + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<CandidateAttempt> getAttemptsWithEvaluation(Pageable pageable) {
-        return candidateAttemptRepository.findAttemptsWithEvaluation(pageable).getContent();
+        public List<CandidateAttemptCacheDto> getAttemptsWithEvaluation(Pageable pageable) {
+        return candidateAttemptRepository.findAttemptsWithEvaluation(pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Get submitted attempts without evaluation
     @Cacheable(value = "candidateAttempts", key = "submittedWithoutEvaluation + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<CandidateAttempt> getSubmittedAttemptsWithoutEvaluation(Pageable pageable) {
-        return candidateAttemptRepository.findSubmittedAttemptsWithoutEvaluation(pageable).getContent();
+    public List<CandidateAttemptCacheDto> getSubmittedAttemptsWithoutEvaluation(Pageable pageable) {
+        return candidateAttemptRepository.findSubmittedAttemptsWithoutEvaluation(pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Count attempts by assessment and status
@@ -256,22 +262,23 @@ public class CandidateAttemptService {
     // Get attempt with details
     @Cacheable(value = "candidateAttempts", key = "withDetails + ':' + #attemptId")
     @Transactional(readOnly = true)
-    public Optional<CandidateAttempt> getAttemptWithDetails(Long attemptId) {
-        return candidateAttemptRepository.findByIdWithDetails(attemptId);
+    public CandidateAttemptCacheDto getAttemptWithDetails(Long attemptId) {
+        return new CandidateAttemptCacheDto(candidateAttemptRepository.findByIdWithDetails(attemptId)
+                .orElseThrow(() -> new IllegalArgumentException("CandidateAttempt not found with id: " + attemptId)));
     }
 
     // Get recent attempts by user
     @Cacheable(value = "candidateAttempts", key = "recent + ':' + #userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<CandidateAttempt> getRecentAttemptsByUserId(Long userId, Pageable pageable) {
-        return candidateAttemptRepository.findRecentAttemptsByUserId(userId, pageable).getContent();
+    public List<CandidateAttemptCacheDto> getRecentAttemptsByUserId(Long userId, Pageable pageable) {
+        return candidateAttemptRepository.findRecentAttemptsByUserId(userId, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Get attempts by assessment user
     @Cacheable(value = "candidateAttempts", key = "byAssessmentUser + ':' + #userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<CandidateAttempt> getAttemptsByAssessmentUserId(Long userId, Pageable pageable) {
-        return candidateAttemptRepository.findByAssessmentUserId(userId, pageable).getContent();
+    public List<CandidateAttemptCacheDto> getAttemptsByAssessmentUserId(Long userId, Pageable pageable) {
+        return candidateAttemptRepository.findByAssessmentUserId(userId, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Start attempt that is already created (i.e. status is INVITED)
@@ -290,8 +297,9 @@ public class CandidateAttemptService {
 
     // Submit attempt
     @CachePut(value = "candidateAttempts", key = "#result.id")
-    public CandidateAttempt submitAttempt(Long id, String githubRepositoryLink) {
-        CandidateAttempt attempt = getCandidateAttemptByIdOrThrow(id);
+    public CandidateAttemptCacheDto submitAttempt(Long id, String githubRepositoryLink) {
+        CandidateAttempt attempt = candidateAttemptRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("CandidateAttempt not found with id: " + id));
 
         if (attempt.getStatus() != AttemptStatus.STARTED) {
             throw new IllegalStateException("Only started attempts can be submitted");
@@ -303,13 +311,14 @@ public class CandidateAttemptService {
             attempt.setGithubRepositoryLink(githubRepositoryLink);
         }
 
-        return candidateAttemptRepository.save(attempt);
+        return new CandidateAttemptCacheDto(candidateAttemptRepository.save(attempt));
     }
 
     // Mark as evaluated
     @CachePut(value = "candidateAttempts", key = "#result.id")
-    public CandidateAttempt markAsEvaluated(Long id) {
-        CandidateAttempt attempt = getCandidateAttemptByIdOrThrow(id);
+    public CandidateAttemptCacheDto markAsEvaluated(Long id) {
+        CandidateAttempt attempt = candidateAttemptRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("CandidateAttempt not found with id: " + id));
 
         if (attempt.getStatus() != AttemptStatus.COMPLETED) {
             throw new IllegalStateException("Only completed attempts can be evaluated");
@@ -318,14 +327,15 @@ public class CandidateAttemptService {
         attempt.setStatus(AttemptStatus.EVALUATED);
         attempt.setEvaluatedDate(LocalDateTime.now());
 
-        return candidateAttemptRepository.save(attempt);
+        return new CandidateAttemptCacheDto(candidateAttemptRepository.save(attempt));
     }
 
     // Check if attempt is overdue
     @Cacheable(value = "candidateAttempts", key = "overdue + ':' + #id")
     @Transactional(readOnly = true)
     public boolean isAttemptOverdue(Long id) {
-        CandidateAttempt attempt = getCandidateAttemptByIdOrThrow(id);
+        CandidateAttempt attempt = candidateAttemptRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("CandidateAttempt not found with id: " + id));
 
         if (attempt.getStatus() != AttemptStatus.STARTED || attempt.getStartedDate() == null) {
             return false;

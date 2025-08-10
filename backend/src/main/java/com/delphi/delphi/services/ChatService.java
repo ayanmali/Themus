@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.delphi.delphi.components.GithubTools;
+import com.delphi.delphi.dtos.cache.ChatMessageCacheDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.ChatMessage;
 import com.delphi.delphi.repositories.AssessmentRepository;
@@ -340,27 +341,27 @@ public class ChatService {
     // }
 
     @CachePut(value = "chatHistories", key = "#result.id")
-    public ChatMessage addMessageToChatHistory(ChatMessage message) throws Exception {
+    public ChatMessageCacheDto addMessageToChatHistory(ChatMessage message) throws Exception {
         Assessment assessment = assessmentRepository.findById(message.getAssessment().getId())
                 .orElseThrow(() -> new Exception("Assessment not found with id: " + message.getAssessment().getId()));
         assessment.addMessage(message);
         assessmentRepository.save(assessment);
-        return message;
+        return new ChatMessageCacheDto(message);
     }
 
     @CachePut(value = "chatHistories", key = "#result.id")
-    public ChatMessage addMessageToChatHistory(AssistantMessage message, Assessment assessment, String model) throws Exception {
+    public ChatMessageCacheDto addMessageToChatHistory(AssistantMessage message, Assessment assessment, String model) throws Exception {
         // TODO: integrate message.getToolCalls() and store tool calls in message entities
         ChatMessage chatMessage = new ChatMessage(message, assessment, model);
 
         assessment.addMessage(chatMessage);
         // existingChatHistory.getMessages().add(new ChatMessage(message, existingChatHistory, model));
         assessmentRepository.save(assessment);
-        return chatMessage;
+        return new ChatMessageCacheDto(chatMessage);
     }
 
     @CachePut(value = "chatHistories", key = "#result.id")
-    public ChatMessage addMessageToChatHistory(String text, MessageType messageType, List<OpenAiToolCall> toolCalls, Assessment assessment, String model) throws Exception {
+    public ChatMessageCacheDto addMessageToChatHistory(String text, MessageType messageType, List<OpenAiToolCall> toolCalls, Assessment assessment, String model) throws Exception {
         log.info("Adding chat message to DB with id: {} - message: {}", assessment.getId(), text.substring(0, Math.min(text.length(), 100)) + "...");
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setText(text);
@@ -376,11 +377,11 @@ public class ChatService {
         assessment.addMessage(chatMessage);
         assessmentRepository.save(assessment);
         log.info("ChatMessage added to assessment chat history in DB with id: {}", chatMessage.getId());
-        return chatMessage;
+        return new ChatMessageCacheDto(chatMessage);
     }
 
     @CachePut(value = "chatHistories", key = "#result.id")
-    public ChatMessage addMessageToChatHistory(String text, MessageType messageType, List<OpenAiToolCall> toolCalls, Long assessmentId, String model) throws Exception {
+    public ChatMessageCacheDto addMessageToChatHistory(String text, MessageType messageType, List<OpenAiToolCall> toolCalls, Long assessmentId, String model) throws Exception {
         log.info("Adding chat message to DB with id: {} - message: {}", assessmentId, text.substring(0, Math.min(text.length(), 100)) + "...");
         Assessment assessment = assessmentRepository.findById(assessmentId)
                 .orElseThrow(() -> new Exception("Assessment not found with id: " + assessmentId));
@@ -398,16 +399,16 @@ public class ChatService {
         assessment.addMessage(chatMessage);
         assessmentRepository.save(assessment);
         log.info("ChatMessage added to assessment chat history in DB with id: {}", chatMessage.getId());
-        return chatMessage;
+        return new ChatMessageCacheDto(chatMessage);
     }
 
     /*
      * Get a message by message id
      */
     @Cacheable(value = "chatMessages", key = "#id")
-    public ChatMessage getMessageById(Long id) throws Exception {
-        return chatMessageRepository.findById(id)
-                .orElseThrow(() -> new Exception("Chat message not found with id: " + id));
+    public ChatMessageCacheDto getMessageById(Long id) throws Exception {
+        return new ChatMessageCacheDto(chatMessageRepository.findById(id)
+                .orElseThrow(() -> new Exception("Chat message not found with id: " + id)));
     }
 
     // public ChatMessage createMessage(ChatMessage message) throws
@@ -417,8 +418,8 @@ public class ChatService {
 
     @Cacheable(value = "chatMessages", key = "#assessmentId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<ChatMessage> getMessagesByAssessmentId(Long assessmentId, Pageable pageable) {
-        return chatMessageRepository.findByAssessmentId(assessmentId, pageable).getContent();
+    public List<ChatMessageCacheDto> getMessagesByAssessmentId(Long assessmentId, Pageable pageable) {
+        return chatMessageRepository.findByAssessmentId(assessmentId, pageable).getContent().stream().map(ChatMessageCacheDto::new).collect(Collectors.toList());
     }
 
     // public ChatMessage updateMessage(Long id, ChatMessage message) throws Exception {
@@ -431,7 +432,8 @@ public class ChatService {
 
     @CacheEvict(value = "chatMessages", key = "#id")
     public void deleteMessage(Long id) throws Exception {
-        ChatMessage existingMessage = getMessageById(id);
+        ChatMessage existingMessage = chatMessageRepository.findById(id)
+                .orElseThrow(() -> new Exception("Chat message not found with id: " + id));
         chatMessageRepository.delete(existingMessage);
     }
 

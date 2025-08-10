@@ -28,6 +28,7 @@ import com.delphi.delphi.entities.ChatMessage;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.repositories.AssessmentRepository;
 import com.delphi.delphi.repositories.CandidateAttemptRepository;
+import com.delphi.delphi.repositories.CandidateRepository;
 import com.delphi.delphi.repositories.UserRepository;
 import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.AttemptStatus;
@@ -39,20 +40,20 @@ import com.delphi.delphi.utils.git.GithubAccountType;
 public class AssessmentService {
 
     private final UserRepository userRepository;
-    private final CandidateService candidateService;
     private final CandidateAttemptRepository candidateAttemptRepository;
     private final AssessmentRepository assessmentRepository;
     private final GithubService githubService;
     private final CandidateInvitationPublisher candidateInvitationPublisher;
+    private final CandidateRepository candidateRepository;
     private final Logger log = LoggerFactory.getLogger(AssessmentService.class);
 
-    public AssessmentService(AssessmentRepository assessmentRepository, GithubService githubService, CandidateService candidateService, CandidateAttemptRepository candidateAttemptRepository, CandidateInvitationPublisher candidateInvitationPublisher, UserRepository userRepository) {
+    public AssessmentService(AssessmentRepository assessmentRepository, GithubService githubService, CandidateAttemptRepository candidateAttemptRepository, CandidateInvitationPublisher candidateInvitationPublisher, UserRepository userRepository, CandidateRepository candidateRepository) {
         this.assessmentRepository = assessmentRepository;
         this.githubService = githubService;
-        this.candidateService = candidateService;
         this.candidateAttemptRepository = candidateAttemptRepository;
         this.candidateInvitationPublisher = candidateInvitationPublisher;
         this.userRepository = userRepository;
+        this.candidateRepository = candidateRepository;
     }
 
     // Create a new assessment
@@ -383,7 +384,8 @@ public class AssessmentService {
     public CandidateAttemptCacheDto addCandidateFromExisting(Long assessmentId, Long candidateId) {
         Assessment assessment = assessmentRepository.findById(assessmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + assessmentId));
-        Candidate candidate = candidateService.getCandidateByIdOrThrow(candidateId);
+        Candidate candidate = candidateRepository.findById(candidateId)
+                .orElseThrow(() -> new IllegalArgumentException("Candidate not found with id: " + candidateId));
         assessment.addCandidate(candidate);
         assessmentRepository.save(assessment);
         
@@ -398,7 +400,8 @@ public class AssessmentService {
 
         // Create a new candidate attempt and set the status to INVITED
         CandidateAttempt candidateAttempt = new CandidateAttempt();
-        candidateAttempt.setCandidate(candidateService.getCandidateByIdOrThrow(candidateId));
+        candidateAttempt.setCandidate(candidateRepository.findById(candidateId)
+                .orElseThrow(() -> new IllegalArgumentException("Candidate not found with id: " + candidateId)));
         candidateAttempt.setAssessment(assessmentRepository.findById(assessmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + assessmentId)));
         candidateAttempt.setStatus(AttemptStatus.INVITED);
@@ -419,7 +422,7 @@ public class AssessmentService {
     public CandidateAttemptCacheDto addCandidateFromNew(Long assessmentId, String firstName, String lastName, String email) {
         Assessment assessment = assessmentRepository.findById(assessmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + assessmentId));
-        Candidate candidate = candidateService.createCandidate(firstName, lastName, email, assessment.getUser());
+        Candidate candidate = candidateRepository.findByEmail(email).orElseThrow(() -> new IllegalArgumentException("Candidate not found with email: " + email));
         assessment.addCandidate(candidate);
         assessmentRepository.save(assessment);
 
@@ -465,7 +468,8 @@ public class AssessmentService {
     public CandidateCacheDto removeCandidateFromAssessment(Long assessmentId, Long candidateId) {
         Assessment assessment = assessmentRepository.findById(assessmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + assessmentId));
-        Candidate candidate = candidateService.getCandidateByIdOrThrow(candidateId);
+        Candidate candidate = candidateRepository.findById(candidateId)
+                .orElseThrow(() -> new IllegalArgumentException("Candidate not found with id: " + candidateId));
         assessment.setCandidates(assessment.getCandidates().stream().filter(c -> !c.getId().equals(candidateId)).collect(Collectors.toList()));
         assessmentRepository.save(assessment);
         return new CandidateCacheDto(candidate);

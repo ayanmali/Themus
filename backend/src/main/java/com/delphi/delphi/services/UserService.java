@@ -2,7 +2,7 @@ package com.delphi.delphi.services;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.repositories.UserRepository;
 import com.delphi.delphi.utils.git.GithubAccountType;
@@ -39,7 +40,7 @@ public class UserService {
     
     // Create a new user
     @CachePut(value = "users", key = "#user.id")
-    public User createUser(User user) {
+    public UserCacheDto createUser(User user) {
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new IllegalArgumentException("User with email " + user.getEmail() + " already exists");
         }
@@ -47,7 +48,7 @@ public class UserService {
         // Encrypt password before saving
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         
-        return userRepository.save(user);
+        return new UserCacheDto(userRepository.save(user));
     }
 
     // Authenticate user
@@ -62,27 +63,20 @@ public class UserService {
     //     return user;
     // }
     
-    // Get user by ID
-    @Cacheable(value = "users", key = "#id")
-    @Transactional(readOnly = true)
-    public Optional<User> getUserById(Long id) {
-        return userRepository.findById(id);
-    }
-    
     // Get user by ID or throw exception
     @Cacheable(value = "users", key = "#id")
     @Transactional(readOnly = true)
-    public User getUserByIdOrThrow(Long id) {
-        return userRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
+    public UserCacheDto getUserByIdOrThrow(Long id) {
+        return new UserCacheDto(userRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id)));
     }
     
     // Get user by email
     @Cacheable(value = "users", key = "#email")
     //@CacheEvict(value = "users", key = "#email", beforeInvocation = true)
     @Transactional(readOnly = true)
-    public User getUserByEmail(String email) {
-        return userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+    public UserCacheDto getUserByEmail(String email) {
+        return new UserCacheDto(userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found with email: " + email)));
     }
     
     // Clear user cache for specific email
@@ -95,22 +89,23 @@ public class UserService {
     // Get all users with pagination
     @Cacheable(value = "users", key = "#pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<User> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable).getContent();
+    public List<UserCacheDto> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable).getContent().stream().map(UserCacheDto::new).collect(Collectors.toList());
     }
 
     // Get users with multiple filters
     @Cacheable(value = "users", key = "#name + ':' + #organizationName + ':' + #createdAfter + ':' + #createdBefore + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<User> getUsersWithFilters(String name, String organizationName, LocalDateTime createdAfter, 
+    public List<UserCacheDto> getUsersWithFilters(String name, String organizationName, LocalDateTime createdAfter, 
                                          LocalDateTime createdBefore, Pageable pageable) {
-        return userRepository.findWithFilters(name, organizationName, createdAfter, createdBefore, pageable).getContent();
+        return userRepository.findWithFilters(name, organizationName, createdAfter, createdBefore, pageable).getContent().stream().map(UserCacheDto::new).collect(Collectors.toList());
     }
     
     // Update user
     @CacheEvict(value = "users", beforeInvocation = true, key = "#id" )
-    public User updateUser(Long id, User userUpdates) {
-        User existingUser = getUserByIdOrThrow(id);
+    public UserCacheDto updateUser(Long id, User userUpdates) {
+        User existingUser = userRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
         
         // Update fields if provided
         if (userUpdates.getName() != null) {
@@ -129,7 +124,7 @@ public class UserService {
             existingUser.setPassword(passwordEncoder.encode(userUpdates.getPassword()));
         }
         
-        return userRepository.save(existingUser);
+        return new UserCacheDto(userRepository.save(existingUser));
     }
     
     // Delete user
@@ -157,29 +152,29 @@ public class UserService {
     // Search users by organization name
     @Cacheable(value = "users", key = "#organizationName + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<User> searchUsersByOrganization(String organizationName, Pageable pageable) {
-        return userRepository.findByOrganizationNameContainingIgnoreCase(organizationName, pageable).getContent();
+    public List<UserCacheDto> searchUsersByOrganization(String organizationName, Pageable pageable) {
+        return userRepository.findByOrganizationNameContainingIgnoreCase(organizationName, pageable).getContent().stream().map(UserCacheDto::new).collect(Collectors.toList());
     }
     
     // Search users by name
     @Cacheable(value = "users", key = "#name + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<User> searchUsersByName(String name, Pageable pageable) {
-        return userRepository.findByNameContainingIgnoreCase(name, pageable).getContent();
+    public List<UserCacheDto> searchUsersByName(String name, Pageable pageable) {
+        return userRepository.findByNameContainingIgnoreCase(name, pageable).getContent().stream().map(UserCacheDto::new).collect(Collectors.toList());
     }
     
     // Get users created within date range
     @Cacheable(value = "users", key = "createdBetween + ':' + #startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<User> getUsersCreatedBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
-        return userRepository.findByCreatedDateBetween(startDate, endDate, pageable).getContent();
+    public List<UserCacheDto> getUsersCreatedBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+        return userRepository.findByCreatedDateBetween(startDate, endDate, pageable).getContent().stream().map(UserCacheDto::new).collect(Collectors.toList());
     }
     
     // Get users with active assessments
     @Cacheable(value = "users", key = "activeAssessments + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<User> getUsersWithActiveAssessments(Pageable pageable) {
-        return userRepository.findUsersWithActiveAssessments(pageable).getContent();
+    public List<UserCacheDto> getUsersWithActiveAssessments(Pageable pageable) {
+        return userRepository.findUsersWithActiveAssessments(pageable).getContent().stream().map(UserCacheDto::new).collect(Collectors.toList());
     }
     
     // Count users by organization
@@ -192,15 +187,17 @@ public class UserService {
     // Get user with assessments
     @Cacheable(value = "users", key = "withAssessments + ':' + #userId")
     @Transactional(readOnly = true)
-    public Optional<User> getUserWithAssessments(Long userId) {
-        return userRepository.findByIdWithAssessments(userId);
+    public UserCacheDto getUserWithAssessments(Long userId) {
+        return new UserCacheDto(userRepository.findByIdWithAssessments(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found with assessments with id: " + userId)));
     }
     
     // Change password
     @CacheEvict(value = "users", beforeInvocation = true, key = "#userId")
     @Transactional
     public void changePassword(Long userId, String currentPassword, String newPassword) {
-        User user = getUserByIdOrThrow(userId);
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
         
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new IllegalArgumentException("Current password is incorrect");
@@ -214,7 +211,8 @@ public class UserService {
     @CacheEvict(value = "users", beforeInvocation = true, key = "#userId")
     @Transactional
     public void resetPassword(Long userId, String newPassword) {
-        User user = getUserByIdOrThrow(userId);
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
@@ -222,15 +220,17 @@ public class UserService {
     // Get user by GitHub username
     @Cacheable(value = "users", key = "gh_username + ':' + #githubUsername")
     @Transactional(readOnly = true)
-    public Optional<User> getUserByGithubUsername(String githubUsername) {
-        return userRepository.findByGithubUsername(githubUsername);
+    public UserCacheDto getUserByGithubUsername(String githubUsername) {
+        return new UserCacheDto(userRepository.findByGithubUsername(githubUsername)
+            .orElseThrow(() -> new IllegalArgumentException("User not found with github username: " + githubUsername)));
     }
     
     // Get user by GitHub access token
     @Cacheable(value = "users", key = "gh_access_token + ':' + #githubAccessToken")
     @Transactional(readOnly = true)
-    public Optional<User> getUserByGithubAccessToken(String githubAccessToken) {
-        return userRepository.findByGithubAccessToken(githubAccessToken);
+    public UserCacheDto getUserByGithubAccessToken(String githubAccessToken) {
+        return new UserCacheDto(userRepository.findByGithubAccessToken(githubAccessToken)
+            .orElseThrow(() -> new IllegalArgumentException("User not found with github access token: " + githubAccessToken)));
     }
     
     // Check if GitHub username exists
@@ -253,7 +253,7 @@ public class UserService {
         @CachePut(value = "users", key = "#user.email")
     })
     @Transactional
-    public User updateGithubCredentials(User user, String githubAccessToken, String githubUsername, GithubAccountType githubAccountType) throws Exception {        
+    public UserCacheDto updateGithubCredentials(User user, String githubAccessToken, String githubUsername, GithubAccountType githubAccountType) throws Exception {        
         // // Check if GitHub username is already taken by another user
         // if (githubUsername != null && !githubUsername.equals(user.getGithubUsername()) && userRepository.existsByGithubUsername(githubUsername)) {
         //     throw new IllegalArgumentException("GitHub username " + githubUsername + " is already in use");
@@ -272,7 +272,7 @@ public class UserService {
         user.setGithubAccessToken(encryptedAccessToken);
         user.setGithubUsername(githubUsername);
         user.setGithubAccountType(githubAccountType);
-        return userRepository.save(user);
+        return new UserCacheDto(userRepository.save(user));
     }
 
     @Caching(evict = {
@@ -280,11 +280,11 @@ public class UserService {
         @CacheEvict(value = "users", beforeInvocation = true, key = "#user.email")
     })
     @Transactional
-    public User removeGithubCredentials(User user) throws Exception {
+    public UserCacheDto removeGithubCredentials(User user) throws Exception {
         user.setGithubAccessToken(null);
         user.setGithubUsername(null);
         user.setGithubAccountType(null);
-        return userRepository.save(user);
+        return new UserCacheDto(userRepository.save(user));
     }
 
     // Update user's GitHub access token
@@ -301,11 +301,12 @@ public class UserService {
     // Remove user's GitHub credentials
     @CacheEvict(value = "users", beforeInvocation = true, key = "#userId")
     @Transactional
-    public User removeGithubCredentials(Long userId) {
-        User user = getUserByIdOrThrow(userId);
+    public UserCacheDto removeGithubCredentials(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
         user.setGithubAccessToken(null);
         user.setGithubUsername(null);
-        return userRepository.save(user);
+        return new UserCacheDto(userRepository.save(user));
     }
     
     // Find or create user by GitHub credentials
@@ -347,7 +348,8 @@ public class UserService {
     // Method to get decrypted token for GitHub operations
     public String getDecryptedGithubToken(Long userId) {
         try {
-            User user = getUserByIdOrThrow(userId);
+            User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
             if (user.getGithubAccessToken() == null) {
                 return null;
             }
