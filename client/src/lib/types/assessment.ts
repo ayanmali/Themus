@@ -18,6 +18,7 @@ export type Assessment = {
     languageOptions?: string[]; // ex. ["React", "Vue", "Angular"]
     rules?: string[];
     instructions?: string[];
+    details?: string; // additional details about the assessment
     //type: 'take-home' | 'live-coding'; // Take home assessments are completed by the candidate at their own pace, while live coding assessments are completed live in real-time
     githubRepositoryLink: string; // link to the repository
     metadata?: Record<string, string>; // additional metadata

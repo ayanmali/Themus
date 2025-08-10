@@ -72,8 +72,7 @@ public class GithubTools {
     private String getGithubUsername(Object userIdObj) {
         try {
             Long userId = (Long) userIdObj;
-            return userService.getUserById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found"))
+            return userService.getUserByIdOrThrow(userId)
                     .getGithubUsername();
         } catch (NullPointerException e) {
             throw new IllegalStateException("User ID not set in context", e);

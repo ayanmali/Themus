@@ -59,6 +59,9 @@ public class Assessment {
     
     @Column(columnDefinition = "TEXT")
     private String description;
+
+    @Column(columnDefinition = "TEXT")
+    private String details;
     
     @NotBlank(message = "Role is required")
     @Size(max = 100, message = "Role name must not exceed 100 characters")
@@ -140,9 +143,10 @@ public class Assessment {
         // Empty constructor for Hibernate
     }
 
-    public Assessment(String name, String description, String role, LocalDateTime startDate, LocalDateTime endDate, Integer duration, String githubRepositoryLink, User user, List<String> skills, List<String> languageOptions, Map<String, String> metadata) {
+    public Assessment(String name, String description, String details, String role, LocalDateTime startDate, LocalDateTime endDate, Integer duration, String githubRepositoryLink, User user, List<String> skills, List<String> languageOptions, Map<String, String> metadata) {
         this.name = name;
         this.description = description;
+        this.details = details;
         this.role = role;
         this.startDate = startDate;
         this.endDate = endDate;
@@ -178,6 +182,14 @@ public class Assessment {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getDetails() {
+        return details;
+    }
+
+    public void setDetails(String details) {
+        this.details = details;
     }
 
     public String getRole() {

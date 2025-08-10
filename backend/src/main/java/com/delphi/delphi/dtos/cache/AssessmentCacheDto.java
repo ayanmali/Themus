@@ -15,6 +15,7 @@ public class AssessmentCacheDto {
     private Long id;
     private String name;
     private String description;
+    private String details;
     private String role;
     private AssessmentStatus status;
     private LocalDateTime startDate;
@@ -36,6 +37,7 @@ public class AssessmentCacheDto {
         this.id = assessment.getId();
         this.name = assessment.getName();
         this.description = assessment.getDescription();
+        this.details = assessment.getDetails();
         this.role = assessment.getRole();
         this.status = assessment.getStatus();
         this.startDate = assessment.getStartDate();
@@ -71,6 +73,12 @@ public class AssessmentCacheDto {
     }
     public void setDescription(String description) {
         this.description = description;
+    }
+    public String getDetails() {
+        return details;
+    }
+    public void setDetails(String details) {
+        this.details = details;
     }
     public String getRole() {
         return role;

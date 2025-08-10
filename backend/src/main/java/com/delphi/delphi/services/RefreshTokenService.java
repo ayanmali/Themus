@@ -32,7 +32,7 @@ public class RefreshTokenService {
         this.userRepository = userRepository;
     }
 
-    @CachePut(value = "refreshTokens", key = "#user.id")
+    @CachePut(value = "refreshTokens", key = "#userId")
     @Transactional
     public RefreshTokenCacheDto createRefreshToken(Long userId) {
         User user = userRepository.findById(userId)
@@ -65,7 +65,7 @@ public class RefreshTokenService {
     //     );
     // }
 
-    @CacheEvict(value = "refreshTokens", beforeInvocation = true, key = "#user.id")
+    @CacheEvict(value = "refreshTokens", beforeInvocation = true, key = "#userId")
     @Transactional
     public void deleteRefreshToken(Long userId) {
         User user = userRepository.findById(userId)

@@ -2,6 +2,7 @@ package com.delphi.delphi.dtos;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 public class NewAssessmentDto {
     private String name; // title
@@ -13,11 +14,12 @@ public class NewAssessmentDto {
     private List<String> skills;
     private List<String> languageOptions;
     private String model; // model to use for the chat completion
+    private Map<String, String> metadata;
 
     public NewAssessmentDto() {
     }
 
-    public NewAssessmentDto(String name, String description, String role, LocalDateTime startDate, LocalDateTime endDate, Integer duration, List<String> skills, List<String> languageOptions, String model) {
+    public NewAssessmentDto(String name, String description, String role, LocalDateTime startDate, LocalDateTime endDate, Integer duration, List<String> skills, List<String> languageOptions, String model, Map<String, String> metadata) {
         this.name = name;
         this.description = description;
         this.role = role;
@@ -27,6 +29,7 @@ public class NewAssessmentDto {
         this.skills = skills;
         this.languageOptions = languageOptions;
         this.model = model;
+        this.metadata = metadata;
     }
 
     public String getName() {
@@ -77,7 +80,12 @@ public class NewAssessmentDto {
     public void setLanguageOptions(List<String> languageOptions) {
         this.languageOptions = languageOptions;
     }
-
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+    public void setMetadata(Map<String, String> metadata) {
+        this.metadata = metadata;
+    }
     public String getModel() {
         return model;
     }   

@@ -19,7 +19,7 @@ export default function AssessmentDetails() {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [, navigate] = useLocation();
-    const [, params] = useRoute("/assessments/:assessmentId");
+    const [, params] = useRoute("/assessments/view/:assessmentId");
     const assessmentId = params?.assessmentId;
 
     // State for editing
@@ -389,7 +389,7 @@ export default function AssessmentDetails() {
                                         </button>
 
                                         <button
-                                            onClick={() => openRepository(assessment.githubRepositoryLink)}
+                                            onClick={() => alert('Coming soon')}
                                             className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg transition-colors text-sm"
                                         >
                                             <ExternalLink size={16} />
@@ -397,14 +397,23 @@ export default function AssessmentDetails() {
                                         </button>
                                     </div>
 
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${assessment.status === 'active'
+                                    {/* <div className="flex items-center gap-3 mb-4">
+                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${assessment.status === 'active'
                                             ? 'bg-green-600 text-white'
                                             : 'bg-red-600 text-white'
                                             }`}>
-                                            {assessment.status}
+                                            {assessment.status === 'active' ? 'Set to inactive' : 'Set to active'}
                                         </span>
-                                    </div>
+                                    </div> */}
+
+                                    <Button variant="default" className="w-fit p-2 px-4 py-4 mb-4 hover:bg-slate-700 hover:text-white rounded-lg border border-slate-700 transition-colors"
+                                        onClick={() => {
+                                            updateAssessmentMutation.mutate({
+                                                status: assessment.status === 'active' ? 'inactive' : 'active'
+                                            });
+                                        }}>
+                                        {assessment.status === 'active' ? 'Set to inactive' : 'Set to active'}
+                                    </Button>
 
                                     <div className="flex items-center gap-6 text-sm text-gray-400">
                                         <div className="flex items-center gap-2">
@@ -418,9 +427,16 @@ export default function AssessmentDetails() {
                                     </div>
 
                                     <div className="flex items-center gap-2 my-5">
-                                        <Button variant="link" className="flex items-center">
+                                        <Button variant="link" className="flex items-center" onClick={() => {
+                                            navigator.clipboard.writeText(import.meta.env.VITE_APP_URL + '/assessments/preview/' + assessment.id);
+                                            toast({
+                                                title: 'Public link copied to clipboard',
+                                                description: 'You can now share the link with your candidates',
+                                                variant: 'default',
+                                            });
+                                        }}>
                                             <Link2 size={20} className="text-blue-400" />
-                                            <span className="text-blue-400">usedelphi.dev/invite/id</span>
+                                            <span className="text-blue-400">{import.meta.env.VITE_APP_URL}/assessments/preview/{assessment.id}</span>
                                         </Button>
                                     </div>
                                 </div>

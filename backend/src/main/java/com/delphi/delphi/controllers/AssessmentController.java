@@ -273,11 +273,12 @@ public class AssessmentController {
     public ResponseEntity<?> getAssessmentById(@PathVariable Long id) {
         try {
             AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(id);
-            if (assessment.getStatus() == AssessmentStatus.ACTIVE) {
-                return ResponseEntity.ok(new FetchAssessmentDto(assessment));
-            } else {
-                return ResponseEntity.notFound().build();
-            }
+            // if (assessment.getStatus() == AssessmentStatus.ACTIVE) {
+            //     return ResponseEntity.ok(new FetchAssessmentDto(assessment));
+            // } else {
+            //     return ResponseEntity.notFound().build();
+            // }
+            return ResponseEntity.ok(new FetchAssessmentDto(assessment));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error retrieving assessment: " + e.getMessage());
@@ -330,7 +331,7 @@ public class AssessmentController {
             updateAssessment.setDuration(assessmentUpdates.getDuration());
             updateAssessment.setSkills(assessmentUpdates.getSkills());
             updateAssessment.setLanguageOptions(assessmentUpdates.getLanguageOptions());
-
+            updateAssessment.setMetadata(assessmentUpdates.getMetadata());
             AssessmentCacheDto updatedAssessment = assessmentService.updateAssessment(id, updateAssessment);
             return ResponseEntity.ok(new FetchAssessmentDto(updatedAssessment));
         } catch (IllegalArgumentException e) {

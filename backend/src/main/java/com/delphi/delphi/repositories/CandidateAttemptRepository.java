@@ -96,14 +96,15 @@ public interface CandidateAttemptRepository extends JpaRepository<CandidateAttem
     Page<CandidateAttempt> findByAssessmentUserId(@Param("userId") Long userId, Pageable pageable);
     
     // Find candidate attempts with multiple optional filters
+    // Use COALESCE to avoid untyped `? is null` SQL parameters that break on PostgreSQL
     @Query("SELECT ca FROM CandidateAttempt ca WHERE " +
-           "(:candidateId IS NULL OR ca.candidate.id = :candidateId) AND " +
-           "(:assessmentId IS NULL OR ca.assessment.id = :assessmentId) AND " +
-           "(:status IS NULL OR ca.status = :status) AND " +
-           "(:startedAfter IS NULL OR ca.startedDate >= :startedAfter) AND " +
-           "(:startedBefore IS NULL OR ca.startedDate <= :startedBefore) AND " +
-           "(:completedAfter IS NULL OR ca.completedDate >= :completedAfter) AND " +
-           "(:completedBefore IS NULL OR ca.completedDate <= :completedBefore)")
+           "ca.candidate.id = COALESCE(:candidateId, ca.candidate.id) AND " +
+           "ca.assessment.id = COALESCE(:assessmentId, ca.assessment.id) AND " +
+           "ca.status = COALESCE(:status, ca.status) AND " +
+           "ca.startedDate >= COALESCE(:startedAfter, ca.startedDate) AND " +
+           "ca.startedDate <= COALESCE(:startedBefore, ca.startedDate) AND " +
+           "ca.completedDate >= COALESCE(:completedAfter, ca.completedDate) AND " +
+           "ca.completedDate <= COALESCE(:completedBefore, ca.completedDate)")
     Page<CandidateAttempt> findWithFilters(@Param("candidateId") Long candidateId,
                                          @Param("assessmentId") Long assessmentId,
                                          @Param("status") AttemptStatus status,

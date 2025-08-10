@@ -14,8 +14,8 @@ import useApi from '@/hooks/use-api';
 const assessment: Assessment = {
     id: 5,
     employerId: "1",
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdDate: new Date(),
+    updatedDate: new Date(),
     name: "Full Stack Developer Assessment",
     role: "Senior Full Stack Developer",
     duration: 180,
@@ -61,7 +61,7 @@ const assessment: Assessment = {
         "Vue.js + Python (Django/Flask)",
     ],
     status: "active",
-    repoLink: "https://github.com/user/repo",
+    githubRepositoryLink: "https://github.com/user/repo",
 };
 
 const candidate: Candidate = {

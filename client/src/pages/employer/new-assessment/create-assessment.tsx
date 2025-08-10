@@ -42,7 +42,7 @@ const createAssessmentSchema = z.object({
   name: z.string().min(1, "Title is required").max(255, "Title must be less than 255 characters"),
   role: z.string().min(1, "Role is required").max(255, "Role must be less than 255 characters"),
   skills: z.array(z.string()).min(1, "Skills are required"),
-  description: z.string().min(1, "Description is required").max(255, "Description must be less than 255 characters"),
+  details: z.string().min(1, "Details are required").max(10000, "Details must be less than 10000 characters"),
   //assessmentType: z.enum(["TAKE_HOME", "LIVE_CODING"]),
   duration: z.number().min(1, "Duration must be at least 1 minute").max(255, "Duration must be less than 255 minutes"),
   languageOptions: z.array(z.string()).max(5, "There can be no more than 5 technology choices."),
@@ -125,7 +125,7 @@ export function CreateAssessmentForm() {
   const [durationUnit, setDurationUnit] = useState<"minutes" | "hours">("minutes");
   const [languageOptions, setLanguageOptions] = useState<string[]>([]);
   const [name, setName] = useState<string>("");
-  const [formDesc, setFormDesc] = useState("");
+  const [formDetails, setFormDetails] = useState("");
   const [attachments, setAttachments] = useState<string[]>([]);
   //const [isTyping, setIsTyping] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -140,7 +140,7 @@ export function CreateAssessmentForm() {
   //});
   const [inputFocused, setInputFocused] = useState(false);
   const commandPaletteRef = useRef<HTMLDivElement>(null);
-  const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
+  const detailsRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Setup form with updated default values (declare before any watchers)
   const form = useForm<CreateAssessmentFormValues>({
@@ -149,27 +149,27 @@ export function CreateAssessmentForm() {
       name: "",
       role: "",
       skills: [],
-      description: "",
+      details: "",
       languageOptions: [],
       duration: 0,
     },
   });
 
-  const adjustDescriptionHeight = useCallback(() => {
-    const el = descriptionRef.current;
+  const adjustDetailsHeight = useCallback(() => {
+    const el = detailsRef.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
   }, []);
 
   useEffect(() => {
-    adjustDescriptionHeight();
-  }, [adjustDescriptionHeight]);
+    adjustDetailsHeight();
+  }, [adjustDetailsHeight]);
 
-  const descriptionValue = form.watch("description");
+  const detailsValue = form.watch("details");
   useEffect(() => {
-    adjustDescriptionHeight();
-  }, [descriptionValue, adjustDescriptionHeight]);
+    adjustDetailsHeight();
+  }, [detailsValue, adjustDetailsHeight]);
 
   const { toast } = useToast();
   const [, navigate] = useLocation();
@@ -520,7 +520,7 @@ export function CreateAssessmentForm() {
     setSkills(selectedCommand.skills.join(', '));
     setDuration(selectedCommand.duration);
     setDurationUnit(selectedCommand.durationUnit);
-    setFormDesc(selectedCommand.prefix + ' ');
+    setFormDetails(selectedCommand.prefix + ' ');
     // setShowCommandPalette(false);
 
     // Sync to form state so validation sees values
@@ -528,7 +528,7 @@ export function CreateAssessmentForm() {
     form.setValue("role", selectedCommand.role, { shouldValidate: true, shouldDirty: true });
     form.setValue("skills", selectedCommand.skills, { shouldValidate: true, shouldDirty: true });
     form.setValue("duration", selectedCommand.duration, { shouldValidate: true, shouldDirty: true });
-    form.setValue("description", selectedCommand.prefix + ' ', { shouldValidate: true, shouldDirty: true });
+    form.setValue("details", selectedCommand.prefix + ' ', { shouldValidate: true, shouldDirty: true });
     // if (!form.getValues("title")) {
     //   form.setValue("title", selectedCommand.label, { shouldValidate: true, shouldDirty: true });
     // }
@@ -889,10 +889,10 @@ export function CreateAssessmentForm() {
 
               <FormField
                 control={form.control}
-                name="description"
+                name="details"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-300 font-medium">Description</FormLabel>
+                    <FormLabel className="text-slate-300 font-medium">Additional Details</FormLabel>
                     <FormControl>
                       <motion.div
                         className="relative backdrop-blur-xl bg-slate-800/90 rounded-2xl border border-slate-700/50 shadow-2xl"
@@ -946,11 +946,11 @@ export function CreateAssessmentForm() {
                           placeholder="Describe what the candidate needs to do in this assessment"
                           value={field.value ?? ""}
                           onChange={(e) => {
-                            setFormDesc(e.target.value);
+                            setFormDetails(e.target.value);
                             field.onChange(e.target.value);
-                            adjustDescriptionHeight();
+                            adjustDetailsHeight();
                           }}
-                          ref={descriptionRef}
+                          ref={detailsRef}
                           rows={1}
                           className="bg-slate-800/60 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-violet-500/20 backdrop-blur-sm resize-none overflow-hidden"
                         />
