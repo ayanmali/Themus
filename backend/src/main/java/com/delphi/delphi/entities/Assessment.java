@@ -27,9 +27,10 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapKeyColumn;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
@@ -336,5 +337,14 @@ public class Assessment {
 
     public void setGithubRepoName(String githubRepoName) {
         this.githubRepoName = githubRepoName;
+    }
+
+    @PrePersist
+    @PreUpdate
+    public void updateStatusIfExpired() {
+        if (endDate != null && endDate.isBefore(LocalDateTime.now()) && 
+            AssessmentStatus.ACTIVE.equals(status)) {
+            this.status = AssessmentStatus.INACTIVE;
+        }
     }
 }

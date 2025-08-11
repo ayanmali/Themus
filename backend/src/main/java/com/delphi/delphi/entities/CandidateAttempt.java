@@ -111,6 +111,15 @@ public class CandidateAttempt {
         return completedDate == null || evaluatedDate == null || evaluatedDate.isAfter(completedDate);
     }
 
+    // @PrePersist
+    // @PreUpdate
+    // public void updateStatusIfExpired() {
+    //     if (startedDate != null && startedDate.isAfter(LocalDateTime.now()) && 
+    //         AttemptStatus.STARTED.equals(status)) {
+    //         this.status = AttemptStatus.EXPIRED;
+    //     }
+    // }
+
     public Long getId() {
         return id;
     }

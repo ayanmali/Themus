@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -113,4 +114,15 @@ public interface CandidateAttemptRepository extends JpaRepository<CandidateAttem
                                          @Param("completedAfter") LocalDateTime completedAfter,
                                          @Param("completedBefore") LocalDateTime completedBefore,
                                          Pageable pageable);
+
+    // Find expired attempts (started or invited but not completed within assessment duration)
+//     @Modifying
+//     @Query("UPDATE CandidateAttempt ca SET ca.status = 'EXPIRED' WHERE (ca.status = 'STARTED' OR ca.status = 'INVITED') AND ((ca.startedDate IS NOT NULL AND ca.startedDate < :currentTime) OR (ca.startedDate IS NULL AND ca.createdDate < :currentTime))")
+//     int updateExpiredAttempts(@Param("currentTime") LocalDateTime currentTime);
+
+    // Update attempts to EXPIRED when their associated assessment is INACTIVE
+    @Modifying
+    @Query("UPDATE CandidateAttempt ca SET ca.status = 'EXPIRED' WHERE (ca.status = 'STARTED' OR ca.status = 'INVITED') AND ca.assessment.status = 'INACTIVE'")
+    int updateAttemptsForInactiveAssessments();
+
 }

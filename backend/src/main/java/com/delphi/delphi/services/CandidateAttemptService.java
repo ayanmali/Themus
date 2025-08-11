@@ -397,4 +397,13 @@ public class CandidateAttemptService {
         }
         // No timestamp update needed
     }
+
+    // public void updateExpiredAttempts() {
+    //     LocalDateTime now = LocalDateTime.now();
+    //     candidateAttemptRepository.updateExpiredAttempts(now);
+    // }
+
+    public void updateAttemptsForInactiveAssessments() {
+        candidateAttemptRepository.updateAttemptsForInactiveAssessments();
+    }
 }
