@@ -224,7 +224,7 @@ export default function CandidateAssessmentPreview() {
     }
 
     // Show content when assessment is loaded
-    if (!assessment) {
+    if (!assessment || assessment.status !== 'ACTIVE') {
         return (
             <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center">
                 <div className="text-center">

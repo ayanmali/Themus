@@ -40,8 +40,12 @@ public class UserCacheDto implements UserDetails {
         this.githubAccountType = user.getGithubAccountType();
         this.createdDate = user.getCreatedDate();
         this.updatedDate = user.getUpdatedDate();
-        this.assessmentIds = user.getAssessments().stream().map(Assessment::getId).collect(Collectors.toList());
-        this.candidateIds = user.getCandidates().stream().map(Candidate::getId).collect(Collectors.toList());
+        if (user.getAssessments() != null) {
+            this.assessmentIds = user.getAssessments().stream().map(Assessment::getId).collect(Collectors.toList());
+        }
+        if (user.getCandidates() != null) {
+            this.candidateIds = user.getCandidates().stream().map(Candidate::getId).collect(Collectors.toList());
+        }
     }
 
     public Long getId() {

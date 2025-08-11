@@ -34,11 +34,11 @@ export default function AssessmentDetails() {
     const [tempRole, setTempRole] = useState('');
     const [tempStartDate, setTempStartDate] = useState<Date | undefined>(undefined);
     const [tempEndDate, setTempEndDate] = useState<Date | undefined>(undefined);
-    
+
     // State for tracking changes
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [pendingChanges, setPendingChanges] = useState<Partial<Assessment>>({});
-    
+
     // State for activation dialog
     const [showActivationDialog, setShowActivationDialog] = useState(false);
 
@@ -63,11 +63,11 @@ export default function AssessmentDetails() {
             const response = await apiCall(`/api/assessments/${assessmentId}`, {
                 method: 'GET',
             });
-            
+
             if (!response) {
                 throw new Error('Failed to fetch assessment');
             }
-            
+
             return response;
         },
         enabled: !!assessmentId,
@@ -80,11 +80,11 @@ export default function AssessmentDetails() {
                 method: 'PUT',
                 body: JSON.stringify(updatedAssessment),
             });
-            
+
             if (!response) {
                 throw new Error('Failed to update assessment');
             }
-            
+
             return response;
         },
         onSuccess: () => {
@@ -113,11 +113,11 @@ export default function AssessmentDetails() {
             const response = await apiCall(`/api/attempts/filter?assessmentId=${assessmentId}&page=${currentCandidatePage - 1}&size=${candidatesPerPage}${statusParam}`, {
                 method: 'GET',
             });
-            
+
             if (!response) {
                 throw new Error('Failed to fetch candidate attempts');
             }
-            
+
             return response;
         },
         enabled: !!assessmentId,
@@ -132,7 +132,7 @@ export default function AssessmentDetails() {
     const filteredAttempts = candidateAttempts.filter((attempt: any) => {
         const candidateName = attempt.candidate?.fullName || `${attempt.candidate?.firstName || ''} ${attempt.candidate?.lastName || ''}`.trim();
         const candidateEmail = attempt.candidate?.email;
-        const matchesSearch = candidateSearchTerm === '' || 
+        const matchesSearch = candidateSearchTerm === '' ||
             candidateName?.toLowerCase().includes(candidateSearchTerm.toLowerCase()) ||
             candidateEmail?.toLowerCase().includes(candidateSearchTerm.toLowerCase());
         return matchesSearch;
@@ -187,6 +187,8 @@ export default function AssessmentDetails() {
         return assessment?.status || 'DRAFT';
     };
 
+
+
     // Helper functions for specific field types
     const getCurrentName = (): string => {
         if (pendingChanges.name !== undefined) {
@@ -230,14 +232,21 @@ export default function AssessmentDetails() {
         return assessment?.metadata || {};
     };
 
+    const getCurrentLanguageOptions = (): string[] => {
+        if (pendingChanges.languageOptions !== undefined) {
+            return pendingChanges.languageOptions as string[];
+        }
+        return assessment?.languageOptions || [];
+    };
+
     // Helper function to check if date range is valid (not entirely in the past)
     // const isDateRangeValid = (startDate: Date | undefined, endDate: Date | undefined): boolean => {
     //     if (!startDate || !endDate) return false;
     //     if (endDate <= startDate) return false;
-        
+
     //     const now = new Date();
     //     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Start of today
-        
+
     //     // Check if the entire date range is in the past
     //     return endDate >= today;
     // };
@@ -253,9 +262,9 @@ export default function AssessmentDetails() {
                 ...assessment.metadata,
                 [newMetadataKey]: newMetadataValue
             };
-            
+
             addPendingChange('metadata', updatedMetadata);
-            
+
             setNewMetadataKey('');
             setNewMetadataValue('');
         }
@@ -265,7 +274,7 @@ export default function AssessmentDetails() {
         if (assessment) {
             const newMetadata = { ...assessment.metadata };
             delete newMetadata[key];
-            
+
             addPendingChange('metadata', newMetadata);
         }
     };
@@ -277,7 +286,7 @@ export default function AssessmentDetails() {
                 delete newMetadata[oldKey];
             }
             newMetadata[newKey] = newValue;
-            
+
             addPendingChange('metadata', newMetadata);
         }
     };
@@ -359,7 +368,7 @@ export default function AssessmentDetails() {
             // Validate dates before allowing activation (use current values including pending changes)
             const currentStartDate = getCurrentStartDate();
             const currentEndDate = getCurrentEndDate();
-            
+
             if (!currentStartDate || !currentEndDate) {
                 toast({
                     title: "Missing Date Range",
@@ -368,9 +377,9 @@ export default function AssessmentDetails() {
                 });
                 return;
             }
-            
+
             const now = new Date();
-            
+
             // if (currentStartDate <= now) {
             //     toast({
             //         title: "Invalid Start Date",
@@ -379,7 +388,7 @@ export default function AssessmentDetails() {
             //     });
             //     return;
             // }
-            
+
             if (currentEndDate <= currentStartDate) {
                 toast({
                     title: "Invalid End Date",
@@ -388,7 +397,7 @@ export default function AssessmentDetails() {
                 });
                 return;
             }
-            
+
             // Show activation confirmation dialog
             setShowActivationDialog(true);
         } else {
@@ -398,7 +407,7 @@ export default function AssessmentDetails() {
     };
 
     const confirmActivation = () => {
-        addPendingChange('status', 'active');
+        addPendingChange('status', 'ACTIVE');
         setShowActivationDialog(false);
     };
 
@@ -468,7 +477,7 @@ export default function AssessmentDetails() {
                     </button>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-8rem)]">
+                <div className="text-sm grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-8rem)]">
                     <div className="lg:col-span-2 overflow-y-auto">
                         <div className="bg-gray-800 rounded-lg p-8 shadow-xl">
                             <div className="flex justify-between items-start mb-6">
@@ -565,11 +574,11 @@ export default function AssessmentDetails() {
                                             <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getCurrentStatus() === 'ACTIVE'
                                                 ? 'bg-green-600 text-white'
                                                 : getCurrentStatus() === 'DRAFT'
-                                                ? 'bg-yellow-600 text-white'
-                                                : 'bg-red-600 text-white'
+                                                    ? 'bg-yellow-600 text-white'
+                                                    : 'bg-red-600 text-white'
                                                 }`}>
-                                                {getCurrentStatus() === 'ACTIVE' ? 'Active' : 
-                                                getCurrentStatus() === 'DRAFT' ? 'Draft' : 'Inactive'}
+                                                {getCurrentStatus() === 'ACTIVE' ? 'Active' :
+                                                    getCurrentStatus() === 'DRAFT' ? 'Draft' : 'Inactive'}
                                             </span>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -580,26 +589,30 @@ export default function AssessmentDetails() {
                                                 <DropdownMenuContent className="w-48 bg-slate-800 text-white border-slate-500" align="start">
                                                     <DropdownMenuLabel>Change Status</DropdownMenuLabel>
                                                     <DropdownMenuGroup>
-                                                        {getCurrentStatus() !== 'DRAFT' && <DropdownMenuItem 
-                                                            className="hover:bg-slate-700 transition-colors hover:text-white"
-                                                            onClick={() => handleStatusChange('DRAFT')}
-                                                        >
-                                                            Draft
-                                                        </DropdownMenuItem>
-                                                        }
-                                                        {getCurrentStatus() !== 'ACTIVE' && <DropdownMenuItem 
-                                                            className="hover:bg-slate-700 transition-colors hover:text-white"
-                                                            onClick={() => handleStatusChange('ACTIVE')}
-                                                        >
-                                                            Active
-                                                        </DropdownMenuItem>
-}
-                                                        {getCurrentStatus() !== 'INACTIVE' && <DropdownMenuItem 
-                                                            className="hover:bg-slate-700 transition-colors hover:text-white"
-                                                            onClick={() => handleStatusChange('INACTIVE')}
-                                                        >
-                                                            Inactive
-                                                        </DropdownMenuItem>}
+                                                        {getCurrentStatus() !== 'DRAFT' && (
+                                                            <DropdownMenuItem
+                                                                className="hover:bg-slate-700 transition-colors hover:text-white"
+                                                                onClick={() => handleStatusChange('DRAFT')}
+                                                            >
+                                                                Draft
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {getCurrentStatus() !== 'ACTIVE' && (
+                                                            <DropdownMenuItem
+                                                                className="hover:bg-slate-700 transition-colors hover:text-white"
+                                                                onClick={() => handleStatusChange('ACTIVE')}
+                                                            >
+                                                                Active
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {getCurrentStatus() !== 'INACTIVE' && (
+                                                            <DropdownMenuItem
+                                                                className="hover:bg-slate-700 transition-colors hover:text-white"
+                                                                onClick={() => handleStatusChange('INACTIVE')}
+                                                            >
+                                                                Inactive
+                                                            </DropdownMenuItem>
+                                                        )}
                                                     </DropdownMenuGroup>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
@@ -627,23 +640,25 @@ export default function AssessmentDetails() {
                                             });
                                         }}>
                                             <Link2 size={20} className="text-blue-400" />
-                                            <span className="text-blue-400">{import.meta.env.VITE_APP_URL}/assessments/preview/{assessment.id}</span>
+                                            <span className="text-blue-400">Copy public assessment link</span>
                                         </Button>
                                     </div>
 
                                     <div className="mt-6">
                                         <div className="flex items-center justify-between mb-2">
-                                            <h3 className="text-lg font-semibold">Date Range</h3>
-                                            <TooltipProvider delayDuration={100}>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <Info size={16} className="text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent className="bg-gray-800 text-white border-gray-500">
-                                                        <p>The date range in which candidates can take the assessment.</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
+                                            <div className="flex items-center gap-5">
+                                                <h3 className="text-lg font-semibold">Date Range</h3>
+                                                <TooltipProvider delayDuration={100}>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Info size={16} className="text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors" />
+                                                        </TooltipTrigger>
+                                                        <TooltipContent className="bg-gray-800 text-white border-gray-500">
+                                                            <p>The date range in which candidates can take the assessment.</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            </div>
                                             {!isEditingDates && (
                                                 <button
                                                     onClick={startEditingDates}
@@ -672,7 +687,7 @@ export default function AssessmentDetails() {
                                                                 });
                                                                 return;
                                                             }
-                                                            
+
                                                             if (tempEndDate <= tempStartDate) {
                                                                 toast({
                                                                     title: "Invalid Date Range",
@@ -681,10 +696,10 @@ export default function AssessmentDetails() {
                                                                 });
                                                                 return;
                                                             }
-                                                            
+
                                                             const now = new Date();
                                                             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                                                            
+
                                                             if (tempEndDate < today) {
                                                                 toast({
                                                                     title: "Invalid Date Range",
@@ -693,7 +708,7 @@ export default function AssessmentDetails() {
                                                                 });
                                                                 return;
                                                             }
-                                                            
+
                                                             saveDates();
                                                         }}
                                                         disabled={!tempStartDate || !tempEndDate}
@@ -727,17 +742,19 @@ export default function AssessmentDetails() {
 
                                     <div className="mt-6">
                                         <div className="flex items-center justify-between mb-2">
-                                            <h3 className="text-lg font-semibold">Description</h3>
-                                            <TooltipProvider delayDuration={100}>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <Info size={16} className="text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent className="bg-gray-800 text-white border-gray-500">
-                                                        <p>A brief description of the role and/or the assessment that will be shown to candidates before they take the assessment.</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
+                                            <div className="flex items-center gap-5">
+                                                <h3 className="text-lg font-semibold">Description</h3>
+                                                <TooltipProvider delayDuration={100}>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Info size={16} className="text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors" />
+                                                        </TooltipTrigger>
+                                                        <TooltipContent className="bg-gray-800 text-white border-gray-500">
+                                                            <p>A brief description of the role and/or the assessment that will be shown to candidates before they take the assessment.</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            </div>
                                             {!isEditingDescription && (
                                                 <button
                                                     onClick={startEditingDescription}
@@ -782,179 +799,224 @@ export default function AssessmentDetails() {
                                 </div>
                             </div>
 
-                            <div className="mb-8 bg-slate-700 rounded-lg p-4">
-                                <h3 className="text-xl font-semibold mb-4">Skills, Technologies, and Focus Areas</h3>
-                                <p className="text-gray-300 leading-relaxed">{assessment.skills.join(', ')}</p>
+                            <div className="mt-6">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-lg font-semibold">Skills, Technologies, and Focus Areas</h3>
+                                </div>
+                                <div className="flex flex-wrap gap-2 p-4">
+                                            {assessment?.skills?.map((language, index) => (
+                                                <span
+                                                    key={index}
+                                                    className="bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-300 backdrop-blur-sm"
+                                                >
+                                                    {language}
+                                                </span>
+                                            ))}
+                                        </div>
+
                             </div>
 
-                            <div className="mb-8 bg-slate-700 rounded-lg p-4">
-                                <div className="flex items-center justify-between mb-8">
-                                    <h3 className="text-xl font-semibold">Candidates</h3>
+                            {getCurrentLanguageOptions().length > 0 && (
+                                <div className="mt-6">
+                                    <div className="flex items-center gap-5 mb-2">
+                                        <h3 className="text-lg font-semibold">Language Options</h3>
+                                        <TooltipProvider delayDuration={100}>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Info size={16} className="text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors" />
+                                                </TooltipTrigger>
+                                                <TooltipContent className="bg-gray-800 text-white border-gray-500">
+                                                    <p>Technologies that candidates can choose from to complete the assessment.</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
+                                    <div className="rounded-lg p-4">
+                                        
+                                        <div className="flex flex-wrap gap-2">
+                                            {getCurrentLanguageOptions().map((language, index) => (
+                                                <span
+                                                    key={index}
+                                                    className="bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-300 backdrop-blur-sm"
+                                                >
+                                                    {language}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-6">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-lg font-semibold">Candidates</h3>
                                     <Button variant="default" className="w-fit p-2 px-4 hover:bg-slate-700 hover:text-white rounded-lg border border-slate-700 transition-colors"
                                         onClick={() => setIsCommandOpen(true)}>
                                         <Plus size={16} />
                                         <span>Add</span>
                                     </Button>
                                 </div>
+                                <div className="bg-slate-700 rounded-lg p-4">
 
-                                <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                                    <div className="flex-1">
-                                        <input
-                                            type="text"
-                                            placeholder="Search candidates by name or email..."
-                                            value={candidateSearchTerm}
-                                            onChange={(e) => setCandidateSearchTerm(e.target.value)}
-                                            className="w-full bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-400 focus:outline-none placeholder-gray-400"
-                                        />
-                                    </div>
+                                    <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                                        <div className="flex-1">
+                                            <input
+                                                type="text"
+                                                placeholder="Search candidates by name or email..."
+                                                value={candidateSearchTerm}
+                                                onChange={(e) => setCandidateSearchTerm(e.target.value)}
+                                                className="w-full bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-400 focus:outline-none placeholder-gray-400"
+                                            />
+                                        </div>
 
-                                    <div className="sm:w-48">
-                                        <select
-                                            value={candidateStatusFilter}
-                                            onChange={(e) => setCandidateStatusFilter(e.target.value)}
-                                            className="w-full bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-400 focus:outline-none"
-                                        >
-                                            <option value="all">All Statuses</option>
-                                            <option value="invited">Invited</option>
-                                            <option value="started">Started</option>
-                                            <option value="submitted">Submitted</option>
-                                            <option value="evaluated">Evaluated</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                {/* Loading State for Attempts */}
-                                {attemptsLoading && (
-                                    <div className="flex items-center justify-center py-8">
-                                        <div className="flex items-center space-x-2">
-                                            <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
-                                            <span className="text-gray-400">Loading candidates...</span>
+                                        <div className="sm:w-48">
+                                            <select
+                                                value={candidateStatusFilter}
+                                                onChange={(e) => setCandidateStatusFilter(e.target.value)}
+                                                className="w-full bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-400 focus:outline-none"
+                                            >
+                                                <option value="all">All Statuses</option>
+                                                <option value="invited">Invited</option>
+                                                <option value="started">Started</option>
+                                                <option value="submitted">Submitted</option>
+                                                <option value="evaluated">Evaluated</option>
+                                            </select>
                                         </div>
                                     </div>
-                                )}
 
-                                {/* Error State for Attempts */}
-                                {attemptsError && (
-                                    <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
-                                        <div className="flex">
-                                            <div className="ml-3">
-                                                <h3 className="text-sm font-medium text-red-800">
-                                                    Error loading candidates
-                                                </h3>
-                                                <div className="mt-2 text-sm text-red-700">
-                                                    <p>{attemptsError.message}</p>
+                                    {/* Loading State for Attempts */}
+                                    {attemptsLoading && (
+                                        <div className="flex items-center justify-center py-8">
+                                            <div className="flex items-center space-x-2">
+                                                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                                                <span className="text-gray-400">Loading candidates...</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Error State for Attempts */}
+                                    {attemptsError && (
+                                        <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+                                            <div className="flex">
+                                                <div className="ml-3">
+                                                    <h3 className="text-sm font-medium text-red-800">
+                                                        Error loading candidates
+                                                    </h3>
+                                                    <div className="mt-2 text-sm text-red-700">
+                                                        <p>{attemptsError.message}</p>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                {/* Candidates List */}
-                                {!attemptsLoading && !attemptsError && (
-                                    <>
-                                        <div className="mb-4">
-                                            <p className="text-sm text-gray-400">
-                                                Showing {candidateAttempts.length} of {totalAttempts} candidates
-                                            </p>
-                                        </div>
+                                    {/* Candidates List */}
+                                    {!attemptsLoading && !attemptsError && (
+                                        <>
+                                            <div className="mb-4">
+                                                <p className="text-sm text-gray-400">
+                                                    Showing {candidateAttempts.length} of {totalAttempts} candidates
+                                                </p>
+                                            </div>
 
-                                        <div className="space-y-3">
-                                            {candidateAttempts.length > 0 ? (
-                                                candidateAttempts.map((attempt: any) => (
-                                                    <div
-                                                        key={attempt.id}
-                                                        className="bg-gray-800 rounded-lg p-4 flex items-center justify-between hover:bg-gray-650 transition-colors"
-                                                    >
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center gap-4">
-                                                                <div>
-                                                                    <h4 className="font-medium text-white">
-                                                                        {attempt.candidate?.fullName || `${attempt.candidate?.firstName || ''} ${attempt.candidate?.lastName || ''}`.trim()}
-                                                                    </h4>
-                                                                    <p className="text-sm text-gray-400">{attempt.candidate?.email}</p>
-                                                                    <p className="text-sm text-gray-400">
-                                                                        {attempt.startedDate ? 'Started at: ' + new Date(attempt.startedDate).toLocaleString() : ''}
-                                                                    </p>
-                                                                    <p className="text-sm text-gray-400">
-                                                                        {attempt.completedDate ? 'Submitted at: ' + new Date(attempt.completedDate).toLocaleString() : ''}
-                                                                    </p>
-                                                                    <p className="text-sm text-gray-400">
-                                                                        {attempt.evaluatedDate ? 'Evaluated at: ' + new Date(attempt.evaluatedDate).toLocaleString() : ''}
-                                                                    </p>
+                                            <div className="space-y-3">
+                                                {candidateAttempts.length > 0 ? (
+                                                    candidateAttempts.map((attempt: any) => (
+                                                        <div
+                                                            key={attempt.id}
+                                                            className="bg-gray-800 rounded-lg p-4 flex items-center justify-between hover:bg-gray-650 transition-colors"
+                                                        >
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-4">
+                                                                    <div>
+                                                                        <h4 className="font-medium text-white">
+                                                                            {attempt.candidate?.fullName || `${attempt.candidate?.firstName || ''} ${attempt.candidate?.lastName || ''}`.trim()}
+                                                                        </h4>
+                                                                        <p className="text-sm text-gray-400">{attempt.candidate?.email}</p>
+                                                                        <p className="text-sm text-gray-400">
+                                                                            {attempt.startedDate ? 'Started at: ' + new Date(attempt.startedDate).toLocaleString() : ''}
+                                                                        </p>
+                                                                        <p className="text-sm text-gray-400">
+                                                                            {attempt.completedDate ? 'Submitted at: ' + new Date(attempt.completedDate).toLocaleString() : ''}
+                                                                        </p>
+                                                                        <p className="text-sm text-gray-400">
+                                                                            {attempt.evaluatedDate ? 'Evaluated at: ' + new Date(attempt.evaluatedDate).toLocaleString() : ''}
+                                                                        </p>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-4">
-                                                            <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize text-white ${getStatusColor(attempt.status?.toLowerCase())}`}>
-                                                                {attempt.status?.toLowerCase()}
-                                                            </span>
-                                                            <DropdownMenu>
-                                                                <DropdownMenuTrigger asChild>
-                                                                    <Button variant="ghost" className="p-2 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
-                                                                        <MoreHorizontal size={20} />
-                                                                    </Button>
-                                                                </DropdownMenuTrigger>
-                                                                <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
-                                                                    <DropdownMenuLabel>More Actions</DropdownMenuLabel>
-                                                                    <DropdownMenuGroup>
-                                                                        <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                                                                            Send email
-                                                                        </DropdownMenuItem>
-                                                                        {(attempt.status?.toLowerCase() === "completed" || attempt.status?.toLowerCase() === "evaluated") ? (
+                                                            <div className="flex items-center gap-4">
+                                                                <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize text-white ${getStatusColor(attempt.status?.toLowerCase())}`}>
+                                                                    {attempt.status?.toLowerCase()}
+                                                                </span>
+                                                                <DropdownMenu>
+                                                                    <DropdownMenuTrigger asChild>
+                                                                        <Button variant="ghost" className="p-2 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
+                                                                            <MoreHorizontal size={20} />
+                                                                        </Button>
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
+                                                                        <DropdownMenuLabel>More Actions</DropdownMenuLabel>
+                                                                        <DropdownMenuGroup>
                                                                             <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                                                                                View Pull Request on GitHub
+                                                                                Send email
                                                                             </DropdownMenuItem>
-                                                                        ) : attempt.status?.toLowerCase() === "started" ? (
-                                                                            <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                                                                                View Repository on GitHub
-                                                                            </DropdownMenuItem>
-                                                                        ) : (
-                                                                            <></>
-                                                                        )}
-                                                                        <DropdownMenuSeparator className="bg-slate-700" />
-                                                                    </DropdownMenuGroup>
-                                                                </DropdownMenuContent>
-                                                            </DropdownMenu>
+                                                                            {(attempt.status?.toLowerCase() === "completed" || attempt.status?.toLowerCase() === "evaluated") ? (
+                                                                                <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                                                    View Pull Request on GitHub
+                                                                                </DropdownMenuItem>
+                                                                            ) : attempt.status?.toLowerCase() === "started" ? (
+                                                                                <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                                                    View Repository on GitHub
+                                                                                </DropdownMenuItem>
+                                                                            ) : (
+                                                                                <></>
+                                                                            )}
+                                                                            <DropdownMenuSeparator className="bg-slate-700" />
+                                                                        </DropdownMenuGroup>
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            </div>
                                                         </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="bg-gray-700 rounded-lg p-8 text-center">
+                                                        <p className="text-gray-400">No candidates found for this assessment.</p>
                                                     </div>
-                                                ))
-                                            ) : (
-                                                <div className="bg-gray-700 rounded-lg p-8 text-center">
-                                                    <p className="text-gray-400">No candidates found for this assessment.</p>
+                                                )}
+                                            </div>
+
+                                            {totalAttemptsPages > 1 && (
+                                                <div className="flex items-center justify-between mt-6">
+                                                    <p className="text-sm text-gray-400">
+                                                        Showing {((currentCandidatePage - 1) * candidatesPerPage) + 1} to{' '}
+                                                        {Math.min(currentCandidatePage * candidatesPerPage, totalAttempts)} of{' '}
+                                                        {totalAttempts} candidates
+                                                    </p>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => setCurrentCandidatePage(prev => Math.max(prev - 1, 1))}
+                                                            disabled={currentCandidatePage === 1}
+                                                            className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            <ChevronLeft size={16} />
+                                                        </button>
+                                                        <span className="text-sm text-gray-300">
+                                                            {currentCandidatePage} of {totalAttemptsPages}
+                                                        </span>
+                                                        <button
+                                                            onClick={() => setCurrentCandidatePage(prev => Math.min(prev + 1, totalAttemptsPages))}
+                                                            disabled={currentCandidatePage === totalAttemptsPages}
+                                                            className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            <ChevronRight size={16} />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             )}
-                                        </div>
-
-                                        {totalAttemptsPages > 1 && (
-                                            <div className="flex items-center justify-between mt-6">
-                                                <p className="text-sm text-gray-400">
-                                                    Showing {((currentCandidatePage - 1) * candidatesPerPage) + 1} to{' '}
-                                                    {Math.min(currentCandidatePage * candidatesPerPage, totalAttempts)} of{' '}
-                                                    {totalAttempts} candidates
-                                                </p>
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => setCurrentCandidatePage(prev => Math.max(prev - 1, 1))}
-                                                        disabled={currentCandidatePage === 1}
-                                                        className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        <ChevronLeft size={16} />
-                                                    </button>
-                                                    <span className="text-sm text-gray-300">
-                                                        {currentCandidatePage} of {totalAttemptsPages}
-                                                    </span>
-                                                    <button
-                                                        onClick={() => setCurrentCandidatePage(prev => Math.min(prev + 1, totalAttemptsPages))}
-                                                        disabled={currentCandidatePage === totalAttemptsPages}
-                                                        className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        <ChevronRight size={16} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </>
-                                )}
+                                        </>
+                                    )}
+                                </div>
                             </div>
 
                             <Dialog open={isCommandOpen} onOpenChange={setIsCommandOpen}>
@@ -979,33 +1041,33 @@ export default function AssessmentDetails() {
 
                                             <CommandList className="max-h-[300px] overflow-y-auto">
                                                 <CommandEmpty>No candidates found.</CommandEmpty>
-                                                                                            <CommandGroup heading="Available Candidates">
-                                                {candidateAttempts.map((attempt: any) => (
-                                                    <CommandItem
-                                                        key={attempt.id}
-                                                        className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-700"
-                                                        onSelect={() => {
-                                                            setSelectedCandidateIds(prev =>
-                                                                prev.includes(attempt.id.toString())
-                                                                    ? prev.filter(id => id !== attempt.id.toString())
-                                                                    : [...prev, attempt.id.toString()]
-                                                            );
-                                                        }}
-                                                    >
-                                                        <div className="flex items-center justify-center w-4 h-4 border border-gray-400 rounded">
-                                                            {selectedCandidateIds.includes(attempt.id.toString()) && (
-                                                                <Check size={12} className="text-blue-400" />
-                                                            )}
-                                                        </div>
-                                                        <div className="flex flex-col flex-1">
-                                                            <span className="font-medium text-white">
-                                                                {attempt.candidate?.fullName || `${attempt.candidate?.firstName || ''} ${attempt.candidate?.lastName || ''}`.trim()}
-                                                            </span>
-                                                            <span className="text-sm text-gray-400">{attempt.candidate?.email}</span>
-                                                        </div>
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
+                                                <CommandGroup heading="Available Candidates">
+                                                    {candidateAttempts.map((attempt: any) => (
+                                                        <CommandItem
+                                                            key={attempt.id}
+                                                            className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-700"
+                                                            onSelect={() => {
+                                                                setSelectedCandidateIds(prev =>
+                                                                    prev.includes(attempt.id.toString())
+                                                                        ? prev.filter(id => id !== attempt.id.toString())
+                                                                        : [...prev, attempt.id.toString()]
+                                                                );
+                                                            }}
+                                                        >
+                                                            <div className="flex items-center justify-center w-4 h-4 border border-gray-400 rounded">
+                                                                {selectedCandidateIds.includes(attempt.id.toString()) && (
+                                                                    <Check size={12} className="text-blue-400" />
+                                                                )}
+                                                            </div>
+                                                            <div className="flex flex-col flex-1">
+                                                                <span className="font-medium text-white">
+                                                                    {attempt.candidate?.fullName || `${attempt.candidate?.firstName || ''} ${attempt.candidate?.lastName || ''}`.trim()}
+                                                                </span>
+                                                                <span className="text-sm text-gray-400">{attempt.candidate?.email}</span>
+                                                            </div>
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
                                             </CommandList>
                                         </Command>
                                     </div>
@@ -1043,64 +1105,66 @@ export default function AssessmentDetails() {
                                 </DialogContent>
                             </Dialog>
 
-                            <div className="mb-8 bg-gray-700 rounded-lg p-4">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-xl font-semibold">Metadata</h3>
+                            <div className="mt-6">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-lg font-semibold">Metadata</h3>
                                 </div>
+                                <div className="bg-gray-700 rounded-lg p-4">
 
-                                <div className="space-y-4 mb-6">
-                                    {assessment && Object.entries(getCurrentMetadata()).map(([key, value]) => (
-                                        <div key={key} className="bg-gray-800 rounded-lg p-4 flex items-center gap-4">
-                                            <div className="flex-1 grid grid-cols-2 gap-4">
-                                                <input
-                                                    type="text"
-                                                    value={key}
-                                                    onChange={(e) => updateMetadataField(key, e.target.value, value)}
-                                                    className="bg-gray-700 text-white px-3 py-2 border rounded-md border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
-                                                    placeholder="Field name"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    value={value}
-                                                    onChange={(e) => updateMetadataField(key, key, e.target.value)}
-                                                    className="bg-gray-700 text-white px-3 py-2 rounded-md border border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
-                                                    placeholder="Field value"
-                                                />
+                                    <div className="space-y-4 mb-6">
+                                        {assessment && Object.entries(getCurrentMetadata()).map(([key, value]) => (
+                                            <div key={key} className="bg-gray-800 rounded-lg p-4 flex items-center gap-4">
+                                                <div className="flex-1 grid grid-cols-2 gap-4">
+                                                    <input
+                                                        type="text"
+                                                        value={key}
+                                                        onChange={(e) => updateMetadataField(key, e.target.value, value)}
+                                                        className="bg-gray-700 text-white px-3 py-2 border rounded-md border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
+                                                        placeholder="Field name"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={value}
+                                                        onChange={(e) => updateMetadataField(key, key, e.target.value)}
+                                                        className="bg-gray-700 text-white px-3 py-2 rounded-md border border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
+                                                        placeholder="Field value"
+                                                    />
+                                                </div>
+                                                <button
+                                                    onClick={() => deleteMetadataField(key)}
+                                                    className="p-2 text-red-400 hover:text-red-300 hover:bg-gray-600 rounded transition-colors"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </div>
-                                            <button
-                                                onClick={() => deleteMetadataField(key)}
-                                                className="p-2 text-red-400 hover:text-red-300 hover:bg-gray-600 rounded transition-colors"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="bg-gray-700 rounded-lg p-4 flex items-center gap-4">
-                                    <div className="flex-1 grid grid-cols-2 gap-4">
-                                        <input
-                                            type="text"
-                                            value={newMetadataKey}
-                                            onChange={(e) => setNewMetadataKey(e.target.value)}
-                                            className="bg-gray-700 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
-                                            placeholder="New field name"
-                                        />
-                                        <input
-                                            type="text"
-                                            value={newMetadataValue}
-                                            onChange={(e) => setNewMetadataValue(e.target.value)}
-                                            className="bg-gray-700 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
-                                            placeholder="New field value"
-                                        />
+                                        ))}
                                     </div>
-                                    <button
-                                        onClick={addMetadataField}
-                                        disabled={!newMetadataKey || !newMetadataValue}
-                                        className="p-2 text-green-400 hover:text-green-300 hover:bg-gray-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        <Plus size={16} />
-                                    </button>
+
+                                    <div className="bg-gray-700 rounded-lg p-4 flex items-center gap-4">
+                                        <div className="flex-1 grid grid-cols-2 gap-4">
+                                            <input
+                                                type="text"
+                                                value={newMetadataKey}
+                                                onChange={(e) => setNewMetadataKey(e.target.value)}
+                                                className="bg-gray-700 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
+                                                placeholder="New field name"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={newMetadataValue}
+                                                onChange={(e) => setNewMetadataValue(e.target.value)}
+                                                className="bg-gray-700 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none text-sm"
+                                                placeholder="New field value"
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={addMetadataField}
+                                            disabled={!newMetadataKey || !newMetadataValue}
+                                            className="p-2 text-green-400 hover:text-green-300 hover:bg-gray-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <Plus size={16} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 

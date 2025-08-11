@@ -29,8 +29,12 @@ public class CandidateCacheDto {
         this.createdDate = candidate.getCreatedDate();
         this.updatedDate = candidate.getUpdatedDate();
         this.userId = candidate.getUser().getId();
-        this.assessmentIds = candidate.getAssessments().stream().map(Assessment::getId).collect(Collectors.toList());
-        this.candidateAttemptIds = candidate.getCandidateAttempts().stream().map(CandidateAttempt::getId).collect(Collectors.toList());
+        if (candidate.getAssessments() != null) {
+            this.assessmentIds = candidate.getAssessments().stream().map(Assessment::getId).collect(Collectors.toList());
+        }
+        if (candidate.getCandidateAttempts() != null) {
+            this.candidateAttemptIds = candidate.getCandidateAttempts().stream().map(CandidateAttempt::getId).collect(Collectors.toList());
+        }
         this.metadata = candidate.getMetadata();
     }
 

@@ -24,8 +24,10 @@ public class ChatMessageCacheDto {
         this.model = chatMessage.getModel();
         this.createdDate = chatMessage.getCreatedAt();
         this.assessmentId = chatMessage.getAssessment().getId();
-        this.toolCallIds = chatMessage.getToolCalls().stream().map(OpenAiToolCall::getId).collect(Collectors.toList());
         this.messageType = chatMessage.getMessageType();
+        if (chatMessage.getToolCalls() != null) {
+            this.toolCallIds = chatMessage.getToolCalls().stream().map(OpenAiToolCall::getId).collect(Collectors.toList());
+        }
     }
 
     public Long getId() {

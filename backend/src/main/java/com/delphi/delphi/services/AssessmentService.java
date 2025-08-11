@@ -121,6 +121,7 @@ public class AssessmentService {
         log.info("set github repository link for assessment: {}", assessment);
         log.info("assessment name: {}", assessment.getName());
         log.info("assessment description: {}", assessment.getDescription());
+        log.info("assessment details: {}", assessment.getDetails());
         log.info("assessment role: {}", assessment.getRole());
         log.info("assessment start date: {}", assessment.getStartDate());
         log.info("assessment end date: {}", assessment.getEndDate());

@@ -51,9 +51,15 @@ public class AssessmentCacheDto {
         this.skills = assessment.getSkills();
         this.languageOptions = assessment.getLanguageOptions();
         this.metadata = assessment.getMetadata();
-        this.candidateAttemptIds = assessment.getCandidateAttempts().stream().map(CandidateAttempt::getId).collect(Collectors.toList());
-        this.candidateIds = assessment.getCandidates().stream().map(Candidate::getId).collect(Collectors.toList());
-        this.chatMessageIds = assessment.getChatMessages().stream().map(ChatMessage::getId).collect(Collectors.toList());
+        if (assessment.getCandidateAttempts() != null) {
+            this.candidateAttemptIds = assessment.getCandidateAttempts().stream().map(CandidateAttempt::getId).collect(Collectors.toList());
+        }
+        if (assessment.getCandidates() != null) {
+            this.candidateIds = assessment.getCandidates().stream().map(Candidate::getId).collect(Collectors.toList());
+        }
+        if (assessment.getChatMessages() != null) {
+            this.chatMessageIds = assessment.getChatMessages().stream().map(ChatMessage::getId).collect(Collectors.toList());
+        }
     }
 
     public Long getId() {
