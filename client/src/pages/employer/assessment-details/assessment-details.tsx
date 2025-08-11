@@ -1,5 +1,5 @@
 import { Assessment } from "@/lib/types/assessment";
-import { ArrowLeft, Calendar, Check, ChevronLeft, ChevronRight, Clock, Command, Edit3, ExternalLink, Link2, MoreHorizontal, Plus, Trash2, X, Loader2 } from "lucide-react"
+import { ArrowLeft, Calendar, Check, ChevronLeft, ChevronRight, Clock, Command, Edit3, ExternalLink, Link2, MoreHorizontal, Plus, Trash2, X, Loader2, Info } from "lucide-react"
 import { useState } from "react";
 import { CandidateAttempt } from "@/lib/types/candidate-attempt";
 import { Candidate } from "@/lib/types/candidate";
@@ -13,6 +13,8 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useApi from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 export default function AssessmentDetails() {
     const { apiCall } = useApi();
@@ -26,9 +28,19 @@ export default function AssessmentDetails() {
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [isEditingName, setIsEditingName] = useState(false);
     const [isEditingRole, setIsEditingRole] = useState(false);
+    const [isEditingDates, setIsEditingDates] = useState(false);
     const [tempDescription, setTempDescription] = useState('');
     const [tempName, setTempName] = useState('');
     const [tempRole, setTempRole] = useState('');
+    const [tempStartDate, setTempStartDate] = useState<Date | undefined>(undefined);
+    const [tempEndDate, setTempEndDate] = useState<Date | undefined>(undefined);
+    
+    // State for tracking changes
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const [pendingChanges, setPendingChanges] = useState<Partial<Assessment>>({});
+    
+    // State for activation dialog
+    const [showActivationDialog, setShowActivationDialog] = useState(false);
 
     // State for metadata editing
     const [newMetadataKey, setNewMetadataKey] = useState('');
@@ -78,6 +90,7 @@ export default function AssessmentDetails() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['assessment', assessmentId] });
             queryClient.invalidateQueries({ queryKey: ['assessments', 'user'] });
+            clearPendingChanges();
             toast({
                 title: "Success",
                 description: "Assessment updated successfully",
@@ -135,6 +148,100 @@ export default function AssessmentDetails() {
         }
     };
 
+    // Helper function to track changes
+    const addPendingChange = (field: keyof Assessment, value: any) => {
+        setPendingChanges(prev => ({
+            ...prev,
+            [field]: value
+        }));
+        setHasUnsavedChanges(true);
+    };
+
+    // Helper function to clear changes
+    const clearPendingChanges = () => {
+        setPendingChanges({});
+        setHasUnsavedChanges(false);
+    };
+
+    // Helper function to save all pending changes
+    const saveAllChanges = () => {
+        if (Object.keys(pendingChanges).length > 0) {
+            updateAssessmentMutation.mutate(pendingChanges);
+            clearPendingChanges();
+        }
+    };
+
+    // Helper function to get current value (including pending changes)
+    const getCurrentValue = (field: keyof Assessment) => {
+        if (pendingChanges[field] !== undefined) {
+            return pendingChanges[field];
+        }
+        return assessment?.[field];
+    };
+
+    // Helper function to get current status
+    const getCurrentStatus = (): 'DRAFT' | 'ACTIVE' | 'INACTIVE' => {
+        if (pendingChanges.status !== undefined) {
+            return pendingChanges.status as 'DRAFT' | 'ACTIVE' | 'INACTIVE';
+        }
+        return assessment?.status || 'DRAFT';
+    };
+
+    // Helper functions for specific field types
+    const getCurrentName = (): string => {
+        if (pendingChanges.name !== undefined) {
+            return pendingChanges.name as string;
+        }
+        return assessment?.name || '';
+    };
+
+    const getCurrentRole = (): string => {
+        if (pendingChanges.role !== undefined) {
+            return pendingChanges.role as string;
+        }
+        return assessment?.role || '';
+    };
+
+    const getCurrentDescription = (): string => {
+        if (pendingChanges.description !== undefined) {
+            return pendingChanges.description as string;
+        }
+        return assessment?.description || '';
+    };
+
+    const getCurrentStartDate = (): Date | undefined => {
+        if (pendingChanges.startDate !== undefined) {
+            return pendingChanges.startDate as Date;
+        }
+        return assessment?.startDate ? new Date(assessment.startDate) : undefined;
+    };
+
+    const getCurrentEndDate = (): Date | undefined => {
+        if (pendingChanges.endDate !== undefined) {
+            return pendingChanges.endDate as Date;
+        }
+        return assessment?.endDate ? new Date(assessment.endDate) : undefined;
+    };
+
+    const getCurrentMetadata = (): Record<string, string> => {
+        if (pendingChanges.metadata !== undefined) {
+            return pendingChanges.metadata as Record<string, string>;
+        }
+        return assessment?.metadata || {};
+    };
+
+    // Helper function to check if date range is valid (not entirely in the past)
+    // const isDateRangeValid = (startDate: Date | undefined, endDate: Date | undefined): boolean => {
+    //     if (!startDate || !endDate) return false;
+    //     if (endDate <= startDate) return false;
+        
+    //     const now = new Date();
+    //     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Start of today
+        
+    //     // Check if the entire date range is in the past
+    //     return endDate >= today;
+    // };
+
     const openRepository = (repoLink: string) => {
         window.open(repoLink, '_blank');
     };
@@ -147,9 +254,7 @@ export default function AssessmentDetails() {
                 [newMetadataKey]: newMetadataValue
             };
             
-            updateAssessmentMutation.mutate({
-                metadata: updatedMetadata
-            });
+            addPendingChange('metadata', updatedMetadata);
             
             setNewMetadataKey('');
             setNewMetadataValue('');
@@ -161,9 +266,7 @@ export default function AssessmentDetails() {
             const newMetadata = { ...assessment.metadata };
             delete newMetadata[key];
             
-            updateAssessmentMutation.mutate({
-                metadata: newMetadata
-            });
+            addPendingChange('metadata', newMetadata);
         }
     };
 
@@ -175,9 +278,7 @@ export default function AssessmentDetails() {
             }
             newMetadata[newKey] = newValue;
             
-            updateAssessmentMutation.mutate({
-                metadata: newMetadata
-            });
+            addPendingChange('metadata', newMetadata);
         }
     };
 
@@ -189,9 +290,7 @@ export default function AssessmentDetails() {
 
     const saveDescription = () => {
         if (assessment) {
-            updateAssessmentMutation.mutate({
-                description: tempDescription
-            });
+            addPendingChange('description', tempDescription);
         }
         setIsEditingDescription(false);
     };
@@ -208,9 +307,7 @@ export default function AssessmentDetails() {
 
     const saveName = () => {
         if (assessment) {
-            updateAssessmentMutation.mutate({
-                name: tempName
-            });
+            addPendingChange('name', tempName);
         }
         setIsEditingName(false);
     };
@@ -227,9 +324,7 @@ export default function AssessmentDetails() {
 
     const saveRole = () => {
         if (assessment) {
-            updateAssessmentMutation.mutate({
-                role: tempRole
-            });
+            addPendingChange('role', tempRole);
         }
         setIsEditingRole(false);
     };
@@ -237,6 +332,74 @@ export default function AssessmentDetails() {
     const cancelRoleEdit = () => {
         setIsEditingRole(false);
         setTempRole('');
+    };
+
+    const startEditingDates = () => {
+        setIsEditingDates(true);
+        setTempStartDate(assessment?.startDate ? new Date(assessment.startDate) : undefined);
+        setTempEndDate(assessment?.endDate ? new Date(assessment.endDate) : undefined);
+    };
+
+    const saveDates = () => {
+        if (assessment && tempStartDate && tempEndDate) {
+            addPendingChange('startDate', tempStartDate);
+            addPendingChange('endDate', tempEndDate);
+        }
+        setIsEditingDates(false);
+    };
+
+    const cancelDateEdit = () => {
+        setIsEditingDates(false);
+        setTempStartDate(undefined);
+        setTempEndDate(undefined);
+    };
+
+    const handleStatusChange = (newStatus: 'DRAFT' | 'ACTIVE' | 'INACTIVE') => {
+        if (newStatus === 'ACTIVE') {
+            // Validate dates before allowing activation (use current values including pending changes)
+            const currentStartDate = getCurrentStartDate();
+            const currentEndDate = getCurrentEndDate();
+            
+            if (!currentStartDate || !currentEndDate) {
+                toast({
+                    title: "Missing Date Range",
+                    description: "Please set a start and end date before activating the assessment.",
+                    variant: "destructive",
+                });
+                return;
+            }
+            
+            const now = new Date();
+            
+            // if (currentStartDate <= now) {
+            //     toast({
+            //         title: "Invalid Start Date",
+            //         description: "Start date must be in the future.",
+            //         variant: "destructive",
+            //     });
+            //     return;
+            // }
+            
+            if (currentEndDate <= currentStartDate) {
+                toast({
+                    title: "Invalid End Date",
+                    description: "End date must be after start date.",
+                    variant: "destructive",
+                });
+                return;
+            }
+            
+            // Show activation confirmation dialog
+            setShowActivationDialog(true);
+        } else {
+            // For non-active status changes, add to pending changes
+            addPendingChange('status', newStatus);
+        }
+    };
+
+    const confirmActivation = () => {
+        addPendingChange('status', 'active');
+        setShowActivationDialog(false);
     };
 
     const getStatusColor = (status: string) => {
@@ -335,7 +498,7 @@ export default function AssessmentDetails() {
                                             </div>
                                         ) : (
                                             <div className="flex items-center gap-2">
-                                                <h1 className="text-3xl font-bold">{assessment.name}</h1>
+                                                <h1 className="text-3xl font-bold">{getCurrentName()}</h1>
                                                 <button
                                                     onClick={startEditingName}
                                                     className="p-1 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
@@ -371,7 +534,7 @@ export default function AssessmentDetails() {
                                             </div>
                                         ) : (
                                             <div className="flex items-center gap-2">
-                                                <p className="text-gray-300 text-lg">{assessment.role}</p>
+                                                <p className="text-gray-300 text-lg">{getCurrentRole()}</p>
                                                 <button
                                                     onClick={startEditingRole}
                                                     className="p-1 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
@@ -397,23 +560,51 @@ export default function AssessmentDetails() {
                                         </button>
                                     </div>
 
-                                    {/* <div className="flex items-center gap-3 mb-4">
-                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${assessment.status === 'active'
-                                            ? 'bg-green-600 text-white'
-                                            : 'bg-red-600 text-white'
-                                            }`}>
-                                            {assessment.status === 'active' ? 'Set to inactive' : 'Set to active'}
-                                        </span>
-                                    </div> */}
-
-                                    <Button variant="default" className="w-fit p-2 px-4 py-4 mb-4 hover:bg-slate-700 hover:text-white rounded-lg border border-slate-700 transition-colors"
-                                        onClick={() => {
-                                            updateAssessmentMutation.mutate({
-                                                status: assessment.status === 'active' ? 'inactive' : 'active'
-                                            });
-                                        }}>
-                                        {assessment.status === 'active' ? 'Set to inactive' : 'Set to active'}
-                                    </Button>
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getCurrentStatus() === 'ACTIVE'
+                                                ? 'bg-green-600 text-white'
+                                                : getCurrentStatus() === 'DRAFT'
+                                                ? 'bg-yellow-600 text-white'
+                                                : 'bg-red-600 text-white'
+                                                }`}>
+                                                {getCurrentStatus() === 'ACTIVE' ? 'Active' : 
+                                                getCurrentStatus() === 'DRAFT' ? 'Draft' : 'Inactive'}
+                                            </span>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" className="p-1 h-auto text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors">
+                                                        <Edit3 size={14} />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent className="w-48 bg-slate-800 text-white border-slate-500" align="start">
+                                                    <DropdownMenuLabel>Change Status</DropdownMenuLabel>
+                                                    <DropdownMenuGroup>
+                                                        {getCurrentStatus() !== 'DRAFT' && <DropdownMenuItem 
+                                                            className="hover:bg-slate-700 transition-colors hover:text-white"
+                                                            onClick={() => handleStatusChange('DRAFT')}
+                                                        >
+                                                            Draft
+                                                        </DropdownMenuItem>
+                                                        }
+                                                        {getCurrentStatus() !== 'ACTIVE' && <DropdownMenuItem 
+                                                            className="hover:bg-slate-700 transition-colors hover:text-white"
+                                                            onClick={() => handleStatusChange('ACTIVE')}
+                                                        >
+                                                            Active
+                                                        </DropdownMenuItem>
+}
+                                                        {getCurrentStatus() !== 'INACTIVE' && <DropdownMenuItem 
+                                                            className="hover:bg-slate-700 transition-colors hover:text-white"
+                                                            onClick={() => handleStatusChange('INACTIVE')}
+                                                        >
+                                                            Inactive
+                                                        </DropdownMenuItem>}
+                                                    </DropdownMenuGroup>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                    </div>
 
                                     <div className="flex items-center gap-6 text-sm text-gray-400">
                                         <div className="flex items-center gap-2">
@@ -438,6 +629,155 @@ export default function AssessmentDetails() {
                                             <Link2 size={20} className="text-blue-400" />
                                             <span className="text-blue-400">{import.meta.env.VITE_APP_URL}/assessments/preview/{assessment.id}</span>
                                         </Button>
+                                    </div>
+
+                                    <div className="mt-6">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h3 className="text-lg font-semibold">Date Range</h3>
+                                            <TooltipProvider delayDuration={100}>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Info size={16} className="text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="bg-gray-800 text-white border-gray-500">
+                                                        <p>The date range in which candidates can take the assessment.</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                            {!isEditingDates && (
+                                                <button
+                                                    onClick={startEditingDates}
+                                                    className="p-1 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
+                                                >
+                                                    <Edit3 size={16} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        {isEditingDates ? (
+                                            <div className="space-y-2">
+                                                <DateRangePicker
+                                                    startDate={tempStartDate}
+                                                    endDate={tempEndDate}
+                                                    onStartDateChange={setTempStartDate}
+                                                    onEndDateChange={setTempEndDate}
+                                                />
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            if (!tempStartDate || !tempEndDate) {
+                                                                toast({
+                                                                    title: "Missing Dates",
+                                                                    description: "Please select both start and end dates.",
+                                                                    variant: "destructive",
+                                                                });
+                                                                return;
+                                                            }
+                                                            
+                                                            if (tempEndDate <= tempStartDate) {
+                                                                toast({
+                                                                    title: "Invalid Date Range",
+                                                                    description: "End date must be after start date.",
+                                                                    variant: "destructive",
+                                                                });
+                                                                return;
+                                                            }
+                                                            
+                                                            const now = new Date();
+                                                            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                                                            
+                                                            if (tempEndDate < today) {
+                                                                toast({
+                                                                    title: "Invalid Date Range",
+                                                                    description: "The selected date range is entirely in the past. Please select dates in the future.",
+                                                                    variant: "destructive",
+                                                                });
+                                                                return;
+                                                            }
+                                                            
+                                                            saveDates();
+                                                        }}
+                                                        disabled={!tempStartDate || !tempEndDate}
+                                                        className="px-3 py-1 text-green-400 hover:text-green-300 hover:bg-gray-700 rounded transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        Save
+                                                    </button>
+                                                    <button
+                                                        onClick={cancelDateEdit}
+                                                        className="px-3 py-1 text-red-400 hover:text-red-300 hover:bg-gray-700 rounded transition-colors text-sm"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="bg-gray-700 rounded-lg p-4">
+                                                <div className="flex items-center gap-4 text-gray-300">
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar size={16} />
+                                                        <span>Start: {getCurrentStartDate() ? getCurrentStartDate()!.toLocaleDateString() : 'Not set'}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar size={16} />
+                                                        <span>End: {getCurrentEndDate() ? getCurrentEndDate()!.toLocaleDateString() : 'Not set'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-6">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h3 className="text-lg font-semibold">Description</h3>
+                                            <TooltipProvider delayDuration={100}>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Info size={16} className="text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="bg-gray-800 text-white border-gray-500">
+                                                        <p>A brief description of the role and/or the assessment that will be shown to candidates before they take the assessment.</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                            {!isEditingDescription && (
+                                                <button
+                                                    onClick={startEditingDescription}
+                                                    className="p-1 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
+                                                >
+                                                    <Edit3 size={16} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        {isEditingDescription ? (
+                                            <div className="space-y-2">
+                                                <textarea
+                                                    value={tempDescription}
+                                                    onChange={(e) => setTempDescription(e.target.value)}
+                                                    className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none min-h-[100px] resize-none"
+                                                    placeholder="Enter assessment description..."
+                                                    autoFocus
+                                                />
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={saveDescription}
+                                                        className="px-3 py-1 text-green-400 hover:text-green-300 hover:bg-gray-700 rounded transition-colors text-sm"
+                                                    >
+                                                        Save
+                                                    </button>
+                                                    <button
+                                                        onClick={cancelDescriptionEdit}
+                                                        className="px-3 py-1 text-red-400 hover:text-red-300 hover:bg-gray-700 rounded transition-colors text-sm"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="bg-gray-700 rounded-lg p-4">
+                                                <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+                                                    {getCurrentDescription() || 'No description provided'}
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -709,7 +1049,7 @@ export default function AssessmentDetails() {
                                 </div>
 
                                 <div className="space-y-4 mb-6">
-                                    {assessment && Object.entries(assessment?.metadata || {}).map(([key, value]) => (
+                                    {assessment && Object.entries(getCurrentMetadata()).map(([key, value]) => (
                                         <div key={key} className="bg-gray-800 rounded-lg p-4 flex items-center gap-4">
                                             <div className="flex-1 grid grid-cols-2 gap-4">
                                                 <input
@@ -764,14 +1104,40 @@ export default function AssessmentDetails() {
                                 </div>
                             </div>
 
-                            {updateAssessmentMutation.isPending && (
-                                <div className="flex justify-end">
-                                    <div className="flex items-center space-x-2">
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        <span>Saving changes...</span>
-                                    </div>
+                            {/* Save Changes Section */}
+                            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-700">
+                                <div className="flex items-center gap-2">
+                                    {hasUnsavedChanges && (
+                                        <div className="flex items-center gap-2 text-yellow-400 text-sm">
+                                            <span>•</span>
+                                            <span>You have unsaved changes</span>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+                                <div className="flex items-center gap-3">
+                                    {updateAssessmentMutation.isPending && (
+                                        <div className="flex items-center space-x-2 text-gray-400">
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            <span>Saving changes...</span>
+                                        </div>
+                                    )}
+                                    <Button
+                                        variant="outline"
+                                        onClick={clearPendingChanges}
+                                        disabled={!hasUnsavedChanges || updateAssessmentMutation.isPending}
+                                        className="text-gray-400 hover:text-gray-300 border-gray-600 hover:border-gray-500"
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        onClick={saveAllChanges}
+                                        disabled={!hasUnsavedChanges || updateAssessmentMutation.isPending}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                                    >
+                                        Save Changes
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -782,6 +1148,32 @@ export default function AssessmentDetails() {
                     </div>
                 </div>
             </div>
+
+            {/* Activation Confirmation Dialog */}
+            <Dialog open={showActivationDialog} onOpenChange={setShowActivationDialog}>
+                <DialogContent className="sm:max-w-[500px] bg-slate-800 text-white border-slate-500">
+                    <DialogHeader>
+                        <DialogTitle>Activate Assessment</DialogTitle>
+                        <DialogDescription className="text-gray-300">
+                            Are you sure you want to activate this assessment? Once activated, the public link will become available and candidates can start taking the assessment.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="secondary"
+                            onClick={() => setShowActivationDialog(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={confirmActivation}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                            Confirm
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

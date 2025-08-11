@@ -10,7 +10,7 @@ export type Assessment = {
     createdDate: Date;
     updatedDate: Date;
     name: string; // ex. "Backend SWE Microservices Assessment"; used for employer's dashboard
-    status: 'draft' | 'active' | 'inactive';
+    status: 'DRAFT' | 'ACTIVE' | 'INACTIVE';
     candidateAttempts: CandidateAttempt[];
     startDate?: Date;
     endDate?: Date;

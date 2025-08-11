@@ -131,7 +131,7 @@ export default function EmployerAssessments() {
                                             <div className="mb-3">
                                                 <h3 className="text-xl font-semibold text-white mb-2">{assessment.name}</h3>
                                                 <div className="flex items-center gap-3 mb-2">
-                                                    <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${assessment.status === 'active'
+                                                    <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${assessment.status === 'ACTIVE'
                                                         ? 'bg-green-600 text-white'
                                                         : 'bg-red-600 text-white'
                                                         }`}>
@@ -174,7 +174,7 @@ export default function EmployerAssessments() {
                                                         Copy link
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                                                        {assessment.status === 'active' ? 'Deactivate Assessment' : 'Activate Assessment'}
+                                                        {assessment.status === 'ACTIVE' ? 'Deactivate Assessment' : 'Activate Assessment'}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white" onClick={() => window.open(assessment.githubRepositoryLink, '_blank')}>
                                                         View Repository on GitHub

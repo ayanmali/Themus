@@ -332,6 +332,8 @@ public class AssessmentController {
             updateAssessment.setSkills(assessmentUpdates.getSkills());
             updateAssessment.setLanguageOptions(assessmentUpdates.getLanguageOptions());
             updateAssessment.setMetadata(assessmentUpdates.getMetadata());
+            updateAssessment.setDetails(assessmentUpdates.getDetails());
+            updateAssessment.setStatus(assessmentUpdates.getStatus() == null ? null : AssessmentStatus.valueOf(assessmentUpdates.getStatus().toUpperCase()));
             AssessmentCacheDto updatedAssessment = assessmentService.updateAssessment(id, updateAssessment);
             return ResponseEntity.ok(new FetchAssessmentDto(updatedAssessment));
         } catch (IllegalArgumentException e) {

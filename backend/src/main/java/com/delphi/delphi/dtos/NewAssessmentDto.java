@@ -14,6 +14,8 @@ public class NewAssessmentDto {
     private List<String> skills;
     private List<String> languageOptions;
     private String model; // model to use for the chat completion
+    private String details; // additional details about the assessment
+    private String status; // status of the assessment
     private Map<String, String> metadata;
 
     public NewAssessmentDto() {
@@ -91,6 +93,18 @@ public class NewAssessmentDto {
     }   
     public void setModel(String model) {
         this.model = model;
+    }
+    public String getDetails() {
+        return details;
+    }
+    public void setDetails(String details) {
+        this.details = details;
+    }
+    public String getStatus() {
+        return status;
+    }
+    public void setStatus(String status) {
+        this.status = status;
     }
 
 }

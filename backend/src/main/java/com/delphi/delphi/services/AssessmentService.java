@@ -231,6 +231,9 @@ public class AssessmentService {
         if (assessmentUpdates.getMetadata() != null) {
             existingAssessment.setMetadata(assessmentUpdates.getMetadata());
         }
+        if (assessmentUpdates.getDetails() != null) {
+            existingAssessment.setDetails(assessmentUpdates.getDetails());
+        }
 
         // Validate date logic after updates
         if (existingAssessment.getStartDate() != null && existingAssessment.getEndDate() != null) {

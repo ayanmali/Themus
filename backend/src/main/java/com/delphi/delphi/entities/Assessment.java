@@ -30,6 +30,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -76,11 +77,11 @@ public class Assessment {
     // @Column(name = "assessment_type", nullable = false)
     // private AssessmentType assessmentType;
     
-    @Future(message = "Start date must be in the future")
+    //@Future(message = "Start date must be in the future")
     @Column(name = "start_date")
     private LocalDateTime startDate;
     
-    @Future(message = "End date must be in the future")
+    @FutureOrPresent(message = "End date must be in the future")
     @Column(name = "end_date")
     private LocalDateTime endDate;
     

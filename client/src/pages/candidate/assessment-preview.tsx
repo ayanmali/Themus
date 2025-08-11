@@ -60,7 +60,7 @@ const assessment: Assessment = {
         "React + Python (Django/Flask)",
         "Vue.js + Python (Django/Flask)",
     ],
-    status: "active",
+    status: "ACTIVE",
     githubRepositoryLink: "https://github.com/user/repo",
 };
 
