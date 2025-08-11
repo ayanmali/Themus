@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.AttemptStatus;
 
 import jakarta.persistence.CascadeType;
@@ -19,6 +20,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Size;
@@ -111,14 +114,14 @@ public class CandidateAttempt {
         return completedDate == null || evaluatedDate == null || evaluatedDate.isAfter(completedDate);
     }
 
-    // @PrePersist
-    // @PreUpdate
-    // public void updateStatusIfExpired() {
-    //     if (startedDate != null && startedDate.isAfter(LocalDateTime.now()) && 
-    //         AttemptStatus.STARTED.equals(status)) {
-    //         this.status = AttemptStatus.EXPIRED;
-    //     }
-    // }
+    @PrePersist
+    @PreUpdate
+    public void updateStatusIfAssessmentIsInactive() {
+        if (AssessmentStatus.INACTIVE.equals(assessment.getStatus()) && 
+            (AttemptStatus.STARTED.equals(status) || AttemptStatus.INVITED.equals(status))) {
+            this.status = AttemptStatus.EXPIRED;
+        }
+    }   
 
     public Long getId() {
         return id;

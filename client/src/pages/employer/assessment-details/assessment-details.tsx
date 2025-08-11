@@ -1,12 +1,12 @@
 import { Assessment } from "@/lib/types/assessment";
-import { ArrowLeft, Calendar, Check, ChevronLeft, ChevronRight, Clock, Command, Edit3, ExternalLink, Link2, MoreHorizontal, Plus, Trash2, X, Loader2, Info } from "lucide-react"
+import { ArrowLeft, Calendar, Check, ChevronLeft, ChevronRight, Clock, Edit3, ExternalLink, Link2, MoreHorizontal, Plus, Trash2, X, Loader2, Info } from "lucide-react"
 import { useState } from "react";
 import { CandidateAttempt } from "@/lib/types/candidate-attempt";
 import { Candidate } from "@/lib/types/candidate";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { ChatMessageListExample } from "@/pages/employer/assessment-details/chat-msg-list";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoute, useLocation } from "wouter";
@@ -53,7 +53,6 @@ export default function AssessmentDetails() {
     const candidatesPerPage = 5;
 
     // Command dialog state
-    const [isCommandOpen, setIsCommandOpen] = useState(false);
     const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([]);
 
     // Fetch assessment data
@@ -804,15 +803,15 @@ export default function AssessmentDetails() {
                                     <h3 className="text-lg font-semibold">Skills, Technologies, and Focus Areas</h3>
                                 </div>
                                 <div className="flex flex-wrap gap-2 p-4">
-                                            {assessment?.skills?.map((language, index) => (
-                                                <span
-                                                    key={index}
-                                                    className="bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-300 backdrop-blur-sm"
-                                                >
-                                                    {language}
-                                                </span>
-                                            ))}
-                                        </div>
+                                    {assessment?.skills?.map((language, index) => (
+                                        <span
+                                            key={index}
+                                            className="bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-300 backdrop-blur-sm"
+                                        >
+                                            {language}
+                                        </span>
+                                    ))}
+                                </div>
 
                             </div>
 
@@ -832,7 +831,7 @@ export default function AssessmentDetails() {
                                         </TooltipProvider>
                                     </div>
                                     <div className="rounded-lg p-4">
-                                        
+
                                         <div className="flex flex-wrap gap-2">
                                             {getCurrentLanguageOptions().map((language, index) => (
                                                 <span
@@ -850,11 +849,112 @@ export default function AssessmentDetails() {
                             <div className="mt-6">
                                 <div className="flex items-center justify-between mb-2">
                                     <h3 className="text-lg font-semibold">Candidates</h3>
-                                    <Button variant="default" className="w-fit p-2 px-4 hover:bg-slate-700 hover:text-white rounded-lg border border-slate-700 transition-colors"
-                                        onClick={() => setIsCommandOpen(true)}>
-                                        <Plus size={16} />
-                                        <span>Add</span>
-                                    </Button>
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <Button
+                                                variant="default"
+                                                className="w-fit p-2 px-4 hover:bg-slate-700 hover:text-white rounded-lg border border-slate-700 transition-colors"
+                                                onClick={() => {
+                                                    // Reset selected candidates when opening dialog
+                                                    setSelectedCandidateIds([]);
+
+                                                }}
+                                                disabled={attemptsLoading || !!attemptsError}
+                                            >
+                                                <Plus size={16} />
+                                                <span>Add</span>
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-[500px] p-0 bg-slate-800 text-white border-slate-500">
+                                            <DialogHeader className="px-6 pt-6">
+                                                <DialogTitle>Add candidates to assessment</DialogTitle>
+                                                <DialogDescription>
+                                                    Search and select a candidate to add to the assessment.
+                                                </DialogDescription>
+                                            </DialogHeader>
+
+                                            <div className="px-6">
+                                                <Command className="rounded-lg border border-gray-600 bg-slate-800 text-white">
+                                                    <CommandInput
+                                                        placeholder="Search candidates by name or email..."
+                                                        className="border-none focus:ring-0"
+                                                    />
+                                                    <Button variant="ghost" className="w-full p-2 pt-5 pb-5 justify-start font-light">
+                                                        <Plus size={16} />
+                                                        <span>Add new candidate</span>
+                                                    </Button>
+
+                                                    <CommandList className="max-h-[300px] overflow-y-auto">
+                                                        <CommandEmpty>No candidates found.</CommandEmpty>
+                                                        <CommandGroup heading="Available Candidates">
+                                                            {candidateAttempts.map((attempt: any) => (
+                                                                <CommandItem
+                                                                    key={attempt.id}
+                                                                    className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-700"
+                                                                    onSelect={() => {
+                                                                        setSelectedCandidateIds(prev =>
+                                                                            prev.includes(attempt.id.toString())
+                                                                                ? prev.filter(id => id !== attempt.id.toString())
+                                                                                : [...prev, attempt.id.toString()]
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    <div className="flex items-center justify-center w-4 h-4 border border-gray-400 rounded">
+                                                                        {selectedCandidateIds.includes(attempt.id.toString()) && (
+                                                                            <Check size={12} className="text-blue-400" />
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex flex-col flex-1">
+                                                                        <span className="font-medium text-white">
+                                                                            {attempt.candidate?.fullName || `${attempt.candidate?.firstName || ''} ${attempt.candidate?.lastName || ''}`.trim()}
+                                                                        </span>
+                                                                        <span className="text-sm text-gray-400">{attempt.candidate?.email}</span>
+                                                                    </div>
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                            </div>
+
+                                            <DialogFooter className="px-6 pb-6">
+                                                <div className="flex items-center justify-between w-full">
+                                                    <span className="text-sm text-gray-400">
+                                                        {selectedCandidateIds.length} candidate{selectedCandidateIds.length !== 1 ? 's' : ''} selected
+                                                    </span>
+                                                    <div className="flex gap-2">
+                                                        <DialogClose asChild>
+                                                            <Button
+                                                                variant="secondary"
+                                                                onClick={() => {
+
+                                                                    setSelectedCandidateIds([]);
+                                                                }}
+                                                            >
+                                                                Cancel
+                                                            </Button>
+                                                        </DialogClose>
+
+                                                        <Button
+                                                            type="submit"
+                                                            disabled={selectedCandidateIds.length === 0}
+                                                            onClick={() => {
+                                                                console.log('Adding candidates:', selectedCandidateIds);
+                                                                // Handle adding selected candidates here
+
+                                                                setSelectedCandidateIds([]);
+                                                            }}
+                                                        >
+                                                            Add {selectedCandidateIds.length} Candidate{selectedCandidateIds.length !== 1 ? 's' : ''}
+                                                        </Button>
+
+
+                                                    </div>
+                                                </div>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
+
                                 </div>
                                 <div className="bg-slate-700 rounded-lg p-4">
 
@@ -1018,92 +1118,6 @@ export default function AssessmentDetails() {
                                     )}
                                 </div>
                             </div>
-
-                            <Dialog open={isCommandOpen} onOpenChange={setIsCommandOpen}>
-                                <DialogContent className="sm:max-w-[500px] p-0 bg-slate-800 text-white border-slate-500">
-                                    <DialogHeader className="px-6 pt-6">
-                                        <DialogTitle>Add candidates to assessment</DialogTitle>
-                                        <DialogDescription>
-                                            Search and select a candidate to add to the assessment.
-                                        </DialogDescription>
-                                    </DialogHeader>
-
-                                    <div className="px-6">
-                                        <Command className="rounded-lg border border-gray-600 bg-slate-800 text-white">
-                                            <CommandInput
-                                                placeholder="Search candidates by name or email..."
-                                                className="border-none focus:ring-0"
-                                            />
-                                            <Button variant="ghost" className="w-full p-2 pt-5 pb-5 justify-start font-light">
-                                                <Plus size={16} />
-                                                <span>Add new candidate</span>
-                                            </Button>
-
-                                            <CommandList className="max-h-[300px] overflow-y-auto">
-                                                <CommandEmpty>No candidates found.</CommandEmpty>
-                                                <CommandGroup heading="Available Candidates">
-                                                    {candidateAttempts.map((attempt: any) => (
-                                                        <CommandItem
-                                                            key={attempt.id}
-                                                            className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-700"
-                                                            onSelect={() => {
-                                                                setSelectedCandidateIds(prev =>
-                                                                    prev.includes(attempt.id.toString())
-                                                                        ? prev.filter(id => id !== attempt.id.toString())
-                                                                        : [...prev, attempt.id.toString()]
-                                                                );
-                                                            }}
-                                                        >
-                                                            <div className="flex items-center justify-center w-4 h-4 border border-gray-400 rounded">
-                                                                {selectedCandidateIds.includes(attempt.id.toString()) && (
-                                                                    <Check size={12} className="text-blue-400" />
-                                                                )}
-                                                            </div>
-                                                            <div className="flex flex-col flex-1">
-                                                                <span className="font-medium text-white">
-                                                                    {attempt.candidate?.fullName || `${attempt.candidate?.firstName || ''} ${attempt.candidate?.lastName || ''}`.trim()}
-                                                                </span>
-                                                                <span className="text-sm text-gray-400">{attempt.candidate?.email}</span>
-                                                            </div>
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </div>
-
-                                    <DialogFooter className="px-6 pb-6">
-                                        <div className="flex items-center justify-between w-full">
-                                            <span className="text-sm text-gray-400">
-                                                {selectedCandidateIds.length} candidate{selectedCandidateIds.length !== 1 ? 's' : ''} selected
-                                            </span>
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    variant="secondary"
-                                                    onClick={() => {
-                                                        setIsCommandOpen(false);
-                                                        setSelectedCandidateIds([]);
-                                                    }}
-                                                >
-                                                    Cancel
-                                                </Button>
-                                                <Button
-                                                    type="submit"
-                                                    disabled={selectedCandidateIds.length === 0}
-                                                    onClick={() => {
-                                                        console.log('Adding candidates:', selectedCandidateIds);
-                                                        // Handle adding selected candidates here
-                                                        setIsCommandOpen(false);
-                                                        setSelectedCandidateIds([]);
-                                                    }}
-                                                >
-                                                    Add {selectedCandidateIds.length} Candidate{selectedCandidateIds.length !== 1 ? 's' : ''}
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
 
                             <div className="mt-6">
                                 <div className="flex items-center justify-between mb-2">
