@@ -1,6 +1,7 @@
 package com.delphi.delphi.services;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -502,5 +503,9 @@ public class AssessmentService {
                 .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id));
         assessment.setMetadata(metadata);
         return assessmentRepository.save(assessment);
+    }
+
+    public void updateExpiredAssessments() {
+        assessmentRepository.updateExpiredAssessments(LocalDate.now());
     }
 }

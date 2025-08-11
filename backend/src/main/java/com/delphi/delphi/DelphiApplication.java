@@ -1,6 +1,7 @@
 package com.delphi.delphi;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -11,6 +12,7 @@ import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.services.UserService;
 
 @SpringBootApplication
+@EnableScheduling
 @RestController
 // TODO: Enable async support?
 // @EnableAsync
