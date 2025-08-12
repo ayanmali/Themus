@@ -206,6 +206,23 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- TODO: Adjust these values for the production environment -->
+                    <jvmArguments>
+                        -Xms4g 
+                        -Xmx4g
+                        -XX:+UseG1GC
+                        -XX:MaxGCPauseMillis=200
+                        -XX:+HeapDumpOnOutOfMemoryError
+                        -XX:HeapDumpPath=/var/log/heapdumps/
+                        -Xlog:gc*:gc.log:time,tags
+                        -XX:+UseStringDeduplication <!-- Allows for using the same string object multiple times in the heap -->
+                        <!-- -XX:+AlwaysPreTouch --> <!-- Pre-allocates memory for the heap - TODO: disable in dev but enable in prod-->
+                        XX:+UseContainerSupport
+
+
+                    </jvmArguments>
+                </configuration>
             </plugin>
             <!-- <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
