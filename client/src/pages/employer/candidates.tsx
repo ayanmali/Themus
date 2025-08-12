@@ -8,6 +8,8 @@ import { CandidateCard } from "@/components/candidate-card";
 import { Candidate } from "@/lib/types/candidate";
 import { useQuery } from "@tanstack/react-query";
 import useApi from "@/hooks/use-api";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 
 export default function EmployerCandidates() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -57,10 +59,12 @@ export default function EmployerCandidates() {
           </p>
         </div>
         <div className="flex space-x-3">
-              <button className="bg-slate-700 hover:bg-blue-700 text-gray-100 text-sm px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
-                <Plus className="w-4 h-4" />
-                <span>Add</span>
-              </button>
+          <Link to="/candidates/new">
+              <Button className="bg-slate-700 hover:bg-blue-700 text-gray-100 text-sm px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
+                  <Plus className="w-4 h-4" />
+                  <span>Add</span>
+              </Button>
+            </Link>
               {/* <button className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
                 <Eye className="w-4 h-4" />
                 <span>View All</span>

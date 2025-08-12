@@ -374,6 +374,7 @@ public class CandidateAttemptService {
 
     // Update timestamps based on status
     private void updateTimestampsForStatus(CandidateAttempt attempt, AttemptStatus status) {
+        
         LocalDateTime now = LocalDateTime.now();
 
         switch (status) {
