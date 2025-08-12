@@ -215,10 +215,11 @@
                         -XX:MaxGCPauseMillis=200
                         -XX:+HeapDumpOnOutOfMemoryError
                         -XX:HeapDumpPath=/var/log/heapdumps/
-                        -Xlog:gc*:gc.log:time,tags
+                        -Xlog:gc*:gc-logs/gc.log:time,tags
                         -XX:+UseStringDeduplication <!-- Allows for using the same string object multiple times in the heap -->
                         <!-- -XX:+AlwaysPreTouch --> <!-- Pre-allocates memory for the heap - TODO: disable in dev but enable in prod-->
                         <!-- -XX:+UseContainerSupport -->
+
                     </jvmArguments>
                 </configuration>
             </plugin>

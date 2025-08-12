@@ -8,3 +8,4 @@ vite.config.ts.*
 postgres_data
 
 client-alt
+gc-logs

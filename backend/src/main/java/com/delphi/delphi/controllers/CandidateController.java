@@ -110,30 +110,30 @@ public class CandidateController {
     }
     
     // Get all candidates for the current user
-    @GetMapping("/user")
-    public ResponseEntity<?> getCandidatesForCurrentUser(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDirection) {
-        try {
-            UserCacheDto user = getCurrentUser();
-            Sort sort = sortDirection.equalsIgnoreCase("desc") 
-                ? Sort.by(sortBy).descending() 
-                : Sort.by(sortBy).ascending();
+    // @GetMapping
+    // public ResponseEntity<?> getCandidatesForCurrentUser(
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size,
+    //         @RequestParam(defaultValue = "id") String sortBy,
+    //         @RequestParam(defaultValue = "asc") String sortDirection) {
+    //     try {
+    //         UserCacheDto user = getCurrentUser();
+    //         Sort sort = sortDirection.equalsIgnoreCase("desc") 
+    //             ? Sort.by(sortBy).descending() 
+    //             : Sort.by(sortBy).ascending();
             
-            Pageable pageable = PageRequest.of(page, size, sort);
-            List<CandidateCacheDto> candidates = candidateService.getCandidatesByUserId(user.getId(), pageable);
-            List<FetchCandidateDto> candidateDtos = candidates.stream()
-                    .map(FetchCandidateDto::new)
-                    .collect(Collectors.toList());
+    //         Pageable pageable = PageRequest.of(page, size, sort);
+    //         List<CandidateCacheDto> candidates = candidateService.getCandidatesByUserId(user.getId(), pageable);
+    //         List<FetchCandidateDto> candidateDtos = candidates.stream()
+    //                 .map(FetchCandidateDto::new)
+    //                 .collect(Collectors.toList());
             
-            return ResponseEntity.ok(candidateDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving candidates: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(candidateDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error retrieving candidates: " + e.getMessage());
+    //     }
+    // }
 
     // Get all candidates with pagination and filtering for the current user
     @GetMapping("/filter")
@@ -224,84 +224,84 @@ public class CandidateController {
     // }
     
     // Search candidates by first name
-    @GetMapping("/search/first-name")
-    public ResponseEntity<?> searchCandidatesByFirstName(
-            @RequestParam String firstName,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            List<CandidateCacheDto> candidates = candidateService.searchCandidatesByFirstName(firstName, pageable);
-            List<FetchCandidateDto> candidateDtos = candidates.stream()
-                    .map(FetchCandidateDto::new)
-                    .collect(Collectors.toList());
+    // @GetMapping("/search/first-name")
+    // public ResponseEntity<?> searchCandidatesByFirstName(
+    //         @RequestParam String firstName,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         List<CandidateCacheDto> candidates = candidateService.searchCandidatesByFirstName(firstName, pageable);
+    //         List<FetchCandidateDto> candidateDtos = candidates.stream()
+    //                 .map(FetchCandidateDto::new)
+    //                 .collect(Collectors.toList());
             
-            return ResponseEntity.ok(candidateDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error searching candidates: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(candidateDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error searching candidates: " + e.getMessage());
+    //     }
+    // }
     
     // Search candidates by last name
-    @GetMapping("/search/last-name")
-    public ResponseEntity<?> searchCandidatesByLastName(
-            @RequestParam String lastName,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            List<CandidateCacheDto> candidates = candidateService.searchCandidatesByLastName(lastName, pageable);
-            List<FetchCandidateDto> candidateDtos = candidates.stream()
-                    .map(FetchCandidateDto::new)
-                    .collect(Collectors.toList());
+    // @GetMapping("/search/last-name")
+    // public ResponseEntity<?> searchCandidatesByLastName(
+    //         @RequestParam String lastName,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         List<CandidateCacheDto> candidates = candidateService.searchCandidatesByLastName(lastName, pageable);
+    //         List<FetchCandidateDto> candidateDtos = candidates.stream()
+    //                 .map(FetchCandidateDto::new)
+    //                 .collect(Collectors.toList());
             
-            return ResponseEntity.ok(candidateDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error searching candidates: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(candidateDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error searching candidates: " + e.getMessage());
+    //     }
+    // }
     
-    // Search candidates by full name
-    @GetMapping("/search/full-name")
-    public ResponseEntity<?> searchCandidatesByFullName(
-            @RequestParam String fullName,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            List<CandidateCacheDto> candidates = candidateService.searchCandidatesByFullName(fullName, pageable);
-            List<FetchCandidateDto> candidateDtos = candidates.stream()
-                    .map(FetchCandidateDto::new)
-                    .collect(Collectors.toList());
+    // // Search candidates by full name
+    // @GetMapping("/search/full-name")
+    // public ResponseEntity<?> searchCandidatesByFullName(
+    //         @RequestParam String fullName,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         List<CandidateCacheDto> candidates = candidateService.searchCandidatesByFullName(fullName, pageable);
+    //         List<FetchCandidateDto> candidateDtos = candidates.stream()
+    //                 .map(FetchCandidateDto::new)
+    //                 .collect(Collectors.toList());
             
-            return ResponseEntity.ok(candidateDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error searching candidates: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(candidateDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error searching candidates: " + e.getMessage());
+    //     }
+    // }
     
     // Get candidates by email domain
-    @GetMapping("/domain/{domain}")
-    public ResponseEntity<?> getCandidatesByEmailDomain(
-            @PathVariable String domain,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            List<CandidateCacheDto> candidates = candidateService.getCandidatesByEmailDomain(domain, pageable);
-            List<FetchCandidateDto> candidateDtos = candidates.stream()
-                    .map(FetchCandidateDto::new)
-                    .collect(Collectors.toList());
+    // @GetMapping("/domain/{domain}")
+    // public ResponseEntity<?> getCandidatesByEmailDomain(
+    //         @PathVariable String domain,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         List<CandidateCacheDto> candidates = candidateService.getCandidatesByEmailDomain(domain, pageable);
+    //         List<FetchCandidateDto> candidateDtos = candidates.stream()
+    //                 .map(FetchCandidateDto::new)
+    //                 .collect(Collectors.toList());
             
-            return ResponseEntity.ok(candidateDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving candidates: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(candidateDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error retrieving candidates: " + e.getMessage());
+    //     }
+    // }
     
     // Get candidates created within date range
     // @GetMapping("/created-between")
@@ -341,23 +341,23 @@ public class CandidateController {
     // }
     
     // Get candidates with no attempts
-    @GetMapping("/no-attempts")
-    public ResponseEntity<?> getCandidatesWithNoAttempts(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            List<CandidateCacheDto> candidates = candidateService.getCandidatesWithNoAttempts(pageable);
-            List<FetchCandidateDto> candidateDtos = candidates.stream()
-                    .map(FetchCandidateDto::new)
-                    .collect(Collectors.toList());
+    // @GetMapping("/no-attempts")
+    // public ResponseEntity<?> getCandidatesWithNoAttempts(
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         List<CandidateCacheDto> candidates = candidateService.getCandidatesWithNoAttempts(pageable);
+    //         List<FetchCandidateDto> candidateDtos = candidates.stream()
+    //                 .map(FetchCandidateDto::new)
+    //                 .collect(Collectors.toList());
             
-            return ResponseEntity.ok(candidateDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving candidates: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(candidateDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error retrieving candidates: " + e.getMessage());
+    //     }
+    // }
     
     // Count candidates by user
     @GetMapping("/count")

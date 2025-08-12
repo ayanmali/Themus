@@ -2,8 +2,10 @@ package com.delphi.delphi.components;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -183,4 +185,21 @@ public class RedisService {
     //         return null;
     //     });
     // }
+
+    /**
+     * Evict user candidates cache for a specific userId.
+     * This method finds and deletes all Redis keys that match the pattern "cache:user_candidates:{userId}*"
+     * 
+     * @param userId The user ID for which to evict candidate cache entries
+     */
+    public void evictCache(String pattern) {
+        //String pattern = "cache:user_candidates:" + userId + "*";
+        redisTemplate.execute((RedisCallback<Void>) connection -> {
+            Set<byte[]> keys = connection.keyCommands().keys(pattern.getBytes());
+            if (keys != null && !keys.isEmpty()) {
+                connection.keyCommands().del(keys.toArray(new byte[0][0]));
+            }
+            return null;
+        });
+    }
 } 
