@@ -1,6 +1,7 @@
 package com.delphi.delphi.dtos;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.delphi.delphi.dtos.cache.EvaluationCacheDto;
@@ -27,7 +28,7 @@ public class FetchEvaluationDto {
         this.createdDate = evaluation.getCreatedDate();
         this.updatedDate = evaluation.getUpdatedDate();
         this.candidateAttemptId = evaluation.getCandidateAttempt().getId();
-        this.metadata = evaluation.getMetadata();
+        this.metadata = evaluation.getMetadata() != null ? new HashMap<>(evaluation.getMetadata()) : null;
     }
 
     public FetchEvaluationDto(EvaluationCacheDto evaluation) {
@@ -35,7 +36,7 @@ public class FetchEvaluationDto {
         this.createdDate = evaluation.getCreatedDate();
         this.updatedDate = evaluation.getUpdatedDate();
         this.candidateAttemptId = evaluation.getCandidateAttemptId();
-        this.metadata = evaluation.getMetadata();
+        this.metadata = evaluation.getMetadata() != null ? new HashMap<>(evaluation.getMetadata()) : null;
     }
 
     public Long getId() {

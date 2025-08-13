@@ -1,6 +1,5 @@
 export type Candidate = {
     id: number;
-    name: string;
     email: string;
     appliedAt?: Date;
     // API response fields

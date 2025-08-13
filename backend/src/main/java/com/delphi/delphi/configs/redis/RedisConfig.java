@@ -251,6 +251,7 @@ public class RedisConfig implements CachingConfigurer {
                                     JsonTypeInfo.As.WRAPPER_ARRAY);
         mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        //mapper.configure(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES, false);
         mapper.registerModule(new JavaTimeModule());
         
         // TODO: Configure date handling?

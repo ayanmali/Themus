@@ -21,7 +21,7 @@ export default function EmployerCandidates() {
   const { data: candidatesData, isLoading, error } = useQuery({
     queryKey: ['candidates', 'user', page, size],
     queryFn: async () => {
-      const response = await apiCall(`/api/candidates?page=${page}&size=${size}`, {
+      const response = await apiCall(`/api/candidates/filter?page=${page}&size=${size}`, {
         method: 'GET',
       });
       

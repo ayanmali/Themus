@@ -20,6 +20,11 @@ import com.delphi.delphi.utils.AttemptStatus;
 @Service
 @Transactional
 // TODO: add cache annotations for other entity caches
+/*
+ * There are two different caches used here
+ * 1. candidate_attempts - data about a given candidate attempt
+ * 2. assessment_attempts - the list of candidate attempts for an assessment
+ */
 public class CandidateAttemptService {
 
     private final CandidateAttemptRepository candidateAttemptRepository;

@@ -1,6 +1,7 @@
 package com.delphi.delphi.dtos.cache;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -21,6 +22,10 @@ public class CandidateCacheDto {
     private List<Long> candidateAttemptIds;
     private Map<String, String> metadata;
 
+    // Default constructor for Jackson deserialization
+    public CandidateCacheDto() {
+    }
+
     public CandidateCacheDto(Candidate candidate) {
         this.id = candidate.getId();
         this.firstName = candidate.getFirstName();
@@ -29,13 +34,14 @@ public class CandidateCacheDto {
         this.createdDate = candidate.getCreatedDate();
         this.updatedDate = candidate.getUpdatedDate();
         this.userId = candidate.getUser().getId();
+        // this.userId = (candidate.getUser() != null) ? candidate.getUser().getId() : null;
         if (candidate.getAssessments() != null) {
             this.assessmentIds = candidate.getAssessments().stream().map(Assessment::getId).collect(Collectors.toList());
         }
         if (candidate.getCandidateAttempts() != null) {
             this.candidateAttemptIds = candidate.getCandidateAttempts().stream().map(CandidateAttempt::getId).collect(Collectors.toList());
         }
-        this.metadata = candidate.getMetadata();
+        this.metadata = candidate.getMetadata() != null ? new HashMap<>(candidate.getMetadata()) : null;
     }
 
     public Long getId() {

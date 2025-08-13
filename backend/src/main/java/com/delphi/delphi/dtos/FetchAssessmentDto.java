@@ -1,6 +1,8 @@
 package com.delphi.delphi.dtos;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,9 +39,9 @@ public class FetchAssessmentDto {
         this.githubRepositoryLink = assessment.getGithubRepositoryLink();
         this.createdDate = assessment.getCreatedDate();
         this.updatedDate = assessment.getUpdatedDate();
-        this.skills = assessment.getSkills();
-        this.languageOptions = assessment.getLanguageOptions();
-        this.metadata = assessment.getMetadata();
+        this.skills = assessment.getSkills() != null ? new ArrayList<>(assessment.getSkills()) : null;
+        this.languageOptions = assessment.getLanguageOptions() != null ? new ArrayList<>(assessment.getLanguageOptions()) : null;
+        this.metadata = assessment.getMetadata() != null ? new HashMap<>(assessment.getMetadata()) : null;
     }
 
     public FetchAssessmentDto(AssessmentCacheDto assessment) {
@@ -55,9 +57,9 @@ public class FetchAssessmentDto {
         this.githubRepositoryLink = assessment.getGithubRepositoryLink();
         this.createdDate = assessment.getCreatedDate();
         this.updatedDate = assessment.getUpdatedDate();
-        this.skills = assessment.getSkills();
-        this.languageOptions = assessment.getLanguageOptions();
-        this.metadata = assessment.getMetadata();
+        this.skills = assessment.getSkills() != null ? new ArrayList<>(assessment.getSkills()) : null;
+        this.languageOptions = assessment.getLanguageOptions() != null ? new ArrayList<>(assessment.getLanguageOptions()) : null;
+        this.metadata = assessment.getMetadata() != null ? new HashMap<>(assessment.getMetadata()) : null;
     }
 
     public FetchAssessmentDto() {

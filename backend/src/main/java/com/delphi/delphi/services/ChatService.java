@@ -42,6 +42,10 @@ import com.delphi.delphi.utils.OpenAiToolCall;
  * It is also used to get messages by chat history id.
  * It is also used to get a message by id.
  * It is also used to create a message.
+ * 
+ * There are two different caches used here
+ * 1. chat_messages - information about a given chat message
+ * 2. chat_histories - the list of chat messages for an assessment
  */
 public class ChatService {
 

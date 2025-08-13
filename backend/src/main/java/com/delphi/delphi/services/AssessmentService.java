@@ -37,6 +37,11 @@ import com.delphi.delphi.utils.git.GithubAccountType;
 @Service
 @Transactional
 // TODO: add cache annotations for other entity caches
+/*
+ * There are two different caches used here
+ * 1. assessments - data about a given assessment
+ * 2. user_assessments - the list of assessments for a user
+ */
 public class AssessmentService {
 
     private final UserRepository userRepository;

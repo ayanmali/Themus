@@ -67,7 +67,7 @@ const assessment: Assessment = {
 const candidate: Candidate = {
     id: 1,
     email: "zainjdantes@gmail.com",
-    name: "Zain Dantes",
+    fullName: "Zain Dantes",
 }
 
 export default function CandidateAssessmentPreview() {

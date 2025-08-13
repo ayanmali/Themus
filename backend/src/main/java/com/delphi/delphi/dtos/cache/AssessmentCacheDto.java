@@ -1,6 +1,8 @@
 package com.delphi.delphi.dtos.cache;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -48,9 +50,9 @@ public class AssessmentCacheDto {
         this.createdDate = assessment.getCreatedDate();
         this.updatedDate = assessment.getUpdatedDate();
         this.userId = assessment.getUser().getId();
-        this.skills = assessment.getSkills();
-        this.languageOptions = assessment.getLanguageOptions();
-        this.metadata = assessment.getMetadata();
+        this.skills = assessment.getSkills() != null ? new ArrayList<>(assessment.getSkills()) : null;
+        this.languageOptions = assessment.getLanguageOptions() != null ? new ArrayList<>(assessment.getLanguageOptions()) : null;
+        this.metadata = assessment.getMetadata() != null ? new HashMap<>(assessment.getMetadata()) : null;
         if (assessment.getCandidateAttempts() != null) {
             this.candidateAttemptIds = assessment.getCandidateAttempts().stream().map(CandidateAttempt::getId).collect(Collectors.toList());
         }

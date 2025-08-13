@@ -7,12 +7,16 @@ import java.util.stream.Collectors;
 
 import com.delphi.delphi.repositories.UserRepository;
 import com.delphi.delphi.utils.AttemptStatus;
+import com.specifications.CandidateSpecifications;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,7 +38,7 @@ import com.delphi.delphi.components.RedisService;
 public class CandidateService {
 
     private final UserRepository userRepository;
-    
+    private final Logger log = LoggerFactory.getLogger(CandidateService.class);
     private final CandidateRepository candidateRepository;
 
     private final RedisService redisService;
@@ -123,8 +127,20 @@ public class CandidateService {
                                                           LocalDateTime createdAfter, LocalDateTime createdBefore,
                                                           LocalDateTime attemptCompletedAfter, LocalDateTime attemptCompletedBefore, 
                                                           Pageable pageable) {
-        return candidateRepository.findWithFiltersForUser(userId, assessmentId, attemptStatus, emailDomain, firstName, lastName,
-                                                         createdAfter, createdBefore, attemptCompletedAfter, attemptCompletedBefore, pageable).getContent().stream().map(CandidateCacheDto::new).collect(Collectors.toList());
+        log.info("getCandidatesWithFiltersForUser: userId={}, assessmentId={}, attemptStatus={}, emailDomain={}, firstName={}, lastName={}, createdAfter={}, createdBefore={}, attemptCompletedAfter={}, attemptCompletedBefore={}, pageable={}", userId, assessmentId, attemptStatus, emailDomain, firstName, lastName, createdAfter, createdBefore, attemptCompletedAfter, attemptCompletedBefore, pageable);
+
+        Specification<Candidate> spec = Specification.allOf(
+            CandidateSpecifications.belongsToUser(userId),
+            CandidateSpecifications.hasAssessmentId(assessmentId),
+            CandidateSpecifications.hasAttemptStatus(attemptStatus),
+            CandidateSpecifications.createdAfter(createdAfter),
+            CandidateSpecifications.createdBefore(createdBefore)
+        );
+
+        // Get candidates with non-string filters first
+        List<Candidate> candidates = candidateRepository.findAll(spec, pageable).getContent();
+        
+        return candidates.stream().map(CandidateCacheDto::new).collect(Collectors.toList());
     }
     
     // Update candidate

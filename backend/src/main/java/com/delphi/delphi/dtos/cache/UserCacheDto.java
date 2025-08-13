@@ -29,6 +29,10 @@ public class UserCacheDto implements UserDetails {
     private List<Long> assessmentIds;
     private List<Long> candidateIds;
 
+    // Default constructor for Jackson deserialization
+    public UserCacheDto() {
+    }
+
     public UserCacheDto(User user) {
         this.id = user.getId();
         this.name = user.getName();

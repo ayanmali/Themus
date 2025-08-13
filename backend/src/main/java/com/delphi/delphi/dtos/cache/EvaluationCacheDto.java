@@ -1,6 +1,7 @@
 package com.delphi.delphi.dtos.cache;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.delphi.delphi.entities.Evaluation;
@@ -17,7 +18,7 @@ public class EvaluationCacheDto {
         this.createdDate = evaluation.getCreatedDate();
         this.updatedDate = evaluation.getUpdatedDate();
         this.candidateAttemptId = evaluation.getCandidateAttempt().getId();
-        this.metadata = evaluation.getMetadata();
+        this.metadata = evaluation.getMetadata() != null ? new HashMap<>(evaluation.getMetadata()) : null;
     }
 
     public Long getId() {

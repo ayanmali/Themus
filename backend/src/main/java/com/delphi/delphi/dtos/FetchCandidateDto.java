@@ -1,6 +1,7 @@
 package com.delphi.delphi.dtos;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.delphi.delphi.dtos.cache.CandidateCacheDto;
@@ -23,7 +24,7 @@ public class FetchCandidateDto {
         this.email = candidate.getEmail();
         this.createdDate = candidate.getCreatedDate();
         this.updatedDate = candidate.getUpdatedDate();
-        this.metadata = candidate.getMetadata();
+        this.metadata = candidate.getMetadata() != null ? new HashMap<>(candidate.getMetadata()) : null;
     }
 
     public FetchCandidateDto(CandidateCacheDto candidate) {
@@ -32,7 +33,7 @@ public class FetchCandidateDto {
         this.email = candidate.getEmail();
         this.createdDate = candidate.getCreatedDate();
         this.updatedDate = candidate.getUpdatedDate();
-        this.metadata = candidate.getMetadata();
+        this.metadata = candidate.getMetadata() != null ? new HashMap<>(candidate.getMetadata()) : null;
     }
     
     public Long getId() {
