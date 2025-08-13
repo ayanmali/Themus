@@ -66,15 +66,15 @@ public class CandidateService {
             candidate.setUser(user);
         }
 
-        evictUserCandidatesCache(candidate.getUser().getId());
+        addCandidateToUserCandidatesCache(candidate.getUser().getId(), candidate);
         
         return new CandidateCacheDto(candidateRepository.save(candidate));
     }
 
-    @Caching(put = {
-        @CachePut(value = "candidates", key = "#result.id"),
-        @CachePut(value = "candidates", key = "#result.email")
-    })
+    // @Caching(put = {
+    //     @CachePut(value = "candidates", key = "#result.id"),
+    //     @CachePut(value = "candidates", key = "#result.email")
+    // })
     public CandidateCacheDto createCandidate(String firstName, String lastName, String email, User user) {
         Candidate candidate = new Candidate();
         candidate.setFirstName(firstName);
@@ -351,4 +351,16 @@ public class CandidateService {
     private void evictUserCandidatesCache(Long userId) {
         redisService.evictCache("cache:user_candidates:" + userId + "*");
     }
+
+    /**
+     * Add a candidate to the list corresponding to the user's candidates cache key(s)
+     * 
+     * @param userId The user ID for which to add the candidate to the cache
+     * @param candidate The candidate to add to the cache
+     */
+    private void addCandidateToUserCandidatesCache(Long userId, Candidate candidate) {
+        CandidateCacheDto candidateCacheDto = new CandidateCacheDto(candidate);
+        redisService.rightPush("cache:user_candidates:" + userId + "*", candidateCacheDto);
+    }
+
 }
