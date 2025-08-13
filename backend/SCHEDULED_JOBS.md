@@ -1,6 +1,6 @@
 # Scheduled Jobs Documentation
 
-This document describes the scheduled jobs implemented in the Delphi application.
+This document describes the scheduled jobs implemented in the Themus application.
 
 ## Overview
 

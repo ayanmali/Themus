@@ -1,4 +1,4 @@
-package com.specifications;
+package com.delphi.delphi.specifications;
 
 import java.time.LocalDateTime;
 
@@ -18,7 +18,7 @@ import jakarta.persistence.criteria.JoinType;
 public class CandidateSpecifications {
 
     public static Specification<Candidate> belongsToUser(Long userId) {
-        return (root, query, criteriaBuilder) -> 
+        return (root, _, criteriaBuilder) -> 
             criteriaBuilder.equal(root.get("user").get("id"), userId);
     }
 
@@ -47,7 +47,7 @@ public class CandidateSpecifications {
     }
 
     public static Specification<Candidate> createdAfter(LocalDateTime createdAfter) {
-        return (root, query, criteriaBuilder) -> {
+        return (root, _, criteriaBuilder) -> {
             if (createdAfter == null) {
                 return criteriaBuilder.conjunction();
             }
@@ -56,7 +56,7 @@ public class CandidateSpecifications {
     }
 
     public static Specification<Candidate> createdBefore(LocalDateTime createdBefore) {
-        return (root, query, criteriaBuilder) -> {
+        return (root, _, criteriaBuilder) -> {
             if (createdBefore == null) {
                 return criteriaBuilder.conjunction();
             }

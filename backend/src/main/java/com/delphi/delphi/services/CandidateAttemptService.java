@@ -9,12 +9,14 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
 import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.repositories.CandidateAttemptRepository;
+import com.delphi.delphi.specifications.CandidateAttemptSpecifications;
 import com.delphi.delphi.utils.AttemptStatus;
 
 @Service
@@ -106,9 +108,16 @@ public class CandidateAttemptService {
                                                                  AttemptStatus status, LocalDateTime startedAfter, 
                                                                  LocalDateTime startedBefore, LocalDateTime completedAfter, 
                                                                  LocalDateTime completedBefore, Pageable pageable) {
-        return candidateAttemptRepository.findWithFilters(candidateId, assessmentId, status, 
-                                                         startedAfter, startedBefore, completedAfter, 
-                                                         completedBefore, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
+        Specification<CandidateAttempt> spec = Specification.allOf(
+            CandidateAttemptSpecifications.hasCandidateId(candidateId)
+            .and(CandidateAttemptSpecifications.hasAssessmentId(assessmentId))
+            .and(CandidateAttemptSpecifications.hasStatus(status))
+            .and(CandidateAttemptSpecifications.startedAfter(startedAfter))
+            .and(CandidateAttemptSpecifications.startedBefore(startedBefore))
+            .and(CandidateAttemptSpecifications.completedAfter(completedAfter))
+            .and(CandidateAttemptSpecifications.completedBefore(completedBefore))
+        );
+        return candidateAttemptRepository.findAll(spec, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Update candidate attempt

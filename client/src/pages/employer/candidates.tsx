@@ -29,24 +29,26 @@ export default function EmployerCandidates() {
         throw new Error('Failed to fetch candidates');
       }
       
-      return response;
+      console.log('API Response:', response); // Debug log
+      return response; // apiCall already returns the parsed JSON
     },
   });
 
-  // Extract candidates from the response
-  const candidates = candidatesData?.content || [];
-  const totalElements = candidatesData?.totalElements || 0;
-  const totalPages = candidatesData?.totalPages || 0;
+  // Extract candidates from the response - the API returns a direct array, not a paginated object
+  const candidates = candidatesData || [];
+  console.log('Candidates data:', candidates); // Debug log
 
   // Filter candidates based on search query
   const filteredCandidates = candidates.filter((candidate: any) => {
     if (searchQuery === "") return true;
 
     return (
-      candidate.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      candidate.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       candidate.email?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
+  
+  // console.log('Filtered candidates:', filteredCandidates); // Debug log
 
   return (
     <AppShell>
@@ -152,6 +154,16 @@ export default function EmployerCandidates() {
           </div>
         </div>
       )}
+      
+      {/* Debug Info */}
+      {/* <div className="mb-4 p-4 bg-gray-100 rounded">
+        <p>Debug Info:</p>
+        <p>Loading: {isLoading.toString()}</p>
+        <p>Error: {error ? error.message : 'None'}</p>
+        <p>Data: {candidatesData ? JSON.stringify(candidatesData).substring(0, 200) + '...' : 'No data'}</p>
+        <p>Candidates count: {candidates.length}</p>
+        <p>Filtered count: {filteredCandidates.length}</p>
+      </div> */}
 
       {/* Error State */}
       {error && (
@@ -181,7 +193,7 @@ export default function EmployerCandidates() {
               <CandidateCard
                 key={candidate.id}
                 id={candidate.id}
-                name={candidate.name}
+                name={candidate.fullName}
                 email={candidate.email}
               // currentAssessment={candidate.currentAssessment}
               // assessmentStatus={candidate.assessmentStatus}

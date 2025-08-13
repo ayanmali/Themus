@@ -61,7 +61,7 @@ public class StripeService {
             @Value("${stripe.success.url}") String stripeSuccessUrl,
             RedisService redisService) {
         Stripe.apiKey = stripeApiKey;
-        Stripe.setAppInfo("Delphi", "0.0.1", "https://usedelphi.dev");
+        Stripe.setAppInfo("Themus", "0.0.1", "https://themus.dev");
         this.stripeWebhookSecret = stripeWebhookSecret;
         this.redisService = redisService;
         this.STRIPE_SUCCESS_URL = stripeSuccessUrl;

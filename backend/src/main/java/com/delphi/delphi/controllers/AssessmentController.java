@@ -295,7 +295,8 @@ public class AssessmentController {
             @RequestParam(required = false) AssessmentStatus status,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-            @RequestParam(required = false) List<String> skills) {
+            @RequestParam(required = false) List<String> skills,
+            @RequestParam(required = false) List<String> languageOptions) {
         try {
             UserCacheDto user = getCurrentUser();
 
@@ -304,8 +305,8 @@ public class AssessmentController {
                     : Sort.by(sortBy).ascending();
 
             Pageable pageable = PageRequest.of(page, size, sort);
-            List<AssessmentCacheDto> assessments = assessmentService.getAssessmentsWithFiltersForUser(
-                user, status, startDate, endDate, skills, pageable);
+            List<AssessmentCacheDto> assessments = assessmentService.getAssessmentsWithFilters(
+                user, status, startDate, endDate, skills, languageOptions, pageable);
             List<FetchAssessmentDto> assessmentDtos = assessments.stream()
                     .map(FetchAssessmentDto::new)
                     .collect(Collectors.toList());

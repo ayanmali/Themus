@@ -14,6 +14,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,7 @@ import com.delphi.delphi.repositories.AssessmentRepository;
 import com.delphi.delphi.repositories.CandidateAttemptRepository;
 import com.delphi.delphi.repositories.CandidateRepository;
 import com.delphi.delphi.repositories.UserRepository;
+import com.delphi.delphi.specifications.AssessmentSpecifications;
 import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.AttemptStatus;
 import com.delphi.delphi.utils.git.GithubAccountType;
@@ -182,22 +184,18 @@ public class AssessmentService {
     // Get assessments with multiple filters
     @Cacheable(value = "assessments", key = "#user.id + ':' + #status + ':' + #assessmentType + ':' + #startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<AssessmentCacheDto> getAssessmentsWithFilters(User user, AssessmentStatus status, 
-                                                     LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
-        return assessmentRepository.findWithFilters(status, startDate, endDate, pageable).getContent().stream().map(AssessmentCacheDto::new).collect(Collectors.toList());
-    }
-
-    // Get assessments with multiple filters for a specific user
-    @Cacheable(value = "assessments", key = "#user.id + ':' + #status + ':' + #assessmentType + ':' + #startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
-    @Transactional(readOnly = true)
-    public List<AssessmentCacheDto> getAssessmentsWithFiltersForUser(UserCacheDto user, AssessmentStatus status, 
-                                                            LocalDateTime startDate, LocalDateTime endDate,
-                                                            List<String> skills,
-                                                            Pageable pageable) {
-        boolean filterSkills = skills != null && !skills.isEmpty();
-        List<String> safeSkills = (skills == null) ? List.of() : skills;
-        return assessmentRepository.findWithFiltersForUser(user.getId(), status, startDate, endDate, filterSkills, safeSkills, pageable).getContent().stream().map(AssessmentCacheDto::new).collect(Collectors.toList());
-    }
+    public List<AssessmentCacheDto> getAssessmentsWithFilters(UserCacheDto user, AssessmentStatus status, 
+                                                     LocalDateTime startDate, LocalDateTime endDate, List<String> skills, List<String> languageOptions, Pageable pageable) {
+        Specification<Assessment> spec = Specification.allOf(
+            AssessmentSpecifications.belongsToUser(user.getId())
+            .and(AssessmentSpecifications.hasAssessmentStatus(status))
+            .and(AssessmentSpecifications.createdAfter(startDate))
+            .and(AssessmentSpecifications.createdBefore(endDate))
+            .and(AssessmentSpecifications.hasSkills(skills))
+            .and(AssessmentSpecifications.hasLanguageOptions(languageOptions))
+        );
+        return assessmentRepository.findAll(spec, pageable).getContent().stream().map(AssessmentCacheDto::new).collect(Collectors.toList());
+    } 
 
     // Update assessment
     public AssessmentCacheDto updateAssessment(Long id, Assessment assessmentUpdates) {

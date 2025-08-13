@@ -25,7 +25,7 @@ export const HeroHeader = () => {
                                 aria-label="home"
                                 className="flex items-center space-x-2">
                                 {/* <Logo /> */}
-                                <span className="text-xl font-bold pr-16 font-gfs-didot">Delphi</span>
+                                <span className="text-xl font-bold pr-16 font-gfs-didot">Themus</span>
                             </Link>
 
                             <button

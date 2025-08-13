@@ -6,8 +6,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.delphi.delphi.repositories.UserRepository;
+import com.delphi.delphi.specifications.CandidateSpecifications;
 import com.delphi.delphi.utils.AttemptStatus;
-import com.specifications.CandidateSpecifications;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

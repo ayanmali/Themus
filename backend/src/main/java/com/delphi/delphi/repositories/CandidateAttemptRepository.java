@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,7 +16,7 @@ import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.utils.AttemptStatus;
 
 @Repository
-public interface CandidateAttemptRepository extends JpaRepository<CandidateAttempt, Long> {
+public interface CandidateAttemptRepository extends JpaRepository<CandidateAttempt, Long>, JpaSpecificationExecutor<CandidateAttempt> {
     
     // Find attempts by candidate ID with pagination
     Page<CandidateAttempt> findByCandidateId(Long candidateId, Pageable pageable);
@@ -98,22 +99,22 @@ public interface CandidateAttemptRepository extends JpaRepository<CandidateAttem
     
     // Find candidate attempts with multiple optional filters
     // Use COALESCE to avoid untyped `? is null` SQL parameters that break on PostgreSQL
-    @Query("SELECT ca FROM CandidateAttempt ca WHERE " +
-           "ca.candidate.id = COALESCE(:candidateId, ca.candidate.id) AND " +
-           "ca.assessment.id = COALESCE(:assessmentId, ca.assessment.id) AND " +
-           "ca.status = COALESCE(:status, ca.status) AND " +
-           "ca.startedDate >= COALESCE(:startedAfter, ca.startedDate) AND " +
-           "ca.startedDate <= COALESCE(:startedBefore, ca.startedDate) AND " +
-           "ca.completedDate >= COALESCE(:completedAfter, ca.completedDate) AND " +
-           "ca.completedDate <= COALESCE(:completedBefore, ca.completedDate)")
-    Page<CandidateAttempt> findWithFilters(@Param("candidateId") Long candidateId,
-                                         @Param("assessmentId") Long assessmentId,
-                                         @Param("status") AttemptStatus status,
-                                         @Param("startedAfter") LocalDateTime startedAfter,
-                                         @Param("startedBefore") LocalDateTime startedBefore,
-                                         @Param("completedAfter") LocalDateTime completedAfter,
-                                         @Param("completedBefore") LocalDateTime completedBefore,
-                                         Pageable pageable);
+//     @Query("SELECT ca FROM CandidateAttempt ca WHERE " +
+//            "ca.candidate.id = COALESCE(:candidateId, ca.candidate.id) AND " +
+//            "ca.assessment.id = COALESCE(:assessmentId, ca.assessment.id) AND " +
+//            "ca.status = COALESCE(:status, ca.status) AND " +
+//            "ca.startedDate >= COALESCE(:startedAfter, ca.startedDate) AND " +
+//            "ca.startedDate <= COALESCE(:startedBefore, ca.startedDate) AND " +
+//            "ca.completedDate >= COALESCE(:completedAfter, ca.completedDate) AND " +
+//            "ca.completedDate <= COALESCE(:completedBefore, ca.completedDate)")
+//     Page<CandidateAttempt> findWithFilters(@Param("candidateId") Long candidateId,
+//                                          @Param("assessmentId") Long assessmentId,
+//                                          @Param("status") AttemptStatus status,
+//                                          @Param("startedAfter") LocalDateTime startedAfter,
+//                                          @Param("startedBefore") LocalDateTime startedBefore,
+//                                          @Param("completedAfter") LocalDateTime completedAfter,
+//                                          @Param("completedBefore") LocalDateTime completedBefore,
+//                                          Pageable pageable);
 
     // Find expired attempts (started or invited but not completed within assessment duration)
 //     @Modifying

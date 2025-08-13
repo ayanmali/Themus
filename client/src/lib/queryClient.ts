@@ -113,7 +113,7 @@ export const getQueryFn: <T>(options: {
     const response = await apiCall(fullUrl, {
       method: "GET",
     });
-    return response.json();
+    return response; // apiCall already returns the parsed JSON
   };
 
 export const queryClient = new QueryClient({

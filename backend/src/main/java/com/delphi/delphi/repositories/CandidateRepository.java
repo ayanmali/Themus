@@ -115,24 +115,24 @@ public interface CandidateRepository extends JpaRepository<Candidate, Long>, Jpa
        // Pageable pageable);
 
        // Find candidates with multiple optional filters for a specific user
-       @Query("SELECT DISTINCT c FROM Candidate c " +
-                     "LEFT JOIN c.assessments a " +
-                     "LEFT JOIN c.candidateAttempts ca " +
-                     "WHERE c.user.id = :userId AND " +
-                     "(:assessmentId IS NULL OR a.id = :assessmentId) AND " +
-                     "(:attemptStatus IS NULL OR ca.status = :attemptStatus) AND " +
-                     "(:createdAfter IS NULL OR c.createdDate >= :createdAfter) AND " +
-                     "(:createdBefore IS NULL OR c.createdDate <= :createdBefore) AND " +
-                     "(:attemptCompletedAfter IS NULL OR ca.completedDate >= :attemptCompletedAfter) AND " +
-                     "(:attemptCompletedBefore IS NULL OR ca.completedDate <= :attemptCompletedBefore)")
-       Page<Candidate> findWithFiltersForUser(@Param("userId") Long userId,
-                     @Param("assessmentId") Long assessmentId,
-                     @Param("attemptStatus") AttemptStatus attemptStatus,
-                     @Param("createdAfter") LocalDateTime createdAfter,
-                     @Param("createdBefore") LocalDateTime createdBefore,
-                     @Param("attemptCompletedAfter") LocalDateTime attemptCompletedAfter,
-                     @Param("attemptCompletedBefore") LocalDateTime attemptCompletedBefore,
-                     Pageable pageable);
+       // @Query("SELECT DISTINCT c FROM Candidate c " +
+       //               "LEFT JOIN c.assessments a " +
+       //               "LEFT JOIN c.candidateAttempts ca " +
+       //               "WHERE c.user.id = :userId AND " +
+       //               "(:assessmentId IS NULL OR a.id = :assessmentId) AND " +
+       //               "(:attemptStatus IS NULL OR ca.status = :attemptStatus) AND " +
+       //               "(:createdAfter IS NULL OR c.createdDate >= :createdAfter) AND " +
+       //               "(:createdBefore IS NULL OR c.createdDate <= :createdBefore) AND " +
+       //               "(:attemptCompletedAfter IS NULL OR ca.completedDate >= :attemptCompletedAfter) AND " +
+       //               "(:attemptCompletedBefore IS NULL OR ca.completedDate <= :attemptCompletedBefore)")
+       // Page<Candidate> findWithFiltersForUser(@Param("userId") Long userId,
+       //               @Param("assessmentId") Long assessmentId,
+       //               @Param("attemptStatus") AttemptStatus attemptStatus,
+       //               @Param("createdAfter") LocalDateTime createdAfter,
+       //               @Param("createdBefore") LocalDateTime createdBefore,
+       //               @Param("attemptCompletedAfter") LocalDateTime attemptCompletedAfter,
+       //               @Param("attemptCompletedBefore") LocalDateTime attemptCompletedBefore,
+       //               Pageable pageable);
 
        /**
         * Find candidates who have attempts with a specific status for a specific
@@ -166,16 +166,16 @@ public interface CandidateRepository extends JpaRepository<Candidate, Long>, Jpa
        /**
         * Count candidates with specific filters (useful for pagination metadata)
         */
-       @Query("SELECT COUNT(DISTINCT c) FROM Candidate c " +
-                     "LEFT JOIN c.candidateAttempts ca " +
-                     "LEFT JOIN ca.assessment a " +
-                     "WHERE (:attemptStatus IS NULL OR ca.status = :attemptStatus) " +
-                     "AND (:assessmentId IS NULL OR a.id = :assessmentId) " +
-                     "AND (:createdDateFrom IS NULL OR c.createdDate >= :createdDateFrom) " +
-                     "AND (:createdDateTo IS NULL OR c.createdDate <= :createdDateTo)")
-       Long countCandidatesWithFilters(
-                     @Param("attemptStatus") AttemptStatus attemptStatus,
-                     @Param("assessmentId") Long assessmentId,
-                     @Param("createdDateFrom") LocalDateTime createdDateFrom,
-                     @Param("createdDateTo") LocalDateTime createdDateTo);
+       // @Query("SELECT COUNT(DISTINCT c) FROM Candidate c " +
+       //               "LEFT JOIN c.candidateAttempts ca " +
+       //               "LEFT JOIN ca.assessment a " +
+       //               "WHERE (:attemptStatus IS NULL OR ca.status = :attemptStatus) " +
+       //               "AND (:assessmentId IS NULL OR a.id = :assessmentId) " +
+       //               "AND (:createdDateFrom IS NULL OR c.createdDate >= :createdDateFrom) " +
+       //               "AND (:createdDateTo IS NULL OR c.createdDate <= :createdDateTo)")
+       // Long countCandidatesWithFilters(
+       //               @Param("attemptStatus") AttemptStatus attemptStatus,
+       //               @Param("assessmentId") Long assessmentId,
+       //               @Param("createdDateFrom") LocalDateTime createdDateFrom,
+       //               @Param("createdDateTo") LocalDateTime createdDateTo);
 }

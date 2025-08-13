@@ -11,8 +11,8 @@
     <groupId>com.delphi</groupId>
     <artifactId>delphi</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>delphi</name>
-    <description>Backend codebase for the Delphi platform.</description>
+    <name>themus</name>
+    <description>Backend codebase for the Themus platform.</description>
     <url/>
     <licenses>
         <license/>

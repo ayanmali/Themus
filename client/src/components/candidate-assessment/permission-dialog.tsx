@@ -49,7 +49,7 @@ export default function PermissionDialog({ onClose, onRetry }: PermissionDialogP
           </div>
           <h3 className="text-xl font-semibold text-gray-900 mb-2">Screen Recording Permission</h3>
           <p className="text-gray-600 mb-6">
-            Delphi needs permission to access your screen and microphone to record your sessions.
+            Themus needs permission to access your screen and microphone to record your sessions.
           </p>
           
           <div className="space-y-3 mb-6">
