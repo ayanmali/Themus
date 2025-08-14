@@ -26,15 +26,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.dtos.FetchCandidateDto;
 import com.delphi.delphi.dtos.NewCandidateDto;
+import com.delphi.delphi.dtos.cache.CandidateCacheDto;
+import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.User;
+import com.delphi.delphi.repositories.UserRepository;
 import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.CandidateService;
 import com.delphi.delphi.services.UserService;
-import com.delphi.delphi.utils.AttemptStatus;
-import com.delphi.delphi.dtos.cache.CandidateCacheDto;
-import com.delphi.delphi.dtos.cache.UserCacheDto;
-import com.delphi.delphi.repositories.UserRepository;
 
 import jakarta.validation.Valid;
 
@@ -143,14 +142,11 @@ public class CandidateController {
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection,
             @RequestParam(required = false) Long assessmentId,
-            @RequestParam(required = false) AttemptStatus attemptStatus,
             @RequestParam(required = false) String emailDomain,
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAfter,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdBefore,
-                @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime attemptCompletedAfter,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime attemptCompletedBefore) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdBefore) {
         try {
             UserCacheDto user = getCurrentUser();
             Sort sort = sortDirection.equalsIgnoreCase("desc") 
@@ -159,8 +155,8 @@ public class CandidateController {
             
             Pageable pageable = PageRequest.of(page, size, sort);
             List<CandidateCacheDto> candidates = candidateService.getCandidatesWithFiltersForUser(
-                user.getId(), assessmentId, attemptStatus, emailDomain, firstName, lastName,
-                createdAfter, createdBefore, attemptCompletedAfter, attemptCompletedBefore, pageable);
+                user.getId(), assessmentId, emailDomain, firstName, lastName,
+                createdAfter, createdBefore, pageable);
             List<FetchCandidateDto> candidateDtos = candidates.stream()
                     .map(FetchCandidateDto::new)
                     .collect(Collectors.toList());

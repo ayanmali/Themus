@@ -24,7 +24,6 @@ import com.delphi.delphi.entities.User;
 import com.delphi.delphi.repositories.CandidateRepository;
 import com.delphi.delphi.repositories.UserRepository;
 import com.delphi.delphi.specifications.CandidateSpecifications;
-import com.delphi.delphi.utils.AttemptStatus;
 import com.delphi.delphi.utils.CacheUtils;
 
 @Service
@@ -141,12 +140,11 @@ public class CandidateService {
      * @return List of filtered and paginated candidates
      */
     @Transactional(readOnly = true)
-    public List<CandidateCacheDto> getCandidatesWithFiltersForUser(Long userId, Long assessmentId, AttemptStatus attemptStatus, 
+    public List<CandidateCacheDto> getCandidatesWithFiltersForUser(Long userId, Long assessmentId, 
                                                           String emailDomain, String firstName, String lastName,
                                                           LocalDateTime createdAfter, LocalDateTime createdBefore,
-                                                          LocalDateTime attemptCompletedAfter, LocalDateTime attemptCompletedBefore, 
                                                           Pageable pageable) {
-        log.info("getCandidatesWithFiltersForUser: userId={}, assessmentId={}, attemptStatus={}, emailDomain={}, firstName={}, lastName={}, createdAfter={}, createdBefore={}, attemptCompletedAfter={}, attemptCompletedBefore={}, pageable={}", userId, assessmentId, attemptStatus, emailDomain, firstName, lastName, createdAfter, createdBefore, attemptCompletedAfter, attemptCompletedBefore, pageable);
+        log.info("getCandidatesWithFiltersForUser: userId={}, assessmentId={}, emailDomain={}, firstName={}, lastName={}, createdAfter={}, createdBefore={}, pageable={}", userId, assessmentId, emailDomain, firstName, lastName, createdAfter, createdBefore, pageable);
 
         // Generate cache key with only user ID and date range to reduce cache key proliferation
         String normalizedCreatedAfter = CacheUtils.normalizeDateTime(createdAfter);
