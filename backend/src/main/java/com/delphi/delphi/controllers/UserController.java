@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -190,34 +189,34 @@ public class UserController {
     }
 
     // Get all users with pagination and filtering
-    @GetMapping("/filter")
-    public ResponseEntity<?> getAllUsers(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDirection,
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) String organizationName,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAfter,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdBefore) {
-        try {
-            Sort sort = sortDirection.equalsIgnoreCase("desc")
-                    ? Sort.by(sortBy).descending()
-                    : Sort.by(sortBy).ascending();
+    // @GetMapping("/filter")
+    // public ResponseEntity<?> getAllUsers(
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size,
+    //         @RequestParam(defaultValue = "id") String sortBy,
+    //         @RequestParam(defaultValue = "asc") String sortDirection,
+    //         @RequestParam(required = false) String name,
+    //         @RequestParam(required = false) String organizationName,
+    //         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAfter,
+    //         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdBefore) {
+    //     try {
+    //         Sort sort = sortDirection.equalsIgnoreCase("desc")
+    //                 ? Sort.by(sortBy).descending()
+    //                 : Sort.by(sortBy).ascending();
 
-            Pageable pageable = PageRequest.of(page, size, sort);
-            List<UserCacheDto> users = userService.getUsersWithFilters(name, organizationName, createdAfter, createdBefore,
-                    pageable);
-            List<FetchUserDto> userDtos = users.stream()
-                    .map(FetchUserDto::new)
-                    .collect(Collectors.toList());
+    //         Pageable pageable = PageRequest.of(page, size, sort);
+    //         List<UserCacheDto> users = userService.getUsersWithFilters(name, organizationName, createdAfter, createdBefore,
+    //                 pageable);
+    //         List<FetchUserDto> userDtos = users.stream()
+    //                 .map(FetchUserDto::new)
+    //                 .collect(Collectors.toList());
 
-            return ResponseEntity.ok(userDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error retrieving users: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(userDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error retrieving users: " + e.getMessage());
+    //     }
+    // }
 
     // Update user
     @PutMapping("/{id}")
@@ -229,7 +228,7 @@ public class UserController {
             updateUser.setOrganizationName(userUpdates.getOrganizationName());
             updateUser.setPassword(userUpdates.getPassword());
 
-            User updatedUser = userService.updateUser(id, updateUser);
+            UserCacheDto updatedUser = userService.updateUser(id, updateUser);
             return ResponseEntity.ok(new FetchUserDto(updatedUser));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error updating user: " + e.getMessage());
@@ -254,96 +253,96 @@ public class UserController {
     }
 
     // Search users by organization
-    @GetMapping("/search/organization")
-    public ResponseEntity<?> searchUsersByOrganization(
-            @RequestParam String organizationName,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            List<UserCacheDto> users = userService.searchUsersByOrganization(organizationName, pageable);
-            List<FetchUserDto> userDtos = users.stream()
-                    .map(FetchUserDto::new)
-                    .collect(Collectors.toList());
+    // @GetMapping("/search/organization")
+    // public ResponseEntity<?> searchUsersByOrganization(
+    //         @RequestParam String organizationName,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         List<UserCacheDto> users = userService.searchUsersByOrganization(organizationName, pageable);
+    //         List<FetchUserDto> userDtos = users.stream()
+    //                 .map(FetchUserDto::new)
+    //                 .collect(Collectors.toList());
 
-            return ResponseEntity.ok(userDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error searching users: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(userDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error searching users: " + e.getMessage());
+    //     }
+    // }
 
     // Search users by name
-    @GetMapping("/search/name")
-    public ResponseEntity<?> searchUsersByName(
-            @RequestParam String name,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            List<UserCacheDto> users = userService.searchUsersByName(name, pageable);
-            List<FetchUserDto> userDtos = users.stream()
-                    .map(FetchUserDto::new)
-                    .collect(Collectors.toList());
+    // @GetMapping("/search/name")
+    // public ResponseEntity<?> searchUsersByName(
+    //         @RequestParam String name,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         List<UserCacheDto> users = userService.searchUsersByName(name, pageable);
+    //         List<FetchUserDto> userDtos = users.stream()
+    //                 .map(FetchUserDto::new)
+    //                 .collect(Collectors.toList());
 
-            return ResponseEntity.ok(userDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error searching users: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(userDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error searching users: " + e.getMessage());
+    //     }
+    // }
 
     // Get users created within date range
-    @GetMapping("/created-between")
-    public ResponseEntity<?> getUsersCreatedBetween(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            List<UserCacheDto> users = userService.getUsersCreatedBetween(startDate, endDate, pageable);
-            List<FetchUserDto> userDtos = users.stream()
-                    .map(FetchUserDto::new)
-                    .collect(Collectors.toList());
+    // @GetMapping("/created-between")
+    // public ResponseEntity<?> getUsersCreatedBetween(
+    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         List<UserCacheDto> users = userService.getUsersCreatedBetween(startDate, endDate, pageable);
+    //         List<FetchUserDto> userDtos = users.stream()
+    //                 .map(FetchUserDto::new)
+    //                 .collect(Collectors.toList());
 
-            return ResponseEntity.ok(userDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error retrieving users: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(userDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error retrieving users: " + e.getMessage());
+    //     }
+    // }
 
     // Get users with active assessments
-    @GetMapping("/with-active-assessments")
-    public ResponseEntity<?> getUsersWithActiveAssessments(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            List<UserCacheDto> users = userService.getUsersWithActiveAssessments(pageable);
-            List<FetchUserDto> userDtos = users.stream()
-                    .map(FetchUserDto::new)
-                    .collect(Collectors.toList());
+    // @GetMapping("/with-active-assessments")
+    // public ResponseEntity<?> getUsersWithActiveAssessments(
+    //         @RequestParam(defaultValue = "0") int page,
+    //         @RequestParam(defaultValue = "10") int size) {
+    //     try {
+    //         Pageable pageable = PageRequest.of(page, size);
+    //         List<UserCacheDto> users = userService.getUsersWithActiveAssessments(pageable);
+    //         List<FetchUserDto> userDtos = users.stream()
+    //                 .map(FetchUserDto::new)
+    //                 .collect(Collectors.toList());
 
-            return ResponseEntity.ok(userDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error retrieving users: " + e.getMessage());
-        }
-    }
+    //         return ResponseEntity.ok(userDtos);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error retrieving users: " + e.getMessage());
+    //     }
+    // }
 
     // Count users by organization
-    @GetMapping("/count/organization")
-    public ResponseEntity<?> countUsersByOrganization(@RequestParam String organizationName) {
-        try {
-            Long count = userService.countUsersByOrganization(organizationName);
-            return ResponseEntity.ok(count);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error counting users: " + e.getMessage());
-        }
-    }
+    // @GetMapping("/count/organization")
+    // public ResponseEntity<?> countUsersByOrganization(@RequestParam String organizationName) {
+    //     try {
+    //         Long count = userService.countUsersByOrganization(organizationName);
+    //         return ResponseEntity.ok(count);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error counting users: " + e.getMessage());
+    //     }
+    // }
 
     // Change password
     @PostMapping("/{id}/change-password")

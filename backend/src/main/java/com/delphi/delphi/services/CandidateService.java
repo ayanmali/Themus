@@ -349,7 +349,7 @@ public class CandidateService {
      * @param userId The user ID for which to evict candidate cache entries
      */
     private void evictUserCandidatesCache(Long userId) {
-        redisService.evictCache("cache:user_candidates:" + userId + "*");
+        redisService.evictCache("cache:user_candidates:" + userId + ":*");
     }
 
     /**
@@ -360,7 +360,7 @@ public class CandidateService {
      */
     private void addCandidateToUserCandidatesCache(Long userId, Candidate candidate) {
         CandidateCacheDto candidateCacheDto = new CandidateCacheDto(candidate);
-        redisService.rightPush("cache:user_candidates:" + userId + "*", candidateCacheDto);
+        redisService.appendToLists("cache:user_candidates:" + userId + ":*", candidateCacheDto);
     }
 
 }
