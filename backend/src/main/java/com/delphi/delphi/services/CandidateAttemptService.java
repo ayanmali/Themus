@@ -28,11 +28,9 @@ import com.delphi.delphi.utils.CacheUtils;
 @Transactional
 // TODO: add cache annotations for other entity caches
 /*
- * There are four different caches used here
+ * There are two different caches used here
  * 1. attempts - data about a given candidate attempt
- * 2. assessment_attempts - the list of candidate attempts for a user for an assessment
- * 3. user_attempts - the list of candidate attempts for a user
- * 4. candidate_attempts - the list of candidate attempts for a candidate within a date range
+ * 2. candidate_attempts - the list of candidate attempts for a candidate within a date range
  *    (filters like assessmentId, status, completedAfter, completedBefore are applied in memory)
  */
 public class CandidateAttemptService {
@@ -624,10 +622,6 @@ public class CandidateAttemptService {
      */
     private void evictCandidateAttemptsCache(Long candidateId) {
         redisService.evictCache("cache:candidate_attempts:" + candidateId + ":*");
-    }
-
-    private void evictCandidateAttemptsCache() {
-
     }
 
 }

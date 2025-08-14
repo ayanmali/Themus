@@ -24,7 +24,10 @@ import com.delphi.delphi.dtos.NewCandidateAttemptDto;
 import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
 import com.delphi.delphi.entities.Assessment;
+import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
+import com.delphi.delphi.repositories.AssessmentRepository;
+import com.delphi.delphi.repositories.CandidateRepository;
 import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.CandidateAttemptService;
 import com.delphi.delphi.utils.AttemptStatus;
@@ -35,19 +38,39 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/attempts")
 public class CandidateAttemptController {
     private final AssessmentService assessmentService;
-    
     private final CandidateAttemptService candidateAttemptService;
+    private final AssessmentRepository assessmentRepository;
+    private final CandidateRepository candidateRepository;
 
-    public CandidateAttemptController(CandidateAttemptService candidateAttemptService, AssessmentService assessmentService) {
+    public CandidateAttemptController(CandidateAttemptService candidateAttemptService, 
+                                    AssessmentService assessmentService,
+                                    AssessmentRepository assessmentRepository,
+                                    CandidateRepository candidateRepository) {
         this.assessmentService = assessmentService;
         this.candidateAttemptService = candidateAttemptService;
+        this.assessmentRepository = assessmentRepository;
+        this.candidateRepository = candidateRepository;
     }
-
 
     @PostMapping("/invite")
     public ResponseEntity<?> inviteCandidate(@Valid @RequestBody NewCandidateAttemptDto newCandidateAttemptDto) {
         try {
-            CandidateAttemptCacheDto invitedAttempt = candidateAttemptService.startAttempt(newCandidateAttemptDto.getCandidateId(), newCandidateAttemptDto.getAssessmentId(), newCandidateAttemptDto.getLanguageChoice(), newCandidateAttemptDto.getStatus(), newCandidateAttemptDto.getStartedDate());
+            // Fetch the candidate and assessment entities
+            Candidate candidate = candidateRepository.findById(newCandidateAttemptDto.getCandidateId())
+                .orElseThrow(() -> new IllegalArgumentException("Candidate not found with id: " + newCandidateAttemptDto.getCandidateId()));
+            
+            Assessment assessment = assessmentRepository.findById(newCandidateAttemptDto.getAssessmentId())
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + newCandidateAttemptDto.getAssessmentId()));
+            
+            // Create a CandidateAttempt entity from the DTO
+            CandidateAttempt candidateAttempt = new CandidateAttempt();
+            //candidateAttempt.setGithubRepositoryLink(newCandidateAttemptDto.getGithubRepositoryLink());
+            //candidateAttempt.setLanguageChoice(newCandidateAttemptDto.getLanguageChoice().orElse(null));
+            candidateAttempt.setStatus(AttemptStatus.INVITED);
+            candidateAttempt.setCandidate(candidate);
+            candidateAttempt.setAssessment(assessment);
+            
+            CandidateAttemptCacheDto invitedAttempt = candidateAttemptService.inviteCandidate(candidateAttempt);
             return ResponseEntity.status(HttpStatus.CREATED).body(new FetchCandidateAttemptDto(invitedAttempt));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -65,17 +88,12 @@ public class CandidateAttemptController {
                 return ResponseEntity.badRequest().body("Language choice not supported for this assessment");
             }
 
-            // return error if language choice is provided for an assessment that does not support it
-            if (assessment.getLanguageOptions().isEmpty() && newCandidateAttemptDto.getLanguageChoice().isPresent()) {
-                return ResponseEntity.badRequest().body("This assessment does not support language choice.");
-            }
-
+            // Use the startAttempt method with the correct signature
+            String languageChoice = newCandidateAttemptDto.getLanguageChoice().orElse(null);
             CandidateAttemptCacheDto createdAttempt = candidateAttemptService.startAttempt(
-                                                newCandidateAttemptDto.getCandidateId(), 
-                                                newCandidateAttemptDto.getAssessmentId(), 
-                                                newCandidateAttemptDto.getLanguageChoice(),
-                                                newCandidateAttemptDto.getStatus(),
-                                                newCandidateAttemptDto.getStartedDate());
+                newCandidateAttemptDto.getCandidateId(), 
+                newCandidateAttemptDto.getAssessmentId(), 
+                languageChoice);
             return ResponseEntity.status(HttpStatus.CREATED).body(new FetchCandidateAttemptDto(createdAttempt));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error creating candidate attempt: " + e.getMessage());
