@@ -5,7 +5,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 // @RunWith(SpringRunner.class)
 @SpringBootTest
-public class DelphiApplicationTests {
+public class ThemusApplicationTests {
 
 	@Test
 	public void contextLoads() {

@@ -14,17 +14,17 @@
 [INFO] --- compiler:3.14.0:compile (default-compile) @ delphi ---
 [INFO] Recompiling the module because of changed source code.
 [INFO] Compiling 110 source files with javac [debug parameters release 23] to target/classes
-[INFO] /Users/ayan_/Desktop/Development/Delphi/backend/src/main/java/com/delphi/delphi/configs/redis/RedisConfig.java: Some input files use unchecked or unsafe operations.
-[INFO] /Users/ayan_/Desktop/Development/Delphi/backend/src/main/java/com/delphi/delphi/configs/redis/RedisConfig.java: Recompile with -Xlint:unchecked for details.
+[INFO] /Users/ayan_/Desktop/Development/Themus/backend/src/main/java/com/delphi/delphi/configs/redis/RedisConfig.java: Some input files use unchecked or unsafe operations.
+[INFO] /Users/ayan_/Desktop/Development/Themus/backend/src/main/java/com/delphi/delphi/configs/redis/RedisConfig.java: Recompile with -Xlint:unchecked for details.
 [INFO] 
 [INFO] --- resources:3.3.1:testResources (default-testResources) @ delphi ---
-[INFO] skip non existing resourceDirectory /Users/ayan_/Desktop/Development/Delphi/backend/src/test/resources
+[INFO] skip non existing resourceDirectory /Users/ayan_/Desktop/Development/Themus/backend/src/test/resources
 [INFO] 
 [INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ delphi ---
 [INFO] Recompiling the module because of changed dependency.
 [INFO] Compiling 5 source files with javac [debug parameters release 23] to target/test-classes
-[INFO] /Users/ayan_/Desktop/Development/Delphi/backend/src/test/java/com/delphi/delphi/RabbitMQTests.java: /Users/ayan_/Desktop/Development/Delphi/backend/src/test/java/com/delphi/delphi/RabbitMQTests.java uses unchecked or unsafe operations.
-[INFO] /Users/ayan_/Desktop/Development/Delphi/backend/src/test/java/com/delphi/delphi/RabbitMQTests.java: Recompile with -Xlint:unchecked for details.
+[INFO] /Users/ayan_/Desktop/Development/Themus/backend/src/test/java/com/delphi/delphi/RabbitMQTests.java: /Users/ayan_/Desktop/Development/Themus/backend/src/test/java/com/delphi/delphi/RabbitMQTests.java uses unchecked or unsafe operations.
+[INFO] /Users/ayan_/Desktop/Development/Themus/backend/src/test/java/com/delphi/delphi/RabbitMQTests.java: Recompile with -Xlint:unchecked for details.
 [INFO] 
 [INFO] <<< spring-boot:3.5.3:run (default-cli) < test-compile @ delphi <<<
 [INFO] 
@@ -41,7 +41,7 @@
 
  :: Spring Boot ::                (v3.5.3)
 
-2025-07-13T08:55:55.729-04:00  INFO 7477 --- [delphi] [  restartedMain] com.delphi.delphi.DelphiApplication      : Starting DelphiApplication using Java 23.0.2 with PID 7477 (/Users/ayan_/Desktop/Development/Delphi/backend/target/classes started by ayan_ in /Users/ayan_/Desktop/Development/Delphi/backend)
+2025-07-13T08:55:55.729-04:00  INFO 7477 --- [delphi] [  restartedMain] com.delphi.delphi.DelphiApplication      : Starting DelphiApplication using Java 23.0.2 with PID 7477 (/Users/ayan_/Desktop/Development/Themus/backend/target/classes started by ayan_ in /Users/ayan_/Desktop/Development/Themus/backend)
 2025-07-13T08:55:55.730-04:00  INFO 7477 --- [delphi] [  restartedMain] com.delphi.delphi.DelphiApplication      : No active profile set, falling back to 1 default profile: "default"
 2025-07-13T08:55:55.748-04:00  INFO 7477 --- [delphi] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
 2025-07-13T08:55:55.749-04:00  INFO 7477 --- [delphi] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
@@ -219,7 +219,7 @@ Caused by: java.net.ConnectException: Connection refused
 	... 132 common frames omitted
 
 2025-07-13T08:55:57.898-04:00 ERROR 7477 --- [delphi] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Failed to initialize JPA EntityManagerFactory: Unable to create requested service [org.hibernate.engine.jdbc.env.spi.JdbcEnvironment] due to: Unable to determine Dialect without JDBC metadata (please set 'jakarta.persistence.jdbc.url' for common cases or 'hibernate.dialect' when a custom Dialect implementation must be provided)
-2025-07-13T08:55:57.898-04:00 ERROR 7477 --- [delphi] [  restartedMain] o.s.b.web.embedded.tomcat.TomcatStarter  : Error starting Tomcat context. Exception: org.springframework.beans.factory.UnsatisfiedDependencyException. Message: Error creating bean with name 'securityConfig' defined in file [/Users/ayan_/Desktop/Development/Delphi/backend/target/classes/com/delphi/delphi/configs/SecurityConfig.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'userRepository' defined in com.delphi.delphi.repositories.UserRepository defined in @EnableJpaRepositories declared on JpaRepositoriesRegistrar.EnableJpaRepositoriesConfiguration: Cannot resolve reference to bean 'jpaSharedEM_entityManagerFactory' while setting bean property 'entityManager'
+2025-07-13T08:55:57.898-04:00 ERROR 7477 --- [delphi] [  restartedMain] o.s.b.web.embedded.tomcat.TomcatStarter  : Error starting Tomcat context. Exception: org.springframework.beans.factory.UnsatisfiedDependencyException. Message: Error creating bean with name 'securityConfig' defined in file [/Users/ayan_/Desktop/Development/Themus/backend/target/classes/com/delphi/delphi/configs/SecurityConfig.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'userRepository' defined in com.delphi.delphi.repositories.UserRepository defined in @EnableJpaRepositories declared on JpaRepositoriesRegistrar.EnableJpaRepositoriesConfiguration: Cannot resolve reference to bean 'jpaSharedEM_entityManagerFactory' while setting bean property 'entityManager'
 2025-07-13T08:55:57.910-04:00  INFO 7477 --- [delphi] [  restartedMain] o.apache.catalina.core.StandardService   : Stopping service [Tomcat]
 2025-07-13T08:55:57.911-04:00  WARN 7477 --- [delphi] [  restartedMain] o.a.c.loader.WebappClassLoaderBase       : The web application [ROOT] appears to have started a thread named [lettuce-eventExecutorLoop-1-1] but has failed to stop it. This is very likely to create a memory leak. Stack trace of thread:
  java.base/jdk.internal.misc.Unsafe.park(Native Method)
@@ -267,7 +267,7 @@ Caused by: org.springframework.boot.web.server.WebServerException: Unable to sta
 	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.createWebServer(ServletWebServerApplicationContext.java:193) ~[spring-boot-3.5.3.jar:3.5.3]
 	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.onRefresh(ServletWebServerApplicationContext.java:167) ~[spring-boot-3.5.3.jar:3.5.3]
 	... 11 common frames omitted
-Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'securityConfig' defined in file [/Users/ayan_/Desktop/Development/Delphi/backend/target/classes/com/delphi/delphi/configs/SecurityConfig.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'userRepository' defined in com.delphi.delphi.repositories.UserRepository defined in @EnableJpaRepositories declared on JpaRepositoriesRegistrar.EnableJpaRepositoriesConfiguration: Cannot resolve reference to bean 'jpaSharedEM_entityManagerFactory' while setting bean property 'entityManager'
+Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'securityConfig' defined in file [/Users/ayan_/Desktop/Development/Themus/backend/target/classes/com/delphi/delphi/configs/SecurityConfig.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'userRepository' defined in com.delphi.delphi.repositories.UserRepository defined in @EnableJpaRepositories declared on JpaRepositoriesRegistrar.EnableJpaRepositoriesConfiguration: Cannot resolve reference to bean 'jpaSharedEM_entityManagerFactory' while setting bean property 'entityManager'
 	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:804) ~[spring-beans-6.2.8.jar:6.2.8]
 	at org.springframework.beans.factory.support.ConstructorResolver.autowireConstructor(ConstructorResolver.java:240) ~[spring-beans-6.2.8.jar:6.2.8]
 	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.autowireConstructor(AbstractAutowireCapableBeanFactory.java:1395) ~[spring-beans-6.2.8.jar:6.2.8]

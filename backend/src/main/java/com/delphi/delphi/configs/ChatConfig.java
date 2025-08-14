@@ -24,6 +24,6 @@ public class ChatConfig {
 
     @Bean
     public Map<String, String> author() {
-        return Map.of("name", "delphi-assessments[bot]", "email", "220768808+delphi-assessments[bot]@users.noreply.github.com");
+        return Map.of("name", "themus-bot[bot]", "email", "220768808+delphi-assessments[bot]@users.noreply.github.com");
     }
 }

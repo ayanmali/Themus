@@ -17,11 +17,11 @@ import com.delphi.delphi.services.UserService;
 // TODO: Enable async support?
 // @EnableAsync
 
-public class DelphiApplication {
+public class ThemusApplication {
 
     private final UserService userService;
 
-    DelphiApplication(UserService userService) {
+    ThemusApplication(UserService userService) {
         this.userService = userService;
     }
 	// TODO: add authorization to all endpoints
@@ -48,7 +48,7 @@ public class DelphiApplication {
 	}
 
 	public static void main(String[] args) {
-		SpringApplication.run(DelphiApplication.class, args);
+		SpringApplication.run(ThemusApplication.class, args);
 	}
 
 }

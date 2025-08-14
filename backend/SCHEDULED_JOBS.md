@@ -57,7 +57,7 @@ WHERE (ca.status = 'STARTED' OR ca.status = 'INACTIVE')
 
 ## Configuration
 
-All scheduled jobs are enabled by the `@EnableScheduling` annotation on the main `DelphiApplication` class.
+All scheduled jobs are enabled by the `@EnableScheduling` annotation on the main `ThemusApplication` class.
 
 ## Monitoring
 

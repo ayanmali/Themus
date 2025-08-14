@@ -49,7 +49,7 @@ import com.delphi.delphi.utils.git.GithubRepoBranch;
  * It is used to get repository branches, and add branch.
  * It is used to get branch SHA, and add branch.
  * 
- * github.com/apps/delphi-assessments
+ * github.com/apps/themus-bot
  */
 
 public class GithubService {
@@ -381,7 +381,7 @@ public class GithubService {
                 .uri(url)
                 .header("Authorization", "Bearer " + githubAccessToken)
                 .header("Accept", "application/vnd.github.v3+json")
-                .header("User-Agent", "Delphi-App/1.0")
+                .header("User-Agent", "Themus-App/1.0")
                 .bodyValue(body)
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), response -> {
@@ -435,7 +435,7 @@ public class GithubService {
                 .uri(url)
                 .header("Authorization", "Bearer " + githubAccessToken)
                 .header("Accept", "application/vnd.github.v3+json")
-                .header("User-Agent", "Delphi-App/1.0")
+                .header("User-Agent", "Themus-App/1.0")
                 .bodyValue(body)
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), response -> {
@@ -491,7 +491,7 @@ public class GithubService {
                 .uri(url)
                 .header("Authorization", "Bearer " + githubAccessToken)
                 .header("Accept", "application/vnd.github.v3+json")
-                .header("User-Agent", "Delphi-App/1.0")
+                .header("User-Agent", "Themus-App/1.0")
                 .bodyValue(body)
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), response -> {
