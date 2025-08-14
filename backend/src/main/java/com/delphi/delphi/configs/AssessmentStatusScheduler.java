@@ -1,14 +1,14 @@
 package com.delphi.delphi.configs;
 
 import java.time.LocalDate;
-import com.delphi.delphi.services.CandidateAttemptService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.delphi.delphi.services.AssessmentService;
-import com.delphi.delphi.services.CandidateService;
+import com.delphi.delphi.services.CandidateAttemptService;
 
 @Component
 public class AssessmentStatusScheduler {

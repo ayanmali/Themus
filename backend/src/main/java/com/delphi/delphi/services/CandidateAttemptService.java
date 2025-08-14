@@ -35,6 +35,18 @@ public class CandidateAttemptService {
         this.candidateAttemptRepository = candidateAttemptRepository;
     }
 
+    public CandidateAttemptCacheDto inviteCandidate(CandidateAttempt candidateAttempt) {
+        candidateAttempt.setStatus(AttemptStatus.INVITED);
+        candidateAttempt.setStartedDate(null);
+        candidateAttempt.setCompletedDate(null);
+        candidateAttempt.setEvaluatedDate(null);
+        candidateAttempt.setGithubRepositoryLink(null);
+        candidateAttempt.setLanguageChoice(null);
+        candidateAttempt.setEvaluation(null);
+        //candidateAttempt.set
+        return new CandidateAttemptCacheDto(candidateAttemptRepository.save(candidateAttempt));
+    }
+
     // Start a new candidate attempt: change status to from INVITED to STARTED
     @CachePut(value = "candidateAttempts", key = "#result.id")
     public CandidateAttemptCacheDto startAttempt(Long candidateId, Long assessmentId, Optional<String> languageChoice, AttemptStatus status, LocalDateTime startedDate) {

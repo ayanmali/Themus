@@ -42,12 +42,24 @@ public class CandidateAttemptController {
         this.assessmentService = assessmentService;
         this.candidateAttemptService = candidateAttemptService;
     }
+
+
+    @PostMapping("/invite")
+    public ResponseEntity<?> inviteCandidate(@Valid @RequestBody NewCandidateAttemptDto newCandidateAttemptDto) {
+        try {
+            CandidateAttemptCacheDto invitedAttempt = candidateAttemptService.startAttempt(newCandidateAttemptDto.getCandidateId(), newCandidateAttemptDto.getAssessmentId(), newCandidateAttemptDto.getLanguageChoice(), newCandidateAttemptDto.getStatus(), newCandidateAttemptDto.getStartedDate());
+            return ResponseEntity.status(HttpStatus.CREATED).body(new FetchCandidateAttemptDto(invitedAttempt));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error inviting candidate: " + e.getMessage());
+        }
+    }
     
     // Create a new candidate attempt
     @PostMapping("/start")
     public ResponseEntity<?> startCandidateAttempt(@Valid @RequestBody NewCandidateAttemptDto newCandidateAttemptDto) {
         try {
-            AssessmentCacheDto assessment = assessmentService.getAssessmentByIdOrThrow(newCandidateAttemptDto.getAssessmentId());
+            AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(newCandidateAttemptDto.getAssessmentId());
             // return error if an invalid language choice is provided
             if (!assessment.getLanguageOptions().isEmpty() && newCandidateAttemptDto.getLanguageChoice().isPresent() && !assessment.getLanguageOptions().contains(newCandidateAttemptDto.getLanguageChoice().get())) {
                 return ResponseEntity.badRequest().body("Language choice not supported for this assessment");

@@ -1,18 +1,12 @@
 package com.delphi.delphi.controllers;
 
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -121,15 +115,17 @@ public class UserController {
     public ResponseEntity<?> isConnectedGithub(HttpServletResponse response) {
         try {
             log.info("Checking if user is connected to github");
+            // check if github credentials exist in DB
             UserCacheDto user = getCurrentUser();
-            if (user.getGithubAccessToken() == null) {
+            if (!userService.connectedGithub(user)) {
                 log.info("Github credentials not found in DB");
                 return ResponseEntity.ok(false);
             }
+            // check if github credentials are valid
             Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user.getGithubAccessToken());
 
             log.info("Github credentials valid: {}", githubCredentialsValid);
-            if (!userService.connectedGithub(user) || githubCredentialsValid == null) {
+            if (githubCredentialsValid == null) {
                 return ResponseEntity.ok(false);
             }
 

@@ -1,16 +1,11 @@
 package com.delphi.delphi.services;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
-import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,7 +71,6 @@ public class UserService {
     }
     
     // Get user by email
-    @Cacheable(value = "users", key = "#email")
     @Caching(cacheable = {
         @Cacheable(value = "users", key = "#email")
     }, put = {
