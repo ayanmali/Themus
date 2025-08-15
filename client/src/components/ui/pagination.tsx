@@ -1,117 +1,114 @@
-import * as React from "react"
-import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import { cn } from "@/lib/utils"
-import { ButtonProps, buttonVariants } from "@/components/ui/button"
+interface PaginationProps {
+    currentPage: number;
+    totalPages: number;
+    onPageChange: (page: number) => void;
+    isLoading?: boolean;
+}
 
-const Pagination = ({ className, ...props }: React.ComponentProps<"nav">) => (
-  <nav
-    role="navigation"
-    aria-label="pagination"
-    className={cn("mx-auto flex w-full justify-center", className)}
-    {...props}
-  />
-)
-Pagination.displayName = "Pagination"
+export default function Pagination({ 
+    currentPage, 
+    totalPages, 
+    onPageChange, 
+    isLoading = false 
+}: PaginationProps) {
+    // Don't render pagination if there's only one page or no pages
+    if (totalPages <= 1) {
+        return null;
+    }
 
-const PaginationContent = React.forwardRef<
-  HTMLUListElement,
-  React.ComponentProps<"ul">
->(({ className, ...props }, ref) => (
-  <ul
-    ref={ref}
-    className={cn("flex flex-row items-center gap-1", className)}
-    {...props}
-  />
-))
-PaginationContent.displayName = "PaginationContent"
+    // Ensure currentPage is within bounds
+    const safeCurrentPage = Math.max(0, Math.min(currentPage, totalPages - 1));
 
-const PaginationItem = React.forwardRef<
-  HTMLLIElement,
-  React.ComponentProps<"li">
->(({ className, ...props }, ref) => (
-  <li ref={ref} className={cn("", className)} {...props} />
-))
-PaginationItem.displayName = "PaginationItem"
+    const getVisiblePages = () => {
+        const delta = 2; // Number of pages to show on each side of current page
+        const range = [];
+        const rangeWithDots = [];
 
-type PaginationLinkProps = {
-  isActive?: boolean
-} & Pick<ButtonProps, "size"> &
-  React.ComponentProps<"a">
+        for (let i = Math.max(2, safeCurrentPage - delta); i <= Math.min(totalPages - 1, safeCurrentPage + delta); i++) {
+            range.push(i);
+        }
 
-const PaginationLink = ({
-  className,
-  isActive,
-  size = "icon",
-  ...props
-}: PaginationLinkProps) => (
-  <a
-    aria-current={isActive ? "page" : undefined}
-    className={cn(
-      buttonVariants({
-        variant: isActive ? "outline" : "ghost",
-        size,
-      }),
-      className
-    )}
-    {...props}
-  />
-)
-PaginationLink.displayName = "PaginationLink"
+        if (safeCurrentPage - delta > 2) {
+            rangeWithDots.push(1, '...');
+        } else {
+            rangeWithDots.push(1);
+        }
 
-const PaginationPrevious = ({
-  className,
-  ...props
-}: React.ComponentProps<typeof PaginationLink>) => (
-  <PaginationLink
-    aria-label="Go to previous page"
-    size="default"
-    className={cn("gap-1 pl-2.5", className)}
-    {...props}
-  >
-    <ChevronLeft className="h-4 w-4" />
-    <span>Previous</span>
-  </PaginationLink>
-)
-PaginationPrevious.displayName = "PaginationPrevious"
+        rangeWithDots.push(...range);
 
-const PaginationNext = ({
-  className,
-  ...props
-}: React.ComponentProps<typeof PaginationLink>) => (
-  <PaginationLink
-    aria-label="Go to next page"
-    size="default"
-    className={cn("gap-1 pr-2.5", className)}
-    {...props}
-  >
-    <span>Next</span>
-    <ChevronRight className="h-4 w-4" />
-  </PaginationLink>
-)
-PaginationNext.displayName = "PaginationNext"
+        if (safeCurrentPage + delta < totalPages - 1) {
+            rangeWithDots.push('...', totalPages);
+        } else {
+            rangeWithDots.push(totalPages);
+        }
 
-const PaginationEllipsis = ({
-  className,
-  ...props
-}: React.ComponentProps<"span">) => (
-  <span
-    aria-hidden
-    className={cn("flex h-9 w-9 items-center justify-center", className)}
-    {...props}
-  >
-    <MoreHorizontal className="h-4 w-4" />
-    <span className="sr-only">More pages</span>
-  </span>
-)
-PaginationEllipsis.displayName = "PaginationEllipsis"
+        return rangeWithDots;
+    };
 
-export {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
+    const handlePrevious = () => {
+        if (safeCurrentPage > 0 && !isLoading) {
+            onPageChange(safeCurrentPage - 1);
+        }
+    };
+
+    const handleNext = () => {
+        if (safeCurrentPage < totalPages - 1 && !isLoading) {
+            onPageChange(safeCurrentPage + 1);
+        }
+    };
+
+    const handlePageClick = (page: number) => {
+        if (page !== safeCurrentPage + 1 && !isLoading) {
+            onPageChange(page - 1); // Convert to 0-based index
+        }
+    };
+
+    return (
+        <div className="mt-14 flex items-center justify-center">
+            <nav className="flex items-center space-x-2" aria-label="Pagination">
+                {/* Previous Button */}
+                <button
+                    onClick={handlePrevious}
+                    disabled={safeCurrentPage === 0 || isLoading}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-transparent text-gray-200 hover:bg-gray-600 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                </button>
+
+                {/* Page Numbers */}
+                {getVisiblePages().map((page, index) => (
+                    <div key={index} className="bg-transparent text-gray-200 rounded-lg hover:bg-gray-600 hover:text-white transition-colors">
+                        {page === '...' ? (
+                            <span className="px-3 py-2">...</span>
+                        ) : (
+                            <button
+                                onClick={() => handlePageClick(page as number)}
+                                disabled={isLoading}
+                                className={`px-3 py-2 rounded-lg transition-colors ${
+                                    page === safeCurrentPage + 1
+                                        ? 'bg-blue-600 text-white'
+                                        : 'hover:bg-gray-600 hover:text-white'
+                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            >
+                                {page}
+                            </button>
+                        )}
+                    </div>
+                ))}
+
+                {/* Next Button */}
+                <button
+                    onClick={handleNext}
+                    disabled={safeCurrentPage === totalPages - 1 || isLoading}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-transparent text-gray-200 hover:bg-gray-600 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                </button>
+            </nav>
+        </div>
+    );
 }

@@ -10,6 +10,17 @@ import { useQuery } from "@tanstack/react-query";
 import useApi from "@/hooks/use-api";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import Pagination from "@/components/ui/pagination";
+
+interface PaginatedResponse {
+    content: Candidate[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+}
 
 export default function EmployerCandidates() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -20,7 +31,7 @@ export default function EmployerCandidates() {
   // Fetch candidates using TanStack Query
   const { data: candidatesData, isLoading, error } = useQuery({
     queryKey: ['candidates', 'user', page, size],
-    queryFn: async () => {
+    queryFn: async (): Promise<PaginatedResponse> => {
       const response = await apiCall(`/api/candidates/filter?page=${page}&size=${size}`, {
         method: 'GET',
       });
@@ -34,9 +45,15 @@ export default function EmployerCandidates() {
     },
   });
 
-  // Extract candidates from the response - the API returns a direct array, not a paginated object
-  const candidates = candidatesData || [];
-  console.log('Candidates data:', candidates); // Debug log
+  // Extract candidates and pagination data from the response
+  const candidates = candidatesData?.content || [];
+  const totalPages = candidatesData?.totalPages || 0;
+  const currentPage = candidatesData?.page || 0;
+
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
 
   // Filter candidates based on search query
   const filteredCandidates = candidates.filter((candidate: any) => {
@@ -204,6 +221,16 @@ export default function EmployerCandidates() {
             ))
           )}
         </div>
+      )}
+
+      {/* Pagination Controls */}
+      {!isLoading && !error && totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          isLoading={isLoading}
+        />
       )}
     </AppShell>
   );

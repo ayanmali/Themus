@@ -34,6 +34,7 @@ import com.delphi.delphi.repositories.UserRepository;
 import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.CandidateService;
 import com.delphi.delphi.services.UserService;
+import com.delphi.delphi.dtos.PaginatedResponseDto;
 
 import jakarta.validation.Valid;
 
@@ -154,14 +155,24 @@ public class CandidateController {
                 : Sort.by(sortBy).ascending();
             
             Pageable pageable = PageRequest.of(page, size, sort);
-            List<CandidateCacheDto> candidates = candidateService.getCandidatesWithFiltersForUser(
+            PaginatedResponseDto<CandidateCacheDto> paginatedResponse = candidateService.getCandidatesWithFiltersForUser(
                 user.getId(), assessmentId, emailDomain, firstName, lastName,
                 createdAfter, createdBefore, pageable);
-            List<FetchCandidateDto> candidateDtos = candidates.stream()
+            
+            // Convert CandidateCacheDto to FetchCandidateDto
+            List<FetchCandidateDto> candidateDtos = paginatedResponse.getContent().stream()
                     .map(FetchCandidateDto::new)
                     .collect(Collectors.toList());
+
+            // Create response with pagination metadata
+            PaginatedResponseDto<FetchCandidateDto> response = new PaginatedResponseDto<>(
+                candidateDtos,
+                paginatedResponse.getPage(),
+                paginatedResponse.getSize(),
+                paginatedResponse.getTotalElements()
+            );
             
-            return ResponseEntity.ok(candidateDtos);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error retrieving candidates: " + e.getMessage());

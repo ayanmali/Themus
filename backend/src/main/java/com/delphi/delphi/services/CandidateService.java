@@ -25,6 +25,7 @@ import com.delphi.delphi.repositories.CandidateRepository;
 import com.delphi.delphi.repositories.UserRepository;
 import com.delphi.delphi.specifications.CandidateSpecifications;
 import com.delphi.delphi.utils.CacheUtils;
+import com.delphi.delphi.dtos.PaginatedResponseDto;
 
 @Service
 @Transactional
@@ -137,10 +138,10 @@ public class CandidateService {
      * @param attemptCompletedAfter Filter by attempt completion date after (applied in memory)
      * @param attemptCompletedBefore Filter by attempt completion date before (applied in memory)
      * @param pageable Pagination and sorting parameters (applied in memory)
-     * @return List of filtered and paginated candidates
+     * @return PaginatedResponseDto containing filtered candidates and pagination metadata
      */
     @Transactional(readOnly = true)
-    public List<CandidateCacheDto> getCandidatesWithFiltersForUser(Long userId, Long assessmentId, 
+    public PaginatedResponseDto<CandidateCacheDto> getCandidatesWithFiltersForUser(Long userId, Long assessmentId, 
                                                           String emailDomain, String firstName, String lastName,
                                                           LocalDateTime createdAfter, LocalDateTime createdBefore,
                                                           Pageable pageable) {
@@ -297,15 +298,28 @@ public class CandidateService {
                 .collect(Collectors.toList());
         }
         
+        // Calculate pagination metadata
+        long totalElements = filteredCandidates.size();
+        int totalPages = (int) Math.ceil((double) totalElements / pageable.getPageSize());
+        
         // Apply pagination in memory
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), filteredCandidates.size());
         
+        List<CandidateCacheDto> paginatedCandidates;
         if (start >= filteredCandidates.size()) {
-            return List.of();
+            paginatedCandidates = List.of();
+        } else {
+            paginatedCandidates = filteredCandidates.subList(start, end);
         }
         
-        return filteredCandidates.subList(start, end);
+        // Return paginated response with metadata
+        return new PaginatedResponseDto<>(
+            paginatedCandidates,
+            pageable.getPageNumber(),
+            pageable.getPageSize(),
+            totalElements
+        );
     }
     
     // Update candidate
