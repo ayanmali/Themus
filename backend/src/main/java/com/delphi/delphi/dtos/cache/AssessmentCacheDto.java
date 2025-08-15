@@ -35,6 +35,10 @@ public class AssessmentCacheDto {
     private List<Long> candidateIds;
     private List<Long> chatMessageIds;
 
+    // Default constructor for JSON deserialization
+    public AssessmentCacheDto() {
+    }
+
     public AssessmentCacheDto(Assessment assessment) {
         this.id = assessment.getId();
         this.name = assessment.getName();

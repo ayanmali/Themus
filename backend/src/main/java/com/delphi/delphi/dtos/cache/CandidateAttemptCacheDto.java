@@ -19,6 +19,10 @@ public class CandidateAttemptCacheDto {
     private Long assessmentId;
     private Long evaluationId;
 
+    // Default constructor for JSON deserialization
+    public CandidateAttemptCacheDto() {
+    }
+
     public CandidateAttemptCacheDto(CandidateAttempt candidateAttempt) {
         this.id = candidateAttempt.getId();
         this.githubRepositoryLink = candidateAttempt.getGithubRepositoryLink();

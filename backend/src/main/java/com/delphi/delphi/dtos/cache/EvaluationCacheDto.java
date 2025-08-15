@@ -13,6 +13,10 @@ public class EvaluationCacheDto {
     private Long candidateAttemptId;
     private Map<String, String> metadata;
 
+    // Default constructor for JSON deserialization
+    public EvaluationCacheDto() {
+    }
+
     public EvaluationCacheDto(Evaluation evaluation) {
         this.id = evaluation.getId();
         this.createdDate = evaluation.getCreatedDate();

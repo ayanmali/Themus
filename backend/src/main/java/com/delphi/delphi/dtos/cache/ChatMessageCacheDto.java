@@ -18,6 +18,9 @@ public class ChatMessageCacheDto {
     private List<String> toolCallIds;
     private MessageType messageType;
 
+    public ChatMessageCacheDto() {
+    }
+
     public ChatMessageCacheDto(ChatMessage chatMessage) {
         this.id = chatMessage.getId();
         this.text = chatMessage.getText();

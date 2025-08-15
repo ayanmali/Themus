@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.components.messaging.candidates.CandidateInvitationPublisher;
 import com.delphi.delphi.dtos.NewAssessmentDto;
+import com.delphi.delphi.dtos.PaginatedResponseDto;
 import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
 import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.entities.Assessment;
@@ -202,10 +203,10 @@ public class AssessmentService {
      * @param languageOptions Filter by required language options (applied in
      *                        memory)
      * @param pageable        Pagination and sorting parameters (applied in memory)
-     * @return List of filtered and paginated assessments
+     * @return PaginatedResponseDto containing filtered assessments and pagination metadata
      */
     @Transactional(readOnly = true)
-    public List<AssessmentCacheDto> getAssessmentsWithFilters(UserCacheDto user, AssessmentStatus status,
+    public PaginatedResponseDto<AssessmentCacheDto> getAssessmentsWithFilters(UserCacheDto user, AssessmentStatus status,
             LocalDateTime startDate, LocalDateTime endDate, List<String> skills, List<String> languageOptions,
             Pageable pageable) {
         // Generate cache key with only user ID and date range to reduce cache key
@@ -219,6 +220,7 @@ public class AssessmentService {
         List<AssessmentCacheDto> cachedAssessments = null;
         if (redisService.hasKey(cacheKey)) {
             cachedAssessments = (List<AssessmentCacheDto>) redisService.get(cacheKey);
+            log.info("cache hit for assessments: {}", cacheKey);
         }
 
         // If cache doesn't exist, fetch from DB with only user and date filters
@@ -318,15 +320,28 @@ public class AssessmentService {
                     .collect(Collectors.toList());
         }
 
+        // Calculate pagination metadata
+        long totalElements = filteredAssessments.size();
+        //int totalPages = (int) Math.ceil((double) totalElements / pageable.getPageSize());
+        
         // Apply pagination in memory
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), filteredAssessments.size());
-
+        
+        List<AssessmentCacheDto> paginatedAssessments;
         if (start >= filteredAssessments.size()) {
-            return List.of();
+            paginatedAssessments = List.of();
+        } else {
+            paginatedAssessments = filteredAssessments.subList(start, end);
         }
 
-        return filteredAssessments.subList(start, end);
+        // Return paginated response with metadata
+        return new PaginatedResponseDto<>(
+            paginatedAssessments,
+            pageable.getPageNumber(),
+            pageable.getPageSize(),
+            totalElements
+        );
     }
 
     // Update assessment

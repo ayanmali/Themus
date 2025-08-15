@@ -11,6 +11,9 @@ public class RefreshTokenCacheDto {
     private Instant expiryDate;
     private boolean used;
 
+    public RefreshTokenCacheDto() {
+    }
+
     public RefreshTokenCacheDto(RefreshToken refreshToken) {
         this.id = refreshToken.getId();
         this.token = refreshToken.getToken();

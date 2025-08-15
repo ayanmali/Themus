@@ -9,6 +9,16 @@ import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import useApi from "@/hooks/use-api";
 
+interface PaginatedResponse {
+    content: Assessment[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+}
+
 export default function EmployerAssessments() {
     const [page, setPage] = useState(0);
     const [size, setSize] = useState(10);
@@ -18,7 +28,7 @@ export default function EmployerAssessments() {
     // Fetch assessments using TanStack Query
     const { data: assessmentsData, isLoading, error } = useQuery({
         queryKey: ['assessments', 'user', page, size],
-        queryFn: async () => {
+        queryFn: async (): Promise<PaginatedResponse> => {
             const response = await apiCall(`/api/assessments/filter?page=${page}&size=${size}`, {
                 method: 'GET',
             });
@@ -31,8 +41,15 @@ export default function EmployerAssessments() {
         },
     });
 
-    // Extract assessments from the response
-    const assessments = assessmentsData || [];
+    // Extract assessments and pagination data from the response
+    const assessments = assessmentsData?.content || [];
+    const totalPages = assessmentsData?.totalPages || 0;
+    const currentPage = assessmentsData?.page || 0;
+
+    // Handle page change
+    const handlePageChange = (newPage: number) => {
+        setPage(newPage);
+    };
 
     // TODO: add date range for active assessments
     const formatDateRange = (assessment: any) => {
@@ -192,8 +209,17 @@ export default function EmployerAssessments() {
                         )}
                     </div>
                 )}
+
+                {/* Pagination Controls */}
+                {!isLoading && !error && totalPages > 1 && (
+                    <AssessmentPagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                        isLoading={isLoading}
+                    />
+                )}
             </div>
-            <AssessmentPagination />
         </AppShell>
     );
 }

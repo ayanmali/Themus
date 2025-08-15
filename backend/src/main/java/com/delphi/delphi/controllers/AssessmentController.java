@@ -34,6 +34,7 @@ import com.delphi.delphi.dtos.FetchCandidateDto;
 import com.delphi.delphi.dtos.NewAssessmentDto;
 import com.delphi.delphi.dtos.NewCandidateDto;
 import com.delphi.delphi.dtos.NewUserMessageDto;
+import com.delphi.delphi.dtos.PaginatedResponseDto;
 import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
 import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.entities.Assessment;
@@ -305,13 +306,23 @@ public class AssessmentController {
                     : Sort.by(sortBy).ascending();
 
             Pageable pageable = PageRequest.of(page, size, sort);
-            List<AssessmentCacheDto> assessments = assessmentService.getAssessmentsWithFilters(
+            PaginatedResponseDto<AssessmentCacheDto> paginatedResponse = assessmentService.getAssessmentsWithFilters(
                 user, status, startDate, endDate, skills, languageOptions, pageable);
-            List<FetchAssessmentDto> assessmentDtos = assessments.stream()
+            
+            // Convert AssessmentCacheDto to FetchAssessmentDto
+            List<FetchAssessmentDto> assessmentDtos = paginatedResponse.getContent().stream()
                     .map(FetchAssessmentDto::new)
                     .collect(Collectors.toList());
 
-            return ResponseEntity.ok(assessmentDtos);
+            // Create response with pagination metadata
+            PaginatedResponseDto<FetchAssessmentDto> response = new PaginatedResponseDto<>(
+                assessmentDtos,
+                paginatedResponse.getPage(),
+                paginatedResponse.getSize(),
+                paginatedResponse.getTotalElements()
+            );
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error retrieving assessments: " + e.getMessage());
