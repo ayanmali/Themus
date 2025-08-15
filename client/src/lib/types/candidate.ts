@@ -1,3 +1,5 @@
+export type AttemptStatus = 'INVITED' | 'STARTED' | 'COMPLETED' | 'EVALUATED';
+
 export type Candidate = {
     id: number;
     email: string;
@@ -9,4 +11,5 @@ export type Candidate = {
     createdDate?: string;
     updatedDate?: string;
     metadata?: Record<string, string>;
+    attemptStatuses?: Record<AttemptStatus, number[]>;
 }

@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AppShell } from "@/components/layout/app-shell";
 import { Assessment } from "@/lib/types/assessment";
-import AssessmentPagination from "@/components/ui/AssessmentPagination";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import useApi from "@/hooks/use-api";
+import Pagination from "@/components/ui/pagination";
 
 interface PaginatedResponse {
     content: Assessment[];
@@ -212,7 +212,7 @@ export default function EmployerAssessments() {
 
                 {/* Pagination Controls */}
                 {!isLoading && !error && totalPages > 1 && (
-                    <AssessmentPagination
+                    <Pagination
                         currentPage={currentPage}
                         totalPages={totalPages}
                         onPageChange={handlePageChange}

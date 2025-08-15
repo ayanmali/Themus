@@ -1,6 +1,7 @@
 package com.delphi.delphi.dtos.cache;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +10,7 @@ import java.util.stream.Collectors;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
+import com.delphi.delphi.utils.AttemptStatus;
 
 public class CandidateCacheDto {
     private Long id;
@@ -20,6 +22,7 @@ public class CandidateCacheDto {
     private Long userId;
     private List<Long> assessmentIds;
     private List<Long> candidateAttemptIds;
+    private Map<AttemptStatus, List<Long>> attemptStatuses; // maps attempt status to list of candidate attempt ids
     private Map<String, String> metadata;
 
     // Default constructor for Jackson deserialization
@@ -40,6 +43,15 @@ public class CandidateCacheDto {
         }
         if (candidate.getCandidateAttempts() != null) {
             this.candidateAttemptIds = candidate.getCandidateAttempts().stream().map(CandidateAttempt::getId).collect(Collectors.toList());
+            
+            // Populate attemptStatuses map
+            this.attemptStatuses = new HashMap<>();
+            candidate.getCandidateAttempts().forEach(attempt -> {
+                AttemptStatus status = attempt.getStatus();
+                if (status != null) {
+                    attemptStatuses.computeIfAbsent(status, k -> new ArrayList<>()).add(attempt.getId());
+                }
+            });
         }
         this.metadata = candidate.getMetadata() != null ? new HashMap<>(candidate.getMetadata()) : null;
     }
@@ -103,6 +115,14 @@ public class CandidateCacheDto {
     }
     public void setMetadata(Map<String, String> metadata) {
         this.metadata = metadata;
+    }
+
+    public Map<AttemptStatus, List<Long>> getAttemptStatuses() {
+        return attemptStatuses;
+    }
+
+    public void setAttemptStatuses(Map<AttemptStatus, List<Long>> attemptStatuses) {
+        this.attemptStatuses = attemptStatuses;
     }
 
     

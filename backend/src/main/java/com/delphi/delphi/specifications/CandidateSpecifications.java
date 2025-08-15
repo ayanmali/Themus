@@ -2,15 +2,14 @@ package com.delphi.delphi.specifications;
 
 import java.time.LocalDateTime;
 
-import jakarta.persistence.criteria.Join;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
-import com.delphi.delphi.utils.AttemptStatus;
 
+import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 
 // Specifications class
@@ -34,17 +33,15 @@ public class CandidateSpecifications {
         };
     }
 
-    public static Specification<Candidate> hasAttemptStatus(AttemptStatus attemptStatus) {
-        return (root, query, criteriaBuilder) -> {
-            if (attemptStatus == null) {
-                return criteriaBuilder.conjunction();
-            }
+    // public static Specification<Candidate> hasAttemptStatus(List<AttemptStatus> attemptStatuses) {
+    //     return (root, query, criteriaBuilder) -> {
+    //         if (attemptStatuses == null) {
+    //             return criteriaBuilder.conjunction();
+    //         }
             
-            Join<Candidate, CandidateAttempt> attemptJoin = root.join("candidateAttempts", JoinType.LEFT);
-            query.distinct(true);
-            return criteriaBuilder.equal(attemptJoin.get("status"), attemptStatus);
-        };
-    }
+           
+    //     };
+    // }
 
     public static Specification<Candidate> createdAfter(LocalDateTime createdAfter) {
         return (root, _, criteriaBuilder) -> {

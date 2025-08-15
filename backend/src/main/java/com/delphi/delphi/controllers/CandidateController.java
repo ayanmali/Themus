@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.dtos.FetchCandidateDto;
 import com.delphi.delphi.dtos.NewCandidateDto;
+import com.delphi.delphi.dtos.PaginatedResponseDto;
 import com.delphi.delphi.dtos.cache.CandidateCacheDto;
 import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.entities.Candidate;
@@ -34,7 +35,7 @@ import com.delphi.delphi.repositories.UserRepository;
 import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.CandidateService;
 import com.delphi.delphi.services.UserService;
-import com.delphi.delphi.dtos.PaginatedResponseDto;
+import com.delphi.delphi.utils.AttemptStatus;
 
 import jakarta.validation.Valid;
 
@@ -143,9 +144,7 @@ public class CandidateController {
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection,
             @RequestParam(required = false) Long assessmentId,
-            @RequestParam(required = false) String emailDomain,
-            @RequestParam(required = false) String firstName,
-            @RequestParam(required = false) String lastName,
+            @RequestParam(required = false) List<AttemptStatus> attemptStatuses,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAfter,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdBefore) {
         try {
@@ -156,7 +155,8 @@ public class CandidateController {
             
             Pageable pageable = PageRequest.of(page, size, sort);
             PaginatedResponseDto<CandidateCacheDto> paginatedResponse = candidateService.getCandidatesWithFiltersForUser(
-                user.getId(), assessmentId, emailDomain, firstName, lastName,
+                user.getId(), assessmentId,
+                attemptStatuses,
                 createdAfter, createdBefore, pageable);
             
             // Convert CandidateCacheDto to FetchCandidateDto
