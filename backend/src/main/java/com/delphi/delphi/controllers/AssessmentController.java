@@ -296,6 +296,8 @@ public class AssessmentController {
             @RequestParam(required = false) AssessmentStatus status,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime assessmentStartDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime assessmentEndDate,
             @RequestParam(required = false) List<String> skills,
             @RequestParam(required = false) List<String> languageOptions) {
         try {
@@ -307,7 +309,7 @@ public class AssessmentController {
 
             Pageable pageable = PageRequest.of(page, size, sort);
             PaginatedResponseDto<AssessmentCacheDto> paginatedResponse = assessmentService.getAssessmentsWithFilters(
-                user, status, startDate, endDate, skills, languageOptions, pageable);
+                user, status, startDate, endDate, assessmentStartDate, assessmentEndDate, skills, languageOptions, pageable);
             
             // Convert AssessmentCacheDto to FetchAssessmentDto
             List<FetchAssessmentDto> assessmentDtos = paginatedResponse.getContent().stream()

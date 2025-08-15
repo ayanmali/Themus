@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, Clock, MoreHorizontal, Plus, Eye, Loader2 } from "lucide-react";
+import { Calendar, Clock, MoreHorizontal, Plus, Eye, Loader2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AppShell } from "@/components/layout/app-shell";
@@ -7,6 +7,9 @@ import { Assessment } from "@/lib/types/assessment";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import useApi from "@/hooks/use-api";
+import { Label } from "@/components/ui/label";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import Pagination from "@/components/ui/pagination";
 
 interface PaginatedResponse {
@@ -22,14 +25,52 @@ interface PaginatedResponse {
 export default function EmployerAssessments() {
     const [page, setPage] = useState(0);
     const [size, setSize] = useState(10);
+    const [selectedStatus, setSelectedStatus] = useState<string>("");
+    const [creationDateFrom, setCreationDateFrom] = useState<string>("");
+    const [creationDateTo, setCreationDateTo] = useState<string>("");
+    const [assessmentDateFrom, setAssessmentDateFrom] = useState<string>("");
+    const [assessmentDateTo, setAssessmentDateTo] = useState<string>("");
+    const [appliedFilters, setAppliedFilters] = useState<{
+        status?: string;
+        creationDateFrom?: string;
+        creationDateTo?: string;
+        assessmentDateFrom?: string;
+        assessmentDateTo?: string;
+    }>({});
     const { apiCall } = useApi();
     const [, navigate] = useLocation();
 
     // Fetch assessments using TanStack Query
     const { data: assessmentsData, isLoading, error } = useQuery({
-        queryKey: ['assessments', 'user', page, size],
+        queryKey: ['assessments', 'user', page, size, appliedFilters],
         queryFn: async (): Promise<PaginatedResponse> => {
-            const response = await apiCall(`/api/assessments/filter?page=${page}&size=${size}`, {
+            const params = new URLSearchParams({
+                page: page.toString(),
+                size: size.toString()
+            });
+
+            // Add status filter
+            if (appliedFilters.status) {
+                params.append('status', appliedFilters.status);
+            }
+
+            // Add creation date filters
+            if (appliedFilters.creationDateFrom) {
+                params.append('startDate', appliedFilters.creationDateFrom);
+            }
+            if (appliedFilters.creationDateTo) {
+                params.append('endDate', appliedFilters.creationDateTo);
+            }
+
+            // Add assessment date filters
+            if (appliedFilters.assessmentDateFrom) {
+                params.append('assessmentStartDate', appliedFilters.assessmentDateFrom);
+            }
+            if (appliedFilters.assessmentDateTo) {
+                params.append('assessmentEndDate', appliedFilters.assessmentDateTo);
+            }
+
+            const response = await apiCall(`/api/assessments/filter?${params.toString()}`, {
                 method: 'GET',
             });
 
@@ -51,6 +92,40 @@ export default function EmployerAssessments() {
         setPage(newPage);
     };
 
+    // Apply filters
+    const applyFilters = () => {
+        setAppliedFilters({
+            status: selectedStatus || undefined,
+            creationDateFrom: creationDateFrom || undefined,
+            creationDateTo: creationDateTo || undefined,
+            assessmentDateFrom: assessmentDateFrom || undefined,
+            assessmentDateTo: assessmentDateTo || undefined
+        });
+        setPage(0); // Reset to first page when applying filters
+    };
+
+    // Clear filters
+    const clearFilters = () => {
+        setSelectedStatus("");
+        setCreationDateFrom("");
+        setCreationDateTo("");
+        setAssessmentDateFrom("");
+        setAssessmentDateTo("");
+        setAppliedFilters({});
+        setPage(0);
+    };
+
+    // Check if filters have changed
+    const hasFilterChanges = () => {
+        if (appliedFilters.status !== selectedStatus) return true;
+        if (appliedFilters.creationDateFrom !== creationDateFrom) return true;
+        if (appliedFilters.creationDateTo !== creationDateTo) return true;
+        if (appliedFilters.assessmentDateFrom !== assessmentDateFrom) return true;
+        if (appliedFilters.assessmentDateTo !== assessmentDateTo) return true;
+        
+        return false;
+    };
+
     // TODO: add date range for active assessments
     const formatDateRange = (assessment: any) => {
         const start = assessment?.startDate ? new Date(assessment.startDate).toLocaleDateString() : '';
@@ -62,31 +137,13 @@ export default function EmployerAssessments() {
         navigate(`/assessments/view/${assessment.id}`);
     };
 
-    // const formatTimeSpent = (startedAt: Date | null | undefined) => {
-    //     if (!startedAt) return '';
-    //     const now = new Date();
-    //     const timeDiff = now.getTime() - startedAt.getTime();
-    //     const minutes = Math.floor(timeDiff / (1000 * 60));
-    //     return `Time spent: ${minutes} minutes`;
-    // };
-
     return (
         <AppShell>
             <div className="max-w-6xl mx-auto text-white">
-                {/* <div className="flex justify-between items-center mb-6">
-                        <h1 className="text-2xl font-medium text-gray-100">Assessments</h1>
-                        <Link to="/assessments/new">
-                            <Button className="flex items-center gap-2">
-                                <Plus size={16} />
-                                New Assessment
-                            </Button>
-                        </Link>
-                    </div> */}
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="serif-heading">Assessments</h1>
                         <p className="text-gray-400 flex items-center space-x-2">
-                            {/* <Calendar className="w-4 h-4" /> */}
                             <span>View and manage your assessments</span>
                         </p>
                     </div>
@@ -101,6 +158,109 @@ export default function EmployerAssessments() {
                             <Eye className="w-4 h-4" />
                             <span>View All</span>
                         </button>
+                    </div>
+                </div>
+
+                {/* Filters Section */}
+                <div className="bg-slate-800 text-gray-100 shadow-md px-4 py-5 sm:rounded-lg sm:p-6 mb-6 border border-slate-700">
+                    <div className="md:flex md:items-center md:justify-between">
+                        <div className="flex-1 min-w-0">
+                            <h2 className="text-lg leading-6 font-medium">Filters</h2>
+                        </div>
+                    </div>
+                    
+                    <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {/* Status Filter */}
+                        <div>
+                            <div className="flex items-center gap-x-2">
+                                <Label htmlFor="status-filter">Assessment Status</Label>
+                                <TooltipProvider delayDuration={100}>
+                                    <Tooltip>
+                                        <TooltipTrigger className="cursor-pointer">
+                                            <Info className="w-4 h-4" />
+                                        </TooltipTrigger>
+                                        <TooltipContent className="bg-slate-700 border-slate-600 text-gray-100">
+                                            <p>Filter by assessment status</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
+                            <select
+                                id="status-filter"
+                                value={selectedStatus}
+                                onChange={(e) => setSelectedStatus(e.target.value)}
+                                className="mt-1 w-full bg-slate-700 border-slate-600 text-gray-200 focus:ring-slate-500 focus:border-slate-500 rounded-md"
+                            >
+                                <option value="">All Statuses</option>
+                                <option value="DRAFT">Draft</option>
+                                <option value="ACTIVE">Active</option>
+                                <option value="INACTIVE">Inactive</option>
+                                <option value="EXPIRED">Expired</option>
+                            </select>
+                        </div>
+
+                        {/* Creation Date Range Filter */}
+                        <div>
+                            <div className="flex items-center gap-x-2">
+                                <Label htmlFor="creation-date-filter">Created Date Range</Label>
+                                <TooltipProvider delayDuration={100}>
+                                    <Tooltip>
+                                        <TooltipTrigger className="cursor-pointer">
+                                            <Info className="w-4 h-4" />
+                                        </TooltipTrigger>
+                                        <TooltipContent className="bg-slate-700 border-slate-600 text-gray-100">
+                                            <p>Filter by when the assessment was created</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
+                            <div className="mt-1">
+                                <DateRangePicker
+                                    onStartDateChange={(date) => setCreationDateFrom(date?.toISOString() || "")}
+                                    onEndDateChange={(date) => setCreationDateTo(date?.toISOString() || "")}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Assessment Date Range Filter */}
+                        <div>
+                            <div className="flex items-center gap-x-2">
+                                <Label htmlFor="assessment-date-filter">Assessment Date Range</Label>
+                                <TooltipProvider delayDuration={100}>
+                                    <Tooltip>
+                                        <TooltipTrigger className="cursor-pointer">
+                                            <Info className="w-4 h-4" />
+                                        </TooltipTrigger>
+                                        <TooltipContent className="bg-slate-700 border-slate-600 text-gray-100">
+                                            <p>Filter by assessment start/end dates</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
+                            <div className="mt-1">
+                                <DateRangePicker
+                                    onStartDateChange={(date) => setAssessmentDateFrom(date?.toISOString() || "")}
+                                    onEndDateChange={(date) => setAssessmentDateTo(date?.toISOString() || "")}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Filter Actions */}
+                    <div className="flex justify-end mt-6 gap-x-4">
+                        <Button 
+                            className="bg-slate-700 hover:bg-red-600 text-gray-100 text-sm px-4 py-2 rounded-lg font-medium transition-colors"
+                            onClick={clearFilters}
+                        >
+                            Clear Filters
+                        </Button>
+                        <Button 
+                            className="bg-green-700 hover:bg-green-600 text-gray-100 text-sm px-4 py-2 rounded-lg font-medium transition-colors"
+                            onClick={applyFilters}
+                            disabled={!hasFilterChanges()}
+                        >
+                            Apply Filters
+                        </Button>
                     </div>
                 </div>
 
@@ -154,9 +314,6 @@ export default function EmployerAssessments() {
                                                         }`}>
                                                         {assessment.status?.toLowerCase()}
                                                     </span>
-                                                    {/* <span className="px-3 py-1 rounded-full text-sm font-medium capitalize bg-blue-600 text-white">
-                                                {assessment.assessmentType?.replace('_', ' ').toLowerCase()}
-                                            </span> */}
                                                 </div>
                                             </div>
 
@@ -169,12 +326,6 @@ export default function EmployerAssessments() {
                                                     <Calendar size={16} />
                                                     <span>Created {assessment.createdDate.toString()}</span>
                                                 </div>
-                                                {/* <div className="flex items-center gap-2">
-                                            (
-                                                <Calendar size={16} />
-                                            )
-                                            <span>{formatDateRange(assessment)}</span>
-                                        </div> */}
                                             </div>
                                         </div>
 

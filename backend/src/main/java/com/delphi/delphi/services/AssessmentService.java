@@ -192,23 +192,24 @@ public class AssessmentService {
     /**
      * Get assessments with filters using a new caching strategy:
      * - Cache keys only contain user ID and date range (startDate, endDate)
-     * - Other filters (status, skills, languageOptions) are applied in memory
+     * - Other filters (status, skills, languageOptions, assessmentStartDate, assessmentEndDate) are applied in memory
      * - This reduces cache key proliferation and improves cache hit rates
      * 
      * @param user            The user whose assessments to retrieve
      * @param status          Filter by assessment status (applied in memory)
-     * @param startDate       Start date for date range filter (used in cache key)
-     * @param endDate         End date for date range filter (used in cache key)
+     * @param startDate       Start date for creation date range filter (used in cache key)
+     * @param endDate         End date for creation date range filter (used in cache key)
+     * @param assessmentStartDate Start date for assessment date range filter (applied in memory)
+     * @param assessmentEndDate   End date for assessment date range filter (applied in memory)
      * @param skills          Filter by required skills (applied in memory)
-     * @param languageOptions Filter by required language options (applied in
-     *                        memory)
+     * @param languageOptions Filter by required language options (applied in memory)
      * @param pageable        Pagination and sorting parameters (applied in memory)
      * @return PaginatedResponseDto containing filtered assessments and pagination metadata
      */
     @Transactional(readOnly = true)
     public PaginatedResponseDto<AssessmentCacheDto> getAssessmentsWithFilters(UserCacheDto user, AssessmentStatus status,
-            LocalDateTime startDate, LocalDateTime endDate, List<String> skills, List<String> languageOptions,
-            Pageable pageable) {
+            LocalDateTime startDate, LocalDateTime endDate, LocalDateTime assessmentStartDate, LocalDateTime assessmentEndDate,
+            List<String> skills, List<String> languageOptions, Pageable pageable) {
         // Generate cache key with only user ID and date range to reduce cache key
         // proliferation
         String normalizedStartDate = CacheUtils.normalizeDateTime(startDate);
@@ -246,6 +247,20 @@ public class AssessmentService {
                     // Filter by status
                     if (status != null && assessment.getStatus() != status) {
                         return false;
+                    }
+
+                    // Filter by assessment start date
+                    if (assessmentStartDate != null) {
+                        if (assessment.getStartDate() == null || assessment.getStartDate().isBefore(assessmentStartDate)) {
+                            return false;
+                        }
+                    }
+
+                    // Filter by assessment end date
+                    if (assessmentEndDate != null) {
+                        if (assessment.getEndDate() == null || assessment.getEndDate().isAfter(assessmentEndDate)) {
+                            return false;
+                        }
                     }
 
                     // Filter by skills - assessment must have at least one of the required skills
@@ -322,7 +337,7 @@ public class AssessmentService {
 
         // Calculate pagination metadata
         long totalElements = filteredAssessments.size();
-        //int totalPages = (int) Math.ceil((double) totalElements / pageable.getPageSize());
+        int totalPages = (int) Math.ceil((double) totalElements / pageable.getPageSize());
         
         // Apply pagination in memory
         int start = (int) pageable.getOffset();
