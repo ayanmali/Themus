@@ -1,6 +1,5 @@
 package com.delphi.delphi.controllers;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -11,7 +10,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -37,6 +35,7 @@ import com.delphi.delphi.dtos.NewUserMessageDto;
 import com.delphi.delphi.dtos.PaginatedResponseDto;
 import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
 import com.delphi.delphi.dtos.cache.UserCacheDto;
+import com.delphi.delphi.dtos.get.GetAssessmentsDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
@@ -288,28 +287,17 @@ public class AssessmentController {
 
     // Get all assessments with pagination and filtering for the current user
     @GetMapping("/filter")
-    public ResponseEntity<?> getAllAssessments(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDirection,
-            @RequestParam(required = false) AssessmentStatus status,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime assessmentStartDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime assessmentEndDate,
-            @RequestParam(required = false) List<String> skills,
-            @RequestParam(required = false) List<String> languageOptions) {
+    public ResponseEntity<?> getAllAssessments(GetAssessmentsDto getAssessmentsDto) {
         try {
             UserCacheDto user = getCurrentUser();
 
-            Sort sort = sortDirection.equalsIgnoreCase("desc")
-                    ? Sort.by(sortBy).descending()
-                    : Sort.by(sortBy).ascending();
+            Sort sort = getAssessmentsDto.getSortDirection().equalsIgnoreCase("desc")
+                    ? Sort.by(getAssessmentsDto.getSortBy()).descending()
+                    : Sort.by(getAssessmentsDto.getSortBy()).ascending();
 
-            Pageable pageable = PageRequest.of(page, size, sort);
+            Pageable pageable = PageRequest.of(getAssessmentsDto.getPage(), getAssessmentsDto.getSize(), sort);
             PaginatedResponseDto<AssessmentCacheDto> paginatedResponse = assessmentService.getAssessmentsWithFilters(
-                user, status, startDate, endDate, assessmentStartDate, assessmentEndDate, skills, languageOptions, pageable);
+                user, getAssessmentsDto.getStatus(), getAssessmentsDto.getCreatedAfter(), getAssessmentsDto.getCreatedBefore(), getAssessmentsDto.getAssessmentStartDate(), getAssessmentsDto.getAssessmentEndDate(), getAssessmentsDto.getSkills(), getAssessmentsDto.getLanguageOptions(), pageable);
             
             // Convert AssessmentCacheDto to FetchAssessmentDto
             List<FetchAssessmentDto> assessmentDtos = paginatedResponse.getContent().stream()

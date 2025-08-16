@@ -1,13 +1,11 @@
 package com.delphi.delphi.controllers;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +22,7 @@ import com.delphi.delphi.dtos.InviteCandidateDto;
 import com.delphi.delphi.dtos.NewCandidateAttemptDto;
 import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
+import com.delphi.delphi.dtos.get.GetCandidateAttemptsDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
@@ -118,27 +117,16 @@ public class CandidateAttemptController {
     
     // Get all candidate attempts with pagination and filtering
     @GetMapping("/filter")
-    public ResponseEntity<?> getAllCandidateAttempts(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDirection,
-            @RequestParam(required = false) Long candidateId,
-            @RequestParam(required = false) Long assessmentId,
-            @RequestParam(required = false) AttemptStatus status,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startedAfter,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startedBefore,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime completedAfter,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime completedBefore) {
+    public ResponseEntity<?> getAllCandidateAttempts(GetCandidateAttemptsDto getCandidateAttemptsDto) {
         try {
-            Sort sort = sortDirection.equalsIgnoreCase("desc") 
-                ? Sort.by(sortBy).descending() 
-                : Sort.by(sortBy).ascending();
+            Sort sort = getCandidateAttemptsDto.getSortDirection().equalsIgnoreCase("desc") 
+                ? Sort.by(getCandidateAttemptsDto.getSortBy()).descending() 
+                : Sort.by(getCandidateAttemptsDto.getSortBy()).ascending();
             
-            Pageable pageable = PageRequest.of(page, size, sort);
+            Pageable pageable = PageRequest.of(getCandidateAttemptsDto.getPage(), getCandidateAttemptsDto.getSize(), sort);
             List<CandidateAttemptCacheDto> attempts = candidateAttemptService.getCandidateAttemptsWithFilters(
-                candidateId, assessmentId, status, startedAfter, startedBefore, 
-                completedAfter, completedBefore, pageable);
+                getCandidateAttemptsDto.getCandidateId(), getCandidateAttemptsDto.getAssessmentId(), getCandidateAttemptsDto.getAttemptStatus(), getCandidateAttemptsDto.getStartedAfter(), getCandidateAttemptsDto.getStartedBefore(), 
+                getCandidateAttemptsDto.getCompletedAfter(), getCandidateAttemptsDto.getCompletedBefore(), pageable);
             List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
                     .map(FetchCandidateAttemptDto::new)
                     .collect(Collectors.toList());

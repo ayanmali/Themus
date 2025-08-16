@@ -1,4 +1,4 @@
-package com.delphi.delphi.configs;
+package com.delphi.delphi.components;
 
 import java.time.LocalDate;
 

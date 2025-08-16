@@ -29,13 +29,13 @@ import com.delphi.delphi.dtos.NewCandidateDto;
 import com.delphi.delphi.dtos.PaginatedResponseDto;
 import com.delphi.delphi.dtos.cache.CandidateCacheDto;
 import com.delphi.delphi.dtos.cache.UserCacheDto;
+import com.delphi.delphi.dtos.get.GetCandidatesDto;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.repositories.UserRepository;
 import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.CandidateService;
 import com.delphi.delphi.services.UserService;
-import com.delphi.delphi.utils.AttemptStatus;
 
 import jakarta.validation.Valid;
 
@@ -138,26 +138,18 @@ public class CandidateController {
 
     // Get all candidates with pagination and filtering for the current user
     @GetMapping("/filter")
-    public ResponseEntity<?> getAllCandidates(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDirection,
-            @RequestParam(required = false) Long assessmentId,
-            @RequestParam(required = false) List<AttemptStatus> attemptStatuses,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAfter,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdBefore) {
+    public ResponseEntity<?> getAllCandidates(GetCandidatesDto getCandidatesDto) {
         try {
             UserCacheDto user = getCurrentUser();
-            Sort sort = sortDirection.equalsIgnoreCase("desc") 
-                ? Sort.by(sortBy).descending() 
-                : Sort.by(sortBy).ascending();
+            Sort sort = getCandidatesDto.getSortDirection().equalsIgnoreCase("desc") 
+                ? Sort.by(getCandidatesDto.getSortBy()).descending() 
+                : Sort.by(getCandidatesDto.getSortBy()).ascending();
             
-            Pageable pageable = PageRequest.of(page, size, sort);
+            Pageable pageable = PageRequest.of(getCandidatesDto.getPage(), getCandidatesDto.getSize(), sort);
             PaginatedResponseDto<CandidateCacheDto> paginatedResponse = candidateService.getCandidatesWithFiltersForUser(
-                user.getId(), assessmentId,
-                attemptStatuses,
-                createdAfter, createdBefore, pageable);
+                user.getId(), getCandidatesDto.getAssessmentId(),
+                getCandidatesDto.getAttemptStatuses(),
+                getCandidatesDto.getCreatedAfter(), getCandidatesDto.getCreatedBefore(), pageable);
             
             // Convert CandidateCacheDto to FetchCandidateDto
             List<FetchCandidateDto> candidateDtos = paginatedResponse.getContent().stream()

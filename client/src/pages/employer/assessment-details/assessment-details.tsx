@@ -174,9 +174,9 @@ export default function AssessmentDetails() {
     });
 
     // Extract attempts from the response
-    const candidateAttempts = attemptsData?.content || [];
-    const totalAttempts = attemptsData?.totalElements || 0;
-    const totalAttemptsPages = attemptsData?.totalPages || 0;
+    const candidateAttempts: CandidateAttempt[] = attemptsData?.content || [];
+    const totalAttempts: number = attemptsData?.totalElements || 0;
+    const totalAttemptsPages: number = attemptsData?.totalPages || 0;
 
     // Extract available candidates from the response
     const availableCandidates: Candidate[] = availableCandidatesData?.content || [];
@@ -192,7 +192,7 @@ export default function AssessmentDetails() {
     });
 
     // Filter available candidates based on search term
-    const filteredAvailableCandidates = availableCandidates.filter((candidate: any) => {
+    const filteredAvailableCandidates = availableCandidates.filter((candidate: Candidate) => {
         const candidateName = candidate.fullName || `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim();
         const candidateEmail = candidate.email;
         const matchesSearch = candidateSearchTerm === '' ||

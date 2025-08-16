@@ -37,7 +37,6 @@ import com.delphi.delphi.repositories.UserRepository;
 import com.delphi.delphi.specifications.AssessmentSpecifications;
 import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.AttemptStatus;
-import com.delphi.delphi.utils.CacheUtils;
 import com.delphi.delphi.utils.git.GithubAccountType;
 
 @Service
@@ -208,14 +207,9 @@ public class AssessmentService {
      */
     @Transactional(readOnly = true)
     public PaginatedResponseDto<AssessmentCacheDto> getAssessmentsWithFilters(UserCacheDto user, AssessmentStatus status,
-            LocalDateTime startDate, LocalDateTime endDate, LocalDateTime assessmentStartDate, LocalDateTime assessmentEndDate,
+            LocalDateTime createdAfter, LocalDateTime createdBefore, LocalDateTime assessmentStartDate, LocalDateTime assessmentEndDate,
             List<String> skills, List<String> languageOptions, Pageable pageable) {
-        // Generate cache key with only user ID and date range to reduce cache key
-        // proliferation
-        String normalizedStartDate = CacheUtils.normalizeDateTime(startDate);
-        String normalizedEndDate = CacheUtils.normalizeDateTime(endDate);
-        String cacheKey = "cache:user_assessments:" + user.getId() + ":" + normalizedStartDate + ":"
-                + normalizedEndDate;
+        String cacheKey = "cache:user_assessments:" + user.getId();
 
         // Check if cache exists
         List<AssessmentCacheDto> cachedAssessments = null;
@@ -224,12 +218,10 @@ public class AssessmentService {
             log.info("cache hit for assessments: {}", cacheKey);
         }
 
-        // If cache doesn't exist, fetch from DB with only user and date filters
+        // If cache doesn't exist, fetch from DB with all applicable filters
         if (cachedAssessments == null) {
             Specification<Assessment> spec = Specification.allOf(
-                    AssessmentSpecifications.belongsToUser(user.getId())
-                            .and(AssessmentSpecifications.createdAfter(startDate))
-                            .and(AssessmentSpecifications.createdBefore(endDate)));
+                    AssessmentSpecifications.belongsToUser(user.getId()));
 
             // Fetch all assessments for the user within date range (no pagination at DB
             // level)
