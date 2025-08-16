@@ -3,9 +3,11 @@ package com.delphi.delphi.services;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -99,8 +101,12 @@ public class AssessmentService {
             assessment.setChatMessages(List.of());
         }
 
-        evictUserAssessmentsCache(assessment.getUser().getId());
-        return new AssessmentCacheDto(assessmentRepository.save(assessment));
+        AssessmentCacheDto savedAssessment = new AssessmentCacheDto(assessmentRepository.save(assessment));
+        
+        // Update cache: add to general cache and evict specific caches
+        updateCacheAfterAssessmentCreation(assessment.getUser().getId(), savedAssessment);
+        
+        return savedAssessment;
     }
 
     @CachePut(value = "assessments", key = "#result.id")
@@ -152,8 +158,12 @@ public class AssessmentService {
         log.info("assessment github repository link: {}", assessment.getGithubRepositoryLink());
         log.info("assessment language options: {}", assessment.getLanguageOptions());
         // save assessment in DB
-        evictUserAssessmentsCache(user.getId());
-        return new AssessmentCacheDto(assessmentRepository.save(assessment));
+        AssessmentCacheDto savedAssessment = new AssessmentCacheDto(assessmentRepository.save(assessment));
+        
+        // Update cache: add to general cache and evict specific caches
+        updateCacheAfterAssessmentCreation(user.getId(), savedAssessment);
+        
+        return savedAssessment;
     }
 
     // Get assessment by ID
@@ -204,151 +214,50 @@ public class AssessmentService {
      * @param languageOptions Filter by required language options (applied in memory)
      * @param pageable        Pagination and sorting parameters (applied in memory)
      * @return PaginatedResponseDto containing filtered assessments and pagination metadata
+     * 
      */
     @Transactional(readOnly = true)
     public PaginatedResponseDto<AssessmentCacheDto> getAssessmentsWithFilters(UserCacheDto user, AssessmentStatus status,
             LocalDateTime createdAfter, LocalDateTime createdBefore, LocalDateTime assessmentStartDate, LocalDateTime assessmentEndDate,
             List<String> skills, List<String> languageOptions, Pageable pageable) {
-        String cacheKey = "cache:user_assessments:" + user.getId();
-
-        // Check if cache exists
-        List<AssessmentCacheDto> cachedAssessments = null;
-        if (redisService.hasKey(cacheKey)) {
-            cachedAssessments = (List<AssessmentCacheDto>) redisService.get(cacheKey);
-            log.info("cache hit for assessments: {}", cacheKey);
-        }
-
-        // If cache doesn't exist, fetch from DB with all applicable filters
-        if (cachedAssessments == null) {
-            Specification<Assessment> spec = Specification.allOf(
-                    AssessmentSpecifications.belongsToUser(user.getId()));
-
-            // Fetch all assessments for the user within date range (no pagination at DB
-            // level)
-            cachedAssessments = assessmentRepository.findAll(spec).stream()
-                    .map(AssessmentCacheDto::new)
-                    .collect(Collectors.toList());
-
-            // Store in cache for future requests
-            redisService.set(cacheKey, cachedAssessments);
-        }
-
-        // Apply remaining filters in memory for better performance and flexibility
-        List<AssessmentCacheDto> filteredAssessments = cachedAssessments.stream()
-                .filter(assessment -> {
-                    // Filter by status
-                    if (status != null && assessment.getStatus() != status) {
-                        return false;
-                    }
-
-                    // Filter by assessment start date
-                    if (assessmentStartDate != null) {
-                        if (assessment.getStartDate() == null || assessment.getStartDate().isBefore(assessmentStartDate)) {
-                            return false;
-                        }
-                    }
-
-                    // Filter by assessment end date
-                    if (assessmentEndDate != null) {
-                        if (assessment.getEndDate() == null || assessment.getEndDate().isAfter(assessmentEndDate)) {
-                            return false;
-                        }
-                    }
-
-                    // Filter by skills - assessment must have at least one of the required skills
-                    if (skills != null && !skills.isEmpty()) {
-                        if (assessment.getSkills() == null || assessment.getSkills().isEmpty()) {
-                            return false;
-                        }
-                        boolean hasRequiredSkill = skills.stream()
-                                .anyMatch(skill -> assessment.getSkills().contains(skill));
-                        if (!hasRequiredSkill) {
-                            return false;
-                        }
-                    }
-
-                    // Filter by language options - assessment must have at least one of the
-                    // required language options
-                    if (languageOptions != null && !languageOptions.isEmpty()) {
-                        if (assessment.getLanguageOptions() == null || assessment.getLanguageOptions().isEmpty()) {
-                            return false;
-                        }
-                        boolean hasRequiredLanguage = languageOptions.stream()
-                                .anyMatch(language -> assessment.getLanguageOptions().contains(language));
-                        if (!hasRequiredLanguage) {
-                            return false;
-                        }
-                    }
-
-                    return true;
-                })
-                .collect(Collectors.toList());
-
-        // Apply sorting in memory based on Pageable sort criteria
-        if (pageable.getSort().isSorted()) {
-            filteredAssessments = filteredAssessments.stream()
-                    .sorted((a1, a2) -> {
-                        for (Sort.Order order : pageable.getSort()) {
-                            int comparison = 0;
-                            comparison = switch (order.getProperty().toLowerCase()) {
-                                case "id" -> a1.getId().compareTo(a2.getId());
-                                case "name" -> (a1.getName() != null && a2.getName() != null)
-                                        ? a1.getName().compareTo(a2.getName())
-                                        : 0;
-                                case "role" -> (a1.getRole() != null && a2.getRole() != null)
-                                        ? a1.getRole().compareTo(a2.getRole())
-                                        : 0;
-                                case "status" -> (a1.getStatus() != null && a2.getStatus() != null)
-                                        ? a1.getStatus().compareTo(a2.getStatus())
-                                        : 0;
-                                case "createddate" -> (a1.getCreatedDate() != null && a2.getCreatedDate() != null)
-                                        ? a1.getCreatedDate().compareTo(a2.getCreatedDate())
-                                        : 0;
-                                case "updateddate" -> (a1.getUpdatedDate() != null && a2.getUpdatedDate() != null)
-                                        ? a1.getUpdatedDate().compareTo(a2.getUpdatedDate())
-                                        : 0;
-                                case "startdate" -> (a1.getStartDate() != null && a2.getStartDate() != null)
-                                        ? a1.getStartDate().compareTo(a2.getStartDate())
-                                        : 0;
-                                case "enddate" -> (a1.getEndDate() != null && a2.getEndDate() != null)
-                                        ? a1.getEndDate().compareTo(a2.getEndDate())
-                                        : 0;
-                                case "duration" -> (a1.getDuration() != null && a2.getDuration() != null)
-                                        ? a1.getDuration().compareTo(a2.getDuration())
-                                        : 0;
-                                default -> 0;
-                            };
-                            if (comparison != 0) {
-                                return order.isAscending() ? comparison : -comparison;
-                            }
-                        }
-                        return 0;
-                    })
-                    .collect(Collectors.toList());
-        }
-
-        // Calculate pagination metadata
-        long totalElements = filteredAssessments.size();
-        int totalPages = (int) Math.ceil((double) totalElements / pageable.getPageSize());
         
-        // Apply pagination in memory
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), filteredAssessments.size());
+        // Check if no filters are applied (only user filter)
+        boolean hasFilters = status != null || createdAfter != null || createdBefore != null || 
+                           assessmentStartDate != null || assessmentEndDate != null || 
+                           (skills != null && !skills.isEmpty()) || (languageOptions != null && !languageOptions.isEmpty());
         
-        List<AssessmentCacheDto> paginatedAssessments;
-        if (start >= filteredAssessments.size()) {
-            paginatedAssessments = List.of();
-        } else {
-            paginatedAssessments = filteredAssessments.subList(start, end);
+        if (!hasFilters) {
+            // No filters - check general cache or fetch from DB
+            return getGeneralUserAssessments(user, pageable);
         }
-
-        // Return paginated response with metadata
-        return new PaginatedResponseDto<>(
-            paginatedAssessments,
-            pageable.getPageNumber(),
-            pageable.getPageSize(),
-            totalElements
-        );
+        
+        // Generate specific cache key for filtered query
+        String specificCacheKey = generateSpecificCacheKey(user.getId(), status, createdAfter, createdBefore, 
+                                                          assessmentStartDate, assessmentEndDate, skills, languageOptions);
+        
+        // Try to get from specific cache first
+        List<AssessmentCacheDto> cachedSpecificResult = getCachedAssessmentList(specificCacheKey);
+        if (cachedSpecificResult != null) {
+            return applyPaginationToList(cachedSpecificResult, pageable);
+        }
+        
+        // Try to get from general cache and apply filters in memory
+        String generalCacheKey = generateGeneralCacheKey(user.getId());
+        List<AssessmentCacheDto> cachedGeneralResult = getCachedAssessmentList(generalCacheKey);
+        if (cachedGeneralResult != null) {
+            List<AssessmentCacheDto> filteredResult = applyFiltersInMemory(cachedGeneralResult, status, 
+                    createdAfter, createdBefore, assessmentStartDate, assessmentEndDate, skills, languageOptions);
+            
+            // Cache the filtered result for future use
+            cacheAssessmentList(specificCacheKey, filteredResult);
+            
+            return applyPaginationToList(filteredResult, pageable);
+        }
+        
+        // No cache hit - fetch from database with all filters
+        return fetchFromDatabaseWithFilters(user, status, createdAfter, createdBefore, 
+                                          assessmentStartDate, assessmentEndDate, skills, languageOptions, 
+                                          pageable, specificCacheKey);
     }
 
     // Update assessment
@@ -402,9 +311,12 @@ public class AssessmentService {
             }
         }
 
-        evictUserAssessmentsCache(existingAssessment.getUser().getId());
-
-        return new AssessmentCacheDto(assessmentRepository.save(existingAssessment));
+        AssessmentCacheDto updatedAssessment = new AssessmentCacheDto(assessmentRepository.save(existingAssessment));
+        
+        // Update cache: update general cache and evict specific caches
+        updateCacheAfterAssessmentUpdate(existingAssessment.getUser().getId(), updatedAssessment);
+        
+        return updatedAssessment;
     }
 
     // Delete assessment
@@ -412,8 +324,14 @@ public class AssessmentService {
     public void deleteAssessment(Long id) {
         Assessment assessment = assessmentRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id));
+        
+        // Get assessment DTO for cache removal
+        AssessmentCacheDto assessmentDto = new AssessmentCacheDto(assessment);
+        
         assessmentRepository.delete(assessment);
-        evictUserAssessmentsCache(assessment.getUser().getId());
+        
+        // Update cache: remove from general cache and evict specific caches
+        updateCacheAfterAssessmentDeletion(assessment.getUser().getId(), assessmentDto);
     }
 
     // Get assessments by user ID
@@ -694,14 +612,258 @@ public class AssessmentService {
     }
 
     /**
-     * Add a candidate to the list corresponding to the user's candidates cache
-     * key(s)
-     * 
-     * @param userId    The user ID for which to add the candidate to the cache
-     * @param candidate The candidate to add to the cache
+     * Cache key generation methods
      */
-    private void evictUserAssessmentsCache(Long userId) {
-        redisService.evictCache("cache:user_assessments:" + userId + ":*");
+    private String generateGeneralCacheKey(Long userId) {
+        return "cache:user_assessments:" + userId;
+    }
+    
+    private String generateSpecificCacheKey(Long userId, AssessmentStatus status, LocalDateTime createdAfter, 
+                                          LocalDateTime createdBefore, LocalDateTime assessmentStartDate, 
+                                          LocalDateTime assessmentEndDate, List<String> skills, List<String> languageOptions) {
+        StringBuilder keyBuilder = new StringBuilder();
+        keyBuilder.append("cache:user_assessments:").append(userId).append(":");
+        
+        // Add status
+        keyBuilder.append(status != null ? status.toString() : "null").append(":");
+        
+        // Add date filters
+        keyBuilder.append(createdAfter != null ? createdAfter.toString() : "null").append(":");
+        keyBuilder.append(createdBefore != null ? createdBefore.toString() : "null").append(":");
+        keyBuilder.append(assessmentStartDate != null ? assessmentStartDate.toString() : "null").append(":");
+        keyBuilder.append(assessmentEndDate != null ? assessmentEndDate.toString() : "null").append(":");
+        
+        // Add skills (sorted for consistent keys)
+        if (skills != null && !skills.isEmpty()) {
+            skills.stream().sorted().forEach(skill -> keyBuilder.append(skill).append(","));
+        } else {
+            keyBuilder.append("null");
+        }
+        keyBuilder.append(":");
+        
+        // Add language options (sorted for consistent keys)
+        if (languageOptions != null && !languageOptions.isEmpty()) {
+            languageOptions.stream().sorted().forEach(lang -> keyBuilder.append(lang).append(","));
+        } else {
+            keyBuilder.append("null");
+        }
+        
+        return keyBuilder.toString();
+    }
+    
+    /**
+     * Cache operations helper methods
+     */
+    @SuppressWarnings("unchecked")
+    private List<AssessmentCacheDto> getCachedAssessmentList(String cacheKey) {
+        try {
+            Object cached = redisService.get(cacheKey);
+            if (cached instanceof List<?>) {
+                return (List<AssessmentCacheDto>) cached;
+            }
+        } catch (Exception e) {
+            log.warn("Failed to retrieve cached assessment list for key: {}, error: {}", cacheKey, e.getMessage());
+        }
+        return null;
+    }
+    
+    private void cacheAssessmentList(String cacheKey, List<AssessmentCacheDto> assessments) {
+        try {
+            // Cache for 15 minutes (matching the assessments cache configuration)
+            redisService.setWithExpiration(cacheKey, assessments, 15, TimeUnit.MINUTES);
+        } catch (Exception e) {
+            log.warn("Failed to cache assessment list for key: {}, error: {}", cacheKey, e.getMessage());
+        }
+    }
+    
+    private PaginatedResponseDto<AssessmentCacheDto> getGeneralUserAssessments(UserCacheDto user, Pageable pageable) {
+        String generalCacheKey = generateGeneralCacheKey(user.getId());
+        List<AssessmentCacheDto> cachedResult = getCachedAssessmentList(generalCacheKey);
+        
+        if (cachedResult != null) {
+            return applyPaginationToList(cachedResult, pageable);
+        }
+        
+        // Fetch from database with only user filter
+        Specification<Assessment> spec = AssessmentSpecifications.belongsToUser(user.getId());
+        List<Assessment> assessments = assessmentRepository.findAll(spec);
+        List<AssessmentCacheDto> assessmentDtos = assessments.stream()
+                .map(AssessmentCacheDto::new)
+                .collect(Collectors.toList());
+        
+        // Cache the general result
+        cacheAssessmentList(generalCacheKey, assessmentDtos);
+        
+        return applyPaginationToList(assessmentDtos, pageable);
+    }
+    
+    private PaginatedResponseDto<AssessmentCacheDto> fetchFromDatabaseWithFilters(UserCacheDto user, AssessmentStatus status,
+            LocalDateTime createdAfter, LocalDateTime createdBefore, LocalDateTime assessmentStartDate, LocalDateTime assessmentEndDate,
+            List<String> skills, List<String> languageOptions, Pageable pageable, String specificCacheKey) {
+        
+        // Build specification with all filters
+        Specification<Assessment> spec = AssessmentSpecifications.belongsToUser(user.getId());
+        
+        if (status != null) {
+            spec = spec.and(AssessmentSpecifications.hasAssessmentStatus(status));
+        }
+        if (createdAfter != null) {
+            spec = spec.and(AssessmentSpecifications.createdAfter(createdAfter));
+        }
+        if (createdBefore != null) {
+            spec = spec.and(AssessmentSpecifications.createdBefore(createdBefore));
+        }
+        if (assessmentStartDate != null) {
+            spec = spec.and(AssessmentSpecifications.startDateAfter(assessmentStartDate));
+        }
+        if (assessmentEndDate != null) {
+            spec = spec.and(AssessmentSpecifications.endDateBefore(assessmentEndDate));
+        }
+        if (skills != null && !skills.isEmpty()) {
+            for (String skill : skills) {
+                spec = spec.and(AssessmentSpecifications.hasSkill(skill));
+            }
+        }
+        if (languageOptions != null && !languageOptions.isEmpty()) {
+            spec = spec.and(AssessmentSpecifications.hasLanguageOptions(languageOptions));
+        }
+        
+        List<Assessment> assessments = assessmentRepository.findAll(spec);
+        List<AssessmentCacheDto> assessmentDtos = assessments.stream()
+                .map(AssessmentCacheDto::new)
+                .collect(Collectors.toList());
+        
+        // Cache the specific filtered result
+        cacheAssessmentList(specificCacheKey, assessmentDtos);
+        
+        return applyPaginationToList(assessmentDtos, pageable);
+    }
+    
+    /**
+     * In-memory filtering and pagination helper methods
+     */
+    private List<AssessmentCacheDto> applyFiltersInMemory(List<AssessmentCacheDto> assessments, AssessmentStatus status,
+            LocalDateTime createdAfter, LocalDateTime createdBefore, LocalDateTime assessmentStartDate, LocalDateTime assessmentEndDate,
+            List<String> skills, List<String> languageOptions) {
+        
+        return assessments.stream()
+                .filter(assessment -> status == null || assessment.getStatus() == status)
+                .filter(assessment -> createdAfter == null || assessment.getCreatedDate().isAfter(createdAfter))
+                .filter(assessment -> createdBefore == null || assessment.getCreatedDate().isBefore(createdBefore))
+                .filter(assessment -> assessmentStartDate == null || 
+                        (assessment.getStartDate() != null && assessment.getStartDate().isAfter(assessmentStartDate)))
+                .filter(assessment -> assessmentEndDate == null || 
+                        (assessment.getEndDate() != null && assessment.getEndDate().isBefore(assessmentEndDate)))
+                .filter(assessment -> skills == null || skills.isEmpty() || 
+                        (assessment.getSkills() != null && assessment.getSkills().containsAll(skills)))
+                .filter(assessment -> languageOptions == null || languageOptions.isEmpty() || 
+                        (assessment.getLanguageOptions() != null && assessment.getLanguageOptions().containsAll(languageOptions)))
+                .collect(Collectors.toList());
+    }
+    
+    private PaginatedResponseDto<AssessmentCacheDto> applyPaginationToList(List<AssessmentCacheDto> assessments, Pageable pageable) {
+        // Apply sorting
+        List<AssessmentCacheDto> sortedAssessments = new ArrayList<>(assessments);
+        if (pageable.getSort().isSorted()) {
+            sortedAssessments.sort((a1, a2) -> {
+                for (Sort.Order order : pageable.getSort()) {
+                    int comparison = compareAssessmentsByField(a1, a2, order.getProperty());
+                    if (comparison != 0) {
+                        return order.isAscending() ? comparison : -comparison;
+                    }
+                }
+                return 0;
+            });
+        }
+        
+        // Apply pagination
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), sortedAssessments.size());
+        
+        List<AssessmentCacheDto> pageContent = start >= sortedAssessments.size() ? 
+                List.of() : sortedAssessments.subList(start, end);
+        
+        return new PaginatedResponseDto<>(
+                pageContent,
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                sortedAssessments.size()
+        );
+    }
+    
+    private int compareAssessmentsByField(AssessmentCacheDto a1, AssessmentCacheDto a2, String field) {
+        return switch (field) {
+            case "name" -> compareNullable(a1.getName(), a2.getName());
+            case "createdDate" -> compareNullable(a1.getCreatedDate(), a2.getCreatedDate());
+            case "updatedDate" -> compareNullable(a1.getUpdatedDate(), a2.getUpdatedDate());
+            case "startDate" -> compareNullable(a1.getStartDate(), a2.getStartDate());
+            case "endDate" -> compareNullable(a1.getEndDate(), a2.getEndDate());
+            case "status" -> compareNullable(a1.getStatus(), a2.getStatus());
+            case "role" -> compareNullable(a1.getRole(), a2.getRole());
+            case "duration" -> compareNullable(a1.getDuration(), a2.getDuration());
+            default -> 0;
+        };
+    }
+    
+    @SuppressWarnings("unchecked")
+    private <T extends Comparable<T>> int compareNullable(T a, T b) {
+        if (a == null && b == null) return 0;
+        if (a == null) return -1;
+        if (b == null) return 1;
+        return a.compareTo(b);
+    }
+
+    /**
+     * Cache update methods for CRUD operations
+     */
+    private void updateCacheAfterAssessmentCreation(Long userId, AssessmentCacheDto newAssessment) {
+        // Add to general cache if it exists
+        String generalCacheKey = generateGeneralCacheKey(userId);
+        List<AssessmentCacheDto> cachedAssessments = getCachedAssessmentList(generalCacheKey);
+        if (cachedAssessments != null) {
+            cachedAssessments.add(newAssessment);
+            cacheAssessmentList(generalCacheKey, cachedAssessments);
+        }
+        
+        // Evict all specific filter caches for this user
+        evictUserAssessmentsSpecificCaches(userId);
+    }
+    
+    private void updateCacheAfterAssessmentUpdate(Long userId, AssessmentCacheDto updatedAssessment) {
+        // Update in general cache if it exists
+        String generalCacheKey = generateGeneralCacheKey(userId);
+        List<AssessmentCacheDto> cachedAssessments = getCachedAssessmentList(generalCacheKey);
+        if (cachedAssessments != null) {
+            // Find and replace the assessment
+            for (int i = 0; i < cachedAssessments.size(); i++) {
+                if (cachedAssessments.get(i).getId().equals(updatedAssessment.getId())) {
+                    cachedAssessments.set(i, updatedAssessment);
+                    break;
+                }
+            }
+            cacheAssessmentList(generalCacheKey, cachedAssessments);
+        }
+        
+        // Evict all specific filter caches for this user
+        evictUserAssessmentsSpecificCaches(userId);
+    }
+    
+    private void updateCacheAfterAssessmentDeletion(Long userId, AssessmentCacheDto deletedAssessment) {
+        // Remove from general cache if it exists
+        String generalCacheKey = generateGeneralCacheKey(userId);
+        List<AssessmentCacheDto> cachedAssessments = getCachedAssessmentList(generalCacheKey);
+        if (cachedAssessments != null) {
+            cachedAssessments.removeIf(assessment -> assessment.getId().equals(deletedAssessment.getId()));
+            cacheAssessmentList(generalCacheKey, cachedAssessments);
+        }
+        
+        // Evict all specific filter caches for this user
+        evictUserAssessmentsSpecificCaches(userId);
+    }
+
+    private void evictUserAssessmentsSpecificCaches(Long userId) {
+        // Evict all specific filter caches but keep the general cache
+        redisService.evictCache("cache:user_assessments:" + userId + ":*:*");
     }
 
 }
