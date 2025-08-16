@@ -35,7 +35,8 @@ import com.delphi.delphi.utils.CacheUtils;
 /*
  * There are two different caches used here
  * 1. candidates - all candidates
- * 2. user_candidates - the list of candidates for a user within a date range
+ * 2. user_candidates - the list of candidates for a user
+ * 3. assessment_candidates - the list of candidates for an assessment
  * (filters like assessmentId, attemptStatus, firstName, lastName, emailDomain
  * are applied in memory)
  */
@@ -224,6 +225,114 @@ public class CandidateService {
                         }
                     }
 
+                    return true;
+                })
+                .collect(Collectors.toList());
+
+        // Apply sorting in memory based on Pageable sort criteria
+        if (pageable.getSort().isSorted()) {
+            filteredCandidates = filteredCandidates.stream()
+                    .sorted((c1, c2) -> {
+                        for (Sort.Order order : pageable.getSort()) {
+                            int comparison = 0;
+                            comparison = switch (order.getProperty().toLowerCase()) {
+                                case "id" -> c1.getId().compareTo(c2.getId());
+                                case "createddate" -> (c1.getCreatedDate() != null && c2.getCreatedDate() != null)
+                                        ? c1.getCreatedDate().compareTo(c2.getCreatedDate())
+                                        : 0;
+                                case "updateddate" -> (c1.getUpdatedDate() != null && c2.getUpdatedDate() != null)
+                                        ? c1.getUpdatedDate().compareTo(c2.getUpdatedDate())
+                                        : 0;
+                                default -> 0;
+                            };
+                            if (comparison != 0) {
+                                return order.isAscending() ? comparison : -comparison;
+                            }
+                        }
+                        return 0;
+                    })
+                    .collect(Collectors.toList());
+        }
+
+        // Calculate pagination metadata
+        long totalElements = filteredCandidates.size();
+        int totalPages = (int) Math.ceil((double) totalElements / pageable.getPageSize());
+
+        // Apply pagination in memory
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), filteredCandidates.size());
+
+        List<CandidateCacheDto> paginatedCandidates;
+        if (start >= filteredCandidates.size()) {
+            paginatedCandidates = List.of();
+        } else {
+            paginatedCandidates = filteredCandidates.subList(start, end);
+        }
+
+        // Return paginated response with metadata
+        return new PaginatedResponseDto<>(
+                paginatedCandidates,
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                totalElements);
+    }
+
+    /**
+     * Get candidates who are NOT in a specific assessment (available candidates for adding to assessment)
+     * 
+     * @param userId                 The user whose candidates to retrieve
+     * @param excludeAssessmentId    Assessment ID to exclude (candidates NOT in this assessment)
+     * @param createdAfter           Start date for date range filter (used in cache key)
+     * @param createdBefore          End date for date range filter (used in cache key)
+     * @param pageable               Pagination and sorting parameters (applied in memory)
+     * @return PaginatedResponseDto containing filtered candidates and pagination metadata
+     */
+    @Transactional(readOnly = true)
+    public PaginatedResponseDto<CandidateCacheDto> getAvailableCandidatesForAssessment(Long userId, Long excludeAssessmentId,
+            LocalDateTime createdAfter, LocalDateTime createdBefore,
+            Pageable pageable) {
+        log.info(
+                "getAvailableCandidatesForAssessment: userId={}, excludeAssessmentId={}, createdAfter={}, createdBefore={}, pageable={}",
+                userId, excludeAssessmentId, createdAfter, createdBefore, pageable);
+
+        // Generate cache key with only user ID and date range to reduce cache key proliferation
+        String normalizedCreatedAfter = CacheUtils.normalizeDateTime(createdAfter);
+        String normalizedCreatedBefore = CacheUtils.normalizeDateTime(createdBefore);
+        String cacheKey = "cache:user_candidates:" + userId + ":" + normalizedCreatedAfter + ":"
+                + normalizedCreatedBefore;
+
+        // Check if cache exists
+        List<CandidateCacheDto> cachedCandidates = null;
+        if (redisService.hasKey(cacheKey)) {
+            cachedCandidates = (List<CandidateCacheDto>) redisService.get(cacheKey);
+        }
+
+        // If cache doesn't exist, fetch from DB with only user and date filters
+        if (cachedCandidates == null) {
+            Specification<Candidate> spec = Specification.allOf(
+                    CandidateSpecifications.belongsToUser(userId),
+                    CandidateSpecifications.createdAfter(createdAfter),
+                    CandidateSpecifications.createdBefore(createdBefore));
+
+            // Fetch all candidates for the user within date range (no pagination at DB level)
+            cachedCandidates = candidateRepository.findAll(spec).stream()
+                    .map(CandidateCacheDto::new)
+                    .collect(Collectors.toList());
+
+            // Store in cache for future requests
+            redisService.set(cacheKey, cachedCandidates);
+        }
+
+        // Apply exclude assessment filter in memory
+        List<CandidateCacheDto> filteredCandidates = cachedCandidates.stream()
+                .filter(candidate -> {
+                    // Filter out candidates who are already in the assessment
+                    if (excludeAssessmentId != null) {
+                        if (candidate.getAssessmentIds() != null &&
+                                candidate.getAssessmentIds().contains(excludeAssessmentId)) {
+                            return false;
+                        }
+                    }
                     return true;
                 })
                 .collect(Collectors.toList());

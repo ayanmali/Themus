@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import Pagination from "@/components/ui/pagination";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface PaginatedResponse {
     content: Assessment[];
@@ -171,7 +172,7 @@ export default function EmployerAssessments() {
                     
                     <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {/* Status Filter */}
-                        <div>
+                        <div className="space-y-4">
                             <div className="flex items-center gap-x-2">
                                 <Label htmlFor="status-filter">Assessment Status</Label>
                                 <TooltipProvider delayDuration={100}>
@@ -185,22 +186,25 @@ export default function EmployerAssessments() {
                                     </Tooltip>
                                 </TooltipProvider>
                             </div>
-                            <select
-                                id="status-filter"
+                            <Select
                                 value={selectedStatus}
-                                onChange={(e) => setSelectedStatus(e.target.value)}
-                                className="mt-1 w-full bg-slate-700 border-slate-600 text-gray-200 focus:ring-slate-500 focus:border-slate-500 rounded-md"
+                                onValueChange={(value) => setSelectedStatus(value)}
                             >
-                                <option value="">All Statuses</option>
-                                <option value="DRAFT">Draft</option>
-                                <option value="ACTIVE">Active</option>
-                                <option value="INACTIVE">Inactive</option>
-                                <option value="EXPIRED">Expired</option>
-                            </select>
+                                <SelectTrigger className="bg-slate-700 border-slate-600 text-gray-100">
+                                    <SelectValue placeholder="All Statuses" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-slate-700 border-slate-600 text-gray-100">
+                                    <SelectItem value="ALL">All Statuses</SelectItem>
+                                    <SelectItem value="DRAFT">Draft</SelectItem>
+                                    <SelectItem value="ACTIVE">Active</SelectItem>
+                                    <SelectItem value="INACTIVE">Inactive</SelectItem>
+                                    <SelectItem value="EXPIRED">Expired</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         {/* Creation Date Range Filter */}
-                        <div>
+                        <div className="space-y-4">
                             <div className="flex items-center gap-x-2">
                                 <Label htmlFor="creation-date-filter">Created Date Range</Label>
                                 <TooltipProvider delayDuration={100}>
@@ -223,7 +227,7 @@ export default function EmployerAssessments() {
                         </div>
 
                         {/* Assessment Date Range Filter */}
-                        <div>
+                        <div className="space-y-4">
                             <div className="flex items-center gap-x-2">
                                 <Label htmlFor="assessment-date-filter">Assessment Date Range</Label>
                                 <TooltipProvider delayDuration={100}>

@@ -30,7 +30,8 @@ import com.delphi.delphi.utils.CacheUtils;
 /*
  * There are two different caches used here
  * 1. attempts - data about a given candidate attempt
- * 2. candidate_attempts - the list of candidate attempts for a candidate within a date range
+ * 2. assessment_attempts - the list of candidate attempts for an assessment
+ * 3. candidate_attempts - the list of candidate attempts for a candidate
  *    (filters like assessmentId, status, completedAfter, completedBefore are applied in memory)
  */
 public class CandidateAttemptService {

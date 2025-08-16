@@ -35,7 +35,9 @@ public class CandidateAttemptCacheDto {
         this.evaluatedDate = candidateAttempt.getEvaluatedDate();
         this.candidate = new CandidateCacheDto(candidateAttempt.getCandidate());
         this.assessmentId = candidateAttempt.getAssessment().getId();
+        if (candidateAttempt.getEvaluation() != null) { 
         this.evaluationId = candidateAttempt.getEvaluation().getId();
+        }
     }
 
     public Long getId() {

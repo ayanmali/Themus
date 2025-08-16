@@ -104,6 +104,40 @@ export default function AssessmentDetails() {
         },
     });
 
+    // Add candidates to assessment mutation
+    const addCandidatesMutation = useMutation({
+        mutationFn: async (candidateIds: string[]) => {
+            const promises = candidateIds.map(candidateId =>
+                apiCall(`/api/attempts/invite`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        candidateId: candidateId,
+                        assessmentId: assessmentId,
+                    }),
+                })
+            );
+            
+            const results = await Promise.all(promises);
+            return results;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['candidateAttempts', 'assessment', assessmentId] });
+            queryClient.invalidateQueries({ queryKey: ['availableCandidates', 'assessment', assessmentId] });
+            setSelectedCandidateIds([]);
+            toast({
+                title: "Success",
+                description: "Candidates added to assessment successfully",
+            });
+        },
+        onError: (error: any) => {
+            toast({
+                title: "Error",
+                description: error.message || "Failed to add candidates to assessment",
+                variant: "destructive",
+            });
+        },
+    });
+
     // Fetch candidate attempts for this assessment
     const { data: attemptsData, isLoading: attemptsLoading, error: attemptsError } = useQuery({
         queryKey: ['candidateAttempts', 'assessment', assessmentId, currentCandidatePage, candidateStatusFilter],
@@ -122,15 +156,45 @@ export default function AssessmentDetails() {
         enabled: !!assessmentId,
     });
 
+    // Fetch available candidates for this assessment (candidates NOT in the assessment)
+    const { data: availableCandidatesData, isLoading: availableCandidatesLoading, error: availableCandidatesError } = useQuery({
+        queryKey: ['availableCandidates', 'assessment', assessmentId],
+        queryFn: async () => {
+            const response = await apiCall(`/api/candidates/available-for-assessment?assessmentId=${assessmentId}&page=0&size=100`, {
+                method: 'GET',
+            });
+
+            if (!response) {
+                throw new Error('Failed to fetch available candidates');
+            }
+
+            return response;
+        },
+        enabled: !!assessmentId,
+    });
+
     // Extract attempts from the response
     const candidateAttempts = attemptsData?.content || [];
     const totalAttempts = attemptsData?.totalElements || 0;
     const totalAttemptsPages = attemptsData?.totalPages || 0;
 
+    // Extract available candidates from the response
+    const availableCandidates: Candidate[] = availableCandidatesData?.content || [];
+
     // Filter candidate attempts based on search term
-    const filteredAttempts = candidateAttempts.filter((attempt: any) => {
+    const filteredAttempts: CandidateAttempt[] = candidateAttempts.filter((attempt: any) => {
         const candidateName = attempt.candidate?.fullName || `${attempt.candidate?.firstName || ''} ${attempt.candidate?.lastName || ''}`.trim();
         const candidateEmail = attempt.candidate?.email;
+        const matchesSearch = candidateSearchTerm === '' ||
+            candidateName?.toLowerCase().includes(candidateSearchTerm.toLowerCase()) ||
+            candidateEmail?.toLowerCase().includes(candidateSearchTerm.toLowerCase());
+        return matchesSearch;
+    });
+
+    // Filter available candidates based on search term
+    const filteredAvailableCandidates = availableCandidates.filter((candidate: any) => {
+        const candidateName = candidate.fullName || `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim();
+        const candidateEmail = candidate.email;
         const matchesSearch = candidateSearchTerm === '' ||
             candidateName?.toLowerCase().includes(candidateSearchTerm.toLowerCase()) ||
             candidateEmail?.toLowerCase().includes(candidateSearchTerm.toLowerCase());
@@ -859,7 +923,7 @@ export default function AssessmentDetails() {
                                                     setSelectedCandidateIds([]);
 
                                                 }}
-                                                disabled={attemptsLoading || !!attemptsError}
+                                                disabled={availableCandidatesLoading || !!availableCandidatesError}
                                             >
                                                 <Plus size={16} />
                                                 <span>Add</span>
@@ -873,6 +937,7 @@ export default function AssessmentDetails() {
                                                 </DialogDescription>
                                             </DialogHeader>
 
+                                            {/* Candidate Attempts Section */}
                                             <div className="px-6">
                                                 <Command className="rounded-lg border border-gray-600 bg-slate-800 text-white">
                                                     <CommandInput
@@ -885,34 +950,43 @@ export default function AssessmentDetails() {
                                                     </Button>
 
                                                     <CommandList className="max-h-[300px] overflow-y-auto">
-                                                        <CommandEmpty>No candidates found.</CommandEmpty>
-                                                        <CommandGroup heading="Available Candidates">
-                                                            {candidateAttempts.map((attempt: any) => (
+                                                        {availableCandidatesLoading ? (
+                                                            <div className="flex items-center justify-center p-4">
+                                                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                                                Loading candidates...
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <CommandEmpty>No candidates found.</CommandEmpty>
+                                                                <CommandGroup heading="Available Candidates">
+                                                                    {filteredAvailableCandidates.map((candidate: Candidate) => (
                                                                 <CommandItem
-                                                                    key={attempt.id}
+                                                                    key={candidate.id}
                                                                     className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-700"
                                                                     onSelect={() => {
                                                                         setSelectedCandidateIds(prev =>
-                                                                            prev.includes(attempt.id.toString())
-                                                                                ? prev.filter(id => id !== attempt.id.toString())
-                                                                                : [...prev, attempt.id.toString()]
+                                                                            prev.includes(candidate.id.toString())
+                                                                                ? prev.filter(id => id !== candidate.id.toString())
+                                                                                : [...prev, candidate.id.toString()]
                                                                         );
                                                                     }}
                                                                 >
                                                                     <div className="flex items-center justify-center w-4 h-4 border border-gray-400 rounded">
-                                                                        {selectedCandidateIds.includes(attempt.id.toString()) && (
+                                                                        {selectedCandidateIds.includes(candidate.id.toString()) && (
                                                                             <Check size={12} className="text-blue-400" />
                                                                         )}
                                                                     </div>
                                                                     <div className="flex flex-col flex-1">
                                                                         <span className="font-medium text-white">
-                                                                            {attempt.candidate?.fullName || `${attempt.candidate?.firstName || ''} ${attempt.candidate?.lastName || ''}`.trim()}
+                                                                            {candidate.fullName || `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim()}
                                                                         </span>
-                                                                        <span className="text-sm text-gray-400">{attempt.candidate?.email}</span>
+                                                                        <span className="text-sm text-gray-400">{candidate.email}</span>
                                                                     </div>
                                                                 </CommandItem>
                                                             ))}
-                                                        </CommandGroup>
+                                                                </CommandGroup>
+                                                            </>
+                                                        )}
                                                     </CommandList>
                                                 </Command>
                                             </div>
@@ -937,15 +1011,20 @@ export default function AssessmentDetails() {
 
                                                         <Button
                                                             type="submit"
-                                                            disabled={selectedCandidateIds.length === 0}
+                                                            disabled={selectedCandidateIds.length === 0 || addCandidatesMutation.isPending}
                                                             onClick={() => {
                                                                 console.log('Adding candidates:', selectedCandidateIds);
-                                                                // Handle adding selected candidates here
-
-                                                                setSelectedCandidateIds([]);
+                                                                addCandidatesMutation.mutate(selectedCandidateIds);
                                                             }}
                                                         >
-                                                            Add {selectedCandidateIds.length} Candidate{selectedCandidateIds.length !== 1 ? 's' : ''}
+                                                            {addCandidatesMutation.isPending ? (
+                                                                <>
+                                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                    Adding...
+                                                                </>
+                                                            ) : (
+                                                                `Add ${selectedCandidateIds.length} Candidate${selectedCandidateIds.length !== 1 ? 's' : ''}`
+                                                            )}
                                                         </Button>
 
 
@@ -1015,13 +1094,13 @@ export default function AssessmentDetails() {
                                         <>
                                             <div className="mb-4">
                                                 <p className="text-sm text-gray-400">
-                                                    Showing {candidateAttempts.length} of {totalAttempts} candidates
+                                                    Showing {filteredAttempts.length} of {totalAttempts} candidates
                                                 </p>
                                             </div>
 
                                             <div className="space-y-3">
-                                                {candidateAttempts.length > 0 ? (
-                                                    candidateAttempts.map((attempt: any) => (
+                                                {filteredAttempts.length > 0 ? (
+                                                    filteredAttempts.map((attempt: any) => (
                                                         <div
                                                             key={attempt.id}
                                                             className="bg-gray-800 rounded-lg p-4 flex items-center justify-between hover:bg-gray-650 transition-colors"

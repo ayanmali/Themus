@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.dtos.FetchCandidateAttemptDto;
+import com.delphi.delphi.dtos.InviteCandidateDto;
 import com.delphi.delphi.dtos.NewCandidateAttemptDto;
 import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
@@ -53,14 +54,14 @@ public class CandidateAttemptController {
     }
 
     @PostMapping("/invite")
-    public ResponseEntity<?> inviteCandidate(@Valid @RequestBody NewCandidateAttemptDto newCandidateAttemptDto) {
+    public ResponseEntity<?> inviteCandidate(@Valid @RequestBody InviteCandidateDto inviteCandidateDto) {
         try {
             // Fetch the candidate and assessment entities
-            Candidate candidate = candidateRepository.findById(newCandidateAttemptDto.getCandidateId())
-                .orElseThrow(() -> new IllegalArgumentException("Candidate not found with id: " + newCandidateAttemptDto.getCandidateId()));
+            Candidate candidate = candidateRepository.findById(inviteCandidateDto.getCandidateId())
+                .orElseThrow(() -> new IllegalArgumentException("Candidate not found with id: " + inviteCandidateDto.getCandidateId()));
             
-            Assessment assessment = assessmentRepository.findById(newCandidateAttemptDto.getAssessmentId())
-                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + newCandidateAttemptDto.getAssessmentId()));
+            Assessment assessment = assessmentRepository.findById(inviteCandidateDto.getAssessmentId())
+                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + inviteCandidateDto.getAssessmentId()));
             
             // Create a CandidateAttempt entity from the DTO
             CandidateAttempt candidateAttempt = new CandidateAttempt();

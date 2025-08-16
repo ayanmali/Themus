@@ -214,16 +214,24 @@ export default function EmployerCandidates() {
 
           {/* Date Range Filter */}
           <div>
-            <Label htmlFor="date-filter">Date Added</Label>
+            <div className="flex items-center gap-x-5">
+              <Label htmlFor="date-filter">Date Added</Label>
+            <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger className="cursor-pointer">
+                    <Info className="w-4 h-4" />
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-slate-700 border-slate-600 text-gray-100">
+                    <p>Filter for candidates who were added within the selected date range</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <div className="mt-2 space-y-2">
-              <div>
-                <Label htmlFor="date-from" className="text-sm text-gray-300">From</Label>
                 <DateRangePicker
                   onStartDateChange={(date) => setDateFrom(date?.toISOString() || "")}
                   onEndDateChange={(date) => setDateTo(date?.toISOString() || "")}
                 />
-              </div>
-
             </div>
           </div>
         </div>

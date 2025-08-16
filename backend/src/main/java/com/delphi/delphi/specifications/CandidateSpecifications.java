@@ -33,6 +33,24 @@ public class CandidateSpecifications {
         };
     }
 
+    public static Specification<Candidate> notInAssessment(Long assessmentId) {
+        return (root, query, criteriaBuilder) -> {
+            if (assessmentId == null) {
+                return criteriaBuilder.conjunction();
+            }
+            
+            // Create a subquery to find candidates who are in the specific assessment
+            var subquery = query.subquery(Candidate.class);
+            var subRoot = subquery.from(Candidate.class);
+            var subJoin = subRoot.join("assessments", JoinType.INNER);
+            
+            subquery.select(subRoot).where(criteriaBuilder.equal(subJoin.get("id"), assessmentId));
+            
+            // Return candidates who are NOT in the subquery result
+            return criteriaBuilder.not(root.in(subquery));
+        };
+    }
+
     // public static Specification<Candidate> hasAttemptStatus(List<AttemptStatus> attemptStatuses) {
     //     return (root, query, criteriaBuilder) -> {
     //         if (attemptStatuses == null) {

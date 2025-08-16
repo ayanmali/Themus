@@ -5,6 +5,9 @@ import java.util.Optional;
 
 import com.delphi.delphi.utils.AttemptStatus;
 
+/** For when the attempt has been started by the candidate
+* NOT when they have been invited
+*/
 public class NewCandidateAttemptDto {
     private String githubRepositoryLink;
     private Optional<String> languageChoice;

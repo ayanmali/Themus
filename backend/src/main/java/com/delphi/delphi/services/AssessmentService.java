@@ -46,7 +46,7 @@ import com.delphi.delphi.utils.git.GithubAccountType;
 /*
  * There are two different caches used here
  * 1. assessments - data about a given assessment
- * 2. user_assessments - the list of assessments for a user within a date range
+ * 2. user_assessments - the list of assessments for a user
  * (filters like status, skills, languageOptions are applied in memory)
  */
 public class AssessmentService {

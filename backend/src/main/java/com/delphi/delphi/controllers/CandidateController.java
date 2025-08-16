@@ -178,6 +178,47 @@ public class CandidateController {
                 .body("Error retrieving candidates: " + e.getMessage());
         }
     }
+
+    // Get available candidates for an assessment (candidates NOT in the assessment)
+    @GetMapping("/available-for-assessment")
+    public ResponseEntity<?> getAvailableCandidatesForAssessment(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDirection,
+            @RequestParam(required = true) Long assessmentId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAfter,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdBefore) {
+        try {
+            UserCacheDto user = getCurrentUser();
+            Sort sort = sortDirection.equalsIgnoreCase("desc") 
+                ? Sort.by(sortBy).descending() 
+                : Sort.by(sortBy).ascending();
+            
+            Pageable pageable = PageRequest.of(page, size, sort);
+            PaginatedResponseDto<CandidateCacheDto> paginatedResponse = candidateService.getAvailableCandidatesForAssessment(
+                user.getId(), assessmentId,
+                createdAfter, createdBefore, pageable);
+            
+            // Convert CandidateCacheDto to FetchCandidateDto
+            List<FetchCandidateDto> candidateDtos = paginatedResponse.getContent().stream()
+                    .map(FetchCandidateDto::new)
+                    .collect(Collectors.toList());
+
+            // Create response with pagination metadata
+            PaginatedResponseDto<FetchCandidateDto> response = new PaginatedResponseDto<>(
+                candidateDtos,
+                paginatedResponse.getPage(),
+                paginatedResponse.getSize(),
+                paginatedResponse.getTotalElements()
+            );
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error retrieving available candidates: " + e.getMessage());
+        }
+    }
     
     // Update candidate
     @PutMapping("/{id}")
