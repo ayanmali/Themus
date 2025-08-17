@@ -125,7 +125,7 @@ public class CandidateAttemptController {
             
             Pageable pageable = PageRequest.of(getCandidateAttemptsDto.getPage(), getCandidateAttemptsDto.getSize(), sort);
             List<CandidateAttemptCacheDto> attempts = candidateAttemptService.getCandidateAttemptsWithFilters(
-                getCandidateAttemptsDto.getCandidateId(), getCandidateAttemptsDto.getAssessmentId(), getCandidateAttemptsDto.getAttemptStatus(), getCandidateAttemptsDto.getStartedAfter(), getCandidateAttemptsDto.getStartedBefore(), 
+                getCandidateAttemptsDto.getCandidateId(), getCandidateAttemptsDto.getAssessmentId(), getCandidateAttemptsDto.getAttemptStatuses(), getCandidateAttemptsDto.getStartedAfter(), getCandidateAttemptsDto.getStartedBefore(), 
                 getCandidateAttemptsDto.getCompletedAfter(), getCandidateAttemptsDto.getCompletedBefore(), pageable);
             List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
                     .map(FetchCandidateAttemptDto::new)

@@ -1,6 +1,7 @@
 package com.delphi.delphi.services;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -22,7 +23,7 @@ import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.repositories.CandidateAttemptRepository;
 import com.delphi.delphi.specifications.CandidateAttemptSpecifications;
 import com.delphi.delphi.utils.AttemptStatus;
-import com.delphi.delphi.utils.CacheUtils;
+
 
 @Service
 @Transactional
@@ -32,7 +33,7 @@ import com.delphi.delphi.utils.CacheUtils;
  * 1. attempts - data about a given candidate attempt
  * 2. assessment_attempts - the list of candidate attempts for an assessment
  * 3. candidate_attempts - the list of candidate attempts for a candidate
- *    (filters like assessmentId, status, completedAfter, completedBefore are applied in memory)
+ * 4. all_attempts - the list of all attempts for all candidates
  */
 public class CandidateAttemptService {
 
@@ -61,8 +62,8 @@ public class CandidateAttemptService {
         //candidateAttempt.set
         CandidateAttemptCacheDto result = new CandidateAttemptCacheDto(candidateAttemptRepository.save(candidateAttempt));
         
-        // Evict candidate attempts cache
-        evictCandidateAttemptsCache(candidateAttempt.getCandidate().getId());
+        // Update cache: add to general caches and evict specific caches
+        updateCacheAfterAttemptCreation(candidateAttempt.getCandidate().getId(), candidateAttempt.getAssessment().getId(), result);
         
         return result;
     }
@@ -97,8 +98,8 @@ public class CandidateAttemptService {
 
         CandidateAttemptCacheDto result = new CandidateAttemptCacheDto(candidateAttemptRepository.save(existingAttempt.get()));
         
-        // Evict candidate attempts cache
-        evictCandidateAttemptsCache(candidateId);
+        // Update cache: update general caches and evict specific caches
+        updateCacheAfterAttemptUpdate(candidateId, existingAttempt.get().getAssessment().getId(), result);
         
         return result;
     }
@@ -129,8 +130,8 @@ public class CandidateAttemptService {
 
         CandidateAttemptCacheDto result = new CandidateAttemptCacheDto(candidateAttemptRepository.save(candidateAttempt));
         
-        // Evict candidate attempts cache
-        evictCandidateAttemptsCache(candidateAttempt.getCandidate().getId());
+        // Update cache: update general caches and evict specific caches
+        updateCacheAfterAttemptUpdate(candidateAttempt.getCandidate().getId(), candidateAttempt.getAssessment().getId(), result);
         
         return result;
     }
@@ -166,7 +167,7 @@ public class CandidateAttemptService {
      * 
      * @param candidateId The candidate whose attempts to retrieve
      * @param assessmentId Filter by assessment ID (applied in memory)
-     * @param status Filter by attempt status (applied in memory)
+     * @param statuses Filter by attempt status (applied in memory)
      * @param startedAfter Start date for date range filter (used in cache key)
      * @param startedBefore End date for date range filter (used in cache key)
      * @param completedAfter Filter by completion date after (applied in memory)
@@ -176,120 +177,74 @@ public class CandidateAttemptService {
      */
     @Transactional(readOnly = true)
     public List<CandidateAttemptCacheDto> getCandidateAttemptsWithFilters(Long candidateId, Long assessmentId, 
-                                                                 AttemptStatus status, LocalDateTime startedAfter, 
+                                                                 List<AttemptStatus> statuses, LocalDateTime startedAfter, 
                                                                  LocalDateTime startedBefore, LocalDateTime completedAfter, 
                                                                  LocalDateTime completedBefore, Pageable pageable) {
-        // Generate cache key with only candidate ID and date range to reduce cache key proliferation
-        String normalizedStartedAfter = CacheUtils.normalizeDateTime(startedAfter);
-        String normalizedStartedBefore = CacheUtils.normalizeDateTime(startedBefore);
-        String cacheKey = "cache:candidate_attempts:" + candidateId + ":" + normalizedStartedAfter + ":" + normalizedStartedBefore;
         
-        // Check if cache exists
-        List<CandidateAttemptCacheDto> cachedAttempts = null;
-        if (redisService.hasKey(cacheKey)) {
-            cachedAttempts = (List<CandidateAttemptCacheDto>) redisService.get(cacheKey);
+        // Check if no filters are applied (only candidate or assessment filter)
+        boolean hasFilters = (statuses != null && !statuses.isEmpty()) || 
+                           startedAfter != null || startedBefore != null || 
+                           completedAfter != null || completedBefore != null;
+        
+        if (!hasFilters) {
+            // No filters - check general cache or fetch from DB
+            if (candidateId != null && assessmentId == null) {
+                return getGeneralCandidateAttempts(candidateId, pageable);
+            } else if (assessmentId != null && candidateId == null) {
+                return getGeneralAssessmentAttempts(assessmentId, pageable);
+            } else if (candidateId != null && assessmentId != null) {
+                // Both specified - treat as filtered query
+                return getCandidateAttemptsWithFiltersInternal(candidateId, assessmentId, statuses, 
+                        startedAfter, startedBefore, completedAfter, completedBefore, pageable);
+            } else {
+                // Neither specified - invalid query
+                throw new IllegalArgumentException("Either candidateId or assessmentId must be specified");
+            }
         }
         
-        // If cache doesn't exist, fetch from DB with only candidate and date filters
-        if (cachedAttempts == null) {
-            Specification<CandidateAttempt> spec = Specification.allOf(
-                CandidateAttemptSpecifications.hasCandidateId(candidateId),
-                CandidateAttemptSpecifications.startedAfter(startedAfter),
-                CandidateAttemptSpecifications.startedBefore(startedBefore)
-            );
+        return getCandidateAttemptsWithFiltersInternal(candidateId, assessmentId, statuses, 
+                startedAfter, startedBefore, completedAfter, completedBefore, pageable);
+    }
+    
+    private List<CandidateAttemptCacheDto> getCandidateAttemptsWithFiltersInternal(Long candidateId, Long assessmentId, 
+                                                                 List<AttemptStatus> statuses, LocalDateTime startedAfter, 
+                                                                 LocalDateTime startedBefore, LocalDateTime completedAfter, 
+                                                                 LocalDateTime completedBefore, Pageable pageable) {
+        
+        // Generate specific cache key for filtered query
+        String specificCacheKey = generateSpecificCacheKey(candidateId, assessmentId, statuses, 
+                                                          startedAfter, startedBefore, completedAfter, completedBefore);
+        
+        // Try to get from specific cache first
+        List<CandidateAttemptCacheDto> cachedSpecificResult = getCachedAttemptList(specificCacheKey);
+        if (cachedSpecificResult != null) {
+            return applyPaginationToList(cachedSpecificResult, pageable);
+        }
+        
+        // Try to get from general cache and apply filters in memory
+        List<CandidateAttemptCacheDto> cachedGeneralResult = null;
+        
+        // Determine which general cache to use based on parameters
+        if (candidateId != null) {
+            cachedGeneralResult = getCachedAttemptList(generateCandidateGeneralCacheKey(candidateId));
+        } else if (assessmentId != null) {
+            cachedGeneralResult = getCachedAttemptList(generateAssessmentGeneralCacheKey(assessmentId));
+        }
+        
+        if (cachedGeneralResult != null) {
+            List<CandidateAttemptCacheDto> filteredResult = applyFiltersInMemory(cachedGeneralResult, candidateId, 
+                    assessmentId, statuses, startedAfter, startedBefore, completedAfter, completedBefore);
             
-            // Fetch all attempts for the candidate within date range (no pagination at DB level)
-            cachedAttempts = candidateAttemptRepository.findAll(spec).stream()
-                .map(CandidateAttemptCacheDto::new)
-                .collect(Collectors.toList());
+            // Cache the filtered result for future use
+            cacheAttemptList(specificCacheKey, filteredResult);
             
-            // Store in cache for future requests
-            redisService.set(cacheKey, cachedAttempts);
+            return applyPaginationToList(filteredResult, pageable);
         }
         
-        // Apply remaining filters in memory for better performance and flexibility
-        List<CandidateAttemptCacheDto> filteredAttempts = cachedAttempts.stream()
-            .filter(attempt -> {
-                // Filter by assessment ID
-                if (assessmentId != null && !assessmentId.equals(attempt.getAssessmentId())) {
-                    return false;
-                }
-                
-                // Filter by status
-                if (status != null && attempt.getStatus() != status) {
-                    return false;
-                }
-                
-                // Filter by completion date after
-                if (completedAfter != null) {
-                    if (attempt.getCompletedDate() == null || 
-                        attempt.getCompletedDate().isBefore(completedAfter)) {
-                        return false;
-                    }
-                }
-                
-                // Filter by completion date before
-                if (completedBefore != null) {
-                    if (attempt.getCompletedDate() == null || 
-                        attempt.getCompletedDate().isAfter(completedBefore)) {
-                        return false;
-                    }
-                }
-                
-                return true;
-            })
-            .collect(Collectors.toList());
-        
-        // Apply sorting in memory based on Pageable sort criteria
-        if (pageable.getSort().isSorted()) {
-            filteredAttempts = filteredAttempts.stream()
-                .sorted((a1, a2) -> {
-                    for (Sort.Order order : pageable.getSort()) {
-                        int comparison = 0;
-                        comparison = switch (order.getProperty().toLowerCase()) {
-                            case "id" -> a1.getId().compareTo(a2.getId());
-                            case "status" -> (a1.getStatus() != null && a2.getStatus() != null)
-                                    ? a1.getStatus().compareTo(a2.getStatus())
-                                    : 0;
-                            case "languagechoice" -> (a1.getLanguageChoice() != null && a2.getLanguageChoice() != null)
-                                    ? a1.getLanguageChoice().compareTo(a2.getLanguageChoice())
-                                    : 0;
-                            case "createddate" -> (a1.getCreatedDate() != null && a2.getCreatedDate() != null)
-                                    ? a1.getCreatedDate().compareTo(a2.getCreatedDate())
-                                    : 0;
-                            case "updateddate" -> (a1.getUpdatedDate() != null && a2.getUpdatedDate() != null)
-                                    ? a1.getUpdatedDate().compareTo(a2.getUpdatedDate())
-                                    : 0;
-                            case "starteddate" -> (a1.getStartedDate() != null && a2.getStartedDate() != null)
-                                    ? a1.getStartedDate().compareTo(a2.getStartedDate())
-                                    : 0;
-                            case "completeddate" -> (a1.getCompletedDate() != null && a2.getCompletedDate() != null)
-                                    ? a1.getCompletedDate().compareTo(a2.getCompletedDate())
-                                    : 0;
-                            case "evaluateddate" -> (a1.getEvaluatedDate() != null && a2.getEvaluatedDate() != null)
-                                    ? a1.getEvaluatedDate().compareTo(a2.getEvaluatedDate())
-                                    : 0;
-                            case "assessmentid" -> a1.getAssessmentId().compareTo(a2.getAssessmentId());
-                            default -> 0;
-                        };
-                        if (comparison != 0) {
-                            return order.isAscending() ? comparison : -comparison;
-                        }
-                    }
-                    return 0;
-                })
-                .collect(Collectors.toList());
-        }
-        
-        // Apply pagination in memory
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), filteredAttempts.size());
-        
-        if (start >= filteredAttempts.size()) {
-            return List.of();
-        }
-        
-        return filteredAttempts.subList(start, end);
+        // No cache hit - fetch from database with all filters
+        return fetchFromDatabaseWithFilters(candidateId, assessmentId, statuses, 
+                                          startedAfter, startedBefore, completedAfter, completedBefore, 
+                                          pageable, specificCacheKey);
     }
 
     // Update candidate attempt
@@ -316,8 +271,8 @@ public class CandidateAttemptService {
 
         CandidateAttemptCacheDto result = new CandidateAttemptCacheDto(candidateAttemptRepository.save(existingAttempt));
         
-        // Evict candidate attempts cache
-        evictCandidateAttemptsCache(existingAttempt.getCandidate().getId());
+        // Update cache: update general caches and evict specific caches
+        updateCacheAfterAttemptUpdate(existingAttempt.getCandidate().getId(), existingAttempt.getAssessment().getId(), result);
         
         return result;
     }
@@ -328,13 +283,15 @@ public class CandidateAttemptService {
         CandidateAttempt attempt = candidateAttemptRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("CandidateAttempt not found with id: " + id));
         
-        // Get candidate ID before deletion for cache eviction
+        // Get attempt DTO and IDs before deletion for cache removal
+        CandidateAttemptCacheDto attemptDto = new CandidateAttemptCacheDto(attempt);
         Long candidateId = attempt.getCandidate().getId();
+        Long assessmentId = attempt.getAssessment().getId();
         
         candidateAttemptRepository.deleteById(id);
         
-        // Evict candidate attempts cache
-        evictCandidateAttemptsCache(candidateId);
+        // Update cache: remove from general caches and evict specific caches
+        updateCacheAfterAttemptDeletion(candidateId, assessmentId, attemptDto);
     }
 
     // Get attempts by candidate ID
@@ -510,8 +467,8 @@ public class CandidateAttemptService {
 
         CandidateAttemptCacheDto result = new CandidateAttemptCacheDto(candidateAttemptRepository.save(attempt));
         
-        // Evict candidate attempts cache
-        evictCandidateAttemptsCache(attempt.getCandidate().getId());
+        // Update cache: update general caches and evict specific caches
+        updateCacheAfterAttemptUpdate(attempt.getCandidate().getId(), attempt.getAssessment().getId(), result);
         
         return result;
     }
@@ -531,8 +488,8 @@ public class CandidateAttemptService {
 
         CandidateAttemptCacheDto result = new CandidateAttemptCacheDto(candidateAttemptRepository.save(attempt));
         
-        // Evict candidate attempts cache
-        evictCandidateAttemptsCache(attempt.getCandidate().getId());
+        // Update cache: update general caches and evict specific caches
+        updateCacheAfterAttemptUpdate(attempt.getCandidate().getId(), attempt.getAssessment().getId(), result);
         
         return result;
     }
@@ -616,13 +573,300 @@ public class CandidateAttemptService {
     }
 
     /**
-     * Manual cache eviction for candidate attempts cache.
-     * This method evicts all cache keys that start with "cache:candidate_attempts:{candidateId}*"
-     * 
-     * @param candidateId The candidate ID for which to evict attempt cache entries
+     * Cache key generation methods
      */
-    private void evictCandidateAttemptsCache(Long candidateId) {
-        redisService.evictCache("cache:candidate_attempts:" + candidateId + ":*");
+    private String generateCandidateGeneralCacheKey(Long candidateId) {
+        return "cache:candidate_attempts:" + candidateId;
+    }
+    
+    private String generateAssessmentGeneralCacheKey(Long assessmentId) {
+        return "cache:assessment_attempts:" + assessmentId;
+    }
+    
+    private String generateSpecificCacheKey(Long candidateId, Long assessmentId, List<AttemptStatus> statuses,
+                                          LocalDateTime startedAfter, LocalDateTime startedBefore,
+                                          LocalDateTime completedAfter, LocalDateTime completedBefore) {
+        StringBuilder keyBuilder = new StringBuilder();
+        keyBuilder.append("cache:all_attempts:");
+        
+        // Add assessment and candidate IDs
+        keyBuilder.append(assessmentId != null ? assessmentId.toString() : "null").append(":");
+        keyBuilder.append(candidateId != null ? candidateId.toString() : "null").append(":");
+        
+        // Add attempt statuses (sorted for consistent keys)
+        if (statuses != null && !statuses.isEmpty()) {
+            statuses.stream().sorted().forEach(status -> keyBuilder.append(status.toString()).append(","));
+        } else {
+            keyBuilder.append("null");
+        }
+        keyBuilder.append(":");
+        
+        // Add date filters
+        keyBuilder.append(startedAfter != null ? startedAfter.toString() : "null").append(":");
+        keyBuilder.append(startedBefore != null ? startedBefore.toString() : "null").append(":");
+        keyBuilder.append(completedAfter != null ? completedAfter.toString() : "null").append(":");
+        keyBuilder.append(completedBefore != null ? completedBefore.toString() : "null");
+        
+        return keyBuilder.toString();
+    }
+    
+    /**
+     * Cache operations helper methods
+     */
+    @SuppressWarnings("unchecked")
+    private List<CandidateAttemptCacheDto> getCachedAttemptList(String cacheKey) {
+        try {
+            Object cached = redisService.get(cacheKey);
+            if (cached instanceof List<?>) {
+                return (List<CandidateAttemptCacheDto>) cached;
+            }
+        } catch (Exception e) {
+            log.warn("Failed to retrieve cached attempt list for key: {}, error: {}", cacheKey, e.getMessage());
+        }
+        return null;
+    }
+    
+    private void cacheAttemptList(String cacheKey, List<CandidateAttemptCacheDto> attempts) {
+        try {
+            // Cache for 10 minutes (matching the attempts cache configuration)
+            redisService.setWithExpiration(cacheKey, attempts, 10, java.util.concurrent.TimeUnit.MINUTES);
+        } catch (Exception e) {
+            log.warn("Failed to cache attempt list for key: {}, error: {}", cacheKey, e.getMessage());
+        }
+    }
+    
+    private List<CandidateAttemptCacheDto> getGeneralCandidateAttempts(Long candidateId, Pageable pageable) {
+        String generalCacheKey = generateCandidateGeneralCacheKey(candidateId);
+        List<CandidateAttemptCacheDto> cachedResult = getCachedAttemptList(generalCacheKey);
+        
+        if (cachedResult != null) {
+            return applyPaginationToList(cachedResult, pageable);
+        }
+        
+        // Fetch from database with only candidate filter
+        Specification<CandidateAttempt> spec = CandidateAttemptSpecifications.hasCandidateId(candidateId);
+        List<CandidateAttempt> attempts = candidateAttemptRepository.findAll(spec);
+        List<CandidateAttemptCacheDto> attemptDtos = attempts.stream()
+                .map(CandidateAttemptCacheDto::new)
+                .collect(Collectors.toList());
+        
+        // Cache the general result
+        cacheAttemptList(generalCacheKey, attemptDtos);
+        
+        return applyPaginationToList(attemptDtos, pageable);
+    }
+    
+    private List<CandidateAttemptCacheDto> getGeneralAssessmentAttempts(Long assessmentId, Pageable pageable) {
+        String generalCacheKey = generateAssessmentGeneralCacheKey(assessmentId);
+        List<CandidateAttemptCacheDto> cachedResult = getCachedAttemptList(generalCacheKey);
+        
+        if (cachedResult != null) {
+            return applyPaginationToList(cachedResult, pageable);
+        }
+        
+        // Fetch from database with only assessment filter
+        Specification<CandidateAttempt> spec = CandidateAttemptSpecifications.hasAssessmentId(assessmentId);
+        List<CandidateAttempt> attempts = candidateAttemptRepository.findAll(spec);
+        List<CandidateAttemptCacheDto> attemptDtos = attempts.stream()
+                .map(CandidateAttemptCacheDto::new)
+                .collect(Collectors.toList());
+        
+        // Cache the general result
+        cacheAttemptList(generalCacheKey, attemptDtos);
+        
+        return applyPaginationToList(attemptDtos, pageable);
+    }
+    
+    private List<CandidateAttemptCacheDto> fetchFromDatabaseWithFilters(Long candidateId, Long assessmentId,
+            List<AttemptStatus> statuses, LocalDateTime startedAfter, LocalDateTime startedBefore,
+            LocalDateTime completedAfter, LocalDateTime completedBefore, Pageable pageable, String specificCacheKey) {
+        
+        // Build specification with all filters
+        Specification<CandidateAttempt> spec = CandidateAttemptSpecifications.hasAssessmentId(assessmentId);
+        
+        if (candidateId != null) {
+            spec = spec.and(CandidateAttemptSpecifications.hasCandidateId(candidateId));
+        }
+        // if (assessmentId != null) {
+        //     spec = spec.and(CandidateAttemptSpecifications.hasAssessmentId(assessmentId));
+        // }
+        if (statuses != null && !statuses.isEmpty()) {
+            spec = spec.and(CandidateAttemptSpecifications.hasAnyStatus(statuses));
+        }
+        if (startedAfter != null) {
+            spec = spec.and(CandidateAttemptSpecifications.startedAfter(startedAfter));
+        }
+        if (startedBefore != null) {
+            spec = spec.and(CandidateAttemptSpecifications.startedBefore(startedBefore));
+        }
+        if (completedAfter != null) {
+            spec = spec.and(CandidateAttemptSpecifications.completedAfter(completedAfter));
+        }
+        if (completedBefore != null) {
+            spec = spec.and(CandidateAttemptSpecifications.completedBefore(completedBefore));
+        }
+        
+        List<CandidateAttempt> attempts = candidateAttemptRepository.findAll(spec);
+        List<CandidateAttemptCacheDto> attemptDtos = attempts.stream()
+                .map(CandidateAttemptCacheDto::new)
+                .collect(Collectors.toList());
+        
+        // Cache the specific filtered result
+        cacheAttemptList(specificCacheKey, attemptDtos);
+        
+        return applyPaginationToList(attemptDtos, pageable);
+    }
+    
+    /**
+     * In-memory filtering and pagination helper methods
+     */
+    private List<CandidateAttemptCacheDto> applyFiltersInMemory(List<CandidateAttemptCacheDto> attempts, Long candidateId,
+            Long assessmentId, List<AttemptStatus> statuses, LocalDateTime startedAfter, LocalDateTime startedBefore,
+            LocalDateTime completedAfter, LocalDateTime completedBefore) {
+        
+        return attempts.stream()
+                .filter(attempt -> candidateId == null || 
+                        (attempt.getCandidate() != null && candidateId.equals(attempt.getCandidate().getId())))
+                .filter(attempt -> assessmentId == null || assessmentId.equals(attempt.getAssessmentId()))
+                .filter(attempt -> statuses == null || statuses.isEmpty() || statuses.contains(attempt.getStatus()))
+                .filter(attempt -> startedAfter == null || 
+                        (attempt.getStartedDate() != null && attempt.getStartedDate().isAfter(startedAfter)))
+                .filter(attempt -> startedBefore == null || 
+                        (attempt.getStartedDate() != null && attempt.getStartedDate().isBefore(startedBefore)))
+                .filter(attempt -> completedAfter == null || 
+                        (attempt.getCompletedDate() != null && attempt.getCompletedDate().isAfter(completedAfter)))
+                .filter(attempt -> completedBefore == null || 
+                        (attempt.getCompletedDate() != null && attempt.getCompletedDate().isBefore(completedBefore)))
+                .collect(Collectors.toList());
+    }
+    
+    private List<CandidateAttemptCacheDto> applyPaginationToList(List<CandidateAttemptCacheDto> attempts, Pageable pageable) {
+        // Apply sorting
+        List<CandidateAttemptCacheDto> sortedAttempts = new ArrayList<>(attempts);
+        if (pageable.getSort().isSorted()) {
+            sortedAttempts.sort((a1, a2) -> {
+                for (Sort.Order order : pageable.getSort()) {
+                    int comparison = compareAttemptsByField(a1, a2, order.getProperty());
+                    if (comparison != 0) {
+                        return order.isAscending() ? comparison : -comparison;
+                    }
+                }
+                return 0;
+            });
+        }
+        
+        // Apply pagination
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), sortedAttempts.size());
+        
+        List<CandidateAttemptCacheDto> pageContent = start >= sortedAttempts.size() ? 
+                List.of() : sortedAttempts.subList(start, end);
+        
+        return pageContent;
+    }
+    
+    private int compareAttemptsByField(CandidateAttemptCacheDto a1, CandidateAttemptCacheDto a2, String field) {
+        return switch (field.toLowerCase()) {
+            case "id" -> compareNullable(a1.getId(), a2.getId());
+            case "status" -> compareNullable(a1.getStatus(), a2.getStatus());
+            case "languagechoice" -> compareNullable(a1.getLanguageChoice(), a2.getLanguageChoice());
+            case "createddate" -> compareNullable(a1.getCreatedDate(), a2.getCreatedDate());
+            case "updateddate" -> compareNullable(a1.getUpdatedDate(), a2.getUpdatedDate());
+            case "starteddate" -> compareNullable(a1.getStartedDate(), a2.getStartedDate());
+            case "completeddate" -> compareNullable(a1.getCompletedDate(), a2.getCompletedDate());
+            case "evaluateddate" -> compareNullable(a1.getEvaluatedDate(), a2.getEvaluatedDate());
+            default -> 0;
+        };
+    }
+    
+    //@SuppressWarnings("unchecked")
+    private <T extends Comparable<T>> int compareNullable(T a, T b) {
+        if (a == null && b == null) return 0;
+        if (a == null) return -1;
+        if (b == null) return 1;
+        return a.compareTo(b);
+    }
+    
+    /**
+     * Cache update methods for CRUD operations
+     */
+    private void updateCacheAfterAttemptCreation(Long candidateId, Long assessmentId, CandidateAttemptCacheDto newAttempt) {
+        // Add to candidate general cache if it exists
+        String candidateGeneralCacheKey = generateCandidateGeneralCacheKey(candidateId);
+        List<CandidateAttemptCacheDto> cachedCandidateAttempts = getCachedAttemptList(candidateGeneralCacheKey);
+        if (cachedCandidateAttempts != null) {
+            cachedCandidateAttempts.add(newAttempt);
+            cacheAttemptList(candidateGeneralCacheKey, cachedCandidateAttempts);
+        }
+        
+        // Add to assessment general cache if it exists
+        String assessmentGeneralCacheKey = generateAssessmentGeneralCacheKey(assessmentId);
+        List<CandidateAttemptCacheDto> cachedAssessmentAttempts = getCachedAttemptList(assessmentGeneralCacheKey);
+        if (cachedAssessmentAttempts != null) {
+            cachedAssessmentAttempts.add(newAttempt);
+            cacheAttemptList(assessmentGeneralCacheKey, cachedAssessmentAttempts);
+        }
+        
+        // Evict all specific filter caches
+        evictSpecificAttemptsCache();
+    }
+    
+    private void updateCacheAfterAttemptUpdate(Long candidateId, Long assessmentId, CandidateAttemptCacheDto updatedAttempt) {
+        // Update in candidate general cache if it exists
+        String candidateGeneralCacheKey = generateCandidateGeneralCacheKey(candidateId);
+        List<CandidateAttemptCacheDto> cachedCandidateAttempts = getCachedAttemptList(candidateGeneralCacheKey);
+        if (cachedCandidateAttempts != null) {
+            // Find and replace the attempt
+            for (int i = 0; i < cachedCandidateAttempts.size(); i++) {
+                if (cachedCandidateAttempts.get(i).getId().equals(updatedAttempt.getId())) {
+                    cachedCandidateAttempts.set(i, updatedAttempt);
+                    break;
+                }
+            }
+            cacheAttemptList(candidateGeneralCacheKey, cachedCandidateAttempts);
+        }
+        
+        // Update in assessment general cache if it exists
+        String assessmentGeneralCacheKey = generateAssessmentGeneralCacheKey(assessmentId);
+        List<CandidateAttemptCacheDto> cachedAssessmentAttempts = getCachedAttemptList(assessmentGeneralCacheKey);
+        if (cachedAssessmentAttempts != null) {
+            // Find and replace the attempt
+            for (int i = 0; i < cachedAssessmentAttempts.size(); i++) {
+                if (cachedAssessmentAttempts.get(i).getId().equals(updatedAttempt.getId())) {
+                    cachedAssessmentAttempts.set(i, updatedAttempt);
+                    break;
+                }
+            }
+            cacheAttemptList(assessmentGeneralCacheKey, cachedAssessmentAttempts);
+        }
+        
+        // Evict all specific filter caches
+        evictSpecificAttemptsCache();
+    }
+    
+    private void updateCacheAfterAttemptDeletion(Long candidateId, Long assessmentId, CandidateAttemptCacheDto deletedAttempt) {
+        // Remove from candidate general cache if it exists
+        String candidateGeneralCacheKey = generateCandidateGeneralCacheKey(candidateId);
+        List<CandidateAttemptCacheDto> cachedCandidateAttempts = getCachedAttemptList(candidateGeneralCacheKey);
+        if (cachedCandidateAttempts != null) {
+            cachedCandidateAttempts.removeIf(attempt -> attempt.getId().equals(deletedAttempt.getId()));
+            cacheAttemptList(candidateGeneralCacheKey, cachedCandidateAttempts);
+        }
+        
+        // Remove from assessment general cache if it exists
+        String assessmentGeneralCacheKey = generateAssessmentGeneralCacheKey(assessmentId);
+        List<CandidateAttemptCacheDto> cachedAssessmentAttempts = getCachedAttemptList(assessmentGeneralCacheKey);
+        if (cachedAssessmentAttempts != null) {
+            cachedAssessmentAttempts.removeIf(attempt -> attempt.getId().equals(deletedAttempt.getId()));
+            cacheAttemptList(assessmentGeneralCacheKey, cachedAssessmentAttempts);
+        }
+        
+        // Evict all specific filter caches
+        evictSpecificAttemptsCache();
+    }
+
+    private void evictSpecificAttemptsCache() {
+        redisService.evictCache("cache:all_attempts:*");
     }
 
 }

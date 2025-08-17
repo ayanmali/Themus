@@ -1,6 +1,7 @@
 package com.delphi.delphi.dtos.get;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -16,7 +17,7 @@ public class GetCandidateAttemptsDto {
     private String sortDirection = "asc";
     private Long candidateId;
     private Long assessmentId;
-    private AttemptStatus attemptStatus;
+    private List<AttemptStatus> attemptStatuses;
 
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime startedAfter;
@@ -30,14 +31,14 @@ public class GetCandidateAttemptsDto {
     public GetCandidateAttemptsDto() {
     }
 
-    public GetCandidateAttemptsDto(int page, int size, String sortBy, String sortDirection, Long candidateId, Long assessmentId, AttemptStatus attemptStatus, LocalDateTime startedAfter, LocalDateTime startedBefore, LocalDateTime completedAfter, LocalDateTime completedBefore) {
+    public GetCandidateAttemptsDto(int page, int size, String sortBy, String sortDirection, Long candidateId, Long assessmentId, List<AttemptStatus> attemptStatuses, LocalDateTime startedAfter, LocalDateTime startedBefore, LocalDateTime completedAfter, LocalDateTime completedBefore) {
         this.page = page;
         this.size = size;
         this.sortBy = sortBy;
         this.sortDirection = sortDirection;
         this.candidateId = candidateId;
         this.assessmentId = assessmentId;
-        this.attemptStatus = attemptStatus;
+        this.attemptStatuses = attemptStatuses;
         this.startedAfter = startedAfter;
         this.startedBefore = startedBefore;
         this.completedAfter = completedAfter;
@@ -92,12 +93,12 @@ public class GetCandidateAttemptsDto {
         this.assessmentId = assessmentId;
     }
 
-    public AttemptStatus getAttemptStatus() {
-        return attemptStatus;
+    public List<AttemptStatus> getAttemptStatuses() {
+        return attemptStatuses;
     }
 
-    public void setAttemptStatus(AttemptStatus attemptStatus) {
-        this.attemptStatus = attemptStatus;
+    public void setAttemptStatuses(List<AttemptStatus> attemptStatuses) {
+        this.attemptStatuses = attemptStatuses;
     }
 
     public LocalDateTime getStartedAfter() {

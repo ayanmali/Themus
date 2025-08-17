@@ -1,6 +1,7 @@
 package com.delphi.delphi.specifications;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
@@ -31,6 +32,12 @@ public class CandidateAttemptSpecifications {
     public static Specification<CandidateAttempt> hasStatus(AttemptStatus status) {
         return (root, _, criteriaBuilder) -> {
             return criteriaBuilder.equal(root.get("status"), status);
+        };
+    }
+
+    public static Specification<CandidateAttempt> hasAnyStatus(List<AttemptStatus> statuses) {
+        return (root, _, criteriaBuilder) -> {
+            return criteriaBuilder.in(root.get("status")).value(statuses);
         };
     }
 

@@ -1,6 +1,7 @@
 package com.delphi.delphi.services;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -73,9 +74,12 @@ public class CandidateService {
             candidate.setUser(user);
         }
 
-        evictUserCandidatesCache(candidate.getUser().getId());
-
-        return new CandidateCacheDto(candidateRepository.save(candidate));
+        CandidateCacheDto savedCandidate = new CandidateCacheDto(candidateRepository.save(candidate));
+        
+        // Update cache: add to general cache and evict specific caches
+        updateCacheAfterCandidateCreation(candidate.getUser().getId(), savedCandidate);
+        
+        return savedCandidate;
     }
 
     // @Caching(put = {
@@ -144,18 +148,13 @@ public class CandidateService {
      * - This reduces cache key proliferation and improves cache hit rates
      * 
      * @param userId                 The user whose candidates to retrieve
-     * @param assessmentId           Filter by assessment ID (applied in memory)
-     * @param attemptStatuses          Filter by attempt status (applied in memory)
-     * @param createdAfter           Start date for date range filter (used in cache
-     *                               key)
-     * @param createdBefore          End date for date range filter (used in cache
-     *                               key)
+     * @param assessmentId           Filter by assessment ID
+     * @param attemptStatuses          Filter by attempt status
+     * @param createdAfter           Start date for date range filter
+     * @param createdBefore          End date for date range filter 
      * @param attemptCompletedAfter  Filter by attempt completion date after
-     *                               (applied in memory)
      * @param attemptCompletedBefore Filter by attempt completion date before
-     *                               (applied in memory)
-     * @param pageable               Pagination and sorting parameters (applied in
-     *                               memory)
+     * @param pageable               Pagination and sorting parameters
      * @return PaginatedResponseDto containing filtered candidates and pagination
      *         metadata
      */
@@ -164,117 +163,42 @@ public class CandidateService {
             List<AttemptStatus> attemptStatuses,
             LocalDateTime createdAfter, LocalDateTime createdBefore,
             Pageable pageable) {
-        log.info(
-                "getCandidatesWithFiltersForUser: userId={}, assessmentId={}, attemptStatuses={}, createdAfter={}, createdBefore={}, pageable={}",
-                userId, assessmentId, createdAfter, createdBefore, pageable);
-
-        // Generate cache key with only user ID and date range to reduce cache key
-        // proliferation
-        String normalizedCreatedAfter = CacheUtils.normalizeDateTime(createdAfter);
-        String normalizedCreatedBefore = CacheUtils.normalizeDateTime(createdBefore);
-        String cacheKey = "cache:user_candidates:" + userId + ":" + normalizedCreatedAfter + ":"
-                + normalizedCreatedBefore;
-
-        // Check if cache exists
-        List<CandidateCacheDto> cachedCandidates = null;
-        if (redisService.hasKey(cacheKey)) {
-            cachedCandidates = (List<CandidateCacheDto>) redisService.get(cacheKey);
+        
+        // Check if no filters are applied (only user filter)
+        boolean hasFilters = assessmentId != null || (attemptStatuses != null && !attemptStatuses.isEmpty()) || 
+                           createdAfter != null || createdBefore != null;
+        
+        if (!hasFilters) {
+            // No filters - check general cache or fetch from DB
+            return getGeneralUserCandidates(userId, pageable);
         }
-
-        // If cache doesn't exist, fetch from DB with only user and date filters
-        if (cachedCandidates == null) {
-            Specification<Candidate> spec = Specification.allOf(
-                    CandidateSpecifications.belongsToUser(userId),
-                    CandidateSpecifications.createdAfter(createdAfter),
-                    CandidateSpecifications.createdBefore(createdBefore));
-
-            // Fetch all candidates for the user within date range (no pagination at DB
-            // level)
-            cachedCandidates = candidateRepository.findAll(spec).stream()
-                    .map(CandidateCacheDto::new)
-                    .collect(Collectors.toList());
-
-            // Store in cache for future requests
-            redisService.set(cacheKey, cachedCandidates);
+        
+        // Generate specific cache key for filtered query
+        String specificCacheKey = generateSpecificCacheKey(userId, assessmentId, attemptStatuses, 
+                                                          createdAfter, createdBefore);
+        
+        // Try to get from specific cache first
+        List<CandidateCacheDto> cachedSpecificResult = getCachedCandidateList(specificCacheKey);
+        if (cachedSpecificResult != null) {
+            return applyPaginationToList(cachedSpecificResult, pageable);
         }
-
-        // Apply remaining filters in memory for better performance and flexibility
-        List<CandidateCacheDto> filteredCandidates = cachedCandidates.stream()
-                .filter(candidate -> {
-                    // Filter by assessment ID
-                    if (assessmentId != null) {
-                        if (candidate.getAssessmentIds() == null ||
-                                !candidate.getAssessmentIds().contains(assessmentId)) {
-                            return false;
-                        }
-                    }
-
-                    // Filter by attempt statuses
-                    if (attemptStatuses != null && !attemptStatuses.isEmpty()) {
-                        if (candidate.getAttemptStatuses() == null || candidate.getAttemptStatuses().isEmpty()) {
-                            return false;
-                        }
-                        
-                        // Check if candidate has any attempts with the requested statuses
-                        boolean hasMatchingStatus = attemptStatuses.stream()
-                                .anyMatch(status -> candidate.getAttemptStatuses().containsKey(status) && 
-                                        !candidate.getAttemptStatuses().get(status).isEmpty());
-                        
-                        if (!hasMatchingStatus) {
-                            return false;
-                        }
-                    }
-
-                    return true;
-                })
-                .collect(Collectors.toList());
-
-        // Apply sorting in memory based on Pageable sort criteria
-        if (pageable.getSort().isSorted()) {
-            filteredCandidates = filteredCandidates.stream()
-                    .sorted((c1, c2) -> {
-                        for (Sort.Order order : pageable.getSort()) {
-                            int comparison = 0;
-                            comparison = switch (order.getProperty().toLowerCase()) {
-                                case "id" -> c1.getId().compareTo(c2.getId());
-                                case "createddate" -> (c1.getCreatedDate() != null && c2.getCreatedDate() != null)
-                                        ? c1.getCreatedDate().compareTo(c2.getCreatedDate())
-                                        : 0;
-                                case "updateddate" -> (c1.getUpdatedDate() != null && c2.getUpdatedDate() != null)
-                                        ? c1.getUpdatedDate().compareTo(c2.getUpdatedDate())
-                                        : 0;
-                                default -> 0;
-                            };
-                            if (comparison != 0) {
-                                return order.isAscending() ? comparison : -comparison;
-                            }
-                        }
-                        return 0;
-                    })
-                    .collect(Collectors.toList());
+        
+        // Try to get from general cache and apply filters in memory
+        String generalCacheKey = generateGeneralCacheKey(userId);
+        List<CandidateCacheDto> cachedGeneralResult = getCachedCandidateList(generalCacheKey);
+        if (cachedGeneralResult != null) {
+            List<CandidateCacheDto> filteredResult = applyFiltersInMemory(cachedGeneralResult, assessmentId, 
+                    attemptStatuses, createdAfter, createdBefore);
+            
+            // Cache the filtered result for future use
+            cacheCandidateList(specificCacheKey, filteredResult);
+            
+            return applyPaginationToList(filteredResult, pageable);
         }
-
-        // Calculate pagination metadata
-        long totalElements = filteredCandidates.size();
-        int totalPages = (int) Math.ceil((double) totalElements / pageable.getPageSize());
-
-        // Apply pagination in memory
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), filteredCandidates.size());
-
-        List<CandidateCacheDto> paginatedCandidates;
-        if (start >= filteredCandidates.size()) {
-            paginatedCandidates = List.of();
-        } else {
-            paginatedCandidates = filteredCandidates.subList(start, end);
-        }
-
-        // Return paginated response with metadata
-        return new PaginatedResponseDto<>(
-                paginatedCandidates,
-                pageable.getPageNumber(),
-                pageable.getPageSize(),
-                totalElements);
+        
+        // No cache hit - fetch from database with all filters
+        return fetchFromDatabaseWithFilters(userId, assessmentId, attemptStatuses, 
+                                          createdAfter, createdBefore, pageable, specificCacheKey);
     }
 
     /**
@@ -302,10 +226,7 @@ public class CandidateService {
                 + normalizedCreatedBefore;
 
         // Check if cache exists
-        List<CandidateCacheDto> cachedCandidates = null;
-        if (redisService.hasKey(cacheKey)) {
-            cachedCandidates = (List<CandidateCacheDto>) redisService.get(cacheKey);
-        }
+        List<CandidateCacheDto> cachedCandidates = getCachedCandidateList(cacheKey);
 
         // If cache doesn't exist, fetch from DB with only user and date filters
         if (cachedCandidates == null) {
@@ -320,7 +241,7 @@ public class CandidateService {
                     .collect(Collectors.toList());
 
             // Store in cache for future requests
-            redisService.set(cacheKey, cachedCandidates);
+            cacheCandidateList(cacheKey, cachedCandidates);
         }
 
         // Apply exclude assessment filter in memory
@@ -364,7 +285,6 @@ public class CandidateService {
 
         // Calculate pagination metadata
         long totalElements = filteredCandidates.size();
-        int totalPages = (int) Math.ceil((double) totalElements / pageable.getPageSize());
 
         // Apply pagination in memory
         int start = (int) pageable.getOffset();
@@ -411,10 +331,12 @@ public class CandidateService {
             existingCandidate.setMetadata(candidateUpdates.getMetadata());
         }
 
-        // evict user_candidates cache manually
-        evictUserCandidatesCache(existingCandidate.getUser().getId());
-
-        return new CandidateCacheDto(candidateRepository.save(existingCandidate));
+        CandidateCacheDto updatedCandidate = new CandidateCacheDto(candidateRepository.save(existingCandidate));
+        
+        // Update cache: update general cache and evict specific caches
+        updateCacheAfterCandidateUpdate(existingCandidate.getUser().getId(), updatedCandidate);
+        
+        return updatedCandidate;
     }
 
     // Delete candidate
@@ -425,7 +347,8 @@ public class CandidateService {
         Candidate candidate = candidateRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Candidate not found with id: " + id));
 
-        // Get user ID before deletion for cache eviction
+        // Get candidate DTO and user ID before deletion for cache removal
+        CandidateCacheDto candidateDto = new CandidateCacheDto(candidate);
         Long userId = null;
         if (candidate.getUser() != null && candidate.getUser().getId() != null) {
             userId = candidate.getUser().getId();
@@ -433,9 +356,9 @@ public class CandidateService {
 
         candidateRepository.deleteById(id);
 
-        // evict user_candidates cache manually if user was associated
+        // Update cache: remove from general cache and evict specific caches
         if (userId != null) {
-            evictUserCandidatesCache(userId);
+            updateCacheAfterCandidateDeletion(userId, candidateDto);
         }
     }
 
@@ -573,10 +496,12 @@ public class CandidateService {
                 .orElseThrow(() -> new IllegalArgumentException("Candidate not found with id: " + id));
         candidate.setMetadata(metadata);
 
-        // evict user_candidates cache manually
-        evictUserCandidatesCache(candidate.getUser().getId());
-
-        return new CandidateCacheDto(candidateRepository.save(candidate));
+        CandidateCacheDto updatedCandidate = new CandidateCacheDto(candidateRepository.save(candidate));
+        
+        // Update cache: update general cache and evict specific caches
+        updateCacheAfterCandidateUpdate(candidate.getUser().getId(), updatedCandidate);
+        
+        return updatedCandidate;
     }
 
     // Add metadata entry
@@ -593,10 +518,12 @@ public class CandidateService {
             candidate.getMetadata().put(key, value);
         }
 
-        // evict user_candidates cache manually
-        evictUserCandidatesCache(candidate.getUser().getId());
-
-        return new CandidateCacheDto(candidateRepository.save(candidate));
+        CandidateCacheDto updatedCandidate = new CandidateCacheDto(candidateRepository.save(candidate));
+        
+        // Update cache: update general cache and evict specific caches
+        updateCacheAfterCandidateUpdate(candidate.getUser().getId(), updatedCandidate);
+        
+        return updatedCandidate;
     }
 
     // Remove metadata entry
@@ -611,21 +538,251 @@ public class CandidateService {
             candidate.getMetadata().remove(key);
         }
 
-        // evict user_candidates cache manually
-        evictUserCandidatesCache(candidate.getUser().getId());
-
-        return new CandidateCacheDto(candidateRepository.save(candidate));
+        CandidateCacheDto updatedCandidate = new CandidateCacheDto(candidateRepository.save(candidate));
+        
+        // Update cache: update general cache and evict specific caches
+        updateCacheAfterCandidateUpdate(candidate.getUser().getId(), updatedCandidate);
+        
+        return updatedCandidate;
     }
 
     /**
-     * Manual cache eviction for user candidates cache.
-     * This method evicts all cache keys that start with
-     * "cache:user_candidates:{userId}*"
-     * 
-     * @param userId The user ID for which to evict candidate cache entries
+     * Cache key generation methods
      */
-    private void evictUserCandidatesCache(Long userId) {
-        redisService.evictCache("cache:user_candidates:" + userId + ":*");
+    private String generateGeneralCacheKey(Long userId) {
+        return "cache:user_candidates:" + userId;
+    }
+    
+    private String generateSpecificCacheKey(Long userId, Long assessmentId, List<AttemptStatus> attemptStatuses,
+                                          LocalDateTime createdAfter, LocalDateTime createdBefore) {
+        StringBuilder keyBuilder = new StringBuilder();
+        keyBuilder.append("cache:user_candidates:").append(userId).append(":");
+        
+        // Add assessment ID
+        keyBuilder.append(assessmentId != null ? assessmentId.toString() : "null").append(":");
+        
+        // Add attempt statuses (sorted for consistent keys)
+        if (attemptStatuses != null && !attemptStatuses.isEmpty()) {
+            attemptStatuses.stream().sorted().forEach(status -> keyBuilder.append(status.toString()).append(","));
+        } else {
+            keyBuilder.append("null");
+        }
+        keyBuilder.append(":");
+        
+        // Add date filters
+        keyBuilder.append(createdAfter != null ? createdAfter.toString() : "null").append(":");
+        keyBuilder.append(createdBefore != null ? createdBefore.toString() : "null");
+        
+        return keyBuilder.toString();
+    }
+    
+    /**
+     * Cache operations helper methods
+     */
+    @SuppressWarnings("unchecked")
+    private List<CandidateCacheDto> getCachedCandidateList(String cacheKey) {
+        try {
+            Object cached = redisService.get(cacheKey);
+            if (cached instanceof List<?>) {
+                return (List<CandidateCacheDto>) cached;
+            }
+        } catch (Exception e) {
+            log.warn("Failed to retrieve cached candidate list for key: {}, error: {}", cacheKey, e.getMessage());
+        }
+        return null;
+    }
+    
+    private void cacheCandidateList(String cacheKey, List<CandidateCacheDto> candidates) {
+        try {
+            // Cache for 30 minutes (matching the candidates cache configuration)
+            redisService.setWithExpiration(cacheKey, candidates, 30, java.util.concurrent.TimeUnit.MINUTES);
+        } catch (Exception e) {
+            log.warn("Failed to cache candidate list for key: {}, error: {}", cacheKey, e.getMessage());
+        }
+    }
+    
+    private PaginatedResponseDto<CandidateCacheDto> getGeneralUserCandidates(Long userId, Pageable pageable) {
+        String generalCacheKey = generateGeneralCacheKey(userId);
+        List<CandidateCacheDto> cachedResult = getCachedCandidateList(generalCacheKey);
+        
+        if (cachedResult != null) {
+            return applyPaginationToList(cachedResult, pageable);
+        }
+        
+        // Fetch from database with only user filter
+        Specification<Candidate> spec = CandidateSpecifications.belongsToUser(userId);
+        List<Candidate> candidates = candidateRepository.findAll(spec);
+        List<CandidateCacheDto> candidateDtos = candidates.stream()
+                .map(CandidateCacheDto::new)
+                .collect(Collectors.toList());
+        
+        // Cache the general result
+        cacheCandidateList(generalCacheKey, candidateDtos);
+        
+        return applyPaginationToList(candidateDtos, pageable);
+    }
+    
+    private PaginatedResponseDto<CandidateCacheDto> fetchFromDatabaseWithFilters(Long userId, Long assessmentId,
+            List<AttemptStatus> attemptStatuses, LocalDateTime createdAfter, LocalDateTime createdBefore,
+            Pageable pageable, String specificCacheKey) {
+        
+        // Build specification with all filters
+        Specification<Candidate> spec = CandidateSpecifications.belongsToUser(userId);
+        
+        if (assessmentId != null) {
+            spec = spec.and(CandidateSpecifications.hasAssessmentId(assessmentId));
+        }
+        if (attemptStatuses != null && !attemptStatuses.isEmpty()) {
+            spec = spec.and(CandidateSpecifications.hasAnyAttemptStatus(attemptStatuses));
+        }
+        if (createdAfter != null) {
+            spec = spec.and(CandidateSpecifications.createdAfter(createdAfter));
+        }
+        if (createdBefore != null) {
+            spec = spec.and(CandidateSpecifications.createdBefore(createdBefore));
+        }
+        // Note: attemptStatuses filtering would need to be added to CandidateSpecifications if needed
+        
+        List<Candidate> candidates = candidateRepository.findAll(spec);
+        List<CandidateCacheDto> candidateDtos = candidates.stream()
+                .map(CandidateCacheDto::new)
+                .collect(Collectors.toList());
+        
+        // Apply attempt status filtering in memory since it's complex to do in JPA
+        if (attemptStatuses != null && !attemptStatuses.isEmpty()) {
+            candidateDtos = candidateDtos.stream()
+                    .filter(candidate -> candidate.getAttemptStatuses() != null && 
+                           attemptStatuses.stream().anyMatch(status -> 
+                               candidate.getAttemptStatuses().containsKey(status)))
+                    .collect(Collectors.toList());
+        }
+        
+        // Cache the specific filtered result
+        cacheCandidateList(specificCacheKey, candidateDtos);
+        
+        return applyPaginationToList(candidateDtos, pageable);
+    }
+    
+    /**
+     * In-memory filtering and pagination helper methods
+     */
+    private List<CandidateCacheDto> applyFiltersInMemory(List<CandidateCacheDto> candidates, Long assessmentId,
+            List<AttemptStatus> attemptStatuses, LocalDateTime createdAfter, LocalDateTime createdBefore) {
+        
+        return candidates.stream()
+                .filter(candidate -> assessmentId == null || 
+                        (candidate.getAssessmentIds() != null && candidate.getAssessmentIds().contains(assessmentId)))
+                .filter(candidate -> attemptStatuses == null || attemptStatuses.isEmpty() ||
+                        (candidate.getAttemptStatuses() != null && 
+                         attemptStatuses.stream().anyMatch(status -> candidate.getAttemptStatuses().containsKey(status))))
+                .filter(candidate -> createdAfter == null || 
+                        (candidate.getCreatedDate() != null && candidate.getCreatedDate().isAfter(createdAfter)))
+                .filter(candidate -> createdBefore == null || 
+                        (candidate.getCreatedDate() != null && candidate.getCreatedDate().isBefore(createdBefore)))
+                .collect(Collectors.toList());
+    }
+    
+    private PaginatedResponseDto<CandidateCacheDto> applyPaginationToList(List<CandidateCacheDto> candidates, Pageable pageable) {
+        // Apply sorting
+        List<CandidateCacheDto> sortedCandidates = new ArrayList<>(candidates);
+        if (pageable.getSort().isSorted()) {
+            sortedCandidates.sort((c1, c2) -> {
+                for (Sort.Order order : pageable.getSort()) {
+                    int comparison = compareCandidatesByField(c1, c2, order.getProperty());
+                    if (comparison != 0) {
+                        return order.isAscending() ? comparison : -comparison;
+                    }
+                }
+                return 0;
+            });
+        }
+        
+        // Apply pagination
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), sortedCandidates.size());
+        
+        List<CandidateCacheDto> pageContent = start >= sortedCandidates.size() ? 
+                List.of() : sortedCandidates.subList(start, end);
+        
+        return new PaginatedResponseDto<>(
+                pageContent,
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                sortedCandidates.size()
+        );
+    }
+    
+    private int compareCandidatesByField(CandidateCacheDto c1, CandidateCacheDto c2, String field) {
+        return switch (field.toLowerCase()) {
+            case "id" -> compareNullable(c1.getId(), c2.getId());
+            case "firstname" -> compareNullable(c1.getFirstName(), c2.getFirstName());
+            case "lastname" -> compareNullable(c1.getLastName(), c2.getLastName());
+            case "email" -> compareNullable(c1.getEmail(), c2.getEmail());
+            case "createddate" -> compareNullable(c1.getCreatedDate(), c2.getCreatedDate());
+            case "updateddate" -> compareNullable(c1.getUpdatedDate(), c2.getUpdatedDate());
+            default -> 0;
+        };
+    }
+    
+    //@SuppressWarnings("unchecked")
+    private <T extends Comparable<T>> int compareNullable(T a, T b) {
+        if (a == null && b == null) return 0;
+        if (a == null) return -1;
+        if (b == null) return 1;
+        return a.compareTo(b);
+    }
+    
+    /**
+     * Cache update methods for CRUD operations
+     */
+    private void updateCacheAfterCandidateCreation(Long userId, CandidateCacheDto newCandidate) {
+        // Add to general cache if it exists
+        String generalCacheKey = generateGeneralCacheKey(userId);
+        List<CandidateCacheDto> cachedCandidates = getCachedCandidateList(generalCacheKey);
+        if (cachedCandidates != null) {
+            cachedCandidates.add(newCandidate);
+            cacheCandidateList(generalCacheKey, cachedCandidates);
+        }
+        
+        // Evict all specific filter caches for this user
+        evictUserCandidatesSpecificCaches(userId);
+    }
+    
+    private void updateCacheAfterCandidateUpdate(Long userId, CandidateCacheDto updatedCandidate) {
+        // Update in general cache if it exists
+        String generalCacheKey = generateGeneralCacheKey(userId);
+        List<CandidateCacheDto> cachedCandidates = getCachedCandidateList(generalCacheKey);
+        if (cachedCandidates != null) {
+            // Find and replace the candidate
+            for (int i = 0; i < cachedCandidates.size(); i++) {
+                if (cachedCandidates.get(i).getId().equals(updatedCandidate.getId())) {
+                    cachedCandidates.set(i, updatedCandidate);
+                    break;
+                }
+            }
+            cacheCandidateList(generalCacheKey, cachedCandidates);
+        }
+        
+        // Evict all specific filter caches for this user
+        evictUserCandidatesSpecificCaches(userId);
+    }
+    
+    private void updateCacheAfterCandidateDeletion(Long userId, CandidateCacheDto deletedCandidate) {
+        // Remove from general cache if it exists
+        String generalCacheKey = generateGeneralCacheKey(userId);
+        List<CandidateCacheDto> cachedCandidates = getCachedCandidateList(generalCacheKey);
+        if (cachedCandidates != null) {
+            cachedCandidates.removeIf(candidate -> candidate.getId().equals(deletedCandidate.getId()));
+            cacheCandidateList(generalCacheKey, cachedCandidates);
+        }
+        
+        // Evict all specific filter caches for this user
+        evictUserCandidatesSpecificCaches(userId);
+    }
+
+    private void evictUserCandidatesSpecificCaches(Long userId) {
+        // Evict all specific filter caches but keep the general cache
+        redisService.evictCache("cache:user_candidates:" + userId + ":*:*");
     }
 
 }
