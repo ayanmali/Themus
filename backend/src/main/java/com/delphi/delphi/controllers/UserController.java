@@ -421,6 +421,10 @@ public class UserController {
     //     }
     // }
 
+    /*
+     * TODO: there is a bug where if the user uninstalls the github app, the github API /user method returns 200 when using the access token stored in the DB but that access token won't work for other requests
+     * I hate github holy sh
+     */
     @GetMapping("/github/callback")
     public ResponseEntity<?> callbackRouter(@RequestParam String code, @RequestParam String state) {
         if (state == null) {
@@ -472,7 +476,7 @@ public class UserController {
         try {
             UserCacheDto user = userService.getUserByEmail(providedEmail);
             log.info("Current user: {}", user.getEmail());
-            Map<String, Object> accessTokenResponse = githubService.getAccessToken(code, false);
+            Map<String, Object> accessTokenResponse = githubService.getAccessToken(code);
             String githubAccessToken = (String) accessTokenResponse.get("access_token");
 
             log.info("Obtaining github credentials for user: {}", user.getEmail());
@@ -507,7 +511,7 @@ public class UserController {
         // get a new token if the candidate doesn't have one or if the token is invalid
         if (candidateGithubToken == null || githubService.validateGithubCredentials(encryptionService.decrypt(candidateGithubToken.toString())) == null) {
             // request a token from github api
-            Map<String, Object> accessTokenResponse = githubService.getAccessToken(code, true);
+            Map<String, Object> accessTokenResponse = githubService.getAccessToken(code);
             String githubAccessToken = (String) accessTokenResponse.get("access_token");
             // get candidate's github username
             // TODO: store github username and/or encrypted github token in DB candidate entity

@@ -805,7 +805,7 @@ public class AssessmentService {
         };
     }
     
-    @SuppressWarnings("unchecked")
+    //@SuppressWarnings("unchecked")
     private <T extends Comparable<T>> int compareNullable(T a, T b) {
         if (a == null && b == null) return 0;
         if (a == null) return -1;

@@ -274,10 +274,8 @@ public class UserService {
     
     // Update user's GitHub credentials
     @Caching(put = {
-        @CachePut(value = "users", key = "#user.id"),
-        @CachePut(value = "users", key = "#user.email"),
-        @CachePut(value = "users", key = "gh_username_exists + ':' + #githubUsername"),
-        @CachePut(value = "users", key = "gh_access_token_exists + ':' + #githubAccessToken")
+        @CachePut(value = "users", key = "#userId"),
+        @CachePut(value = "users", key = "#result.email")
     })
     @Transactional
     public UserCacheDto updateGithubCredentials(Long userId, String githubAccessToken, String githubUsername, GithubAccountType githubAccountType) throws Exception {        
@@ -301,6 +299,13 @@ public class UserService {
         user.setGithubAccessToken(encryptedAccessToken);
         user.setGithubUsername(githubUsername);
         user.setGithubAccountType(githubAccountType);
+        log.info("UserService - saving user: {}", user);
+        log.info("UserService - user ID: {}", user.getId());
+
+        redisService.set("cache:users:gh_username_exists:" + githubUsername, true);
+        redisService.set("cache:users:gh_access_token_exists:" + githubAccessToken, true);
+        redisService.set("cache:users:connectedGithub:" + userId, true);
+
         return new UserCacheDto(userRepository.save(user));
     }
 
