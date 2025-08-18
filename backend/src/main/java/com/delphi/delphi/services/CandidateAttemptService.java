@@ -372,7 +372,7 @@ public class CandidateAttemptService {
     }
 
     // Get overdue attempts
-    @Cacheable(value = "attempts", key = "overdue + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Cacheable(value = "attempts", key = "'overdue' + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public List<CandidateAttemptCacheDto> getOverdueAttempts(Pageable pageable) {
         return candidateAttemptRepository.findOverdueAttempts(LocalDateTime.now(), pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
@@ -386,35 +386,35 @@ public class CandidateAttemptService {
     }
 
     // Get attempts with evaluation
-    @Cacheable(value = "attempts", key = "withEvaluation + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Cacheable(value = "attempts", key = "'withEvaluation' + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
         public List<CandidateAttemptCacheDto> getAttemptsWithEvaluation(Pageable pageable) {
         return candidateAttemptRepository.findAttemptsWithEvaluation(pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Get submitted attempts without evaluation
-    @Cacheable(value = "attempts", key = "submittedWithoutEvaluation + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Cacheable(value = "attempts", key = "'submittedWithoutEvaluation' + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public List<CandidateAttemptCacheDto> getSubmittedAttemptsWithoutEvaluation(Pageable pageable) {
         return candidateAttemptRepository.findSubmittedAttemptsWithoutEvaluation(pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Count attempts by assessment and status
-    @Cacheable(value = "attempts", key = "count + ':' + #assessmentId + ':' + #status")
+    @Cacheable(value = "attempts", key = "'count' + ':' + #assessmentId + ':' + #status")
     @Transactional(readOnly = true)
     public Long countAttemptsByAssessmentAndStatus(Long assessmentId, AttemptStatus status) {
         return candidateAttemptRepository.countByAssessmentIdAndStatus(assessmentId, status);
     }
 
     // Count attempts by candidate
-    @Cacheable(value = "attempts", key = "count + ':' + #candidateId")
+    @Cacheable(value = "attempts", key = "'count' + ':' + #candidateId")
     @Transactional(readOnly = true)
     public Long countAttemptsByCandidate(Long candidateId) {
         return candidateAttemptRepository.countByCandidateId(candidateId);
     }
 
     // Get attempt with details
-    @Cacheable(value = "attempts", key = "withDetails + ':' + #attemptId")
+    @Cacheable(value = "attempts", key = "'withDetails' + ':' + #attemptId")
     @Transactional(readOnly = true)
     public CandidateAttemptCacheDto getAttemptWithDetails(Long attemptId) {
         return new CandidateAttemptCacheDto(candidateAttemptRepository.findByIdWithDetails(attemptId)
@@ -422,14 +422,14 @@ public class CandidateAttemptService {
     }
 
     // Get recent attempts by user
-    @Cacheable(value = "attempts", key = "recent + ':' + #userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Cacheable(value = "attempts", key = "'recent' + ':' + #userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public List<CandidateAttemptCacheDto> getRecentAttemptsByUserId(Long userId, Pageable pageable) {
         return candidateAttemptRepository.findRecentAttemptsByUserId(userId, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Get attempts by assessment user
-    @Cacheable(value = "attempts", key = "byAssessmentUser + ':' + #userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Cacheable(value = "attempts", key = "'byAssessmentUser' + ':' + #userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public List<CandidateAttemptCacheDto> getAttemptsByAssessmentUserId(Long userId, Pageable pageable) {
         return candidateAttemptRepository.findByAssessmentUserId(userId, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
@@ -495,7 +495,7 @@ public class CandidateAttemptService {
     }
 
     // Check if attempt is overdue
-    @Cacheable(value = "attempts", key = "overdue + ':' + #id")
+    @Cacheable(value = "attempts", key = "'overdue' + ':' + #id")
     @Transactional(readOnly = true)
     public boolean isAttemptOverdue(Long id) {
         CandidateAttempt attempt = candidateAttemptRepository.findById(id)

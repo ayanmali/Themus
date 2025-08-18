@@ -146,21 +146,23 @@ public class UserService {
     }
 
     // checks if user's github credentials exist (not necessarily valid; validateGithubCredentials() should be called to check if they are valid)
-    @Cacheable(value = "users", key = "connectedGithub + ':' + #user.id")
+    @Cacheable(value = "users", key = "'connectedGithub:' + #user.id")
     @Transactional(readOnly = true)
     public boolean connectedGithub(User user) {
+        log.info("UserService - checking if user is connected to github: {}", user);
         return user.getGithubUsername() != null && user.getGithubAccessToken() != null;
     }
 
     // checks if user's github credentials exist (not necessarily valid; validateGithubCredentials() should be called to check if they are valid)
-    @Cacheable(value = "users", key = "connectedGithub + ':' + #user.id")
+    @Cacheable(value = "users", key = "'connectedGithub:' + #user.id")
     @Transactional(readOnly = true)
     public boolean connectedGithub(UserCacheDto user) {
+        log.info("UserService - checking if user is connected to github: {}", user);
         return user.getGithubUsername() != null && user.getGithubAccessToken() != null;
     }
     
     // Check if email exists
-    @Cacheable(value = "users", key = "emailExists + ':' + #email")
+    @Cacheable(value = "users", key = "'emailExists:' + #email")
     @Transactional(readOnly = true)
     public boolean emailExists(String email) {
         return userRepository.existsByEmail(email);

@@ -158,7 +158,8 @@ public class AssessmentController {
             log.info("User's github access token: {}", user.getGithubAccessToken());
             log.info("User's github username: {}", user.getGithubUsername());
             log.info("User's github account type: {}", user.getGithubAccountType());
-            log.info("Checking if user is connected to github");
+            log.info("Assessmentcontroller - Checking if user is connected to github");
+
             if (!userService.connectedGithub(user)) {
                 log.info("User is not connected to github, redirecting to installation page");
                 response.setHeader("Location", appInstallUrl);
@@ -231,7 +232,7 @@ public class AssessmentController {
     @PostMapping("/chat")
     public ResponseEntity<?> chat(@RequestBody NewUserMessageDto messageDto) {
         try {
-            UserCacheDto user = getCurrentUser();
+            //UserCacheDto user = getCurrentUser();
             AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(messageDto.getAssessmentId());
             // publish chat completion request to the chat message queue
             log.info("Publishing chat completion request to the chat message queue");

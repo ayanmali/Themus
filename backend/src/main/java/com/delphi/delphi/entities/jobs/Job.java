@@ -1,20 +1,22 @@
 package com.delphi.delphi.entities.jobs;
 
-import java.io.Serializable;
-
 import com.delphi.delphi.utils.JobStatus;
 import com.delphi.delphi.utils.JobType;
 
+import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
+import jakarta.persistence.Table;
 
 //@MappedSuperclass
-public class Job implements Serializable {
+@Entity
+@Table(name = "jobs")
+public class Job {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private String jobId;
+    private String id;
 
     private JobStatus status;  // PENDING, RUNNING, COMPLETED, FAILED
 
@@ -25,17 +27,17 @@ public class Job implements Serializable {
 
     public Job() {}
 
-    public Job(String jobId, JobStatus status) {
-        this.jobId = jobId;
+    public Job(String id, JobStatus status) {
+        this.id = id;
         this.status = status;
     }
 
-    public String getJobId() {
-        return jobId;
+    public String getId() {
+        return id;
     }
 
-    public void setJobId(String jobId) {
-        this.jobId = jobId;
+    public void setId(String id) {
+        this.id = id;
     }
 
     public JobStatus getStatus() {

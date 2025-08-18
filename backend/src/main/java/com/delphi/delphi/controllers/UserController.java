@@ -114,13 +114,15 @@ public class UserController {
     @GetMapping("/is-connected-github")
     public ResponseEntity<?> isConnectedGithub(HttpServletResponse response) {
         try {
-            log.info("Checking if user is connected to github");
+            log.info("Usercontroller - Checking if user is connected to github");
             // check if github credentials exist in DB
             UserCacheDto user = getCurrentUser();
+            log.info("Usercontroller - User: {}", user);
             if (!userService.connectedGithub(user)) {
                 log.info("Github credentials not found in DB");
                 return ResponseEntity.ok(false);
             }
+            log.info("Usercontroller - Validating github credentials...");
             // check if github credentials are valid
             Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user.getGithubAccessToken());
 

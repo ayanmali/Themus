@@ -24,7 +24,7 @@ public class FetchUserDto {
         this.organizationName = user.getOrganizationName();
         this.createdDate = user.getCreatedDate();
         this.updatedDate = user.getUpdatedDate();
-        this.connectedGithub = user.getGithubUsername() != null;
+        this.connectedGithub = user.getGithubUsername() != null && user.getGithubAccessToken() != null;
     }
 
     public FetchUserDto(UserCacheDto user) {
@@ -34,7 +34,7 @@ public class FetchUserDto {
         this.organizationName = user.getOrganizationName();
         this.createdDate = user.getCreatedDate();
         this.updatedDate = user.getUpdatedDate();
-        this.connectedGithub = user.getGithubAccessToken() != null;
+        this.connectedGithub = user.getGithubUsername() != null && user.getGithubAccessToken() != null;
     }
 
     public Long getId() {

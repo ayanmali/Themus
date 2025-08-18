@@ -280,13 +280,12 @@ export function CreateAssessmentForm() {
     
     // Convert duration to minutes before sending to API
     const durationInMinutes = convertDurationToMinutes(duration, durationUnit);
-    const skillsArray = skills.split(',').map(skill => skill.trim());
+    // Skills are already converted to array in the form field onChange handler
 
     // Create the data object with converted duration
       const apiData = {
       ...data,
       duration: durationInMinutes,
-      skills: skillsArray
     };
     
     console.log('API data with duration in minutes:', apiData);
@@ -514,9 +513,11 @@ export function CreateAssessmentForm() {
 
   const selectCommandSuggestion = (index: number) => {
     const selectedCommand = commandSuggestions[index];
+    const skillsString = selectedCommand.skills.join(', ');
+    
     setName(selectedCommand.label);
     setRole(selectedCommand.role);
-    setSkills(selectedCommand.skills.join(', '));
+    setSkills(skillsString);
     setDuration(selectedCommand.duration);
     setDurationUnit(selectedCommand.durationUnit);
     setFormDetails(selectedCommand.prefix + ' ');
@@ -525,7 +526,7 @@ export function CreateAssessmentForm() {
     // Sync to form state so validation sees values
     form.setValue("name", selectedCommand.label, { shouldValidate: true, shouldDirty: true });
     form.setValue("role", selectedCommand.role, { shouldValidate: true, shouldDirty: true });
-    form.setValue("skills", selectedCommand.skills, { shouldValidate: true, shouldDirty: true });
+    form.setValue("skills", selectedCommand.skills, { shouldValidate: true, shouldDirty: true }); // Already an array
     form.setValue("duration", selectedCommand.duration, { shouldValidate: true, shouldDirty: true });
     form.setValue("details", selectedCommand.prefix + ' ', { shouldValidate: true, shouldDirty: true });
     // if (!form.getValues("title")) {
@@ -754,11 +755,13 @@ export function CreateAssessmentForm() {
                     <FormControl>
                       <Input
                         placeholder="e.g., Python, FastAPI, React, TypeScript, REST API Development, Authentication & Authorization, etc."
-                        {...field}
                         value={skills}
                         onChange={(e) => {
-                          setSkills(e.target.value);
-                          field.onChange(e.target.value);
+                          const skillsString = e.target.value;
+                          setSkills(skillsString);
+                          // Convert string to array and update form state
+                          const skillsArray = skillsString.split(',').map(skill => skill.trim()).filter(skill => skill.length > 0);
+                          field.onChange(skillsArray);
                         }}
                         className="bg-slate-800/60 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-violet-500/20 backdrop-blur-sm"
                       />

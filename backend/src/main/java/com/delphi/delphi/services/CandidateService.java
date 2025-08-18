@@ -363,7 +363,7 @@ public class CandidateService {
     }
 
     // Check if email exists
-    @Cacheable(value = "candidates", key = "emailExists + ':' + #email")
+    @Cacheable(value = "candidates", key = "'emailExists' + ':' + #email")
     @Transactional(readOnly = true)
     public boolean emailExists(String email) {
         return candidateRepository.existsByEmail(email);
@@ -471,7 +471,7 @@ public class CandidateService {
     // }
 
     // Count candidates by user
-    @Cacheable(value = "candidates", key = "count + ':' + #userId")
+    @Cacheable(value = "candidates", key = "'count' + ':' + #userId")
     @Transactional(readOnly = true)
     public Long countCandidatesByUser(Long userId) {
         return candidateRepository.countByUserId(userId);

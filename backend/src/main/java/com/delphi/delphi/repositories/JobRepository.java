@@ -2,6 +2,8 @@ package com.delphi.delphi.repositories;
 
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
@@ -15,5 +17,5 @@ public interface JobRepository extends JpaRepository<Job, String> {
     @NonNull
     Optional<Job> findById(@NonNull String id);
 
-    Optional<Job> findByStatus(JobStatus status);
+    Page<Job> findByStatus(JobStatus status, Pageable pageable);
 }
