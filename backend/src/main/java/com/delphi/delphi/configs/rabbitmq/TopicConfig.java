@@ -11,17 +11,27 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class TopicConfig {
-    public static final String CHAT_TOPIC_EXCHANGE_NAME = "chat.topic";
-    public static final String CHAT_TOPIC_QUEUE_NAME = "chat.queue";
+    public static final String LLM_TOPIC_EXCHANGE_NAME = "llm.topic";
 
-    // public static final String CHAT_TOPIC_DLX = "chat.topic.dlx";
-    // public static final String CHAT_TOPIC_DLQ = "chat.topic.dlq";
+    public static final String CREATE_ASSESSMENT_QUEUE_NAME = "llm.create_assessment.queue";
+    public static final String CREATE_ASSESSMENT_ROUTING_KEY = "llm.create_assessment";
 
-    public static final String CHAT_RESPONSE_TOPIC_EXCHANGE_NAME = "chat.response.topic";
-    public static final String CHAT_RESPONSE_TOPIC_QUEUE_NAME = "chat.response.queue";
+    public static final String LLM_CHAT_QUEUE_NAME = "llm.chat.queue";
+    public static final String LLM_CHAT_ROUTING_KEY = "llm.chat";
 
-    // public static final String CHAT_RESPONSE_TOPIC_DLX = "chat.response.topic.dlx";
-    // public static final String CHAT_RESPONSE_TOPIC_DLQ = "chat.response.topic.dlq";
+    // public static final String LLM_TOPIC_DLX = "llm.topic.dlx";
+    // public static final String LLM_TOPIC_DLQ = "llm.topic.dlq"; 
+
+    public static final String LLM_RESPONSE_TOPIC_EXCHANGE_NAME = "llm.response.topic";
+
+    public static final String LLM_RESPONSE_CREATE_ASSESSMENT_QUEUE_NAME = "llm.response.create_assessment.queue";
+    public static final String LLM_RESPONSE_CREATE_ASSESSMENT_ROUTING_KEY = "llm.response.create_assessment";
+
+    public static final String LLM_RESPONSE_CHAT_QUEUE_NAME = "llm.response.chat.queue";
+    public static final String LLM_RESPONSE_CHAT_ROUTING_KEY  = "llm.response.chat";
+
+    // public static final String LLM_RESPONSE_TOPIC_DLX = "llm.response.topic.dlx";
+    // public static final String LLM_RESPONSE_TOPIC_DLQ = "llm.response.topic.dlq";
 
     public final String CANDIDATE_INVITATION_TOPIC_EXCHANGE_NAME;
     public final String CANDIDATE_INVITATION_TOPIC_QUEUE_NAME;
@@ -64,42 +74,75 @@ public class TopicConfig {
 
     /* CHAT TOPIC */
     @Bean
-    public TopicExchange chatTopicExchange() {
-        return new TopicExchange(CHAT_TOPIC_EXCHANGE_NAME);
+    public TopicExchange llmTopicExchange() {
+        return new TopicExchange(LLM_TOPIC_EXCHANGE_NAME);
     }
 
     @Bean
-    public Queue chatTopicQueue() {
-        return QueueBuilder.durable(CHAT_TOPIC_QUEUE_NAME)
-        .deadLetterExchange(CHAT_TOPIC_EXCHANGE_NAME)
-        .deadLetterRoutingKey(CHAT_TOPIC_QUEUE_NAME)
-        .ttl(30000) // 5 minutes
+    public Queue assessmentCreationQueue() {
+        return QueueBuilder.durable(CREATE_ASSESSMENT_QUEUE_NAME)
+        // .deadLetterExchange(LLM_TOPIC_DLX)
+        // .deadLetterRoutingKey(LLM_TOPIC_DLQ)
+        .ttl(600000) // 10 minutes
         .build();
     }
 
+    @Bean
+    public Queue chatQueue() {
+        return QueueBuilder.durable(LLM_CHAT_QUEUE_NAME)
+        .ttl(600000) // 10 minutes
+        .build();
+    }
+
+    // @Bean
+    // public Queue assessmentCreationDLQ() {
+    //     return QueueBuilder.durable(LLM_TOPIC_DLQ)
+    //     .deadLetterExchange(LLM_TOPIC_DLX)
+    //     .deadLetterRoutingKey(LLM_TOPIC_QUEUE_NAME)
+    //     .build();
+    // }
+
     /*
-     * Binding for chat topic queue to the chat topic exchange
+     * Binding for assessment creation queue to the llm topic exchange
      */
     @Bean
-    public Binding bindingExchangeMessage(Queue chatTopicQueue, TopicExchange chatTopicExchange) {
-        return BindingBuilder.bind(chatTopicQueue).to(chatTopicExchange).with("topic.chat");
+    public Binding bindingLlmTopicExchange(Queue assessmentCreationQueue, TopicExchange llmTopicExchange) {
+        return BindingBuilder.bind(assessmentCreationQueue).to(llmTopicExchange).with(CREATE_ASSESSMENT_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding bindingLlmChatExchange(Queue chatQueue, TopicExchange llmTopicExchange) {
+        return BindingBuilder.bind(chatQueue).to(llmTopicExchange).with(LLM_CHAT_ROUTING_KEY);
     }
 
     /* CHAT RESPONSE TOPIC */
     @Bean
-    public TopicExchange chatResponseTopicExchange() {
-        return new TopicExchange(CHAT_RESPONSE_TOPIC_EXCHANGE_NAME);
+    public TopicExchange llmResponseTopicExchange() {
+        return new TopicExchange(LLM_RESPONSE_TOPIC_EXCHANGE_NAME);
     }
 
     @Bean
-    public Queue chatResponseTopicQueue() {
-        return QueueBuilder.durable(CHAT_RESPONSE_TOPIC_QUEUE_NAME)
+    public Queue llmResponseCreateAssessmentQueue() {
+        return QueueBuilder.durable(LLM_RESPONSE_CREATE_ASSESSMENT_QUEUE_NAME)
+        .ttl(600000) // 10 minutes
         .build();
     }
 
     @Bean
-    public Binding bindingChatResponseExchange(Queue chatResponseTopicQueue, TopicExchange chatResponseTopicExchange) {
-        return BindingBuilder.bind(chatResponseTopicQueue).to(chatResponseTopicExchange).with("topic.chat.response");
+    public Queue llmResponseChatQueue() {
+        return QueueBuilder.durable(LLM_RESPONSE_CHAT_QUEUE_NAME)
+        .ttl(60000) // 1 minute
+        .build();
+    }
+
+    @Bean
+    public Binding bindingLlmResponseCreateAssessmentExchange(Queue llmResponseCreateAssessmentQueue, TopicExchange llmResponseTopicExchange) {
+        return BindingBuilder.bind(llmResponseCreateAssessmentQueue).to(llmResponseTopicExchange).with(LLM_RESPONSE_CREATE_ASSESSMENT_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding bindingLlmResponseChatExchange(Queue llmResponseChatQueue, TopicExchange llmResponseTopicExchange) {
+        return BindingBuilder.bind(llmResponseChatQueue).to(llmResponseTopicExchange).with(LLM_RESPONSE_CHAT_ROUTING_KEY);
     }
 
     /* CANDIDATE INVITATION TOPIC */

@@ -3,7 +3,7 @@ package com.delphi.delphi.dtos.messaging.candidates;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-import com.delphi.delphi.entities.Candidate;
+import com.delphi.delphi.dtos.cache.CandidateCacheDto;
 
 public class CandidateInvitationMessage implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -14,7 +14,7 @@ public class CandidateInvitationMessage implements Serializable {
     private LocalDateTime assessmentStartDate;
     private LocalDateTime assessmentEndDate;
     private Integer assessmentDuration;
-    private Candidate candidate;
+    private CandidateCacheDto candidate;
     private Long userId;
     private String userEmail;
     private LocalDateTime invitationDate;
@@ -25,7 +25,7 @@ public class CandidateInvitationMessage implements Serializable {
     public CandidateInvitationMessage(Long assessmentId, String assessmentName, String assessmentDescription,
                                     LocalDateTime assessmentStartDate,
                                     LocalDateTime assessmentEndDate, Integer assessmentDuration,
-                                    Candidate candidate, Long userId, String userEmail,
+                                    CandidateCacheDto candidate, Long userId, String userEmail,
                                     LocalDateTime invitationDate, String invitationId) {
         this.assessmentId = assessmentId;
         this.assessmentName = assessmentName;
@@ -90,11 +90,11 @@ public class CandidateInvitationMessage implements Serializable {
         this.assessmentDuration = assessmentDuration;
     }
 
-    public Candidate getCandidate() {
+    public CandidateCacheDto getCandidate() {
         return candidate;
     }
 
-    public void setCandidate(Candidate candidate) {
+    public void setCandidate(CandidateCacheDto candidate) {
         this.candidate = candidate;
     }
 

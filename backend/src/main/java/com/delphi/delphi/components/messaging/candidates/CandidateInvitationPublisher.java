@@ -10,6 +10,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.delphi.delphi.dtos.cache.CandidateCacheDto;
 import com.delphi.delphi.dtos.messaging.candidates.CandidateInvitationMessage;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
@@ -33,6 +34,8 @@ public class CandidateInvitationPublisher {
 
     public String publishCandidateInvitation(Assessment assessment, Candidate candidate, Long userId, String userEmail) {
         String invitationId = UUID.randomUUID().toString();
+        // to avoid problems w/ JSON serialization and overnesting
+        CandidateCacheDto candidateCacheDto = new CandidateCacheDto(candidate);
         
         CandidateInvitationMessage message = new CandidateInvitationMessage(
             assessment.getId(),
@@ -41,7 +44,7 @@ public class CandidateInvitationPublisher {
             assessment.getStartDate(),
             assessment.getEndDate(),
             assessment.getDuration(),
-            candidate,
+            candidateCacheDto,
             userId,
             userEmail,
             LocalDateTime.now(),
