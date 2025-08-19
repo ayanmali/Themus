@@ -102,9 +102,9 @@
         </dependency>
 
         <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-rest</artifactId>
-    </dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-rest</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -222,6 +222,20 @@
 
                     </jvmArguments>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <!-- <configuration>
+                    <user>postgres</user>
+                    <password>fkdnvi4fj8g33m0</password>
+                    <schemas>
+                        <schema>themus</schema>
+                    </schemas>
+                    <locations>
+                        <location>classpath:db/migration</location>
+                    </locations>
+                </configuration> -->
             </plugin>
             <!-- <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

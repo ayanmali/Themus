@@ -1,6 +1,7 @@
 package com.delphi.delphi;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,6 +14,7 @@ import com.delphi.delphi.services.UserService;
 
 @SpringBootApplication
 @EnableScheduling
+@EnableConfigurationProperties
 @RestController
 // TODO: Enable async support?
 // @EnableAsync

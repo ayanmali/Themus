@@ -10,7 +10,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
-//@MappedSuperclass
 @Entity
 @Table(name = "jobs")
 public class Job {
