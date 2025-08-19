@@ -5,7 +5,9 @@ import java.util.Collection;
 import java.util.List;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -63,7 +65,8 @@ public class User implements UserDetails {
     private String githubUsername;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "github_account_type", nullable = true)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "github_account_type", nullable = true, columnDefinition = "themus.github_account_type DEFAULT 'USER'")
     private GithubAccountType githubAccountType = GithubAccountType.USER;
     
     @CreationTimestamp

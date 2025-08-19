@@ -6,7 +6,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 import org.springframework.ai.chat.messages.Message;
 
 import com.delphi.delphi.utils.AssessmentStatus;
@@ -71,7 +73,8 @@ public class Assessment {
     private String role;
     
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(nullable = false, columnDefinition = "themus.assessment_status DEFAULT 'DRAFT'")
     private AssessmentStatus status = AssessmentStatus.DRAFT;
     
     // @Enumerated(EnumType.STRING)

@@ -5,13 +5,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
-
-import com.delphi.delphi.utils.OpenAiToolCall;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -27,7 +27,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "chat_message")
+@Table(name = "chat_messages")
 public class ChatMessage {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,7 +49,8 @@ public class ChatMessage {
     private Assessment assessment;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "message_type", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "message_type", nullable = false, columnDefinition = "themus.message_type DEFAULT 'USER'")
     private MessageType messageType;
 
     // @ElementCollection

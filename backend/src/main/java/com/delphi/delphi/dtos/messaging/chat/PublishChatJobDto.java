@@ -1,11 +1,12 @@
 package com.delphi.delphi.dtos.messaging.chat;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 public class PublishChatJobDto implements Serializable {
     private static final long serialVersionUID = 1L;
     // private String userPromptTemplate;
-    private String jobId;
+    private UUID jobId;
     private String messageText;
     private String model;
     private String githubRepoUrl;
@@ -14,7 +15,7 @@ public class PublishChatJobDto implements Serializable {
     public PublishChatJobDto() {}
 
     // For simple user message
-    public PublishChatJobDto(String jobId, String messageText, String model, String githubRepoUrl) {
+    public PublishChatJobDto(UUID jobId, String messageText, String model, String githubRepoUrl) {
         this.jobId = jobId;
         this.messageText = messageText;
         this.model = model;
@@ -25,11 +26,11 @@ public class PublishChatJobDto implements Serializable {
         return serialVersionUID;
     }
 
-    public String getJobId() {
+    public UUID getJobId() {
         return jobId;
     }
 
-    public void setJobId(String jobId) {
+    public void setJobId(UUID jobId) {
         this.jobId = jobId;
     }
 

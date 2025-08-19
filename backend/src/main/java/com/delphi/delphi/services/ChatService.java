@@ -27,9 +27,9 @@ import com.delphi.delphi.components.GithubTools;
 import com.delphi.delphi.dtos.cache.ChatMessageCacheDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.ChatMessage;
+import com.delphi.delphi.entities.OpenAiToolCall;
 import com.delphi.delphi.repositories.AssessmentRepository;
 import com.delphi.delphi.repositories.ChatMessageRepository;
-import com.delphi.delphi.utils.OpenAiToolCall;
 
 @Service
 @Transactional

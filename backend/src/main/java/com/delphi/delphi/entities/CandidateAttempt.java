@@ -3,7 +3,9 @@ package com.delphi.delphi.entities;
 import java.time.LocalDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.AttemptStatus;
@@ -48,7 +50,8 @@ public class CandidateAttempt {
     private String githubRepositoryLink;
     
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(nullable = false, columnDefinition = "themus.attempt_status DEFAULT 'INVITED'")
     private AttemptStatus status = AttemptStatus.INVITED;
     
     // if the assessment doesn't support multiple languages, this will be null

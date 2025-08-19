@@ -188,6 +188,12 @@
             <version>4.4.0</version>
         </dependency>
 
+        <!-- Flyway -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
     </dependencies>
     <dependencyManagement>
         <dependencies>

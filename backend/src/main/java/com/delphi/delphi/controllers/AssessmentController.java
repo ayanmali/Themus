@@ -2,7 +2,6 @@ package com.delphi.delphi.controllers;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -44,13 +43,14 @@ import com.delphi.delphi.dtos.messaging.chat.PublishChatJobDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
-import com.delphi.delphi.entities.jobs.Job;
+import com.delphi.delphi.entities.Job;
 import com.delphi.delphi.repositories.JobRepository;
 import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.JobStatus;
+import com.delphi.delphi.utils.JobType;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -184,11 +184,11 @@ public class AssessmentController {
 
             // Publish to assessment creation queue instead of direct call
             log.info("Passing form data to chat message queue");
-            String jobId = UUID.randomUUID().toString();
-            Job job = new Job(jobId, JobStatus.PENDING);
-            jobRepository.save(job);
+            // Long jobId = UUID.randomUUID().getMostSignificantBits();
+            Job job = new Job(JobStatus.PENDING, JobType.CREATE_ASSESSMENT);
+            job = jobRepository.save(job);
 
-            PublishAssessmentCreationJobDto publishAssessmentCreationJobDto = new PublishAssessmentCreationJobDto(jobId, newAssessmentDto, assessment.getGithubRepositoryLink());
+            PublishAssessmentCreationJobDto publishAssessmentCreationJobDto = new PublishAssessmentCreationJobDto(job.getId(), newAssessmentDto, assessment.getGithubRepositoryLink());
             rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.CREATE_ASSESSMENT_ROUTING_KEY, publishAssessmentCreationJobDto);
             log.info("Assessment creation job published to queue");
 
@@ -204,7 +204,7 @@ public class AssessmentController {
             //         user.getId());
 
             return ResponseEntity.status(HttpStatus.CREATED).body(
-                    Map.of("jobId", jobId, "status", JobStatus.PENDING.toString(), "assessment", new FetchAssessmentDto(assessment)));
+                    Map.of("jobId", job.getId(), "status", JobStatus.PENDING.toString(), "assessment", new FetchAssessmentDto(assessment)));
                             //"chatRequestId", requestId));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -236,11 +236,11 @@ public class AssessmentController {
             AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(messageDto.getAssessmentId());
             // publish chat completion request to the chat message queue
             log.info("Publishing chat completion request to the chat message queue");
-            String jobId = UUID.randomUUID().toString();
-            Job job = new Job(jobId, JobStatus.PENDING);
-            jobRepository.save(job);
+            // String jobId = UUID.randomUUID().toString();
+            Job job = new Job(JobStatus.PENDING, JobType.CHAT);
+            job = jobRepository.save(job);
 
-            PublishChatJobDto publishChatJobDto = new PublishChatJobDto(jobId, messageDto.getMessage(), messageDto.getModel(), assessment.getGithubRepositoryLink());
+            PublishChatJobDto publishChatJobDto = new PublishChatJobDto(job.getId(), messageDto.getMessage(), messageDto.getModel(), assessment.getGithubRepositoryLink());
             rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.LLM_CHAT_ROUTING_KEY, publishChatJobDto);
             log.info("Chat completion request published to queue");
             // String requestId = chatMessagePublisher.publishChatCompletionRequest(
@@ -251,7 +251,7 @@ public class AssessmentController {
             // );
 
             // Return request ID for client to track the async response
-            return ResponseEntity.accepted().body(Map.of("jobId", jobId, "status", JobStatus.PENDING.toString()));
+            return ResponseEntity.accepted().body(Map.of("jobId", job.getId().toString(), "status", JobStatus.PENDING.toString()));
         } catch (AmqpException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error submitting chat request: " + e.getMessage());

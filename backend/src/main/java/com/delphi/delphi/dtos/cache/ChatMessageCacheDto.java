@@ -7,7 +7,7 @@ import java.util.stream.Collectors;
 import org.springframework.ai.chat.messages.MessageType;
 
 import com.delphi.delphi.entities.ChatMessage;
-import com.delphi.delphi.utils.OpenAiToolCall;
+import com.delphi.delphi.entities.OpenAiToolCall;
 
 public class ChatMessageCacheDto {
     private Long id;

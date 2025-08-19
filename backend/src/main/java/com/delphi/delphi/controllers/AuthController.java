@@ -487,7 +487,8 @@ public class AuthController {
                 try {
                     RefreshToken refreshTokenEntity = refreshTokenService.verifyRefreshToken(refreshTokenValue);
                     refreshTokenService.deleteRefreshToken(refreshTokenEntity);
-                } catch (Exception e) {
+                } catch (RuntimeException e) {
+                    //return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Logout failed");
                     // Continue with logout even if refresh token cleanup fails
                 }
             }

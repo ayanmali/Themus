@@ -117,6 +117,7 @@ public class AssessmentService {
         assessment.setRole(newAssessmentDto.getRole());
         assessment.setDuration(newAssessmentDto.getDuration());
         assessment.setSkills(newAssessmentDto.getSkills());
+        assessment.setDetails(newAssessmentDto.getDetails());
         assessment.setLanguageOptions(newAssessmentDto.getLanguageOptions());
         // TODO: replace w/ something else?
         assessment.setGithubRepoName(newAssessmentDto.getName().toLowerCase().replace(" ", "-") + "-"

@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 
 import com.delphi.delphi.configs.rabbitmq.TopicConfig;
 import com.delphi.delphi.dtos.messaging.chat.PublishAssessmentCreationJobDto;
-import com.delphi.delphi.entities.jobs.Job;
+import com.delphi.delphi.entities.Job;
 import com.delphi.delphi.repositories.JobRepository;
 import com.delphi.delphi.utils.JobStatus;
 

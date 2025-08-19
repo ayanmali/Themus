@@ -1,16 +1,19 @@
-package com.delphi.delphi.utils;
+package com.delphi.delphi.entities;
 
 import org.springframework.ai.chat.messages.AssistantMessage.ToolCall;
-
-import com.delphi.delphi.entities.ChatMessage;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 
 @Entity
+@Table(name = "openai_tool_calls")
+/*
+ * Represents data about a tool call made by the OpenAI API.
+ */
 public class OpenAiToolCall {
     @Id
     private String id;

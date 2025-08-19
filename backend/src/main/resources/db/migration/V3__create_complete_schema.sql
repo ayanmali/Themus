@@ -1,13 +1,14 @@
 -- Complete database schema migration for Themus application
 -- This migration creates all tables, relationships, and constraints
+CREATE SCHEMA IF NOT EXISTS themus;
 
 -- Create enum types
 CREATE TYPE assessment_status AS ENUM ('DRAFT', 'ACTIVE', 'INACTIVE', 'PUBLISHED');
 CREATE TYPE attempt_status AS ENUM ('INVITED', 'STARTED', 'COMPLETED', 'EVALUATED', 'EXPIRED');
 CREATE TYPE github_account_type AS ENUM ('USER', 'ORG');
 CREATE TYPE job_status AS ENUM ('PENDING', 'RUNNING', 'COMPLETED', 'FAILED');
-CREATE TYPE job_type AS ENUM ('CREATE_ASSESSMENT', 'CHAT_COMPLETION');
-CREATE TYPE message_type AS ENUM ('USER', 'ASSISTANT', 'SYSTEM');
+CREATE TYPE job_type AS ENUM ('CREATE_ASSESSMENT', 'CHAT_COMPLETION', 'SEND_EMAIL', 'CANDIDATE_INVITATION');
+CREATE TYPE message_type AS ENUM ('USER', 'ASSISTANT', 'SYSTEM', 'FUNCTION');
 
 -- Create users table
 CREATE TABLE IF NOT EXISTS themus.users (
@@ -149,7 +150,7 @@ CREATE TABLE IF NOT EXISTS themus.refresh_tokens (
 
 -- Create jobs table
 CREATE TABLE IF NOT EXISTS themus.jobs (
-    id VARCHAR(255) PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     status job_status,
     job_type job_type,
     result TEXT
