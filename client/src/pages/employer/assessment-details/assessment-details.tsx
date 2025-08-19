@@ -54,6 +54,7 @@ export default function AssessmentDetails() {
 
     // Command dialog state
     const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([]);
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
     // Fetch assessment data
     const { data: assessment, isLoading: assessmentLoading, error: assessmentError } = useQuery({
@@ -170,7 +171,7 @@ export default function AssessmentDetails() {
 
             return response;
         },
-        enabled: !!assessmentId,
+        enabled: !!assessmentId && isAddDialogOpen,
     });
 
     // Extract attempts from the response
@@ -913,7 +914,7 @@ export default function AssessmentDetails() {
                             <div className="mt-6">
                                 <div className="flex items-center justify-between mb-2">
                                     <h3 className="text-lg font-semibold">Candidates</h3>
-                                    <Dialog>
+                                    <Dialog open={isAddDialogOpen} onOpenChange={(open) => { setIsAddDialogOpen(open); if (!open) { setSelectedCandidateIds([]); } }}>
                                         <DialogTrigger asChild>
                                             <Button
                                                 variant="default"

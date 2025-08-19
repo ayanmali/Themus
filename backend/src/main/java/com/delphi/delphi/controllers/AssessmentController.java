@@ -188,7 +188,7 @@ public class AssessmentController {
             Job job = new Job(JobStatus.PENDING, JobType.CREATE_ASSESSMENT);
             job = jobRepository.save(job);
 
-            PublishAssessmentCreationJobDto publishAssessmentCreationJobDto = new PublishAssessmentCreationJobDto(job.getId(), newAssessmentDto, assessment.getGithubRepositoryLink());
+            PublishAssessmentCreationJobDto publishAssessmentCreationJobDto = new PublishAssessmentCreationJobDto(job.getId(), assessment, user, newAssessmentDto.getModel());
             rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.CREATE_ASSESSMENT_ROUTING_KEY, publishAssessmentCreationJobDto);
             log.info("Assessment creation job published to queue");
 
@@ -232,7 +232,7 @@ public class AssessmentController {
     @PostMapping("/chat")
     public ResponseEntity<?> chat(@RequestBody NewUserMessageDto messageDto) {
         try {
-            //UserCacheDto user = getCurrentUser();
+            UserCacheDto user = getCurrentUser();
             AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(messageDto.getAssessmentId());
             // publish chat completion request to the chat message queue
             log.info("Publishing chat completion request to the chat message queue");
@@ -240,7 +240,7 @@ public class AssessmentController {
             Job job = new Job(JobStatus.PENDING, JobType.CHAT);
             job = jobRepository.save(job);
 
-            PublishChatJobDto publishChatJobDto = new PublishChatJobDto(job.getId(), messageDto.getMessage(), messageDto.getModel(), assessment.getGithubRepositoryLink());
+            PublishChatJobDto publishChatJobDto = new PublishChatJobDto(job.getId(), messageDto.getMessage(), assessment, user, messageDto.getModel());
             rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.LLM_CHAT_ROUTING_KEY, publishChatJobDto);
             log.info("Chat completion request published to queue");
             // String requestId = chatMessagePublisher.publishChatCompletionRequest(

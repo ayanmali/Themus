@@ -4,7 +4,8 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.UUID;
 
-import com.delphi.delphi.dtos.NewAssessmentDto;
+import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
+import com.delphi.delphi.dtos.cache.UserCacheDto;
 
 public class PublishAssessmentCreationJobDto implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -12,17 +13,24 @@ public class PublishAssessmentCreationJobDto implements Serializable {
     private UUID jobId;
     private Map<String, Object> userPromptVariables;
     private String model;
-    private String githubRepoUrl;
-
+    // To store chat messages into the assessment's chat history
+    private Long assessmentId;
+    // For making calls to the github api
+    private String githubRepoName;
+    private String encryptedGithubToken;
+    private String githubUsername;
     // Constructors
     public PublishAssessmentCreationJobDto() {}
 
     // For simple user message
-    public PublishAssessmentCreationJobDto(UUID jobId, NewAssessmentDto newAssessmentDto, String githubRepoUrl) {
+    public PublishAssessmentCreationJobDto(UUID jobId, AssessmentCacheDto assessment, UserCacheDto user, String model) {
         this.jobId = jobId;
-        this.userPromptVariables = Map.of("ROLE", newAssessmentDto.getRole(), "DURATION", newAssessmentDto.getDuration(), "SKILLS", newAssessmentDto.getSkills(), "LANGUAGE_OPTIONS", newAssessmentDto.getLanguageOptions(), "OTHER_DETAILS", newAssessmentDto.getDetails());
-        this.model = newAssessmentDto.getModel();
-        this.githubRepoUrl = githubRepoUrl;
+        this.userPromptVariables = Map.of("ROLE", assessment.getRole(), "DURATION", assessment.getDuration(), "SKILLS", assessment.getSkills(), "LANGUAGE_OPTIONS", assessment.getLanguageOptions(), "OTHER_DETAILS", assessment.getDetails());
+        this.model = model;
+        this.assessmentId = assessment.getId();
+        this.githubRepoName = assessment.getGithubRepoName();
+        this.encryptedGithubToken = user.getGithubAccessToken();
+        this.githubUsername = user.getGithubUsername();
     }
 
     public static long getSerialversionuid() {
@@ -53,14 +61,35 @@ public class PublishAssessmentCreationJobDto implements Serializable {
         this.model = model;
     }
 
-    public String getGithubRepoUrl() {
-        return githubRepoUrl;
+    public String getGithubRepoName() {
+        return githubRepoName;
     }
 
-    public void setGithubRepoUrl(String githubRepoUrl) {
-        this.githubRepoUrl = githubRepoUrl;
+    public void setGithubRepoName(String githubRepoName) {
+        this.githubRepoName = githubRepoName;
     }
 
+    public String getEncryptedGithubToken() {
+        return encryptedGithubToken;
+    }
+
+    public void setEncryptedGithubToken(String encryptedGithubToken) {
+        this.encryptedGithubToken = encryptedGithubToken;
+    }
     
-    
+    public String getGithubUsername() {
+        return githubUsername;
+    }
+
+    public void setGithubUsername(String githubUsername) {
+        this.githubUsername = githubUsername;
+    }
+
+    public Long getAssessmentId() {
+        return assessmentId;
+    }
+
+    public void setAssessmentId(Long assessmentId) {
+        this.assessmentId = assessmentId;
+    }
 }

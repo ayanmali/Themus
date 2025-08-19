@@ -57,6 +57,8 @@ public class ChatService {
 
     private final GithubTools githubTools;
 
+    private final double TEMPERATURE = 0.75;
+
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
 
     public ChatService(ChatMessageRepository chatMessageRepository, ChatModel chatModel, GithubTools githubTools, AssessmentRepository assessmentRepository) {
@@ -75,7 +77,7 @@ public class ChatService {
      * Get a chat completion from the AI model
      */
     //@Cacheable(value = "chatCompletions", key = "#chatHistoryId")
-    public ChatResponse getChatCompletion(String userMessage, String model, Long assessmentId, Long userId) {
+    public ChatResponse getChatCompletion(String userMessage, String model, Long assessmentId, String encryptedGithubToken, String githubUsername, String githubRepoName) {
         log.info("Sending prompt to OpenRouter model '{}':\nUSER MESSAGE: '{}'", model, userMessage);
         try {
             Assessment assessment = assessmentRepository.findById(assessmentId)
@@ -107,9 +109,15 @@ public class ChatService {
                 OpenAiChatOptions.builder()
                     .model(model)
                     .toolCallbacks(ToolCallbacks.from(githubTools))
-                    .toolContext(Map.of("assessmentId", assessmentId, "userId", userId, "model", model))
+                    .toolContext(Map.of(
+                        "assessmentId", assessmentId, 
+                        "encryptedGithubToken", encryptedGithubToken, 
+                        "githubUsername", githubUsername, 
+                        "githubRepoName", githubRepoName,
+                        "model", model)
+                    )
                     //.internalToolExecutionEnabled(false) // disable framework-enabled tool execution
-                    .temperature(0.75) // double between 0 and 1
+                    .temperature(TEMPERATURE) // double between 0 and 1
                     .build()
             );
 
@@ -135,7 +143,7 @@ public class ChatService {
      * Get a chat completion from the AI model using a user prompt template
      */
     //@Cacheable(value = "chatCompletions", key = "#chatHistoryId")
-    public ChatResponse getChatCompletion(String userPromptTemplateMessage, Map<String, Object> userPromptVariables, String model, Long assessmentId, Long userId) {
+    public ChatResponse getChatCompletion(String userPromptTemplateMessage, Map<String, Object> userPromptVariables, String model, Long assessmentId, String encryptedGithubToken, String githubUsername, String githubRepoName) {
         log.info("Sending prompt to OpenRouter model '{}':\nUSER MESSAGE: '{}'", model, userPromptTemplateMessage);
         try {
             // The Spring AI ChatModel handles the call to OpenRouter based on application.properties
@@ -169,9 +177,15 @@ public class ChatService {
                 OpenAiChatOptions.builder()
                     .model(model)
                     .toolCallbacks(ToolCallbacks.from(githubTools))
-                    .toolContext(Map.of("assessmentId", assessmentId, "userId", userId, "model", model))
+                    .toolContext(Map.of(
+                        "assessmentId", assessmentId, 
+                        "encryptedGithubToken", encryptedGithubToken, 
+                        "githubUsername", githubUsername, 
+                        "githubRepoName", githubRepoName,
+                        "model", model)
+                    )
                     //.internalToolExecutionEnabled(false) // disable framework-enabled tool execution
-                    .temperature(0.75) // double between 0 and 1
+                    .temperature(TEMPERATURE) // double between 0 and 1
                     .build()
             );
 
@@ -224,7 +238,7 @@ public class ChatService {
     //                 new UserMessage(userMessage)),
     //             OpenAiChatOptions.builder()
     //                 .model(model)
-    //                 .temperature(0.75) // double between 0 and 1
+    //                 .temperature(TEMPERATURE) // double between 0 and 1
     //                 .build()
     //         );
 
@@ -268,7 +282,7 @@ public class ChatService {
     //                 new UserMessage(userMessage)),
     //             OpenAiChatOptions.builder()
     //                 .model(model)
-    //                 .temperature(0.75) // double between 0 and 1
+    //                 .temperature(TEMPERATURE) // double between 0 and 1
     //                 .build()
     //         );
 

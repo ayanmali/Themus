@@ -3,6 +3,7 @@ package com.delphi.delphi.components;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
@@ -10,7 +11,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
 import com.delphi.delphi.entities.ChatMessage;
-import com.delphi.delphi.repositories.AssessmentRepository;
+import com.delphi.delphi.services.EncryptionService;
 import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.git.GithubBranchDetails;
@@ -26,52 +27,53 @@ import com.delphi.delphi.utils.git.GithubRepoContents;
  */
 public class GithubTools {
 
-    private final AssessmentRepository assessmentRepository;
+    private final EncryptionService encryptionService;
+
     private final UserService userService; // for getting user info (PAT, username)
     private final GithubService githubService; // for making GitHub API calls
     private final Base64.Encoder base64Encoder; // for encoding content to base64 for GitHub API
     private final Base64.Decoder base64Decoder; // for decoding content from base64 for GitHub API
 
-    public GithubTools(UserService userService, GithubService githubService, AssessmentRepository assessmentRepository) {
+    public GithubTools(UserService userService, GithubService githubService, EncryptionService encryptionService) {
         this.userService = userService;
         this.githubService = githubService;
         this.base64Encoder = Base64.getEncoder();
         this.base64Decoder = Base64.getDecoder();
-        this.assessmentRepository = assessmentRepository;
+        this.encryptionService = encryptionService;
     }
 
     /* Helper methods */
 
     // get the decrypted PAT from the user service
-    private String getPAT(Object userIdObj) {
+    private String getPAT(Map<String, Object> context) {
         try {
-            Long userId = (Long) userIdObj;
-            if (userId == null) throw new IllegalStateException("User not set in context");
-            return userService.getDecryptedGithubToken(userId);
+            String encryptedGithubToken = (String) context.get("encryptedGithubToken");
+            if (encryptedGithubToken == null) throw new IllegalStateException("Encrypted GitHub token not set in context");
+            return encryptionService.decrypt(encryptedGithubToken);
         } catch (ClassCastException e) {
-            throw new IllegalStateException("User ID must be a Long", e);
+            throw new IllegalStateException("Encrypted GitHub token must be a String", e);
         } catch (NullPointerException e) {
-            throw new IllegalStateException("User ID not set in context", e);
+            throw new IllegalStateException("Encrypted GitHub token not set in context", e);
+        } catch (Exception e) {
+            throw new IllegalStateException("Error decrypting GitHub token", e);
         }
     }
 
-    private String getCurrentRepoName(Object assessmentIdObj) {
+    private String getCurrentRepoName(Map<String, Object> context) {
         try {
-            Long assessmentId = (Long) assessmentIdObj;
-            return assessmentRepository.findById(assessmentId)
-                    .orElseThrow(() -> new RuntimeException("Assessment not found"))
-                    .getGithubRepoName();
+            String githubRepoName = (String) context.get("githubRepoName");
+            return githubRepoName;
         } catch (NullPointerException e) {
-            throw new IllegalStateException("Assessment ID not set in context", e);
+            throw new IllegalStateException("GitHub repo name not set in context", e);
         }
         catch (ClassCastException e) {
-            throw new IllegalStateException("Assessment ID must be a Long", e);
+            throw new IllegalStateException("GitHub repo name must be a String", e);
         }
     }
 
-    private String getGithubUsername(Object userIdObj) {
+    private String getGithubUsername(Map<String, Object> context) {
         try {
-            Long userId = (Long) userIdObj;
+            Long userId = (Long) context.get("userId");
             return userService.getUserByIdOrThrow(userId)
                     .getGithubUsername();
         } catch (NullPointerException e) {
@@ -82,9 +84,9 @@ public class GithubTools {
         }
     }
 
-    private Long getCurrentAssessmentId(Object assessmentIdObj) {
+    private Long getCurrentAssessmentId(Map<String, Object> context) {
         try {
-            Long assessmentId = (Long) assessmentIdObj;
+            Long assessmentId = (Long) context.get("assessmentId");
             return assessmentId;
         } catch (NullPointerException e) {
             throw new IllegalStateException("Assessment ID not set in context", e);
@@ -118,9 +120,9 @@ public class GithubTools {
         @ToolParam(required = true, description = "The commit message for the file") String commitMessage,
         @ToolParam(required = false, description = "The branch to add the file to. If not provided, the default branch will be used.") String branch,
         ToolContext toolContext) {
-        String pat = getPAT(toolContext.getContext().get("userId"));
-        String username = getGithubUsername(toolContext.getContext().get("userId"));
-        GithubFile fileResponse = githubService.addFileToRepo(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), filePath, branch=null, encodeToBase64(fileContent),
+        String pat = getPAT(toolContext.getContext());
+        String username = getGithubUsername(toolContext.getContext());
+        GithubFile fileResponse = githubService.addFileToRepo(pat, username, getCurrentRepoName(toolContext.getContext()), filePath, branch=null, encodeToBase64(fileContent),
                 commitMessage).block();
         if (fileResponse != null) {
             GithubFile file = fileResponse;
@@ -136,9 +138,9 @@ public class GithubTools {
         @ToolParam(required = true, description = "The path of the file to get the contents of") String filePath,
         @ToolParam(required = false, description = "The branch to get the contents of. If not provided, the default branch will be used.") String branch,
         ToolContext toolContext) {
-        String pat = getPAT(toolContext.getContext().get("userId"));
-        String username = getGithubUsername(toolContext.getContext().get("userId"));
-        GithubRepoContents repoContentsResponse = githubService.getRepoContents(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), filePath, branch).block();
+        String pat = getPAT(toolContext.getContext());
+        String username = getGithubUsername(toolContext.getContext());
+        GithubRepoContents repoContentsResponse = githubService.getRepoContents(pat, username, getCurrentRepoName(toolContext.getContext()), filePath, branch).block();
         if (repoContentsResponse != null) {
             GithubRepoContents repoContents = repoContentsResponse;
             if (repoContents.getType().equals("file")) {
@@ -152,9 +154,9 @@ public class GithubTools {
 
     @Tool(description = "Gets the branches of the repository using the GitHub API.")
     public List<GithubRepoBranch> getRepoBranches(ToolContext toolContext) {
-        String pat = getPAT(toolContext.getContext().get("userId"));
-        String username = getGithubUsername(toolContext.getContext().get("userId"));
-        List<GithubRepoBranch> repoBranchesResponse = githubService.getRepoBranches(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId"))).block();
+        String pat = getPAT(toolContext.getContext());
+        String username = getGithubUsername(toolContext.getContext());
+        List<GithubRepoBranch> repoBranchesResponse = githubService.getRepoBranches(pat, username, getCurrentRepoName(toolContext.getContext())).block();
         if (repoBranchesResponse != null) {
             return repoBranchesResponse;
         } else {
@@ -167,9 +169,9 @@ public class GithubTools {
         @ToolParam(required = true, description = "The name of the branch to add") String branchName,
         @ToolParam(required = true, description = "The base branch to add the new branch from") String baseBranch,
         ToolContext toolContext) {
-        String pat = getPAT(toolContext.getContext().get("userId"));
-        String username = getGithubUsername(toolContext.getContext().get("userId"));
-        GithubReference addBranchResponse = githubService.addBranch(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), branchName, baseBranch).block();
+        String pat = getPAT(toolContext.getContext());
+        String username = getGithubUsername(toolContext.getContext());
+        GithubReference addBranchResponse = githubService.addBranch(pat, username, getCurrentRepoName(toolContext.getContext()), branchName, baseBranch).block();
         if (addBranchResponse != null) {
             return addBranchResponse;
         } else {
@@ -184,9 +186,9 @@ public class GithubTools {
         @ToolParam(required = true, description = "The commit message for the file") String commitMessage,
         @ToolParam(required = true, description = "The SHA of the file to edit") String sha,
         ToolContext toolContext) {
-        String pat = getPAT(toolContext.getContext().get("userId"));
-        String username = getGithubUsername(toolContext.getContext().get("userId"));
-        GithubFile editFileResponse = githubService.editFile(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), filePath, encodeToBase64(fileContent), commitMessage,
+        String pat = getPAT(toolContext.getContext());
+        String username = getGithubUsername(toolContext.getContext());
+        GithubFile editFileResponse = githubService.editFile(pat, username, getCurrentRepoName(toolContext.getContext()), filePath, encodeToBase64(fileContent), commitMessage,
                 sha).block();
         if (editFileResponse != null) {
             GithubFile file = editFileResponse;
@@ -203,9 +205,9 @@ public class GithubTools {
         @ToolParam(required = true, description = "The commit message for the file") String commitMessage,
         @ToolParam(required = true, description = "The SHA of the file to delete") String sha,
         ToolContext toolContext) {
-        String pat = getPAT(toolContext.getContext().get("userId"));
-        String username = getGithubUsername(toolContext.getContext().get("userId"));
-        String deleteFileResponse = githubService.deleteFile(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), filePath, commitMessage, sha).block();
+        String pat = getPAT(toolContext.getContext());
+        String username = getGithubUsername(toolContext.getContext());
+        String deleteFileResponse = githubService.deleteFile(pat, username, getCurrentRepoName(toolContext.getContext()), filePath, commitMessage, sha).block();
         if (deleteFileResponse != null) {
             return "File: " + filePath + " deleted successfully";
         } else {
@@ -217,9 +219,9 @@ public class GithubTools {
     public GithubBranchDetails getBranchDetails(
         @ToolParam(required = true, description = "The name of the branch to get the details of") String branchName,
         ToolContext toolContext) {
-        String pat = getPAT(toolContext.getContext().get("userId"));
-        String username = getGithubUsername(toolContext.getContext().get("userId"));
-        GithubBranchDetails branchDetailsResponse = githubService.getBranchDetails(pat, username, getCurrentRepoName((Long) toolContext.getContext().get("assessmentId")), branchName).block();
+        String pat = getPAT(toolContext.getContext());
+        String username = getGithubUsername(toolContext.getContext());
+        GithubBranchDetails branchDetailsResponse = githubService.getBranchDetails(pat, username, getCurrentRepoName(toolContext.getContext()), branchName).block();
         if (branchDetailsResponse != null) {
             return branchDetailsResponse;
         } else {
@@ -233,7 +235,7 @@ public class GithubTools {
         ToolContext toolContext) {
         return githubService.sendMessageToUser(
             message, 
-            getCurrentAssessmentId(toolContext.getContext().get("assessmentId")), 
+            getCurrentAssessmentId(toolContext.getContext()), 
             (String) toolContext.getContext().get("model")
         );
     }

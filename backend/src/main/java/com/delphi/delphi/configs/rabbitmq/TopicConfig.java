@@ -1,10 +1,13 @@
 package com.delphi.delphi.configs.rabbitmq;
 
+import java.util.List;
+
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.support.converter.SimpleMessageConverter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -71,6 +74,13 @@ public class TopicConfig {
     // public static final String EMAIL_TOPIC_QUEUE_NAME = "email.queue";
     // public static final String EMAIL_ROUTING_KEY = "resend.email";
     // public static final String EMAIL_DLQ = "email.dlq";
+
+    @Bean
+    public SimpleMessageConverter converter() {
+        SimpleMessageConverter converter = new SimpleMessageConverter();
+        converter.setAllowedListPatterns(List.of("com.delphi.delphi.*", "java.util.*"));
+        return converter;
+    }
 
     /* CHAT TOPIC */
     @Bean
