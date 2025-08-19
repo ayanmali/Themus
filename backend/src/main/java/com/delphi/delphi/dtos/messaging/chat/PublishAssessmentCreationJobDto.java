@@ -25,7 +25,7 @@ public class PublishAssessmentCreationJobDto implements Serializable {
     // For simple user message
     public PublishAssessmentCreationJobDto(UUID jobId, AssessmentCacheDto assessment, UserCacheDto user, String model) {
         this.jobId = jobId;
-        this.userPromptVariables = Map.of("ROLE", assessment.getRole(), "DURATION", assessment.getDuration(), "SKILLS", assessment.getSkills(), "LANGUAGE_OPTIONS", assessment.getLanguageOptions(), "OTHER_DETAILS", assessment.getDetails());
+        this.userPromptVariables = Map.of("ROLE", assessment.getRole(), "DURATION", assessment.getDuration(), "SKILLS", assessment.getSkills(), "LANGUAGE_OPTIONS", assessment.getLanguageOptions(), "DETAILS", assessment.getDetails());
         this.model = model;
         this.assessmentId = assessment.getId();
         this.githubRepoName = assessment.getGithubRepoName();

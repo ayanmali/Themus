@@ -29,7 +29,6 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { models, defaultModel } from "@/lib/models";
 import { TechChoices } from "./tech-choices";
 import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import useApi from "@/hooks/use-api";
@@ -140,6 +139,9 @@ export function CreateAssessmentForm() {
   const [inputFocused, setInputFocused] = useState(false);
   const commandPaletteRef = useRef<HTMLDivElement>(null);
   const detailsRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const [models, setModels] = useState<string[]>([]);
+  const defaultModel: string = "anthropic/claude-sonnet-4";
 
   // Setup form with updated default values (declare before any watchers)
   const form = useForm<CreateAssessmentFormValues>({
@@ -340,6 +342,21 @@ export function CreateAssessmentForm() {
       setIsCheckingGitHub(false);
     }
   };
+
+  const getOpenRouterModels = async () => {
+    const response = await fetch("https://openrouter.ai/api/v1/models?category=programming", {
+      method: "GET",
+      headers: {},
+    });
+    const body = await response.json();
+    body.data.forEach((model: any) => {
+      setModels(prevModels => [...prevModels, model.id]);
+    });
+  };
+
+  useEffect(() => {
+    getOpenRouterModels();
+  }, []);
 
   const commandSuggestions: CommandSuggestion[] = [
     {
