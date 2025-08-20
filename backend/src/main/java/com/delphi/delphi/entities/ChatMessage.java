@@ -13,6 +13,8 @@ import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -46,6 +48,7 @@ public class ChatMessage {
     
     @ManyToOne
     @JoinColumn(name = "assessment_id", nullable = false)
+    @JsonIgnore
     private Assessment assessment;
 
     @Enumerated(EnumType.STRING)
@@ -63,6 +66,7 @@ public class ChatMessage {
     // @CollectionTable(name = "message_tool_calls", joinColumns = @JoinColumn(name = "message_id"))
     // @Column(name = "tool_call")
     @OneToMany(mappedBy = "chatMessage", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<OpenAiToolCall> toolCalls;
 
     public ChatMessage() {

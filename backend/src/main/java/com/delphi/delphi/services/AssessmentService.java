@@ -1,7 +1,6 @@
 package com.delphi.delphi.services;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -120,7 +119,7 @@ public class AssessmentService {
         assessment.setDetails(newAssessmentDto.getDetails());
         assessment.setLanguageOptions(newAssessmentDto.getLanguageOptions());
         // TODO: replace w/ something else?
-        assessment.setGithubRepoName(newAssessmentDto.getName().toLowerCase().replace(" ", "-") + "-"
+        assessment.setGithubRepoName(newAssessmentDto.getName().toLowerCase().replaceAll("[^a-zA-Z0-9]","-") + "-"
                 + String.valueOf(Instant.now().getEpochSecond()));
         assessment.setUser(userRepository.findById(user.getId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + user.getId())));
@@ -609,7 +608,7 @@ public class AssessmentService {
     }
 
     public void updateExpiredAssessments() {
-        assessmentRepository.updateExpiredAssessments(LocalDate.now());
+        assessmentRepository.updateExpiredAssessments(LocalDateTime.now());
     }
 
     /**

@@ -9,6 +9,7 @@ import org.hibernate.type.SqlTypes;
 
 import com.delphi.delphi.utils.AssessmentStatus;
 import com.delphi.delphi.utils.AttemptStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -84,6 +85,7 @@ public class CandidateAttempt {
     // Many-to-one relationship with Assessment
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assessment_id", nullable = false)
+    @JsonIgnore
     private Assessment assessment;
     
     // One-to-one relationship with Evaluation (placeholder)

@@ -1,12 +1,11 @@
 package com.delphi.delphi.repositories;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -108,5 +107,5 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long>, J
        @Modifying
        @Query("UPDATE Assessment a SET a.status = 'INACTIVE' " +
                      "WHERE a.endDate < :currentDate AND a.status = 'ACTIVE'")
-       int updateExpiredAssessments(@Param("currentDate") LocalDate currentDate);
+       int updateExpiredAssessments(@Param("currentDate") LocalDateTime currentDate);
 }

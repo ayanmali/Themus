@@ -79,10 +79,12 @@ public class User implements UserDetails {
     
     // One-to-many relationship with Assessment
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Assessment> assessments;
     
     // One-to-many relationship with Candidate
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Candidate> candidates;
 
     public User() {

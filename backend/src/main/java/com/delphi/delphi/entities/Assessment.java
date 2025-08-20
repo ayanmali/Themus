@@ -12,6 +12,7 @@ import org.hibernate.type.SqlTypes;
 import org.springframework.ai.chat.messages.Message;
 
 import com.delphi.delphi.utils.AssessmentStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
@@ -134,14 +135,17 @@ public class Assessment {
     
     // One-to-many relationship with CandidateAttempt
     @OneToMany(mappedBy = "assessment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<CandidateAttempt> candidateAttempts;
     
     // Many-to-many relationship with Candidate
     @ManyToMany(mappedBy = "assessments", fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Candidate> candidates;
 
     // One-to-many relationship with ChatMessages
     @OneToMany(mappedBy = "assessment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<ChatMessage> chatMessages;
 
     public Assessment() {

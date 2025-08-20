@@ -7,6 +7,8 @@ import java.util.Map;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -76,6 +78,7 @@ public class Candidate {
     
     // One-to-many relationship with CandidateAttempt
     @OneToMany(mappedBy = "candidate", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<CandidateAttempt> candidateAttempts;
     
     // Many-to-many relationship with Assessment
@@ -85,6 +88,7 @@ public class Candidate {
         joinColumns = @JoinColumn(name = "candidate_id"),
         inverseJoinColumns = @JoinColumn(name = "assessment_id")
     )
+    @JsonIgnore
     private List<Assessment> assessments;
 
     // Metadata as key-value pairs

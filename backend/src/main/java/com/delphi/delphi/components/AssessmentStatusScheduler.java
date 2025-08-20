@@ -1,6 +1,6 @@
 package com.delphi.delphi.components;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +25,7 @@ public class AssessmentStatusScheduler {
     @Scheduled(cron = "0 0 2 * * *")    
     public void updateAssessmentStatus() {
         assessmentService.updateExpiredAssessments();
-        log.info("Updated expired assessments for date: {}", LocalDate.now());
+        log.info("Updated expired assessments for date: {}", LocalDateTime.now());
     }
 
     // @Scheduled(cron = "0 0 2 * * *")
@@ -37,6 +37,6 @@ public class AssessmentStatusScheduler {
     @Scheduled(cron = "0 30 2 * * *") // Run 30 minutes after the other jobs
     public void updateAttemptsForInactiveAssessments() {
         candidateAttemptService.updateAttemptsForInactiveAssessments();
-        log.info("Updated candidate attempts for inactive assessments for date: {}", LocalDate.now());
+        log.info("Updated candidate attempts for inactive assessments for date: {}", LocalDateTime.now());
     }
 }

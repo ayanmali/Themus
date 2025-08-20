@@ -2,6 +2,8 @@ package com.delphi.delphi.entities;
 
 import org.springframework.ai.chat.messages.AssistantMessage.ToolCall;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -26,6 +28,7 @@ public class OpenAiToolCall {
 
     @ManyToOne
     @JoinColumn(name = "message_id")
+    @JsonIgnore
     private ChatMessage chatMessage;
 
     public OpenAiToolCall() {

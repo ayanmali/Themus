@@ -34,6 +34,7 @@ public class CreateAssessmentWorker {
             job.setStatus(JobStatus.RUNNING);
             jobRepository.save(job);
             // Agent loop
+            log.info("Running agent loop...");
             ChatResponse response = chatService.getChatCompletion(
                 AssessmentCreationPrompts.USER_PROMPT, 
                 publishAssessmentCreationJobDto.getUserPromptVariables(), 

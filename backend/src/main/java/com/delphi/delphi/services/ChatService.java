@@ -57,7 +57,8 @@ public class ChatService {
 
     private final GithubTools githubTools;
 
-    private final double TEMPERATURE = 0.75;
+    private final String PRESET = "assessment-creation";
+    private final boolean PARALLEL_TOOL_CALLS = true;
 
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
 
@@ -89,6 +90,7 @@ public class ChatService {
             // Message systemMessage = systemPromptTemplate.createMessage(Map.of("adjective", "offensive", "topic", "old people"));
 
             // add the user message to the chat history
+            log.info("Adding user message to chat history: {}", userMessage.substring(0, Math.min(userMessage.length(), 100)) + "...");
             addMessageToChatHistory(userMessage, MessageType.USER, List.of(), assessment, model);
             // add the user message to the messages list
             //messages.add(new ChatMessage(userMessage, chatHistory, MessageType.USER, model));
@@ -97,6 +99,9 @@ public class ChatService {
 
             // get the messages from the chat history
             List<Message> messages = assessment.getMessagesAsSpringMessages();
+            for (Message message : messages) {
+                log.info("Message: {}...{}", message.getText().substring(0, Math.min(message.getText().length(), 100)), message.getText().substring(Math.max(message.getText().length() - 30, 0)));
+            }
 
             // create a prompt message from template
             // PromptTemplate pt = new PromptTemplate("You are a helpful assistant. You are given a conversation history and a user message. You need to respond to the user message based on the conversation history. The conversation history is: {conversationHistory}. The user message is: {userMessage}. The response should be in the same language as the conversation history.");
@@ -107,7 +112,7 @@ public class ChatService {
                 // convert the messages to Spring AI messages
                 messages,
                 OpenAiChatOptions.builder()
-                    .model(model)
+                    .model(String.format("%s@preset/%s", model, PRESET))
                     .toolCallbacks(ToolCallbacks.from(githubTools))
                     .toolContext(Map.of(
                         "assessmentId", assessmentId, 
@@ -117,7 +122,7 @@ public class ChatService {
                         "model", model)
                     )
                     //.internalToolExecutionEnabled(false) // disable framework-enabled tool execution
-                    .temperature(TEMPERATURE) // double between 0 and 1
+                    .parallelToolCalls(PARALLEL_TOOL_CALLS)
                     .build()
             );
 
@@ -128,7 +133,7 @@ public class ChatService {
 
             // adding LLM response to chat history
             ChatResponse response = chatModel.call(prompt);
-            log.info("Response: {}", response.getResults().stream().map(r -> r.getOutput().getText()).collect(Collectors.joining("\n")));
+            log.info("Response: {}", response.getResults().stream().map(r -> r.getOutput().getText()).collect(Collectors.joining("\n\n")));
             for (Generation generation : response.getResults()) {
                 addMessageToChatHistory(generation.getOutput(), assessment, model);
             }
@@ -159,12 +164,18 @@ public class ChatService {
             PromptTemplate userPromptTemplate = new PromptTemplate(userPromptTemplateMessage);
             Message userMessage = userPromptTemplate.createMessage(userPromptVariables);
 
+            log.info("Adding user message to chat history: {}", userMessage.getText().substring(0, Math.min(userMessage.getText().length(), 100)) + "...");
+
             addMessageToChatHistory(userMessage.getText(), MessageType.USER, List.of(), assessment, model);
             // add the user message to the messages list
             //messages.add(new ChatMessage(userMessage, chatHistory, MessageType.USER, model));
 
-            // get the messages from the chat history
-            List<Message> messages = assessment.getMessagesAsSpringMessages();
+             // get the messages from the chat history
+             List<Message> messages = assessment.getMessagesAsSpringMessages();
+
+             for (Message message : messages) {
+                log.info("Message: {}...{}", message.getText().substring(0, Math.min(message.getText().length(), 100)), message.getText().substring(Math.max(message.getText().length() - 30, 0)));
+             }
 
             // create a prompt message from template
             // PromptTemplate pt = new PromptTemplate("You are a helpful assistant. You are given a conversation history and a user message. You need to respond to the user message based on the conversation history. The conversation history is: {conversationHistory}. The user message is: {userMessage}. The response should be in the same language as the conversation history.");
@@ -175,7 +186,7 @@ public class ChatService {
                 // convert the messages to Spring AI messages
                 messages,
                 OpenAiChatOptions.builder()
-                    .model(model)
+                    .model(String.format("%s@preset/%s", model, PRESET))
                     .toolCallbacks(ToolCallbacks.from(githubTools))
                     .toolContext(Map.of(
                         "assessmentId", assessmentId, 
@@ -185,7 +196,7 @@ public class ChatService {
                         "model", model)
                     )
                     //.internalToolExecutionEnabled(false) // disable framework-enabled tool execution
-                    .temperature(TEMPERATURE) // double between 0 and 1
+                    .parallelToolCalls(PARALLEL_TOOL_CALLS)
                     .build()
             );
 
@@ -196,7 +207,7 @@ public class ChatService {
 
             // adding LLM response to chat history
             ChatResponse response = chatModel.call(prompt);
-            log.info("Response: {}", response.getResults().stream().map(r -> r.getOutput().getText()).collect(Collectors.joining("\n")));
+            log.info("Response: {}", response.getResults().stream().map(r -> r.getOutput().getText()).collect(Collectors.joining("\n\n")));
             for (Generation generation : response.getResults()) {
                 addMessageToChatHistory(generation.getOutput(), assessment, model);
             }
