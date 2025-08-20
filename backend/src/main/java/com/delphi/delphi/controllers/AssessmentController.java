@@ -188,6 +188,8 @@ public class AssessmentController {
             Job job = new Job(JobStatus.PENDING, JobType.CREATE_ASSESSMENT);
             job = jobRepository.save(job);
 
+            log.info("Job created: {}", job.getId());
+
             PublishAssessmentCreationJobDto publishAssessmentCreationJobDto = new PublishAssessmentCreationJobDto(job.getId(), assessment, user, newAssessmentDto.getModel());
             rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.CREATE_ASSESSMENT_ROUTING_KEY, publishAssessmentCreationJobDto);
             log.info("Assessment creation job published to queue");

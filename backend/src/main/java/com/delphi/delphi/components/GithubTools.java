@@ -5,12 +5,13 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
-import com.delphi.delphi.entities.ChatMessage;
 import com.delphi.delphi.services.EncryptionService;
 import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.UserService;
@@ -33,6 +34,7 @@ public class GithubTools {
     private final GithubService githubService; // for making GitHub API calls
     private final Base64.Encoder base64Encoder; // for encoding content to base64 for GitHub API
     private final Base64.Decoder base64Decoder; // for decoding content from base64 for GitHub API
+    private final Logger log = LoggerFactory.getLogger(GithubTools.class);  
 
     public GithubTools(UserService userService, GithubService githubService, EncryptionService encryptionService) {
         this.userService = userService;
@@ -230,14 +232,22 @@ public class GithubTools {
     }
 
     @Tool(description = "Sends a message to the user after applying changes to the repository.", returnDirect=true)
-    public ChatMessage sendMessageToUser(
+    public String sendMessageToUser(
         @ToolParam(required = true, description = "The message to send to the user") String message,
         ToolContext toolContext) {
-        return githubService.sendMessageToUser(
-            message, 
-            getCurrentAssessmentId(toolContext.getContext()), 
-            (String) toolContext.getContext().get("model")
-        );
+            log.info("--------------------------------");
+            log.info("SENDING MESSAGE TO USER - GITHUB TOOL:");
+            log.info("Message: {}", message.substring(0, Math.min(message.length(), 100)) + "...");
+            log.info("Assessment ID: {}", getCurrentAssessmentId(toolContext.getContext()));
+            log.info("Model: {}", (String) toolContext.getContext().get("model"));
+            log.info("--------------------------------");
+        
+            return message;
+            // return githubService.sendMessageToUser(
+        //     message, 
+        //     getCurrentAssessmentId(toolContext.getContext()), 
+        //     (String) toolContext.getContext().get("model")
+        // );
     }
 
 }

@@ -27,6 +27,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.ChatMessage;
 import com.delphi.delphi.repositories.AssessmentRepository;
+import com.delphi.delphi.repositories.ChatMessageRepository;
 import com.delphi.delphi.utils.git.GithubBranchDetails;
 import com.delphi.delphi.utils.git.GithubFile;
 import com.delphi.delphi.utils.git.GithubReference;
@@ -53,6 +54,8 @@ import com.delphi.delphi.utils.git.GithubRepoBranch;
  */
 
 public class GithubService {
+
+    private final ChatMessageRepository chatMessageRepository;
 
     private final AssessmentRepository assessmentRepository;
 
@@ -83,7 +86,7 @@ public class GithubService {
                         // @Value("${github.candidate.app.client-secret}") String candidateAppClientSecret,
                         @Value("${spring.security.oauth2.client.registration.github.scope}") String githubScope,
                         Map<String, String> author,
-                        EncryptionService encryptionService, AssessmentRepository assessmentRepository) {
+                        EncryptionService encryptionService, AssessmentRepository assessmentRepository, ChatMessageRepository chatMessageRepository) {
         this.appId = appId;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
@@ -109,6 +112,11 @@ public class GithubService {
 
         // this.chatMessageRepository = chatMessageRepository;
         this.assessmentRepository = assessmentRepository;
+
+        // this.chatMessageRepository = chatMessageRepository;
+
+        // this.chatMessageRepository = chatMessageRepository;
+        this.chatMessageRepository = chatMessageRepository;
     }
 
     private void loadPrivateKey() {
@@ -717,28 +725,26 @@ public class GithubService {
         }
     }
 
-    public ChatMessage sendMessageToUser(String text, Long assessmentId, String model) {
-        try {
-            Assessment assessment = assessmentRepository.findById(assessmentId)
-                    .orElseThrow(() -> new Exception("Assessment not found with id: " + assessmentId));
-            ChatMessage chatMessage = new ChatMessage();
-            chatMessage.setText(text);
-            chatMessage.setAssessment(assessment);
-
-            chatMessage.setMessageType(MessageType.ASSISTANT);
-            chatMessage.setModel(model);
-            // TODO: add this back?
-            // chatMessageRepository.save(chatMessage);
-
-            // TODO: add this back?
-            // existingChatHistory.getMessages().add(chatMessage);
-            assessment.addMessage(chatMessage);
-            assessmentRepository.save(assessment);
-            return chatMessage;
-        } catch (Exception e) {
-            throw new RuntimeException("Error sending message: " + e.getMessage());
-        }
-    }
+    // TODO: see if this fixes the duplicate message bug
+    // public ChatMessage sendMessageToUser(String text, Long assessmentId, String model) {
+    //     try {
+    //         log.info("--------------------------------");
+    //         log.info("SENDING MESSAGE TO USER - GITHUB SERVICE:");
+    //         log.info("Message: {}", text.substring(0, Math.min(text.length(), 100)) + "...");
+    //         log.info("Assessment ID: {}", assessmentId);
+    //         log.info("Model: {}", model);
+    //         log.info("--------------------------------");
+    //         Assessment assessment = assessmentRepository.findById(assessmentId)
+    //                 .orElseThrow(() -> new Exception("Assessment not found with id: " + assessmentId));
+    //         ChatMessage chatMessage = new ChatMessage("TOOL CALL -- " + text, List.of(), assessment, MessageType.ASSISTANT, model);
+    //         ChatMessage savedChatMessage = chatMessageRepository.save(chatMessage);
+    //         assessment.addMessage(savedChatMessage);
+    //         assessmentRepository.save(assessment);
+    //         return savedChatMessage;
+    //     } catch (Exception e) {
+    //         throw new RuntimeException("Error sending message: " + e.getMessage());
+    //     }
+    // }
 
     // Deprecated: Use getBranchDetails() instead for full response information
     // @Deprecated
