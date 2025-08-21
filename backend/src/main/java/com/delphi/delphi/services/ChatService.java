@@ -11,6 +11,8 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.AssistantMessage.ToolCall;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
+import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
@@ -27,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.delphi.delphi.components.GithubTools;
+import com.delphi.delphi.components.TestTools;
 import com.delphi.delphi.dtos.cache.ChatMessageCacheDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.ChatMessage;
@@ -63,15 +66,18 @@ public class ChatService {
 
     private final GithubTools githubTools;
 
+    private final TestTools testTools;
+
     private final String PRESET = "assessment-creation";
     private final boolean PARALLEL_TOOL_CALLS = true;
 
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
 
-    public ChatService(ChatMessageRepository chatMessageRepository, ChatModel chatModel, GithubTools githubTools, AssessmentRepository assessmentRepository, OpenAIToolCallRepository openAIToolCallRepository) {
+    public ChatService(ChatMessageRepository chatMessageRepository, ChatModel chatModel, GithubTools githubTools, TestTools testTools, AssessmentRepository assessmentRepository, OpenAIToolCallRepository openAIToolCallRepository) {
         this.chatMessageRepository = chatMessageRepository;
         this.chatModel = chatModel;
         this.githubTools = githubTools;
+        this.testTools = testTools;
         log.info("ChatService initialized with Spring AI ChatModel, targeting OpenRouter.");
         this.assessmentRepository = assessmentRepository;
         this.openAIToolCallRepository = openAIToolCallRepository;
@@ -229,6 +235,46 @@ public class ChatService {
             }
             return response;
         } catch (Exception e) {
+            log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to get completion from AI service: " + e.getMessage(), e);
+        }
+    }
+
+    public ChatResponse testAgent(String userMessage, String model) {
+        log.info("Sending prompt to OpenRouter model '{}':\nUSER MESSAGE: '{}'", model, userMessage);
+        try {
+            Prompt prompt = new Prompt(
+                // convert the messages to Spring AI messages
+                List.of(
+                    new SystemMessage("You are a helpful assistant. You have access to the get_weather tool. This tool returns the weather for a given city as an integerin degrees Celsius. The city must be in the format of 'City, State'. For example, 'New York, NY'."),
+                    new UserMessage(userMessage)
+                ),
+                OpenAiChatOptions.builder()
+                    .model(model)
+                    .toolCallbacks(ToolCallbacks.from(testTools))
+                    .toolChoice(OpenAiApi.ChatCompletionRequest.ToolChoiceBuilder.AUTO)
+                    // .toolChoice(OpenAiApi.ChatCompletionRequest.ToolChoiceBuilder.FUNCTION("get_weather"))
+                    //.internalToolExecutionEnabled(false) // disable framework-enabled tool execution
+                    .parallelToolCalls(PARALLEL_TOOL_CALLS)
+                    .build()
+            );
+
+            // Create a new prompt with a user message
+            // Prompt p2 = new Prompt(new UserMessage(""), OpenAiChatOptions.builder()
+            //         .model(model)
+            //         .build());
+
+            // adding LLM response to chat history
+            ChatResponse response = chatModel.call(prompt);
+            int count = 0;
+            //log.info("Response: {}", response.getResults().stream().map(r -> r.getOutput().getText()).collect(Collectors.joining("\n\n")));
+            for (Generation generation : response.getResults()) {
+                log.info("Generation {}: {}", count, generation.getOutput().getText().substring(0, Math.min(generation.getOutput().getText().length(), 100)) + "...");
+                count++;
+            }
+            return response;
+        }
+        catch (Exception e) {
             log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to get completion from AI service: " + e.getMessage(), e);
         }

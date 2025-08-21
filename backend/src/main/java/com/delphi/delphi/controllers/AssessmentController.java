@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,6 +47,7 @@ import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.entities.Job;
 import com.delphi.delphi.repositories.JobRepository;
 import com.delphi.delphi.services.AssessmentService;
+import com.delphi.delphi.services.ChatService;
 import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.AssessmentStatus;
@@ -59,6 +61,8 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/assessments")
 public class AssessmentController {
 
+    private final ChatService chatService;
+
     private final UserService userService;
     private final GithubService githubService;
     //private final ChatMessagePublisher chatMessagePublisher;
@@ -69,7 +73,7 @@ public class AssessmentController {
 
     private final Logger log = LoggerFactory.getLogger(AssessmentController.class);
 
-    public AssessmentController(AssessmentService assessmentService, UserService userService, GithubService githubService, JobRepository jobRepository, RabbitTemplate rabbitTemplate, @Value("${github.app.name}") String githubAppName) {
+    public AssessmentController(AssessmentService assessmentService, UserService userService, GithubService githubService, JobRepository jobRepository, RabbitTemplate rabbitTemplate, @Value("${github.app.name}") String githubAppName, ChatService chatService) {
         this.assessmentService = assessmentService;
         //this.chatMessagePublisher = chatMessagePublisher;
         this.userService = userService;
@@ -78,6 +82,8 @@ public class AssessmentController {
         this.rabbitTemplate = rabbitTemplate;
         // state specifies whether this installation is for a user or a candidate
         this.appInstallUrl = String.format("https://github.com/apps/%s/installations/new", githubAppName);
+        // state specifies whether this installation is for a user or a candidate
+        this.chatService = chatService;
     }
 
     private UserCacheDto getCurrentUser() {
@@ -214,6 +220,16 @@ public class AssessmentController {
         }
     }
 
+    @GetMapping("/test-agent")
+    public ResponseEntity<?> testAgent() {
+        try {
+            ChatResponse chatResponse = chatService.testAgent("What is the weather in San Francisco?", "z-ai/glm-4.5-air:free");
+            return ResponseEntity.ok(chatResponse);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error testing agent: " + e.getMessage());
+        }
+    }
     // Chat with the AI agent
     // @PostMapping("/chat")
     // public ResponseEntity<?> chat(@RequestBody NewUserMessageDto messageDto) {
