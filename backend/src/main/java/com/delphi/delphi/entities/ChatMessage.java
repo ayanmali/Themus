@@ -2,11 +2,11 @@ package com.delphi.delphi.entities;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.springframework.ai.chat.messages.AbstractMessage;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
@@ -30,6 +30,10 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "chat_messages")
+/**
+ * Assistant messages can contain ToolCalls (i.e. requests to invoke a tool).
+ * ToolResponseMessages contain the result of a tool call.
+ */
 public class ChatMessage {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -65,9 +69,16 @@ public class ChatMessage {
     // @ElementCollection
     // @CollectionTable(name = "message_tool_calls", joinColumns = @JoinColumn(name = "message_id"))
     // @Column(name = "tool_call")
+    /**
+     * Represents an LLM's request to invoke a tool.
+     */
     @OneToMany(mappedBy = "chatMessage", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private List<OpenAiToolCall> toolCalls;
+
+    @OneToMany(mappedBy = "chatMessage", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<OpenAiToolResponse> toolResponses;
 
     public ChatMessage() {
     }
@@ -82,16 +93,51 @@ public class ChatMessage {
         }
     }
 
-    public ChatMessage(AssistantMessage message, Assessment assessment, String model) {
+    /**
+     * Takes a Spring AI message and converts it to a ChatMessage entity.
+     * @param message
+     * @param assessment
+     * @param model
+     */
+    public ChatMessage (AbstractMessage message, Assessment assessment, String model) {
         this.text = message.getText();
         this.assessment = assessment;
-        this.messageType = message.getMessageType();
         this.model = model;
-        if (!message.getToolCalls().isEmpty()) {
-            this.toolCalls = message.getToolCalls().stream().map(
-                                toolCall -> new OpenAiToolCall(toolCall)
-                             ).collect(Collectors.toList());
-        }
+        this.messageType = message.getMessageType();
+
+        // switch (message.getMessageType()) {
+        //     case MessageType.ASSISTANT -> {
+        //         // storing tool calls
+        //         // if (message instanceof AssistantMessage assistantMessage) {
+        //         //     if (!assistantMessage.getToolCalls().isEmpty()) {
+        //         //         this.toolCalls = assistantMessage.getToolCalls().stream().map(
+        //         //                             toolCall -> new OpenAiToolCall(toolCall, this)
+        //         //                          ).collect(Collectors.toList());
+        //         //     }
+        //         // }
+        //         break;
+        //     }
+        //     case MessageType.USER -> {
+        //         break;
+        //     }
+        //     case MessageType.SYSTEM -> {
+        //         break;
+        //     }
+        //     case MessageType.TOOL -> {
+        //         // storing tool responses
+        //         // if (message instanceof ToolResponseMessage toolResponseMessage) {
+        //         //     if (!toolResponseMessage.getResponses().isEmpty()) {
+        //         //         this.toolResponses = toolResponseMessage.getResponses().stream().map(
+        //         //                             toolResponse -> new OpenAiToolResponse(toolResponse, this)
+        //         //                          ).collect(Collectors.toList());
+        //         //     }
+        //         // }
+        //         break;
+        //     }
+        //     default -> {
+        //         throw new IllegalArgumentException("Invalid message type: " + message.getMessageType());
+        //     }
+        // }
     }
 
     public Long getId() {
@@ -172,7 +218,7 @@ public class ChatMessage {
     }
 
     public void addToolCall(String name, String arguments, String id) {
-        this.toolCalls.add(new OpenAiToolCall(name, arguments, id));
+        this.toolCalls.add(new OpenAiToolCall(name, arguments, id, this));
     }
 
     public void addToolCall(OpenAiToolCall toolCall) {
@@ -181,5 +227,21 @@ public class ChatMessage {
 
     public void setToolCalls(List<OpenAiToolCall> toolCalls) {
         this.toolCalls = toolCalls;
+    }
+
+    public List<OpenAiToolResponse> getToolResponses() {
+        return toolResponses;
+    }
+
+    public void addToolResponse(String name, String responseData, String id) {
+        this.toolResponses.add(new OpenAiToolResponse(name, responseData, id, this));
+    }
+
+    public void addToolResponse(OpenAiToolResponse toolResponse) {
+        this.toolResponses.add(toolResponse);
+    }
+
+    public void setToolResponses(List<OpenAiToolResponse> toolResponses) {
+        this.toolResponses = toolResponses;
     }
 }

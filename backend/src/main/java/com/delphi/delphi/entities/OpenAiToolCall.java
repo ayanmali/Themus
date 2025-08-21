@@ -14,17 +14,17 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "openai_tool_calls")
 /*
- * Represents data about a tool call made by the OpenAI API.
+ * Represents data about a request to invoke a tool made by an LLM via the OpenAI API.
  */
 public class OpenAiToolCall {
     @Id
     private String id;
 
     @Column(name = "tool_name")
-    private String toolName;
+    private String name;    // tool name
 
     @Column(name = "arguments")
-    private String arguments;
+    private String arguments; // JSON string of the arguments
 
     @ManyToOne
     @JoinColumn(name = "message_id")
@@ -34,24 +34,26 @@ public class OpenAiToolCall {
     public OpenAiToolCall() {
     }
 
-    public OpenAiToolCall(String toolName, String arguments, String id) {
-        this.toolName = toolName;
+    public OpenAiToolCall(String name, String arguments, String id, ChatMessage chatMessage) {
+        this.name = name;
         this.arguments = arguments;
         this.id = id;
+        this.chatMessage = chatMessage;
     }
 
-    public OpenAiToolCall(ToolCall toolCall) {
-        this.toolName = toolCall.name();
+    public OpenAiToolCall(ToolCall toolCall, ChatMessage chatMessage) {
+        this.name = toolCall.name();
         this.arguments = toolCall.arguments();
         this.id = toolCall.id();
+        this.chatMessage = chatMessage;
     }
 
     public String getToolName() {
-        return toolName;
+        return name;
     }
 
-    public void setToolName(String toolName) {
-        this.toolName = toolName;
+    public void setToolName(String name) {
+        this.name = name;
     }
 
     public String getArguments() {
