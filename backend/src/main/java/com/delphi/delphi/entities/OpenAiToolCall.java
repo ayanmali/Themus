@@ -21,7 +21,7 @@ public class OpenAiToolCall {
     private String id;
 
     @Column(name = "tool_name")
-    private String name;    // tool name
+    private String toolName;    // Changed from 'name' to 'toolName' for clarity
 
     @Column(name = "arguments")
     private String arguments; // JSON string of the arguments
@@ -34,26 +34,26 @@ public class OpenAiToolCall {
     public OpenAiToolCall() {
     }
 
-    public OpenAiToolCall(String name, String arguments, String id, ChatMessage chatMessage) {
-        this.name = name;
+    public OpenAiToolCall(String toolName, String arguments, String id, ChatMessage chatMessage) {
+        this.toolName = toolName;
         this.arguments = arguments;
         this.id = id;
         this.chatMessage = chatMessage;
     }
 
     public OpenAiToolCall(ToolCall toolCall, ChatMessage chatMessage) {
-        this.name = toolCall.name();
+        this.toolName = toolCall.name();
         this.arguments = toolCall.arguments();
         this.id = toolCall.id();
         this.chatMessage = chatMessage;
     }
 
     public String getToolName() {
-        return name;
+        return toolName;
     }
 
-    public void setToolName(String name) {
-        this.name = name;
+    public void setToolName(String toolName) {
+        this.toolName = toolName;
     }
 
     public String getArguments() {

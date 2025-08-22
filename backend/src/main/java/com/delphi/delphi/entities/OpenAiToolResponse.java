@@ -5,15 +5,19 @@ import org.springframework.ai.chat.messages.ToolResponseMessage.ToolResponse;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 
 /**
  * Represents the result (output) of a tool call.
  * A ToolResponseMessage is created when the toolCallingManager has executed a tool call.
  * A ToolResponseMessage contains a List of ToolResponse objects.
  */
+@Entity
+@Table(name = "openai_tool_responses")
 public class OpenAiToolResponse {
     @Id
     private String id;
@@ -21,7 +25,7 @@ public class OpenAiToolResponse {
     @Column(name = "name")
     private String name;   
 
-    @Column(name = "arguments")
+    @Column(name = "response_data")
     private String responseData;
 
     @ManyToOne
@@ -44,6 +48,10 @@ public class OpenAiToolResponse {
         this.responseData = toolResponse.responseData();
         this.id = toolResponse.id();
         this.chatMessage = chatMessage;
+    }
+
+    public ToolResponse toToolResponse() {
+        return new ToolResponse(this.id, this.name, this.responseData);
     }
 
     public String getName() {

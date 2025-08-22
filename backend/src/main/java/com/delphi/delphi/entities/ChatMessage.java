@@ -2,6 +2,7 @@ package com.delphi.delphi.entities;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -11,6 +12,7 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -202,15 +204,22 @@ public class ChatMessage {
                 return new UserMessage(this.getText());
             }
             case ASSISTANT -> {
+                // For now, return a basic AssistantMessage without tool calls
+                // The tool calls are only needed when they're fresh from the LLM
+                // and will be handled separately in the ChatService
                 return new AssistantMessage(this.getText());
             }
             case SYSTEM -> {
                 return new SystemMessage(this.getText());
             }
+            case TOOL -> {
+                // For tool response messages, return a basic message
+                // We'll handle tool responses separately in the ChatService
+                return new ToolResponseMessage(this.getToolResponses().stream().map(OpenAiToolResponse::toToolResponse).collect(Collectors.toList()));
+            }
             default -> throw new IllegalArgumentException("Invalid message type: " + this.getMessageType());
         }
-        // case TOOL:
-        //     return new ToolResponseMessage(this.getText());
+       
     }
 
     public List<OpenAiToolCall> getToolCalls() {

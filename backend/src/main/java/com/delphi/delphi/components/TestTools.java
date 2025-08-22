@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 public class TestTools {
     private static final Logger log = LoggerFactory.getLogger(TestTools.class);
     
-    @Tool(description = "Gets the weather for a given city.")
+    @Tool(description = "Gets the weather for a given city.", name = "getWeather")
     public int getWeather(@ToolParam(required = true, description = "The city to get the weather for. It must be a valid city name and must be in the format of 'City, State'. For example, 'New York, NY'.") String city) {
         log.info("--------------------------------");
         log.info("GETTING WEATHER - TEST TOOLS:");

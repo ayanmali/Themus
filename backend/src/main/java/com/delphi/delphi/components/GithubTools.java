@@ -75,14 +75,13 @@ public class GithubTools {
 
     private String getGithubUsername(Map<String, Object> context) {
         try {
-            Long userId = (Long) context.get("userId");
-            return userService.getUserByIdOrThrow(userId)
-                    .getGithubUsername();
+            String githubUsername = (String) context.get("githubUsername");
+            if (githubUsername == null) throw new IllegalStateException("GitHub username not set in context");
+            return githubUsername;
+        } catch (ClassCastException e) {
+            throw new IllegalStateException("GitHub username must be a String", e);
         } catch (NullPointerException e) {
-            throw new IllegalStateException("User ID not set in context", e);
-        }
-        catch (ClassCastException e) {
-            throw new IllegalStateException("User ID must be a Long", e);
+            throw new IllegalStateException("GitHub username not set in context", e);
         }
     }
 
@@ -115,7 +114,7 @@ public class GithubTools {
     //     return githubService.createRepo(pat, repoName);
     // }
 
-    @Tool(description = "Adds a file to a repository using the GitHub API.")
+    @Tool(name = "addFile", description = "Adds a file to a repository using the GitHub API.")
     public GithubFile addFileToRepo(
         @ToolParam(required = true, description = "The path of the file to add") String filePath, 
         @ToolParam(required = true, description = "The content of the file to add") String fileContent,
@@ -124,7 +123,7 @@ public class GithubTools {
         ToolContext toolContext) {
         String pat = getPAT(toolContext.getContext());
         String username = getGithubUsername(toolContext.getContext());
-        GithubFile fileResponse = githubService.addFileToRepo(pat, username, getCurrentRepoName(toolContext.getContext()), filePath, branch=null, encodeToBase64(fileContent),
+        GithubFile fileResponse = githubService.addFileToRepo(pat, username, getCurrentRepoName(toolContext.getContext()), filePath, branch, encodeToBase64(fileContent),
                 commitMessage).block();
         if (fileResponse != null) {
             GithubFile file = fileResponse;
@@ -135,7 +134,7 @@ public class GithubTools {
         }
     }
 
-    @Tool(description = "Gets the file and directory contents of the default branch of the Git repository using the GitHub API.")
+    @Tool(name = "getRepositoryContents", description = "Gets the file and directory contents of the default branch of the Git repository using the GitHub API.")
     public GithubRepoContents getRepoContents(
         @ToolParam(required = true, description = "The path of the file to get the contents of") String filePath,
         @ToolParam(required = false, description = "The branch to get the contents of. If not provided, the default branch will be used.") String branch,
@@ -154,7 +153,7 @@ public class GithubTools {
         }
     }
 
-    @Tool(description = "Gets the branches of the repository using the GitHub API.")
+    @Tool(name = "getRepositoryBranches", description = "Gets the branches of the repository using the GitHub API.")
     public List<GithubRepoBranch> getRepoBranches(ToolContext toolContext) {
         String pat = getPAT(toolContext.getContext());
         String username = getGithubUsername(toolContext.getContext());
@@ -166,7 +165,7 @@ public class GithubTools {
         }
     }
 
-    @Tool(description = "Adds a branch to the repository using the GitHub API.")
+    @Tool(name = "addBranch", description = "Adds a branch to the repository using the GitHub API.")
     public GithubReference addBranch(
         @ToolParam(required = true, description = "The name of the branch to add") String branchName,
         @ToolParam(required = true, description = "The base branch to add the new branch from") String baseBranch,
@@ -181,7 +180,7 @@ public class GithubTools {
         }
     }
 
-    @Tool(description = "Replaces the contents of an existing file in the repository with new content using the GitHub API.")
+    @Tool(name = "editFile", description = "Replaces the contents of an existing file in the repository with new content using the GitHub API.")
     public GithubFile editFile(
         @ToolParam(required = true, description = "The path of the file to edit") String filePath,
         @ToolParam(required = true, description = "The content of the file to edit") String fileContent,
@@ -201,7 +200,7 @@ public class GithubTools {
         }
     }
 
-    @Tool(description = "Deletes a file in the Git repository using the GitHub API.")
+    @Tool(name = "deleteFile", description = "Deletes a file in the Git repository using the GitHub API.")
     public String deleteFile(
         @ToolParam(required = true, description = "The path of the file to delete") String filePath,
         @ToolParam(required = true, description = "The commit message for the file") String commitMessage,
@@ -217,7 +216,7 @@ public class GithubTools {
         }
     }
 
-    @Tool(description = "Gets the details of a branch in the Git repository using the GitHub API.")
+    @Tool(name = "getBranchDetails", description = "Gets the details of a branch in the Git repository using the GitHub API.")
     public GithubBranchDetails getBranchDetails(
         @ToolParam(required = true, description = "The name of the branch to get the details of") String branchName,
         ToolContext toolContext) {
@@ -231,7 +230,7 @@ public class GithubTools {
         }
     }
 
-    @Tool(description = "Sends a message to the user after applying changes to the repository.", returnDirect=true)
+    @Tool(name = "sendMessageToUser", description = "Sends a message to the user after applying changes to the repository.", returnDirect=true)
     public String sendMessageToUser(
         @ToolParam(required = true, description = "The message to send to the user") String message,
         ToolContext toolContext) {

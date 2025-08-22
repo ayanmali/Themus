@@ -141,6 +141,14 @@ CREATE TABLE IF NOT EXISTS themus.openai_tool_calls (
     message_id BIGINT NOT NULL REFERENCES themus.chat_messages(id) ON DELETE CASCADE
 );
 
+-- Create openai_tool_responses table
+CREATE TABLE IF NOT EXISTS themus.openai_tool_responses (
+    id VARCHAR(255) PRIMARY KEY,
+    tool_name VARCHAR(255),
+    arguments TEXT,
+    message_id BIGINT NOT NULL REFERENCES themus.chat_messages(id) ON DELETE CASCADE
+);
+
 -- Create refresh_tokens table
 CREATE TABLE IF NOT EXISTS themus.refresh_tokens (
     id BIGSERIAL PRIMARY KEY,
@@ -174,6 +182,7 @@ CREATE INDEX IF NOT EXISTS idx_evaluations_candidate_attempt_id ON themus.evalua
 CREATE INDEX IF NOT EXISTS idx_chat_messages_assessment_id ON themus.chat_messages(assessment_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON themus.chat_messages(created_at);
 CREATE INDEX IF NOT EXISTS idx_openai_tool_calls_message_id ON themus.openai_tool_calls(message_id);
+CREATE INDEX IF NOT EXISTS idx_openai_tool_responses_message_id ON themus.openai_tool_responses(message_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON themus.refresh_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON themus.refresh_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_jobs_status ON themus.jobs(status);
@@ -203,5 +212,6 @@ COMMENT ON TABLE themus.candidate_attempts IS 'Stores individual candidate attem
 COMMENT ON TABLE themus.evaluations IS 'Stores evaluation results for candidate attempts';
 COMMENT ON TABLE themus.chat_messages IS 'Stores chat messages for AI interactions';
 COMMENT ON TABLE themus.openai_tool_calls IS 'Stores OpenAI tool calls associated with chat messages';
+COMMENT ON TABLE themus.openai_tool_calls IS 'Stores OpenAI tool responses associated with chat messages';
 COMMENT ON TABLE themus.refresh_tokens IS 'Stores refresh tokens for authentication';
 COMMENT ON TABLE themus.jobs IS 'Stores background job information';

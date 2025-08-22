@@ -1,0 +1,1 @@
+ALTER TABLE themus.openai_tool_responses RENAME COLUMN tool_name TO name;
