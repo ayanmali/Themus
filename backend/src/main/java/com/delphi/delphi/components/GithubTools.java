@@ -239,9 +239,10 @@ public class GithubTools {
             log.info("Message: {}", message.substring(0, Math.min(message.length(), 100)) + "...");
             log.info("Assessment ID: {}", getCurrentAssessmentId(toolContext.getContext()));
             log.info("Model: {}", (String) toolContext.getContext().get("model"));
+            log.info("STOPPING CONVERSATION - WAITING FOR USER RESPONSE");
             log.info("--------------------------------");
         
-            return message;
+            return "STOP: " + message + "\n\n[Conversation paused - waiting for user response]";
             // return githubService.sendMessageToUser(
         //     message, 
         //     getCurrentAssessmentId(toolContext.getContext()), 

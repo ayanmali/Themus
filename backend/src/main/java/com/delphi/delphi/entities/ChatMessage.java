@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import org.springframework.ai.chat.messages.AbstractMessage;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
@@ -101,45 +100,45 @@ public class ChatMessage {
      * @param assessment
      * @param model
      */
-    public ChatMessage (AbstractMessage message, Assessment assessment, String model) {
+    public ChatMessage (Message message, Assessment assessment, String model) {
         this.text = message.getText();
         this.assessment = assessment;
         this.model = model;
         this.messageType = message.getMessageType();
 
-        // switch (message.getMessageType()) {
-        //     case MessageType.ASSISTANT -> {
-        //         // storing tool calls
-        //         // if (message instanceof AssistantMessage assistantMessage) {
-        //         //     if (!assistantMessage.getToolCalls().isEmpty()) {
-        //         //         this.toolCalls = assistantMessage.getToolCalls().stream().map(
-        //         //                             toolCall -> new OpenAiToolCall(toolCall, this)
-        //         //                          ).collect(Collectors.toList());
-        //         //     }
-        //         // }
-        //         break;
-        //     }
-        //     case MessageType.USER -> {
-        //         break;
-        //     }
-        //     case MessageType.SYSTEM -> {
-        //         break;
-        //     }
-        //     case MessageType.TOOL -> {
-        //         // storing tool responses
-        //         // if (message instanceof ToolResponseMessage toolResponseMessage) {
-        //         //     if (!toolResponseMessage.getResponses().isEmpty()) {
-        //         //         this.toolResponses = toolResponseMessage.getResponses().stream().map(
-        //         //                             toolResponse -> new OpenAiToolResponse(toolResponse, this)
-        //         //                          ).collect(Collectors.toList());
-        //         //     }
-        //         // }
-        //         break;
-        //     }
-        //     default -> {
-        //         throw new IllegalArgumentException("Invalid message type: " + message.getMessageType());
-        //     }
-        // }
+        switch (message.getMessageType()) {
+            case MessageType.ASSISTANT -> {
+                // storing tool calls
+                if (message instanceof AssistantMessage assistantMessage) {
+                    if (assistantMessage.getToolCalls() != null && !assistantMessage.getToolCalls().isEmpty()) {
+                        this.toolCalls = assistantMessage.getToolCalls().stream().map(
+                                        toolCall -> new OpenAiToolCall(toolCall, this)
+                                     ).collect(Collectors.toList());
+                    }
+                }
+                break;
+            }
+            case MessageType.USER -> {
+                break;
+            }
+            case MessageType.SYSTEM -> {
+                break;
+            }
+            case MessageType.TOOL -> {
+                // storing tool responses
+                if (message instanceof ToolResponseMessage toolResponseMessage) {
+                    if (toolResponseMessage.getResponses() != null && !toolResponseMessage.getResponses().isEmpty()) {
+                        this.toolResponses = toolResponseMessage.getResponses().stream().map(
+                                        toolResponse -> new OpenAiToolResponse(toolResponse, this)
+                                     ).collect(Collectors.toList());
+                    }
+                }
+                break;
+            }
+            default -> {
+                throw new IllegalArgumentException("Invalid message type: " + message.getMessageType());
+            }
+        }
     }
 
     public Long getId() {
