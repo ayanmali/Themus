@@ -79,5 +79,9 @@ public class OpenAiToolCall {
     public void setChatMessage(ChatMessage chatMessage) {
         this.chatMessage = chatMessage;
     }
+
+    public ToolCall toToolCall() {
+        return new ToolCall(this.id, "FUNCTION", this.toolName, this.arguments);
+    }
     
 }

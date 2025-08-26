@@ -44,7 +44,7 @@ public class LLMChatWorker {
 
             log.info("Saving completed assessment creation job with ID: {}", publishLLMChatJobDto.getJobId().toString());    
             job.setStatus(JobStatus.COMPLETED);
-            job.setResult(response.getResults().getLast().getOutput().getText());
+            job.setResult(response.getResult().getOutput().getText());
             jobRepository.save(job);
 
         } catch (IllegalArgumentException e) {

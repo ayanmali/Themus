@@ -2,7 +2,6 @@ package com.delphi.delphi.components.messaging.chat;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
@@ -35,7 +34,7 @@ public class CreateAssessmentWorker {
             jobRepository.save(job);
             // Agent loop
             log.info("Create assessment job processing - running agent loop...", publishAssessmentCreationJobDto.getJobId().toString());
-            ChatResponse response = chatService.getChatCompletion(
+            chatService.getChatCompletion(
                 AssessmentCreationPrompts.USER_PROMPT, 
                 publishAssessmentCreationJobDto.getUserPromptVariables(), 
                 publishAssessmentCreationJobDto.getModel(), 
@@ -49,7 +48,7 @@ public class CreateAssessmentWorker {
 
             log.info("Saving completed assessment creation job with ID: {}", publishAssessmentCreationJobDto.getJobId().toString());    
             job.setStatus(JobStatus.COMPLETED);
-            job.setResult(response.getResults().getLast().getOutput().getText());
+            job.setResult("Assessment created successfully");
             jobRepository.save(job);
 
         // } catch (InterruptedException e) {

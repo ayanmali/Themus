@@ -4,6 +4,7 @@ public class NewUserMessageDto {
     private String message;
     private Long assessmentId;
     private String model;
+    // TODO: add support for files
     // sender is USER
     
     public NewUserMessageDto() {

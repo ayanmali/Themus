@@ -49,7 +49,7 @@ public class CandidateCacheDto {
             candidate.getCandidateAttempts().forEach(attempt -> {
                 AttemptStatus status = attempt.getStatus();
                 if (status != null) {
-                    attemptStatuses.computeIfAbsent(status, k -> new ArrayList<>()).add(attempt.getId());
+                    attemptStatuses.computeIfAbsent(status, _ -> new ArrayList<>()).add(attempt.getId());
                 }
             });
         }

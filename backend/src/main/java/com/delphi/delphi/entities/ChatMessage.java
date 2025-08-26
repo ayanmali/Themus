@@ -2,6 +2,7 @@ package com.delphi.delphi.entities;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -203,10 +204,7 @@ public class ChatMessage {
                 return new UserMessage(this.getText());
             }
             case ASSISTANT -> {
-                // For now, return a basic AssistantMessage without tool calls
-                // The tool calls are only needed when they're fresh from the LLM
-                // and will be handled separately in the ChatService
-                return new AssistantMessage(this.getText());
+                return new AssistantMessage(this.getText(), Map.of(), this.getToolCalls().stream().map(OpenAiToolCall::toToolCall).collect(Collectors.toList()));
             }
             case SYSTEM -> {
                 return new SystemMessage(this.getText());
