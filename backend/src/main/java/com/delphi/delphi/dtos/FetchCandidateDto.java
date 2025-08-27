@@ -7,7 +7,7 @@ import java.util.Map;
 
 import com.delphi.delphi.dtos.cache.CandidateCacheDto;
 import com.delphi.delphi.entities.Candidate;
-import com.delphi.delphi.utils.AttemptStatus;
+import com.delphi.delphi.utils.enums.AttemptStatus;
 
 public class FetchCandidateDto {
     private Long id;

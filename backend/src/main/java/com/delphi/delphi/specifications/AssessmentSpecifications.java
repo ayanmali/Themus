@@ -7,7 +7,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
 import com.delphi.delphi.entities.Assessment;
-import com.delphi.delphi.utils.AssessmentStatus;
+import com.delphi.delphi.utils.enums.AssessmentStatus;
 
 @Component
 public class AssessmentSpecifications {

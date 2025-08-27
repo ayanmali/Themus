@@ -11,7 +11,7 @@ import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.entities.ChatMessage;
-import com.delphi.delphi.utils.AssessmentStatus;
+import com.delphi.delphi.utils.enums.AssessmentStatus;
 
 public class AssessmentCacheDto {
     private Long id;

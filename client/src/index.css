@@ -242,7 +242,7 @@
 
 @layer utilities {
   .serif-heading {
-    @apply text-4xl font-gfs-didot font-semibold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-200 mb-2;
+    @apply text-4xl font-gfs-didot font-medium tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-200 mb-2;
   }
 }
 

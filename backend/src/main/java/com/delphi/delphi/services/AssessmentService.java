@@ -36,8 +36,8 @@ import com.delphi.delphi.repositories.CandidateAttemptRepository;
 import com.delphi.delphi.repositories.CandidateRepository;
 import com.delphi.delphi.repositories.UserRepository;
 import com.delphi.delphi.specifications.AssessmentSpecifications;
-import com.delphi.delphi.utils.AssessmentStatus;
-import com.delphi.delphi.utils.AttemptStatus;
+import com.delphi.delphi.utils.enums.AssessmentStatus;
+import com.delphi.delphi.utils.enums.AttemptStatus;
 import com.delphi.delphi.utils.git.GithubAccountType;
 
 @Service
@@ -132,8 +132,11 @@ public class AssessmentService {
             githubService.createOrgRepo(user.getGithubAccessToken(), user.getGithubUsername(),
                     assessment.getGithubRepoName());
         }
+        log.info("adding themus-bot as contributor to the repo...");
+        // add themus-bot as contributor to the repo
+        //githubService.addContributor(user.getGithubAccessToken(), user.getGithubUsername(), assessment.getGithubRepoName(), Constants.CONTRIBUTOR_USERNAME);
 
-        log.info("repo created, setting github repository link for assessment: {}", assessment);
+        log.info("repo created and themus-bot added as contributor, setting github repository link for assessment: {}", assessment);
         assessment.setGithubRepositoryLink(
                 "https://github.com/" + user.getGithubUsername().toLowerCase() + "/" + assessment.getGithubRepoName());
 

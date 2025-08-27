@@ -11,7 +11,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 import org.springframework.ai.chat.messages.Message;
 
-import com.delphi.delphi.utils.AssessmentStatus;
+import com.delphi.delphi.utils.enums.AssessmentStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.CascadeType;

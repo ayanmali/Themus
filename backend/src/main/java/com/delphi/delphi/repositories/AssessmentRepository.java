@@ -12,7 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.delphi.delphi.entities.Assessment;
-import com.delphi.delphi.utils.AssessmentStatus;
+import com.delphi.delphi.utils.enums.AssessmentStatus;
 
 @Repository
 public interface AssessmentRepository extends JpaRepository<Assessment, Long>, JpaSpecificationExecutor<Assessment> {

@@ -245,4 +245,14 @@ public class GithubTools {
         // );
     }
 
+    // TODO: add todo list tool for agent to use
+    // TODO: allow agent to spawn subagents to handle different parts of the task
+    // e.g. copying the code to a separate branch for different language options
+    // TODO: allow agent to use the todo list tool to add tasks to the todo list
+    // TODO: allow agent to use the todo list tool to remove tasks from the todo list
+    // TODO: allow agent to use the todo list tool to mark tasks as complete
+    // TODO: allow agent to use the todo list tool to mark tasks as not complete
+    // TODO: allow agent to use the todo list tool to get the status of a task
+    // TODO: allow agent to use the todo list tool to get the list of tasks
+
 }

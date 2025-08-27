@@ -77,35 +77,35 @@ export default function AddCandidate() {
   });
 
   // Quick fill suggestions for common candidate types
-  const quickFillSuggestions: QuickFillSuggestion[] = [
-    {
-      icon: <GraduationCap className="w-4 h-4" />,
-      label: "Recent Graduate",
-      description: "New graduate with internship experience",
-      data: {
-        experience: "0-1 years",
-        education: "Bachelor's Degree in Computer Science",
-      }
-    },
-    {
-      icon: <Briefcase className="w-4 h-4" />,
-      label: "Mid-Level Developer",
-      description: "Experienced professional developer",
-      data: {
-        experience: "3-5 years",
-        position: "Software Developer",
-      }
-    },
-    {
-      icon: <Building2 className="w-4 h-4" />,
-      label: "Senior Engineer",
-      description: "Senior level technical professional",
-      data: {
-        experience: "5+ years",
-        position: "Senior Software Engineer",
-      }
-    },
-  ];
+  // const quickFillSuggestions: QuickFillSuggestion[] = [
+  //   {
+  //     icon: <GraduationCap className="w-4 h-4" />,
+  //     label: "Recent Graduate",
+  //     description: "New graduate with internship experience",
+  //     data: {
+  //       experience: "0-1 years",
+  //       education: "Bachelor's Degree in Computer Science",
+  //     }
+  //   },
+  //   {
+  //     icon: <Briefcase className="w-4 h-4" />,
+  //     label: "Mid-Level Developer",
+  //     description: "Experienced professional developer",
+  //     data: {
+  //       experience: "3-5 years",
+  //       position: "Software Developer",
+  //     }
+  //   },
+  //   {
+  //     icon: <Building2 className="w-4 h-4" />,
+  //     label: "Senior Engineer",
+  //     description: "Senior level technical professional",
+  //     data: {
+  //       experience: "5+ years",
+  //       position: "Senior Software Engineer",
+  //     }
+  //   },
+  // ];
 
   // Create candidate mutation
   const createCandidateMutation = useMutation({
@@ -210,7 +210,7 @@ export default function AddCandidate() {
               transition={{ delay: 0.2, duration: 0.5 }}
               className="inline-block"
             >
-              <h1 className="text-3xl font-medium tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-300">
+              <h1 className="serif-heading">
                 Add New Candidate
               </h1>
               <motion.div
@@ -232,7 +232,7 @@ export default function AddCandidate() {
           </div>
 
           {/* Quick fill suggestions */}
-          <div className="flex flex-wrap items-center justify-center gap-2">
+          {/* <div className="flex flex-wrap items-center justify-center gap-2">
             {quickFillSuggestions.map((suggestion, index) => (
               <motion.button
                 key={suggestion.label}
@@ -247,7 +247,7 @@ export default function AddCandidate() {
                 <span>{suggestion.label}</span>
               </motion.button>
             ))}
-          </div>
+          </div> */}
 
           {/* Form */}
           <div className="space-y-6" onSubmit={handleSubmit}>

@@ -10,7 +10,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 
 import com.delphi.delphi.entities.Job;
-import com.delphi.delphi.utils.JobStatus;
+import com.delphi.delphi.utils.enums.JobStatus;
 
 @Repository
 public interface JobRepository extends JpaRepository<Job, UUID> {

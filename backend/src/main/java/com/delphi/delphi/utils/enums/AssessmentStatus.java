@@ -1,4 +1,4 @@
-package com.delphi.delphi.utils;
+package com.delphi.delphi.utils.enums;
 
 // inactive when the date range passes
 // active when the date range is within the current date

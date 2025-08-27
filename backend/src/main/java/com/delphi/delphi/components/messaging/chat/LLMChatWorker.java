@@ -2,7 +2,6 @@ package com.delphi.delphi.components.messaging.chat;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
@@ -11,7 +10,7 @@ import com.delphi.delphi.dtos.messaging.chat.PublishChatJobDto;
 import com.delphi.delphi.entities.Job;
 import com.delphi.delphi.repositories.JobRepository;
 import com.delphi.delphi.services.ChatService;
-import com.delphi.delphi.utils.JobStatus;
+import com.delphi.delphi.utils.enums.JobStatus;
 @Component
 /**
  * Subscribes to the create assessment queue and processes the job.
@@ -33,7 +32,7 @@ public class LLMChatWorker {
             job.setStatus(JobStatus.RUNNING);
             jobRepository.save(job);
             // Agent loop
-            ChatResponse response = chatService.getChatCompletion(
+            chatService.getChatCompletion(
                 publishLLMChatJobDto.getMessageText(), 
                 publishLLMChatJobDto.getModel(), 
                 publishLLMChatJobDto.getAssessmentId(), 
@@ -44,7 +43,7 @@ public class LLMChatWorker {
 
             log.info("Saving completed assessment creation job with ID: {}", publishLLMChatJobDto.getJobId().toString());    
             job.setStatus(JobStatus.COMPLETED);
-            job.setResult(response.getResult().getOutput().getText());
+            job.setResult("Chat completion completed");
             jobRepository.save(job);
 
         } catch (IllegalArgumentException e) {

@@ -3,7 +3,7 @@ package com.delphi.delphi.dtos.cache;
 import java.time.LocalDateTime;
 
 import com.delphi.delphi.entities.CandidateAttempt;
-import com.delphi.delphi.utils.AttemptStatus;
+import com.delphi.delphi.utils.enums.AttemptStatus;
 
 public class CandidateAttemptCacheDto {
     private Long id;

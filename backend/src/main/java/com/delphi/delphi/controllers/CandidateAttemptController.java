@@ -1,8 +1,12 @@
 package com.delphi.delphi.controllers;
 
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -17,11 +21,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.dtos.FetchCandidateAttemptDto;
 import com.delphi.delphi.dtos.InviteCandidateDto;
-import com.delphi.delphi.dtos.NewCandidateAttemptDto;
+import com.delphi.delphi.dtos.StartAttemptDto;
+import com.delphi.delphi.dtos.PreviewAssessmentDto;
 import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
+import com.delphi.delphi.dtos.cache.CandidateCacheDto;
 import com.delphi.delphi.dtos.get.GetCandidateAttemptsDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
@@ -30,26 +37,44 @@ import com.delphi.delphi.repositories.AssessmentRepository;
 import com.delphi.delphi.repositories.CandidateRepository;
 import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.CandidateAttemptService;
-import com.delphi.delphi.utils.AttemptStatus;
+import com.delphi.delphi.services.CandidateService;
+import com.delphi.delphi.services.EncryptionService;
+import com.delphi.delphi.services.GithubService;
+import com.delphi.delphi.utils.enums.AttemptStatus;
 
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/attempts")
 public class CandidateAttemptController {
+
+    private final EncryptionService encryptionService;
+
+    private final CandidateService candidateService;
     private final AssessmentService assessmentService;
     private final CandidateAttemptService candidateAttemptService;
     private final AssessmentRepository assessmentRepository;
     private final CandidateRepository candidateRepository;
-
+    private final RedisService redisService;
+    private final GithubService githubService;
+    private final String tokenCacheKeyPrefix = "candidate_github_token:";
+    private final String githubCacheKeyPrefix = "github_install_url_random_string:";
+    private final String appInstallBaseUrl;
     public CandidateAttemptController(CandidateAttemptService candidateAttemptService, 
                                     AssessmentService assessmentService,
                                     AssessmentRepository assessmentRepository,
-                                    CandidateRepository candidateRepository) {
+                                    CandidateRepository candidateRepository, CandidateService candidateService,
+                                    RedisService redisService, GithubService githubService,
+                                    @Value("${github.app.name}") String githubAppName, EncryptionService encryptionService) {
         this.assessmentService = assessmentService;
         this.candidateAttemptService = candidateAttemptService;
         this.assessmentRepository = assessmentRepository;
         this.candidateRepository = candidateRepository;
+        this.candidateService = candidateService;
+        this.redisService = redisService;
+        this.githubService = githubService;
+        this.appInstallBaseUrl = String.format("https://github.com/apps/%s/installations/new", githubAppName);
+        this.encryptionService = encryptionService;
     }
 
     @PostMapping("/invite")
@@ -80,20 +105,17 @@ public class CandidateAttemptController {
     
     // Create a new candidate attempt
     @PostMapping("/start")
-    public ResponseEntity<?> startCandidateAttempt(@Valid @RequestBody NewCandidateAttemptDto newCandidateAttemptDto) {
+    public ResponseEntity<?> startCandidateAttempt(@Valid @RequestBody StartAttemptDto startAttemptDto) {
         try {
-            AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(newCandidateAttemptDto.getAssessmentId());
-            // return error if an invalid language choice is provided
-            if (!assessment.getLanguageOptions().isEmpty() && newCandidateAttemptDto.getLanguageChoice().isPresent() && !assessment.getLanguageOptions().contains(newCandidateAttemptDto.getLanguageChoice().get())) {
-                return ResponseEntity.badRequest().body("Language choice not supported for this assessment");
-            }
+            CandidateCacheDto candidate = candidateService.getCandidateByEmail(startAttemptDto.getCandidateEmail());
+            AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(startAttemptDto.getAssessmentId());
 
-            // Use the startAttempt method with the correct signature
-            String languageChoice = newCandidateAttemptDto.getLanguageChoice().orElse(null);
+            // Updating DB
             CandidateAttemptCacheDto createdAttempt = candidateAttemptService.startAttempt(
-                newCandidateAttemptDto.getCandidateId(), 
-                newCandidateAttemptDto.getAssessmentId(), 
-                languageChoice);
+                candidate, 
+                assessment, 
+                startAttemptDto.getLanguageChoice(),
+                startAttemptDto.getPassword());
             return ResponseEntity.status(HttpStatus.CREATED).body(new FetchCandidateAttemptDto(createdAttempt));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error creating candidate attempt: " + e.getMessage());
@@ -319,6 +341,70 @@ public class CandidateAttemptController {
     //             .body("Error retrieving attempts: " + e.getMessage());
     //     }
     // }
+
+    @GetMapping("/live/{assessmentId}")
+    public ResponseEntity<?> fetchAssessmentForPreview(@PathVariable Long assessmentId) {
+        Assessment assessment = assessmentService.getAssessmentById(assessmentId);
+        return ResponseEntity.ok(new PreviewAssessmentDto(assessment));
+    }
+
+    // for candidates to generate a github install url
+    @PostMapping("/live/github/generate-install-url")
+    public ResponseEntity<?> generateGitHubInstallUrl(@RequestBody String candidateEmail) {
+        try {
+            String randomString = UUID.randomUUID().toString();
+            redisService.setWithExpiration(githubCacheKeyPrefix + candidateEmail, randomString, 10, TimeUnit.MINUTES);
+            String installUrl = String.format("%s?state=%s_candidate_%s", appInstallBaseUrl, randomString,
+                    candidateEmail);
+            return ResponseEntity.ok(installUrl);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error generating GitHub install URL: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/live/{assessmentId}/can-take-assessment")
+    public ResponseEntity<?> canTakeAssessment(@PathVariable Long assessmentId, @RequestBody String candidateEmail) {
+        // TODO: check if this email address corresponds to a valid candidate attempt in
+        // the DB
+        // if it does, then we can just redirect to the assessment page
+        Assessment assessment = assessmentService.getAssessmentById(assessmentId);
+        CandidateCacheDto candidate = candidateService.getCandidateByEmail(candidateEmail);
+
+        if (assessment.getCandidateAttempts().stream()
+                .anyMatch(attempt -> attempt.getCandidate().getId().equals(candidate.getId())
+                        && attempt.getStatus().equals(AttemptStatus.INVITED))) {
+            return ResponseEntity.ok(
+                    Map.of("result", true,
+                            "attemptId", assessment.getCandidateAttempts().stream()
+                                    .filter(attempt -> attempt.getCandidate().getId().equals(candidate.getId())
+                                            && attempt.getStatus().equals(AttemptStatus.INVITED))
+                                    .findFirst()
+                                    .get()
+                                    .getId()));
+        }
+        return ResponseEntity.ok(
+                Map.of("result", false));
+    }
+
+    @GetMapping("/live/has-valid-github-token")
+    public ResponseEntity<?> hasValidGithubToken(@RequestBody String email) {
+        try {
+            Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + email);
+
+            // get a new token if the candidate doesn't have one or if the token is invalid
+            if (candidateGithubToken == null || githubService
+                    .validateGithubCredentials(encryptionService.decrypt(candidateGithubToken.toString())) == null) {
+                return ResponseEntity.ok(Map.of("result", false));
+            }
+            return ResponseEntity.ok(Map.of("result", true));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error checking if candidate has valid Github token: " + e.getMessage());
+        }
+    }
+
+    //////////////
     
     // Get overdue attempts
     @GetMapping("/overdue/all")

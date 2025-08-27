@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
-import com.delphi.delphi.utils.AttemptStatus;
+import com.delphi.delphi.utils.enums.AttemptStatus;
 
 /**
  * Contains filter query parameters for getting candidates

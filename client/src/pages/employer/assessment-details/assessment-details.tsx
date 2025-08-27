@@ -534,6 +534,7 @@ export default function AssessmentDetails() {
                         <ArrowLeft size={20} />
                         Back to Assessments
                     </button>
+                    <span className="text-red-500" hidden={!hasUnsavedChanges}>You have unsaved changes</span>
                     <button
                         className="flex items-center gap-2 text-gray-200 hover:text-gray-100 mb-6 transition-colors bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg"
                     >

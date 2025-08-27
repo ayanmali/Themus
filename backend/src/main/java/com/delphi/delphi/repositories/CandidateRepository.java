@@ -13,7 +13,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.delphi.delphi.entities.Candidate;
-import com.delphi.delphi.utils.AttemptStatus;
+import com.delphi.delphi.utils.enums.AttemptStatus;
 
 @Repository
 public interface CandidateRepository extends JpaRepository<Candidate, Long>, JpaSpecificationExecutor<Candidate> {

@@ -1,8 +1,8 @@
-package com.delphi.delphi.utils;
+package com.delphi.delphi.utils.enums;
 
 public enum JobType {
     CREATE_ASSESSMENT,
-    CHAT,
+    CHAT_COMPLETION,
     SEND_EMAIL,
     INVITE_CANDIDATE
 }

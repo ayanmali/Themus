@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
-import com.delphi.delphi.utils.AttemptStatus;
+import com.delphi.delphi.utils.enums.AttemptStatus;
 
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;

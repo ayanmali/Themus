@@ -5,8 +5,8 @@ import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import com.delphi.delphi.utils.JobStatus;
-import com.delphi.delphi.utils.JobType;
+import com.delphi.delphi.utils.enums.JobStatus;
+import com.delphi.delphi.utils.enums.JobType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

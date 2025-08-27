@@ -3,7 +3,7 @@ package com.delphi.delphi.services;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -18,11 +18,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.delphi.delphi.components.RedisService;
+import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
+import com.delphi.delphi.dtos.cache.CandidateCacheDto;
 import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.repositories.CandidateAttemptRepository;
 import com.delphi.delphi.specifications.CandidateAttemptSpecifications;
-import com.delphi.delphi.utils.AttemptStatus;
+import com.delphi.delphi.utils.enums.AttemptStatus;
 
 
 @Service
@@ -37,13 +39,17 @@ import com.delphi.delphi.utils.AttemptStatus;
  */
 public class CandidateAttemptService {
 
+    private final EncryptionService encryptionService;
+
     private final CandidateAttemptRepository candidateAttemptRepository;
     private final Logger log = LoggerFactory.getLogger(CandidateAttemptService.class);
     private final RedisService redisService;
+    private final String candidateAttemptPasswordCacheKeyPrefix = "candidate_attempt_password:";
 
-    public CandidateAttemptService(CandidateAttemptRepository candidateAttemptRepository, RedisService redisService) {
+    public CandidateAttemptService(CandidateAttemptRepository candidateAttemptRepository, RedisService redisService, EncryptionService encryptionService) {
         this.candidateAttemptRepository = candidateAttemptRepository;
         this.redisService = redisService;
+        this.encryptionService = encryptionService;
     }
 
     // Invite a candidate to an assessment
@@ -63,6 +69,16 @@ public class CandidateAttemptService {
         CandidateAttemptCacheDto result = new CandidateAttemptCacheDto(candidateAttemptRepository.save(candidateAttempt));
         
         // Update cache: add to general caches and evict specific caches
+        // create password for candidate attempt
+        String password = UUID.randomUUID().toString().substring(0, 6);
+        String encryptedPassword = null;
+        try {
+            encryptedPassword = encryptionService.encrypt(password);
+        } catch (Exception e) {
+            log.error("Error encrypting password: {}", e.getMessage());
+            throw new RuntimeException("Error encrypting password: " + e.getMessage());
+        }
+        redisService.set("candidate_attempt_password:" + candidateAttempt.getId(), encryptedPassword); // 1 day
         updateCacheAfterAttemptCreation(candidateAttempt.getCandidate().getId(), candidateAttempt.getAssessment().getId(), result);
         
         return result;
@@ -80,26 +96,46 @@ public class CandidateAttemptService {
      * @return
      */
     @CachePut(value = "attempts", key = "#result.id")
-    public CandidateAttemptCacheDto startAttempt(Long candidateId, Long assessmentId, String languageChoice) {
+    public CandidateAttemptCacheDto startAttempt(CandidateCacheDto candidate, AssessmentCacheDto assessment, String languageChoice, String password) {
         // Check if candidate already has an attempt for this assessment
-        Optional<CandidateAttempt> existingAttempt = candidateAttemptRepository.findByCandidateIdAndAssessmentId(
-                candidateId,
-                assessmentId);
-
-        if (!existingAttempt.isPresent()) {
-            throw new IllegalArgumentException("Candidate does not have an attempt for this assessment");
+        Object encryptedPassword = redisService.get(candidateAttemptPasswordCacheKeyPrefix + candidate.getId());
+        if (encryptedPassword == null) {
+            throw new IllegalArgumentException("Candidate attempt password not found. Does this candidate have an attempt for this assessment?");
+        }
+        String actualPassword;
+        try {
+            actualPassword = encryptionService.decrypt(encryptedPassword.toString());
+        } catch (Exception e) {
+            log.error("Error decrypting password: {}", e.getMessage());
+            throw new RuntimeException("Error decrypting password: " + e.getMessage());
         }
 
-        existingAttempt.get().setStatus(AttemptStatus.STARTED);
-        existingAttempt.get().setStartedDate(LocalDateTime.now());
+        if (!password.equals(actualPassword)) {
+            throw new IllegalArgumentException("Candidate attempt password does not match.");
+        }
+
+        if (!assessment.getLanguageOptions().isEmpty() && !assessment.getLanguageOptions().contains(languageChoice)) {
+            throw new IllegalArgumentException("Language choice not supported for this assessment");
+        }
+
+        CandidateAttempt existingAttempt = candidateAttemptRepository.findByCandidateIdAndAssessmentId(
+                candidate.getId(),
+                assessment.getId()).orElseThrow(() -> new IllegalArgumentException("Candidate does not have an attempt for this assessment"));
+
+        existingAttempt.setStatus(AttemptStatus.STARTED);
+        existingAttempt.setStartedDate(LocalDateTime.now());
         if (languageChoice != null) {
-            existingAttempt.get().setLanguageChoice(languageChoice);
+            existingAttempt.setLanguageChoice(languageChoice);
         }
+        existingAttempt.setGithubRepositoryLink("repoName");
+        existingAttempt.setStatus(AttemptStatus.STARTED);
+        existingAttempt.setStartedDate(LocalDateTime.now());
 
-        CandidateAttemptCacheDto result = new CandidateAttemptCacheDto(candidateAttemptRepository.save(existingAttempt.get()));
-        
+        CandidateAttemptCacheDto result = new CandidateAttemptCacheDto(
+            candidateAttemptRepository.save(existingAttempt));
+
         // Update cache: update general caches and evict specific caches
-        updateCacheAfterAttemptUpdate(candidateId, existingAttempt.get().getAssessment().getId(), result);
+        updateCacheAfterAttemptUpdate(candidate.getId(), assessment.getId(), result);
         
         return result;
     }

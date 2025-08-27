@@ -7,6 +7,7 @@ import java.util.Map;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.delphi.delphi.dtos.NewCandidateDto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.CascadeType;
@@ -109,6 +110,13 @@ public class Candidate {
         this.candidateAttempts = candidateAttempts;
         this.assessments = assessments;
         this.metadata = metadata;
+    }
+
+    public Candidate(NewCandidateDto newCandidateDto) {
+        this.firstName = newCandidateDto.getFirstName();
+        this.lastName = newCandidateDto.getLastName();
+        this.email = newCandidateDto.getEmail();
+        this.metadata = newCandidateDto.getMetadata();
     }
     
     // Computed property for full name

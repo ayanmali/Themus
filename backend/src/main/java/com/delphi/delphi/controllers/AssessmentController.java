@@ -48,9 +48,9 @@ import com.delphi.delphi.repositories.JobRepository;
 import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.UserService;
-import com.delphi.delphi.utils.AssessmentStatus;
-import com.delphi.delphi.utils.JobStatus;
-import com.delphi.delphi.utils.JobType;
+import com.delphi.delphi.utils.enums.AssessmentStatus;
+import com.delphi.delphi.utils.enums.JobStatus;
+import com.delphi.delphi.utils.enums.JobType;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -250,7 +250,7 @@ public class AssessmentController {
             // publish chat completion request to the chat message queue
             log.info("Publishing chat completion request to the chat message queue");
             // String jobId = UUID.randomUUID().toString();
-            Job job = new Job(JobStatus.PENDING, JobType.CHAT);
+            Job job = new Job(JobStatus.PENDING, JobType.CHAT_COMPLETION);
             job = jobRepository.save(job);
 
             PublishChatJobDto publishChatJobDto = new PublishChatJobDto(job.getId(), messageDto.getMessage(), assessment, user, messageDto.getModel());

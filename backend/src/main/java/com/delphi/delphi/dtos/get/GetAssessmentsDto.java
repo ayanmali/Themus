@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
-import com.delphi.delphi.utils.AssessmentStatus;
+import com.delphi.delphi.utils.enums.AssessmentStatus;
 
 /**
  * Contains filter query parameters for getting assessments

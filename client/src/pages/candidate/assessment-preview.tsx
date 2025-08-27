@@ -75,6 +75,7 @@ export default function CandidateAssessmentPreview() {
     const [email, setEmail] = useState('');
     const [isStarting, setIsStarting] = useState(false);
     const [attemptId, setAttemptId] = useState<number | null>(null);
+    const [password, setPassword] = useState('');
     const params = useParams();
     const { apiCall } = useApi();
     const assessmentId = Number(params.assessment_id);
@@ -83,7 +84,7 @@ export default function CandidateAssessmentPreview() {
     const { data: assessment, isLoading, error } = useQuery({
         queryKey: ['assessment', assessmentId],
         queryFn: async (): Promise<Assessment> => {
-            const response = await apiCall(`/api/assessments/live/${assessmentId}`, {
+            const response = await apiCall(`/api/attempts/live/${assessmentId}`, {
                 method: 'GET',
             });
             
@@ -104,7 +105,7 @@ export default function CandidateAssessmentPreview() {
 
     const handleStart = async () => {
         // Github app installation URL with state parameter specifying this is a candidate installation
-        const githubInstallUrl: string = await apiCall(`/api/assessments/live/github/generate-install-url?email=${email}`, {
+        const githubInstallUrl: string = await apiCall(`/api/attempts/live/github/generate-install-url?email=${email}`, {
             method: 'POST',
         });
 
@@ -118,7 +119,7 @@ export default function CandidateAssessmentPreview() {
         }
 
         // if it does, then we can just redirect to the assessment page
-        const isAbleToTakeAssessment = await apiCall(`/api/assessments/live/can-take-assessment?assessmentId=${assessment?.id}&email=${email}`, {
+        const isAbleToTakeAssessment = await apiCall(`/api/attempts/live/can-take-assessment?assessmentId=${assessment?.id}&email=${email}`, {
             method: 'GET',
         });
 
@@ -134,7 +135,7 @@ export default function CandidateAssessmentPreview() {
         setIsStarting(true);
 
         // check if the candidate has a valid github token
-        const candidateHasValidGithubToken = await apiCall(`/api/assessments/live/has-valid-github-token?email=${email}`, {
+        const candidateHasValidGithubToken = await apiCall(`/api/attempts/live/has-valid-github-token?email=${email}`, {
             method: 'GET',
         });
 
@@ -166,7 +167,7 @@ export default function CandidateAssessmentPreview() {
             }
 
             try {
-                const response = await apiCall(`/api/assessments/live/has-valid-github-token?email=${email}`, {
+                const response = await apiCall(`/api/attempts/live/has-valid-github-token?email=${email}`, {
                     method: 'GET',
                 });
 
@@ -387,6 +388,33 @@ export default function CandidateAssessmentPreview() {
                                     placeholder="Enter your email address"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
+                                    className="w-11/12 bg-slate-700 text-gray-100"
+                                />
+                            </div>
+                        </div>
+                        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                            <h3 className="text-lg font-semibold text-white mb-4">Password</h3>
+                            <div className="space-y-2">
+                                {/* <label className="block text-sm font-medium text-gray-300 mb-2">
+                                        Language/Framework Combination
+                                    </label> */}
+                                {/* <select
+                                    value={selectedLanguage}
+                                    onChange={(e) => setSelectedLanguage(e.target.value)}
+                                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="">Select your preferred language...</option>
+                                    {assessment.languageOptions?.map((option) => (
+                                        <option key={option.replace(" ", "-").toLowerCase()} value={option}>
+                                            {option}
+                                        </option>
+                                    ))}
+                                </select> */}
+                                <Input
+                                    type="password"
+                                    placeholder="Enter your password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
                                     className="w-11/12 bg-slate-700 text-gray-100"
                                 />
                             </div>

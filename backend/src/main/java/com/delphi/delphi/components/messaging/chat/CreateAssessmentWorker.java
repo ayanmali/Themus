@@ -11,7 +11,7 @@ import com.delphi.delphi.entities.Job;
 import com.delphi.delphi.repositories.JobRepository;
 import com.delphi.delphi.services.ChatService;
 import com.delphi.delphi.utils.AssessmentCreationPrompts;
-import com.delphi.delphi.utils.JobStatus;
+import com.delphi.delphi.utils.enums.JobStatus;
 @Component
 /**
  * Subscribes to the create assessment queue and processes the job.

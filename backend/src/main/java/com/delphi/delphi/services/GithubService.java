@@ -14,7 +14,6 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -24,10 +23,6 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.core.ParameterizedTypeReference;
 
-import com.delphi.delphi.entities.Assessment;
-import com.delphi.delphi.entities.ChatMessage;
-import com.delphi.delphi.repositories.AssessmentRepository;
-import com.delphi.delphi.repositories.ChatMessageRepository;
 import com.delphi.delphi.utils.git.GithubBranchDetails;
 import com.delphi.delphi.utils.git.GithubFile;
 import com.delphi.delphi.utils.git.GithubReference;
@@ -54,10 +49,6 @@ import com.delphi.delphi.utils.git.GithubRepoBranch;
  */
 
 public class GithubService {
-
-    private final ChatMessageRepository chatMessageRepository;
-
-    private final AssessmentRepository assessmentRepository;
 
     private final EncryptionService encryptionService;
 
@@ -86,7 +77,7 @@ public class GithubService {
                         // @Value("${github.candidate.app.client-secret}") String candidateAppClientSecret,
                         @Value("${spring.security.oauth2.client.registration.github.scope}") String githubScope,
                         Map<String, String> author,
-                        EncryptionService encryptionService, AssessmentRepository assessmentRepository, ChatMessageRepository chatMessageRepository) {
+                        EncryptionService encryptionService) {
         this.appId = appId;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
@@ -111,12 +102,10 @@ public class GithubService {
         // this.chatMessageRepository = chatMessageRepository;
 
         // this.chatMessageRepository = chatMessageRepository;
-        this.assessmentRepository = assessmentRepository;
 
         // this.chatMessageRepository = chatMessageRepository;
 
         // this.chatMessageRepository = chatMessageRepository;
-        this.chatMessageRepository = chatMessageRepository;
     }
 
     private void loadPrivateKey() {
@@ -551,7 +540,7 @@ public class GithubService {
     //     }
     // }
 
-    // public Mono<String> addContributor(String token, String owner, String repo, String username) {
+    // public String addContributor(String token, String owner, String repo, String username) {
     //     try {
     //         String url = String.format("https://api.github.com/repos/%s/%s/collaborators/%s", owner, repo, username);
 
@@ -560,7 +549,8 @@ public class GithubService {
     //             .uri(url)
     //             .header("Authorization", "token " + token)
     //             .retrieve()
-    //             .bodyToMono(String.class);
+    //             .bodyToMono(String.class)
+    //             .block();
     //     } catch (RestClientException e) {
     //         throw new RuntimeException("Error adding contributor: " + e.getMessage());
     //     }

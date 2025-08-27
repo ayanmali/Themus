@@ -1,16 +1,15 @@
 package com.delphi.delphi.dtos;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.utils.enums.AssessmentStatus;
 
-public class FetchAssessmentDto {
+/**
+ * Sent to client when they are previewing an assessment (i.e. before beginning an attempt)
+ */
+public class PreviewAssessmentDto {
     private Long id;
     private String name;
     private String description;
@@ -23,28 +22,10 @@ public class FetchAssessmentDto {
     private String githubRepositoryLink;
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
-    private List<String> skills;
     private List<String> languageOptions;
-    private Map<String, String> metadata;
+    public List<String> skills;
 
-    public FetchAssessmentDto(Assessment assessment) {
-        this.id = assessment.getId();
-        this.name = assessment.getName();
-        this.description = assessment.getDescription();
-        this.role = assessment.getRole();
-        this.status = assessment.getStatus();
-        this.startDate = assessment.getStartDate();
-        this.endDate = assessment.getEndDate();
-        this.duration = assessment.getDuration();
-        this.githubRepositoryLink = assessment.getGithubRepositoryLink();
-        this.createdDate = assessment.getCreatedDate();
-        this.updatedDate = assessment.getUpdatedDate();
-        this.skills = assessment.getSkills() != null ? new ArrayList<>(assessment.getSkills()) : null;
-        this.languageOptions = assessment.getLanguageOptions() != null ? new ArrayList<>(assessment.getLanguageOptions()) : null;
-        this.metadata = assessment.getMetadata() != null ? new HashMap<>(assessment.getMetadata()) : null;
-    }
-
-    public FetchAssessmentDto(AssessmentCacheDto assessment) {
+    public PreviewAssessmentDto(Assessment assessment) {
         this.id = assessment.getId();
         this.name = assessment.getName();
         this.description = assessment.getDescription();
@@ -54,32 +35,8 @@ public class FetchAssessmentDto {
         this.startDate = assessment.getStartDate();
         this.endDate = assessment.getEndDate();
         this.duration = assessment.getDuration();
-        this.githubRepositoryLink = assessment.getGithubRepositoryLink();
-        this.createdDate = assessment.getCreatedDate();
-        this.updatedDate = assessment.getUpdatedDate();
-        this.skills = assessment.getSkills() != null ? new ArrayList<>(assessment.getSkills()) : null;
-        this.languageOptions = assessment.getLanguageOptions() != null ? new ArrayList<>(assessment.getLanguageOptions()) : null;
-        this.metadata = assessment.getMetadata() != null ? new HashMap<>(assessment.getMetadata()) : null;
-    }
-
-    public FetchAssessmentDto() {
-    }
-
-    public FetchAssessmentDto(LocalDateTime createdDate, String description, Integer duration, LocalDateTime endDate, String githubRepositoryLink, Long id, List<String> languageOptions, Map<String, String> metadata, String name, String role, List<String> skills, LocalDateTime startDate, AssessmentStatus status, LocalDateTime updatedDate) {
-        this.createdDate = createdDate;
-        this.description = description;
-        this.duration = duration;
-        this.endDate = endDate;
-        this.githubRepositoryLink = githubRepositoryLink;
-        this.id = id;
-        this.languageOptions = languageOptions;
-        this.metadata = metadata;
-        this.name = name;
-        this.role = role;
-        this.skills = skills;
-        this.startDate = startDate;
-        this.status = status;
-        this.updatedDate = updatedDate;
+        this.languageOptions = assessment.getLanguageOptions();
+        this.skills = assessment.getSkills();
     }
 
     public Long getId() {
@@ -118,7 +75,7 @@ public class FetchAssessmentDto {
         return role;
     }
 
-    public void setRoleName(String role) {
+    public void setRole(String role) {
         this.role = role;
     }
 
@@ -178,14 +135,6 @@ public class FetchAssessmentDto {
         this.updatedDate = updatedDate;
     }
 
-    public List<String> getSkills() {
-        return skills;
-    }
-
-    public void setSkills(List<String> skills) {
-        this.skills = skills;
-    }
-
     public List<String> getLanguageOptions() {
         return languageOptions;
     }
@@ -194,12 +143,12 @@ public class FetchAssessmentDto {
         this.languageOptions = languageOptions;
     }
 
-    public Map<String, String> getMetadata() {
-        return metadata;
+    public List<String> getSkills() {
+        return skills;
     }
 
-    public void setMetadata(Map<String, String> metadata) {
-        this.metadata = metadata;
+    public void setSkills(List<String> skills) {
+        this.skills = skills;
     }
 
     

@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
 import com.delphi.delphi.entities.CandidateAttempt;
-import com.delphi.delphi.utils.AttemptStatus;
+import com.delphi.delphi.utils.enums.AttemptStatus;
 
 public class FetchCandidateAttemptDto {
     private Long id;
@@ -34,8 +34,10 @@ public class FetchCandidateAttemptDto {
         this.completedDate = candidateAttempt.getCompletedDate();
         this.evaluatedDate = candidateAttempt.getEvaluatedDate();
         this.assessmentId = candidateAttempt.getAssessment().getId();
-        this.evaluationId = candidateAttempt.getEvaluation().getId();
         this.candidate = new FetchCandidateDto(candidateAttempt.getCandidate());
+        if (candidateAttempt.getEvaluation() != null) {
+            this.evaluationId = candidateAttempt.getEvaluation().getId();
+        }
     }
 
     public FetchCandidateAttemptDto(CandidateAttemptCacheDto candidateAttempt) {

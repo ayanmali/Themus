@@ -67,10 +67,7 @@ public class CandidateController {
     @PostMapping("/new")
     public ResponseEntity<?> createCandidate(@Valid @RequestBody NewCandidateDto newCandidateDto) {
         try {
-            Candidate candidate = new Candidate();
-            candidate.setFirstName(newCandidateDto.getFirstName());
-            candidate.setLastName(newCandidateDto.getLastName());
-            candidate.setEmail(newCandidateDto.getEmail());
+            Candidate candidate = new Candidate(newCandidateDto);
             
             // Set user relationship
             User user = userRepository.findByEmail(getCurrentUserEmail()).orElseThrow(() -> new IllegalArgumentException("User not found"));

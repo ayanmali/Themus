@@ -26,8 +26,8 @@ import com.delphi.delphi.entities.User;
 import com.delphi.delphi.repositories.CandidateRepository;
 import com.delphi.delphi.repositories.UserRepository;
 import com.delphi.delphi.specifications.CandidateSpecifications;
-import com.delphi.delphi.utils.AttemptStatus;
 import com.delphi.delphi.utils.CacheUtils;
+import com.delphi.delphi.utils.enums.AttemptStatus;
 
 @Service
 @Transactional
@@ -86,12 +86,13 @@ public class CandidateService {
     // @CachePut(value = "candidates", key = "#result.id"),
     // @CachePut(value = "candidates", key = "#result.email")
     // })
-    public CandidateCacheDto createCandidate(String firstName, String lastName, String email, User user) {
+    public CandidateCacheDto createCandidate(String firstName, String lastName, String email, User user, Map<String, String> metadata) {
         Candidate candidate = new Candidate();
         candidate.setFirstName(firstName);
         candidate.setLastName(lastName);
         candidate.setEmail(email);
         candidate.setUser(user);
+        candidate.setMetadata(metadata);
         return createCandidate(candidate);
     }
 

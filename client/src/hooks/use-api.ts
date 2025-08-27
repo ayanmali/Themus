@@ -11,7 +11,7 @@ const useApi = () => {
 
   // Define endpoints that don't require authentication from the client
   const unauthenticatedEndpoints = [
-    '/api/assessments/live/', // All candidate assessment endpoints
+    '/api/attempts/live/', // All candidate assessment endpoints
   ];
 
   const isUnauthenticatedEndpoint = (url: string): boolean => {
