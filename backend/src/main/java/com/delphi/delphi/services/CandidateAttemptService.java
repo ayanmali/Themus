@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -22,6 +23,7 @@ import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateCacheDto;
 import com.delphi.delphi.entities.Assessment;
+import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.repositories.CandidateAttemptRepository;
 import com.delphi.delphi.specifications.CandidateAttemptSpecifications;
@@ -56,8 +58,36 @@ public class CandidateAttemptService {
     // Invite a candidate to an assessment
     @CachePut(value = "attempts", key = "#result.id")
     public CandidateAttemptCacheDto inviteCandidate(CandidateAttempt candidateAttempt) {
-        candidateAttempt.setCandidate(candidateAttempt.getCandidate());
-        candidateAttempt.setAssessment(candidateAttempt.getAssessment());
+        // Check if candidate already has an attempt for this assessment
+        Optional<CandidateAttempt> existingAttempt = candidateAttemptRepository.findByCandidateIdAndAssessmentId(
+                candidateAttempt.getCandidate().getId(),
+                candidateAttempt.getAssessment().getId());
+        
+        if (existingAttempt.isPresent()) {
+            throw new IllegalArgumentException("Candidate already has an attempt for this assessment");
+        }
+        
+        // Update the many-to-many relationship between candidate and assessment
+        // This is needed for the available candidates filtering to work correctly
+        Candidate candidate = candidateAttempt.getCandidate();
+        Assessment assessment = candidateAttempt.getAssessment();
+        
+        if (candidate.getAssessments() == null) {
+            candidate.setAssessments(new ArrayList<>());
+        }
+        if (!candidate.getAssessments().contains(assessment)) {
+            candidate.getAssessments().add(assessment);
+        }
+        
+        if (assessment.getCandidates() == null) {
+            assessment.setCandidates(new ArrayList<>());
+        }
+        if (!assessment.getCandidates().contains(candidate)) {
+            assessment.getCandidates().add(candidate);
+        }
+        
+        candidateAttempt.setCandidate(candidate);
+        candidateAttempt.setAssessment(assessment);
         candidateAttempt.setStatus(AttemptStatus.INVITED);
 
         candidateAttempt.setStartedDate(null);
@@ -847,6 +877,9 @@ public class CandidateAttemptService {
         
         // Evict all specific filter caches
         evictSpecificAttemptsCache();
+        
+        // Evict available candidates cache for this assessment
+        evictAvailableCandidatesCache(assessmentId);
     }
     
     private void updateCacheAfterAttemptUpdate(Long candidateId, Long assessmentId, CandidateAttemptCacheDto updatedAttempt) {
@@ -905,6 +938,11 @@ public class CandidateAttemptService {
 
     private void evictSpecificAttemptsCache() {
         redisService.evictCache("cache:all_attempts:*");
+    }
+    
+    private void evictAvailableCandidatesCache(Long assessmentId) {
+        // Evict all available candidates cache entries for this assessment
+        redisService.evictCache("cache:user_candidates:*");
     }
 
 }

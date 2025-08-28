@@ -71,6 +71,8 @@ export default function AssessmentDetails() {
             return response;
         },
         enabled: !!assessmentId,
+        staleTime: 0, // Always refetch to ensure fresh data
+        refetchOnMount: true,
     });
 
     // Update assessment mutation
@@ -122,9 +124,15 @@ export default function AssessmentDetails() {
             return results;
         },
         onSuccess: () => {
+            // Invalidate all related caches
             queryClient.invalidateQueries({ queryKey: ['candidateAttempts', 'assessment', assessmentId] });
             queryClient.invalidateQueries({ queryKey: ['availableCandidates', 'assessment', assessmentId] });
+            queryClient.invalidateQueries({ queryKey: ['assessment', assessmentId] });
+            
+            // Reset dialog state
             setSelectedCandidateIds([]);
+            setIsAddDialogOpen(false);
+            
             toast({
                 title: "Success",
                 description: "Candidates added to assessment successfully",
@@ -134,6 +142,34 @@ export default function AssessmentDetails() {
             toast({
                 title: "Error",
                 description: error.message || "Failed to add candidates to assessment",
+                variant: "destructive",
+            });
+        },
+    });
+
+    // Delete candidate attempt mutation
+    const deleteAttemptMutation = useMutation({
+        mutationFn: async (attemptId: number) => {
+            const response = await apiCall(`/api/attempts/${attemptId}/delete`, {
+                method: 'DELETE',
+            });
+            return response;
+        },
+        onSuccess: () => {
+            // Invalidate all related caches
+            queryClient.invalidateQueries({ queryKey: ['candidateAttempts', 'assessment', assessmentId] });
+            queryClient.invalidateQueries({ queryKey: ['availableCandidates', 'assessment', assessmentId] });
+            queryClient.invalidateQueries({ queryKey: ['assessment', assessmentId] });
+            
+            toast({
+                title: "Success",
+                description: "Candidate removed from assessment successfully",
+            });
+        },
+        onError: (error: any) => {
+            toast({
+                title: "Error",
+                description: error.message || "Failed to remove candidate attempt",
                 variant: "destructive",
             });
         },
@@ -155,6 +191,8 @@ export default function AssessmentDetails() {
             return response;
         },
         enabled: !!assessmentId,
+        staleTime: 0, // Always refetch to ensure fresh data
+        refetchOnMount: true,
     });
 
     // Fetch available candidates for this assessment (candidates NOT in the assessment)
@@ -172,12 +210,14 @@ export default function AssessmentDetails() {
             return response;
         },
         enabled: !!assessmentId && isAddDialogOpen,
+        staleTime: 0, // Always refetch when dialog opens
+        refetchOnMount: true,
     });
 
-    // Extract attempts from the response
-    const candidateAttempts: CandidateAttempt[] = attemptsData?.content || [];
-    const totalAttempts: number = attemptsData?.totalElements || 0;
-    const totalAttemptsPages: number = attemptsData?.totalPages || 0;
+    // Extract attempts from the response - API returns a list directly, not paginated
+    const candidateAttempts: CandidateAttempt[] = attemptsData || [];
+    const totalAttempts: number = candidateAttempts.length;
+    const totalAttemptsPages: number = Math.ceil(totalAttempts / candidatesPerPage);
 
     // Extract available candidates from the response
     const availableCandidates: Candidate[] = availableCandidatesData?.content || [];
@@ -356,22 +396,7 @@ export default function AssessmentDetails() {
     };
 
     // Editing functions
-    const startEditingDescription = () => {
-        setIsEditingDescription(true);
-        setTempDescription(assessment?.description || '');
-    };
-
-    const saveDescription = () => {
-        if (assessment) {
-            addPendingChange('description', tempDescription);
-        }
-        setIsEditingDescription(false);
-    };
-
-    const cancelDescriptionEdit = () => {
-        setIsEditingDescription(false);
-        setTempDescription('');
-    };
+    // Deprecated local edit toggles now unused for description
 
     const startEditingName = () => {
         setIsEditingName(true);
@@ -407,25 +432,7 @@ export default function AssessmentDetails() {
         setTempRole('');
     };
 
-    const startEditingDates = () => {
-        setIsEditingDates(true);
-        setTempStartDate(assessment?.startDate ? new Date(assessment.startDate) : undefined);
-        setTempEndDate(assessment?.endDate ? new Date(assessment.endDate) : undefined);
-    };
-
-    const saveDates = () => {
-        if (assessment && tempStartDate && tempEndDate) {
-            addPendingChange('startDate', tempStartDate);
-            addPendingChange('endDate', tempEndDate);
-        }
-        setIsEditingDates(false);
-    };
-
-    const cancelDateEdit = () => {
-        setIsEditingDates(false);
-        setTempStartDate(undefined);
-        setTempEndDate(undefined);
-    };
+    // Deprecated local edit toggles now unused for dates
 
     const handleStatusChange = (newStatus: 'DRAFT' | 'ACTIVE' | 'INACTIVE') => {
         if (newStatus === 'ACTIVE') {
@@ -476,11 +483,12 @@ export default function AssessmentDetails() {
     };
 
     const getStatusColor = (status: string) => {
-        switch (status) {
+        switch (status?.toLowerCase()) {
             case 'invited': return 'bg-blue-600';
             case 'started': return 'bg-yellow-600';
-            case 'submitted': return 'bg-green-600';
+            case 'completed': return 'bg-green-600';
             case 'evaluated': return 'bg-purple-600';
+            case 'expired': return 'bg-red-600';
             default: return 'bg-gray-600';
         }
     };
@@ -724,85 +732,15 @@ export default function AssessmentDetails() {
                                                     </Tooltip>
                                                 </TooltipProvider>
                                             </div>
-                                            {!isEditingDates && (
-                                                <button
-                                                    onClick={startEditingDates}
-                                                    className="p-1 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
-                                                >
-                                                    <Edit3 size={16} />
-                                                </button>
-                                            )}
                                         </div>
-                                        {isEditingDates ? (
-                                            <div className="space-y-2">
-                                                <DateRangePicker
-                                                    startDate={tempStartDate}
-                                                    endDate={tempEndDate}
-                                                    onStartDateChange={setTempStartDate}
-                                                    onEndDateChange={setTempEndDate}
-                                                />
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => {
-                                                            if (!tempStartDate || !tempEndDate) {
-                                                                toast({
-                                                                    title: "Missing Dates",
-                                                                    description: "Please select both start and end dates.",
-                                                                    variant: "destructive",
-                                                                });
-                                                                return;
-                                                            }
-
-                                                            if (tempEndDate <= tempStartDate) {
-                                                                toast({
-                                                                    title: "Invalid Date Range",
-                                                                    description: "End date must be after start date.",
-                                                                    variant: "destructive",
-                                                                });
-                                                                return;
-                                                            }
-
-                                                            const now = new Date();
-                                                            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-                                                            if (tempEndDate < today) {
-                                                                toast({
-                                                                    title: "Invalid Date Range",
-                                                                    description: "The selected date range is entirely in the past. Please select dates in the future.",
-                                                                    variant: "destructive",
-                                                                });
-                                                                return;
-                                                            }
-
-                                                            saveDates();
-                                                        }}
-                                                        disabled={!tempStartDate || !tempEndDate}
-                                                        className="px-3 py-1 text-green-400 hover:text-green-300 hover:bg-gray-700 rounded transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        Save
-                                                    </button>
-                                                    <button
-                                                        onClick={cancelDateEdit}
-                                                        className="px-3 py-1 text-red-400 hover:text-red-300 hover:bg-gray-700 rounded transition-colors text-sm"
-                                                    >
-                                                        Cancel
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="bg-gray-700 rounded-lg p-4">
-                                                <div className="flex items-center gap-4 text-gray-300">
-                                                    <div className="flex items-center gap-2">
-                                                        <Calendar size={16} />
-                                                        <span>Start: {getCurrentStartDate() ? getCurrentStartDate()!.toLocaleDateString() : 'Not set'}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <Calendar size={16} />
-                                                        <span>End: {getCurrentEndDate() ? getCurrentEndDate()!.toLocaleDateString() : 'Not set'}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
+                                        <div className="bg-gray-700 rounded-lg p-4">
+                                            <DateRangePicker
+                                                startDate={getCurrentStartDate()}
+                                                endDate={getCurrentEndDate()}
+                                                onStartDateChange={(date) => addPendingChange('startDate', date || undefined)}
+                                                onEndDateChange={(date) => addPendingChange('endDate', date || undefined)}
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="mt-6">
@@ -820,46 +758,15 @@ export default function AssessmentDetails() {
                                                     </Tooltip>
                                                 </TooltipProvider>
                                             </div>
-                                            {!isEditingDescription && (
-                                                <button
-                                                    onClick={startEditingDescription}
-                                                    className="p-1 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
-                                                >
-                                                    <Edit3 size={16} />
-                                                </button>
-                                            )}
                                         </div>
-                                        {isEditingDescription ? (
-                                            <div className="space-y-2">
-                                                <textarea
-                                                    value={tempDescription}
-                                                    onChange={(e) => setTempDescription(e.target.value)}
-                                                    className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none min-h-[100px] resize-none"
-                                                    placeholder="Enter assessment description..."
-                                                    autoFocus
-                                                />
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={saveDescription}
-                                                        className="px-3 py-1 text-green-400 hover:text-green-300 hover:bg-gray-700 rounded transition-colors text-sm"
-                                                    >
-                                                        Save
-                                                    </button>
-                                                    <button
-                                                        onClick={cancelDescriptionEdit}
-                                                        className="px-3 py-1 text-red-400 hover:text-red-300 hover:bg-gray-700 rounded transition-colors text-sm"
-                                                    >
-                                                        Cancel
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="bg-gray-700 rounded-lg p-4">
-                                                <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
-                                                    {getCurrentDescription() || 'No description provided'}
-                                                </p>
-                                            </div>
-                                        )}
+                                        <div className="bg-gray-700 rounded-lg p-4">
+                                            <textarea
+                                                value={getCurrentDescription() || ''}
+                                                onChange={(e) => addPendingChange('description', e.target.value)}
+                                                className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none min-h-[100px] resize-none"
+                                                placeholder="Enter assessment description..."
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -915,7 +822,14 @@ export default function AssessmentDetails() {
                             <div className="mt-6">
                                 <div className="flex items-center justify-between mb-2">
                                     <h3 className="text-lg font-semibold">Candidates</h3>
-                                    <Dialog open={isAddDialogOpen} onOpenChange={(open) => { setIsAddDialogOpen(open); if (!open) { setSelectedCandidateIds([]); } }}>
+                                    <Dialog open={isAddDialogOpen} onOpenChange={(open) => { 
+                                        setIsAddDialogOpen(open); 
+                                        if (!open) { 
+                                            setSelectedCandidateIds([]); 
+                                            // Refetch available candidates when dialog closes to ensure fresh data
+                                            queryClient.invalidateQueries({ queryKey: ['availableCandidates', 'assessment', assessmentId] });
+                                        } 
+                                    }}>
                                         <DialogTrigger asChild>
                                             <Button
                                                 variant="default"
@@ -1003,8 +917,9 @@ export default function AssessmentDetails() {
                                                             <Button
                                                                 variant="secondary"
                                                                 onClick={() => {
-
                                                                     setSelectedCandidateIds([]);
+                                                                    // Refetch available candidates when dialog closes to ensure fresh data
+                                                                    queryClient.invalidateQueries({ queryKey: ['availableCandidates', 'assessment', assessmentId] });
                                                                 }}
                                                             >
                                                                 Cancel
@@ -1059,8 +974,9 @@ export default function AssessmentDetails() {
                                                 <option value="all">All Statuses</option>
                                                 <option value="invited">Invited</option>
                                                 <option value="started">Started</option>
-                                                <option value="submitted">Submitted</option>
+                                                <option value="completed">Completed</option>
                                                 <option value="evaluated">Evaluated</option>
+                                                <option value="expired">Expired</option>
                                             </select>
                                         </div>
                                     </div>
@@ -1108,28 +1024,67 @@ export default function AssessmentDetails() {
                                                             className="bg-gray-800 rounded-lg p-4 flex items-center justify-between hover:bg-gray-650 transition-colors"
                                                         >
                                                             <div className="flex-1">
-                                                                <div className="flex items-center gap-4">
-                                                                    <div>
-                                                                        <h4 className="font-medium text-white">
+                                                                <div className="flex items-start gap-4">
+                                                                    <div className="flex-1">
+                                                                        <h4 className="font-medium text-white mb-1">
                                                                             {attempt.candidate?.fullName || `${attempt.candidate?.firstName || ''} ${attempt.candidate?.lastName || ''}`.trim()}
                                                                         </h4>
-                                                                        <p className="text-sm text-gray-400">{attempt.candidate?.email}</p>
-                                                                        <p className="text-sm text-gray-400">
-                                                                            {attempt.startedDate ? 'Started at: ' + new Date(attempt.startedDate).toLocaleString() : ''}
-                                                                        </p>
-                                                                        <p className="text-sm text-gray-400">
-                                                                            {attempt.completedDate ? 'Submitted at: ' + new Date(attempt.completedDate).toLocaleString() : ''}
-                                                                        </p>
-                                                                        <p className="text-sm text-gray-400">
-                                                                            {attempt.evaluatedDate ? 'Evaluated at: ' + new Date(attempt.evaluatedDate).toLocaleString() : ''}
-                                                                        </p>
+                                                                        <p className="text-sm text-gray-400 mb-2">{attempt.candidate?.email}</p>
+                                                                        
+                                                                        {/* Status and dates */}
+                                                                        <div className="space-y-1">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize text-white ${getStatusColor(attempt.status?.toLowerCase())}`}>
+                                                                                    {attempt.status?.toLowerCase()}
+                                                                                </span>
+                                                                                {attempt.languageChoice && (
+                                                                                    <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded">
+                                                                                        {attempt.languageChoice}
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                            
+                                                                            {attempt.startedDate && (
+                                                                                <p className="text-xs text-gray-400">
+                                                                                    Started: {new Date(attempt.startedDate).toLocaleString()}
+                                                                                </p>
+                                                                            )}
+                                                                            
+                                                                            {attempt.completedDate && (
+                                                                                <p className="text-xs text-gray-400">
+                                                                                    Submitted: {new Date(attempt.completedDate).toLocaleString()}
+                                                                                </p>
+                                                                            )}
+                                                                            
+                                                                            {attempt.evaluatedDate && (
+                                                                                <p className="text-xs text-gray-400">
+                                                                                    Evaluated: {new Date(attempt.evaluatedDate).toLocaleString()}
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="flex items-center gap-4">
-                                                                <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize text-white ${getStatusColor(attempt.status?.toLowerCase())}`}>
-                                                                    {attempt.status?.toLowerCase()}
-                                                                </span>
+                                                            
+                                                            <div className="flex items-center gap-2">
+                                                                {/* View Evaluation Button */}
+                                                                {attempt.status?.toLowerCase() === "evaluated" && attempt.evaluationId && (
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        className="text-blue-400 border-blue-400 hover:bg-blue-400 hover:text-white"
+                                                                        onClick={() => {
+                                                                            // TODO: Navigate to evaluation view
+                                                                            toast({
+                                                                                title: "View Evaluation",
+                                                                                description: "Evaluation view coming soon",
+                                                                            });
+                                                                        }}
+                                                                    >
+                                                                        View Evaluation
+                                                                    </Button>
+                                                                )}
+                                                                
                                                                 <DropdownMenu>
                                                                     <DropdownMenuTrigger asChild>
                                                                         <Button variant="ghost" className="p-2 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
@@ -1139,21 +1094,44 @@ export default function AssessmentDetails() {
                                                                     <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
                                                                         <DropdownMenuLabel>More Actions</DropdownMenuLabel>
                                                                         <DropdownMenuGroup>
-                                                                            <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
+                                                                            <DropdownMenuItem 
+                                                                                className="hover:bg-slate-700 transition-colors hover:text-white"
+                                                                                onClick={() => {
+                                                                                    // TODO: Implement send email functionality
+                                                                                    toast({
+                                                                                        title: "Send Email",
+                                                                                        description: "Email functionality coming soon",
+                                                                                    });
+                                                                                }}
+                                                                            >
                                                                                 Send email
                                                                             </DropdownMenuItem>
-                                                                            {(attempt.status?.toLowerCase() === "completed" || attempt.status?.toLowerCase() === "evaluated") ? (
-                                                                                <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                                                                                    View Pull Request on GitHub
+                                                                            
+                                                                            {attempt.githubRepositoryLink && (
+                                                                                <DropdownMenuItem 
+                                                                                    className="hover:bg-slate-700 transition-colors hover:text-white"
+                                                                                    onClick={() => {
+                                                                                        window.open(attempt.githubRepositoryLink, '_blank');
+                                                                                    }}
+                                                                                >
+                                                                                    {attempt.status?.toLowerCase() === "evaluated" || attempt.status?.toLowerCase() === "completed" 
+                                                                                        ? "View Pull Request on GitHub" 
+                                                                                        : "View Repository on GitHub"}
                                                                                 </DropdownMenuItem>
-                                                                            ) : attempt.status?.toLowerCase() === "started" ? (
-                                                                                <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                                                                                    View Repository on GitHub
-                                                                                </DropdownMenuItem>
-                                                                            ) : (
-                                                                                <></>
                                                                             )}
+                                                                            
                                                                             <DropdownMenuSeparator className="bg-slate-700" />
+                                                                            
+                                                                            <DropdownMenuItem 
+                                                                                className="hover:bg-red-700 transition-colors hover:text-white text-red-400"
+                                                                                onClick={() => {
+                                                                                    if (confirm('Are you sure you want to remove this candidate from the assessment?')) {
+                                                                                        deleteAttemptMutation.mutate(attempt.id);
+                                                                                    }
+                                                                                }}
+                                                                            >
+                                                                                Remove from assessment
+                                                                            </DropdownMenuItem>
                                                                         </DropdownMenuGroup>
                                                                     </DropdownMenuContent>
                                                                 </DropdownMenu>

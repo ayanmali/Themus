@@ -5,7 +5,7 @@ export type CandidateAttempt = {
     id: number;
     candidateId: number;
     assessmentId: number;
-    status: 'invited' | 'started' | 'submitted' | 'evaluated';
+    status: 'invited' | 'started' | 'completed' | 'evaluated' | 'expired';
     startedAt?: Date | null;
     submittedAt?: Date | null;
     evaluatedAt?: Date | null;

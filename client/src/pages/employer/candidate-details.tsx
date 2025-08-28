@@ -736,7 +736,7 @@ export default function CandidateDetails() {
                                         <div className="flex justify-between">
                                             <span className="text-gray-400">Completed:</span>
                                             <span className="text-green-400">
-                                                {candidateAttempts.filter(a => a.status === 'submitted' || a.status === 'evaluated').length}
+                                                {candidateAttempts.filter(a => a.status === 'completed' || a.status === 'evaluated').length}
                                             </span>
                                         </div>
                                         <div className="flex justify-between">
