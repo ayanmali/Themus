@@ -1,3 +1,4 @@
+import { Assessment } from './assessment';
 import { Candidate } from './candidate';
 
 export type CandidateAttempt = {
@@ -17,5 +18,6 @@ export type CandidateAttempt = {
     completedDate?: string;
     evaluatedDate?: string;
     evaluationId?: number;
+    assessment?: Assessment;
     candidate?: Candidate;
 }

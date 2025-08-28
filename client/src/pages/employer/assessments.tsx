@@ -12,16 +12,7 @@ import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import Pagination from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-interface PaginatedResponse {
-    content: Assessment[];
-    page: number;
-    size: number;
-    totalElements: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrevious: boolean;
-}
+import { PaginatedResponse } from "@/lib/types/paginated-response";
 
 export default function EmployerAssessments() {
     const [page, setPage] = useState(0);
@@ -44,7 +35,7 @@ export default function EmployerAssessments() {
     // Fetch assessments using TanStack Query
     const { data: assessmentsData, isLoading, error } = useQuery({
         queryKey: ['assessments', 'user', page, size, appliedFilters],
-        queryFn: async (): Promise<PaginatedResponse> => {
+        queryFn: async (): Promise<PaginatedResponse<Assessment>> => {
             const params = new URLSearchParams({
                 page: page.toString(),
                 size: size.toString()

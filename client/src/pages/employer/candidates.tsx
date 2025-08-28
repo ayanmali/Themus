@@ -12,16 +12,7 @@ import { Link } from "wouter";
 import Pagination from "@/components/ui/pagination";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
-interface PaginatedResponse {
-  content: Candidate[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
-}
+import { PaginatedResponse } from "@/lib/types/paginated-response";
 
 export default function EmployerCandidates() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -40,7 +31,7 @@ export default function EmployerCandidates() {
   // Fetch candidates using TanStack Query
   const { data: candidatesData, isLoading, error } = useQuery({
     queryKey: ['candidates', 'user', page, size, appliedFilters],
-    queryFn: async (): Promise<PaginatedResponse> => {
+    queryFn: async (): Promise<PaginatedResponse<Candidate>> => {
       const params = new URLSearchParams({
         page: page.toString(),
         size: size.toString()

@@ -194,8 +194,17 @@ export function CreateAssessmentForm() {
       });
       return res;
     },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/assessments"] });
+    onSuccess: async (data: any) => {
+      // Invalidate all assessment-related queries to ensure fresh data
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['assessments'] }),
+        queryClient.invalidateQueries({ queryKey: ['availableCandidates'] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/assessments"] })
+      ]);
+      
+      // Force refetch the assessments data to ensure it's fresh
+      await queryClient.refetchQueries({ queryKey: ['assessments'] });
+      
       const newAssessmentId = data?.assessment?.id ?? data?.id;
       toast({
         title: "Assessment created",

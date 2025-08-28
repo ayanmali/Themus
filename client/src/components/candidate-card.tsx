@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "wouter";
 
 interface CandidateCardProps {
   id: number;
@@ -66,9 +67,11 @@ export function CandidateCard({
           <Button size="sm">
             Assign
           </Button>
-          <Button size="sm" variant="outline">
-            View Profile
-          </Button>
+          <Link to={`/candidates/${id}`}>
+            <Button size="sm" variant="outline">
+              View Profile
+            </Button>
+          </Link>
         </div>
       </div>
       

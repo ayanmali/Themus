@@ -136,8 +136,16 @@ export default function AddCandidate() {
       });
       return res;
     },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/candidates"] });
+    onSuccess: async (data: any) => {
+      // Invalidate all candidate-related queries to ensure fresh data
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['candidates'] }),
+        queryClient.invalidateQueries({ queryKey: ['availableCandidates'] })
+      ]);
+      
+      // Force refetch the candidates data to ensure it's fresh
+      await queryClient.refetchQueries({ queryKey: ['candidates'] });
+      
       toast({
         title: "Candidate added",
         description: "The candidate has been added successfully",

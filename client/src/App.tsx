@@ -29,6 +29,7 @@ import Record from "./pages/candidate/starting-assessment/record";
 import Recordings from "./pages/candidate/starting-assessment/recordings";
 import AssessmentDetails from "./pages/employer/assessment-details/assessment-details";
 import AddCandidate from "./pages/employer/new-candidate";
+import CandidateDetails from "./pages/employer/candidate-details";
 
 function Router() {
   return (
@@ -45,6 +46,7 @@ function Router() {
       <ProtectedRoute path="/assessments/new" component={CreateAssessment} />
       <ProtectedRoute path="/candidates" component={EmployerCandidates} />
       <ProtectedRoute path="/candidates/new" component={AddCandidate} />
+      <ProtectedRoute path="/candidates/:candidateId" component={CandidateDetails} />
       <ProtectedRoute path="/reports" component={EmployerReports} />
       
       {/* Public routes */}

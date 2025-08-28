@@ -73,7 +73,6 @@
 
 //             CandidateCacheDto candidate = candidateService.getCandidateByEmail(startAssessmentDto.getCandidateEmail());
 //             Long candidateId = candidate.getId();
-//             candidate.get
 //             String repoName = "assessment-" + startAssessmentDto.getAssessmentId() + "-" + String.valueOf(Instant.now().toEpochMilli());
 
 //             CandidateAttempt updates = new CandidateAttempt();
