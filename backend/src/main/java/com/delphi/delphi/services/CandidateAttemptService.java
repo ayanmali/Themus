@@ -1,5 +1,6 @@
 package com.delphi.delphi.services;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,9 +19,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.delphi.delphi.components.RedisService;
-import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateCacheDto;
+import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.repositories.CandidateAttemptRepository;
 import com.delphi.delphi.specifications.CandidateAttemptSpecifications;
@@ -88,15 +89,15 @@ public class CandidateAttemptService {
      * Start a new candidate attempt: change status to from INVITED to STARTED
      * Note: the candidate must already have an attempt for this assessment
      * 
-     * @param candidateId
-     * @param assessmentId
-     * @param languageChoice
-     * @param status
-     * @param startedDate
-     * @return
+     * @param candidate The candidate attempting the assessment
+     * @param assessment The assessment being attempted
+     * @param languageChoice The programming language chosen by the candidate
+     * @param password The password for the candidate attempt
+     * @param githubUsername The GitHub username of the candidate
+     * @return The updated candidate attempt
      */
     @CachePut(value = "attempts", key = "#result.id")
-    public CandidateAttemptCacheDto startAttempt(CandidateCacheDto candidate, AssessmentCacheDto assessment, String languageChoice, String password) {
+    public CandidateAttemptCacheDto startAttempt(CandidateCacheDto candidate, Assessment assessment, String languageChoice, String password, String githubUsername) {
         // Check if candidate already has an attempt for this assessment
         Object encryptedPassword = redisService.get(candidateAttemptPasswordCacheKeyPrefix + candidate.getId());
         if (encryptedPassword == null) {
@@ -122,14 +123,15 @@ public class CandidateAttemptService {
                 candidate.getId(),
                 assessment.getId()).orElseThrow(() -> new IllegalArgumentException("Candidate does not have an attempt for this assessment"));
 
+        String repoName = "assessment-" + assessment.getId() + "-" + String.valueOf(Instant.now().toEpochMilli());
+        String fullGithubUrl = "https://github.com/" + githubUsername + "/" + repoName;
+
         existingAttempt.setStatus(AttemptStatus.STARTED);
         existingAttempt.setStartedDate(LocalDateTime.now());
         if (languageChoice != null) {
             existingAttempt.setLanguageChoice(languageChoice);
         }
-        existingAttempt.setGithubRepositoryLink("repoName");
-        existingAttempt.setStatus(AttemptStatus.STARTED);
-        existingAttempt.setStartedDate(LocalDateTime.now());
+        existingAttempt.setGithubRepositoryLink(fullGithubUrl);
 
         CandidateAttemptCacheDto result = new CandidateAttemptCacheDto(
             candidateAttemptRepository.save(existingAttempt));

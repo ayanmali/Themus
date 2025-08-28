@@ -24,9 +24,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.dtos.FetchCandidateAttemptDto;
 import com.delphi.delphi.dtos.InviteCandidateDto;
-import com.delphi.delphi.dtos.StartAttemptDto;
 import com.delphi.delphi.dtos.PreviewAssessmentDto;
-import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
+import com.delphi.delphi.dtos.StartAttemptDto;
+import com.delphi.delphi.dtos.UpdateCandidateAttemptDto;
 import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateCacheDto;
 import com.delphi.delphi.dtos.get.GetCandidateAttemptsDto;
@@ -59,13 +59,15 @@ public class CandidateAttemptController {
     private final GithubService githubService;
     private final String tokenCacheKeyPrefix = "candidate_github_token:";
     private final String githubCacheKeyPrefix = "github_install_url_random_string:";
+    private final String usernameCacheKeyPrefix = "candidate_github_username:";
     private final String appInstallBaseUrl;
-    public CandidateAttemptController(CandidateAttemptService candidateAttemptService, 
-                                    AssessmentService assessmentService,
-                                    AssessmentRepository assessmentRepository,
-                                    CandidateRepository candidateRepository, CandidateService candidateService,
-                                    RedisService redisService, GithubService githubService,
-                                    @Value("${github.app.name}") String githubAppName, EncryptionService encryptionService) {
+
+    public CandidateAttemptController(CandidateAttemptService candidateAttemptService,
+            AssessmentService assessmentService,
+            AssessmentRepository assessmentRepository,
+            CandidateRepository candidateRepository, CandidateService candidateService,
+            RedisService redisService, GithubService githubService,
+            @Value("${github.app.name}") String githubAppName, EncryptionService encryptionService) {
         this.assessmentService = assessmentService;
         this.candidateAttemptService = candidateAttemptService;
         this.assessmentRepository = assessmentRepository;
@@ -77,54 +79,80 @@ public class CandidateAttemptController {
         this.encryptionService = encryptionService;
     }
 
+    // Invite a candidate to an assessment
     @PostMapping("/invite")
     public ResponseEntity<?> inviteCandidate(@Valid @RequestBody InviteCandidateDto inviteCandidateDto) {
         try {
             // Fetch the candidate and assessment entities
             Candidate candidate = candidateRepository.findById(inviteCandidateDto.getCandidateId())
-                .orElseThrow(() -> new IllegalArgumentException("Candidate not found with id: " + inviteCandidateDto.getCandidateId()));
-            
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Candidate not found with id: " + inviteCandidateDto.getCandidateId()));
+
             Assessment assessment = assessmentRepository.findById(inviteCandidateDto.getAssessmentId())
-                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + inviteCandidateDto.getAssessmentId()));
-            
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Assessment not found with id: " + inviteCandidateDto.getAssessmentId()));
+
             // Create a CandidateAttempt entity from the DTO
             CandidateAttempt candidateAttempt = new CandidateAttempt();
-            //candidateAttempt.setGithubRepositoryLink(newCandidateAttemptDto.getGithubRepositoryLink());
-            //candidateAttempt.setLanguageChoice(newCandidateAttemptDto.getLanguageChoice().orElse(null));
+            // candidateAttempt.setGithubRepositoryLink(newCandidateAttemptDto.getGithubRepositoryLink());
+            // candidateAttempt.setLanguageChoice(newCandidateAttemptDto.getLanguageChoice().orElse(null));
             candidateAttempt.setStatus(AttemptStatus.INVITED);
             candidateAttempt.setCandidate(candidate);
             candidateAttempt.setAssessment(assessment);
-            
+
             CandidateAttemptCacheDto invitedAttempt = candidateAttemptService.inviteCandidate(candidateAttempt);
             return ResponseEntity.status(HttpStatus.CREATED).body(new FetchCandidateAttemptDto(invitedAttempt));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error inviting candidate: " + e.getMessage());
+                    .body("Error inviting candidate: " + e.getMessage());
         }
     }
-    
-    // Create a new candidate attempt
+
+    // Start a new candidate attempt
     @PostMapping("/start")
     public ResponseEntity<?> startCandidateAttempt(@Valid @RequestBody StartAttemptDto startAttemptDto) {
         try {
             CandidateCacheDto candidate = candidateService.getCandidateByEmail(startAttemptDto.getCandidateEmail());
-            AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(startAttemptDto.getAssessmentId());
+            Assessment assessment = assessmentService.getAssessmentById(startAttemptDto.getAssessmentId());
 
-            // Updating DB
+            // Check if the candidate has a github token and username
+            Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + candidate.getEmail());
+            Object candidateGithubUsername = redisService.get(usernameCacheKeyPrefix + candidate.getEmail());
+
+            if (candidateGithubToken == null || candidateGithubUsername == null
+                    || githubService.validateGithubCredentials(candidateGithubToken.toString()) == null) {
+                return ResponseEntity.ok(
+                        "Github account not connected. Please connect your Github account to start the assessment.");
+            }
+            
+            String githubUsername = candidateGithubUsername.toString();
+
+            // Updating DB with full GitHub repository URL
             CandidateAttemptCacheDto createdAttempt = candidateAttemptService.startAttempt(
-                candidate, 
-                assessment, 
-                startAttemptDto.getLanguageChoice(),
-                startAttemptDto.getPassword());
+                    candidate,
+                    assessment,
+                    startAttemptDto.getLanguageChoice(),
+                    startAttemptDto.getPassword(),
+                    githubUsername);
+
+            // Creating candidate github repo
+            String templateOwner = assessment.getUser().getGithubUsername();
+            String templateRepoName = assessment.getGithubRepoName();
+            String githubAccessToken = encryptionService.decrypt(candidateGithubToken.toString());
+
+            // Extract repository name from the full URL for GitHub API call
+            String repoName = createdAttempt.getGithubRepositoryLink().substring(createdAttempt.getGithubRepositoryLink().lastIndexOf("/") + 1);
+            githubService.createPersonalRepoFromTemplate(githubAccessToken, templateOwner, templateRepoName, repoName);
+
             return ResponseEntity.status(HttpStatus.CREATED).body(new FetchCandidateAttemptDto(createdAttempt));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error creating candidate attempt: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Internal server error: " + e.getMessage());
+                    .body("Internal server error: " + e.getMessage());
         }
     }
-    
+
     // Get candidate attempt by ID
     @GetMapping("/{id}")
     public ResponseEntity<?> getCandidateAttemptById(@PathVariable Long id) {
@@ -133,138 +161,151 @@ public class CandidateAttemptController {
             return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving candidate attempt: " + e.getMessage());
+                    .body("Error retrieving candidate attempt: " + e.getMessage());
         }
     }
-    
+
     // Get all candidate attempts with pagination and filtering
     @GetMapping("/filter")
     public ResponseEntity<?> getAllCandidateAttempts(GetCandidateAttemptsDto getCandidateAttemptsDto) {
         try {
-            Sort sort = getCandidateAttemptsDto.getSortDirection().equalsIgnoreCase("desc") 
-                ? Sort.by(getCandidateAttemptsDto.getSortBy()).descending() 
-                : Sort.by(getCandidateAttemptsDto.getSortBy()).ascending();
-            
-            Pageable pageable = PageRequest.of(getCandidateAttemptsDto.getPage(), getCandidateAttemptsDto.getSize(), sort);
+            Sort sort = getCandidateAttemptsDto.getSortDirection().equalsIgnoreCase("desc")
+                    ? Sort.by(getCandidateAttemptsDto.getSortBy()).descending()
+                    : Sort.by(getCandidateAttemptsDto.getSortBy()).ascending();
+
+            Pageable pageable = PageRequest.of(getCandidateAttemptsDto.getPage(), getCandidateAttemptsDto.getSize(),
+                    sort);
             List<CandidateAttemptCacheDto> attempts = candidateAttemptService.getCandidateAttemptsWithFilters(
-                getCandidateAttemptsDto.getCandidateId(), getCandidateAttemptsDto.getAssessmentId(), getCandidateAttemptsDto.getAttemptStatuses(), getCandidateAttemptsDto.getStartedAfter(), getCandidateAttemptsDto.getStartedBefore(), 
-                getCandidateAttemptsDto.getCompletedAfter(), getCandidateAttemptsDto.getCompletedBefore(), pageable);
+                    getCandidateAttemptsDto.getCandidateId(), getCandidateAttemptsDto.getAssessmentId(),
+                    getCandidateAttemptsDto.getAttemptStatuses(), getCandidateAttemptsDto.getStartedAfter(),
+                    getCandidateAttemptsDto.getStartedBefore(),
+                    getCandidateAttemptsDto.getCompletedAfter(), getCandidateAttemptsDto.getCompletedBefore(),
+                    pageable);
             List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
                     .map(FetchCandidateAttemptDto::new)
                     .collect(Collectors.toList());
-            
+
             return ResponseEntity.ok(attemptDtos);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving candidate attempts: " + e.getMessage());
+                    .body("Error retrieving candidate attempts: " + e.getMessage());
         }
     }
-    
+
     // Update candidate attempt
     @PutMapping("/{id}/update")
-    public ResponseEntity<?> updateCandidateAttempt(@PathVariable Long id, @Valid @RequestBody NewCandidateAttemptDto attemptUpdates) {
+    public ResponseEntity<?> updateCandidateAttempt(@PathVariable Long id,
+            @Valid @RequestBody UpdateCandidateAttemptDto attemptUpdates) {
         try {
             CandidateAttempt updateAttempt = new CandidateAttempt();
             updateAttempt.setGithubRepositoryLink(attemptUpdates.getGithubRepositoryLink());
-            updateAttempt.setLanguageChoice(attemptUpdates.getLanguageChoice().orElse(null));
+            updateAttempt.setLanguageChoice(attemptUpdates.getLanguageChoiceOptional().orElse(null));
             updateAttempt.setStatus(attemptUpdates.getStatus());
-            
+
             CandidateAttemptCacheDto updatedAttempt = candidateAttemptService.updateCandidateAttempt(id, updateAttempt);
             return ResponseEntity.ok(new FetchCandidateAttemptDto(updatedAttempt));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error updating candidate attempt: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error updating candidate attempt: " + e.getMessage());
+                    .body("Error updating candidate attempt: " + e.getMessage());
         }
     }
-    
+
     // Delete candidate attempt
     // @DeleteMapping("/{id}/delete")
     // public ResponseEntity<?> deleteCandidateAttempt(@PathVariable Long id) {
-    //     try {
-    //         candidateAttemptService.deleteCandidateAttempt(id);
-    //         return ResponseEntity.noContent().build();
-    //     } catch (IllegalArgumentException e) {
-    //         return ResponseEntity.notFound().build();
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //             .body("Error deleting candidate attempt: " + e.getMessage());
-    //     }
+    // try {
+    // candidateAttemptService.deleteCandidateAttempt(id);
+    // return ResponseEntity.noContent().build();
+    // } catch (IllegalArgumentException e) {
+    // return ResponseEntity.notFound().build();
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error deleting candidate attempt: " + e.getMessage());
     // }
-    
+    // }
+
     // Get attempts by candidate ID
     // @GetMapping("/candidate/{candidateId}/all")
     // public ResponseEntity<?> getAttemptsByCandidateId(
-    //         @PathVariable Long candidateId,
-    //         @RequestParam(defaultValue = "0") int page,
-    //         @RequestParam(defaultValue = "10") int size) {
-    //     try {
-    //         Pageable pageable = PageRequest.of(page, size);
-    //         Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsByCandidateId(candidateId, pageable);
-    //         Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
-            
-    //         return ResponseEntity.ok(attemptDtos);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //             .body("Error retrieving attempts: " + e.getMessage());
-    //     }
+    // @PathVariable Long candidateId,
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size) {
+    // try {
+    // Pageable pageable = PageRequest.of(page, size);
+    // Page<CandidateAttempt> attempts =
+    // candidateAttemptService.getAttemptsByCandidateId(candidateId, pageable);
+    // Page<FetchCandidateAttemptDto> attemptDtos =
+    // attempts.map(FetchCandidateAttemptDto::new);
+
+    // return ResponseEntity.ok(attemptDtos);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error retrieving attempts: " + e.getMessage());
     // }
-    
+    // }
+
     // Get attempts by assessment ID
     // @GetMapping("/assessment/{assessmentId}/all")
     // public ResponseEntity<?> getAttemptsByAssessmentId(
-    //         @PathVariable Long assessmentId,
-    //         @RequestParam(defaultValue = "0") int page,
-    //         @RequestParam(defaultValue = "10") int size) {
-    //     try {
-    //         Pageable pageable = PageRequest.of(page, size);
-    //         Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsByAssessmentId(assessmentId, pageable);
-    //         Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
-            
-    //         return ResponseEntity.ok(attemptDtos);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //             .body("Error retrieving attempts: " + e.getMessage());
-    //     }
+    // @PathVariable Long assessmentId,
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size) {
+    // try {
+    // Pageable pageable = PageRequest.of(page, size);
+    // Page<CandidateAttempt> attempts =
+    // candidateAttemptService.getAttemptsByAssessmentId(assessmentId, pageable);
+    // Page<FetchCandidateAttemptDto> attemptDtos =
+    // attempts.map(FetchCandidateAttemptDto::new);
+
+    // return ResponseEntity.ok(attemptDtos);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error retrieving attempts: " + e.getMessage());
     // }
-    
+    // }
+
     // Get attempts by status
     // @GetMapping("/status/{status}/all")
     // public ResponseEntity<?> getAttemptsByStatus(
-    //         @PathVariable AttemptStatus status,
-    //         @RequestParam(defaultValue = "0") int page,
-    //         @RequestParam(defaultValue = "10") int size) {
-    //     try {
-    //         Pageable pageable = PageRequest.of(page, size);
-    //         Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsByStatus(status, pageable);
-    //         Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
-            
-    //         return ResponseEntity.ok(attemptDtos);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //             .body("Error retrieving attempts: " + e.getMessage());
-    //     }
+    // @PathVariable AttemptStatus status,
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size) {
+    // try {
+    // Pageable pageable = PageRequest.of(page, size);
+    // Page<CandidateAttempt> attempts =
+    // candidateAttemptService.getAttemptsByStatus(status, pageable);
+    // Page<FetchCandidateAttemptDto> attemptDtos =
+    // attempts.map(FetchCandidateAttemptDto::new);
+
+    // return ResponseEntity.ok(attemptDtos);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error retrieving attempts: " + e.getMessage());
     // }
-    
+    // }
+
     // Get attempt by candidate and assessment
     // @GetMapping("/candidate/{candidateId}/assessment/{assessmentId}/all")
     // public ResponseEntity<?> getAttemptByCandidateAndAssessment(
-    //         @PathVariable Long candidateId,
-    //         @PathVariable Long assessmentId) {
-    //     try {
-    //         Optional<CandidateAttempt> attempt = candidateAttemptService.getAttemptByCandidateAndAssessment(candidateId, assessmentId);
-    //         if (attempt.isPresent()) {
-    //             return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt.get()));
-    //         } else {
-    //             return ResponseEntity.notFound().build();
-    //         }
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //             .body("Error retrieving attempt: " + e.getMessage());
-    //     }
+    // @PathVariable Long candidateId,
+    // @PathVariable Long assessmentId) {
+    // try {
+    // Optional<CandidateAttempt> attempt =
+    // candidateAttemptService.getAttemptByCandidateAndAssessment(candidateId,
+    // assessmentId);
+    // if (attempt.isPresent()) {
+    // return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt.get()));
+    // } else {
+    // return ResponseEntity.notFound().build();
     // }
-    
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error retrieving attempt: " + e.getMessage());
+    // }
+    // }
+
     // Get attempts by language choice
     @GetMapping("/language/{languageChoice}/all")
     public ResponseEntity<?> getAttemptsByLanguageChoice(
@@ -273,73 +314,89 @@ public class CandidateAttemptController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            List<CandidateAttemptCacheDto> attempts = candidateAttemptService.getAttemptsByLanguageChoice(languageChoice, pageable);
+            List<CandidateAttemptCacheDto> attempts = candidateAttemptService
+                    .getAttemptsByLanguageChoice(languageChoice, pageable);
             List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
                     .map(FetchCandidateAttemptDto::new)
                     .collect(Collectors.toList());
-            
+
             return ResponseEntity.ok(attemptDtos);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving attempts: " + e.getMessage());
+                    .body("Error retrieving attempts: " + e.getMessage());
         }
     }
-    
+
     // Get attempts created within date range
     // @GetMapping("/created-between/all")
     // public ResponseEntity<?> getAttemptsCreatedBetween(
-    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-    //         @RequestParam(defaultValue = "0") int page,
-    //         @RequestParam(defaultValue = "10") int size) {
-    //     try {
-    //         Pageable pageable = PageRequest.of(page, size);
-    //         Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsCreatedBetween(startDate, endDate, pageable);
-    //         Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
-            
-    //         return ResponseEntity.ok(attemptDtos);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //             .body("Error retrieving attempts: " + e.getMessage());
-    //     }
+    // @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    // LocalDateTime startDate,
+    // @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    // LocalDateTime endDate,
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size) {
+    // try {
+    // Pageable pageable = PageRequest.of(page, size);
+    // Page<CandidateAttempt> attempts =
+    // candidateAttemptService.getAttemptsCreatedBetween(startDate, endDate,
+    // pageable);
+    // Page<FetchCandidateAttemptDto> attemptDtos =
+    // attempts.map(FetchCandidateAttemptDto::new);
+
+    // return ResponseEntity.ok(attemptDtos);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error retrieving attempts: " + e.getMessage());
     // }
-    
+    // }
+
     // Get attempts started within date range
     // @GetMapping("/started-between/all")
     // public ResponseEntity<?> getAttemptsStartedBetween(
-    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-    //         @RequestParam(defaultValue = "0") int page,
-    //         @RequestParam(defaultValue = "10") int size) {
-    //     try {
-    //         Pageable pageable = PageRequest.of(page, size);
-    //         Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsStartedBetween(startDate, endDate, pageable);
-    //         Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
-            
-    //         return ResponseEntity.ok(attemptDtos);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //             .body("Error retrieving attempts: " + e.getMessage());
-    //     }
+    // @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    // LocalDateTime startDate,
+    // @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    // LocalDateTime endDate,
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size) {
+    // try {
+    // Pageable pageable = PageRequest.of(page, size);
+    // Page<CandidateAttempt> attempts =
+    // candidateAttemptService.getAttemptsStartedBetween(startDate, endDate,
+    // pageable);
+    // Page<FetchCandidateAttemptDto> attemptDtos =
+    // attempts.map(FetchCandidateAttemptDto::new);
+
+    // return ResponseEntity.ok(attemptDtos);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error retrieving attempts: " + e.getMessage());
     // }
-    
+    // }
+
     // Get attempts completed within date range
     // @GetMapping("/completed-between/all")
     // public ResponseEntity<?> getAttemptsCompletedBetween(
-    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-    //         @RequestParam(defaultValue = "0") int page,
-    //         @RequestParam(defaultValue = "10") int size) {
-    //     try {
-    //         Pageable pageable = PageRequest.of(page, size);
-    //         Page<CandidateAttempt> attempts = candidateAttemptService.getAttemptsSubmittedBetween(startDate, endDate, pageable);
-    //         Page<FetchCandidateAttemptDto> attemptDtos = attempts.map(FetchCandidateAttemptDto::new);
-            
-    //         return ResponseEntity.ok(attemptDtos);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //             .body("Error retrieving attempts: " + e.getMessage());
-    //     }
+    // @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    // LocalDateTime startDate,
+    // @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    // LocalDateTime endDate,
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size) {
+    // try {
+    // Pageable pageable = PageRequest.of(page, size);
+    // Page<CandidateAttempt> attempts =
+    // candidateAttemptService.getAttemptsSubmittedBetween(startDate, endDate,
+    // pageable);
+    // Page<FetchCandidateAttemptDto> attemptDtos =
+    // attempts.map(FetchCandidateAttemptDto::new);
+
+    // return ResponseEntity.ok(attemptDtos);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error retrieving attempts: " + e.getMessage());
+    // }
     // }
 
     @GetMapping("/live/{assessmentId}")
@@ -405,7 +462,7 @@ public class CandidateAttemptController {
     }
 
     //////////////
-    
+
     // Get overdue attempts
     @GetMapping("/overdue/all")
     public ResponseEntity<?> getOverdueAttempts(
@@ -417,14 +474,14 @@ public class CandidateAttemptController {
             List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
                     .map(FetchCandidateAttemptDto::new)
                     .collect(Collectors.toList());
-            
+
             return ResponseEntity.ok(attemptDtos);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving overdue attempts: " + e.getMessage());
+                    .body("Error retrieving overdue attempts: " + e.getMessage());
         }
     }
-    
+
     // Get attempts with evaluation
     @GetMapping("/with-evaluation/all")
     public ResponseEntity<?> getAttemptsWithEvaluation(
@@ -436,14 +493,14 @@ public class CandidateAttemptController {
             List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
                     .map(FetchCandidateAttemptDto::new)
                     .collect(Collectors.toList());
-            
+
             return ResponseEntity.ok(attemptDtos);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving attempts: " + e.getMessage());
+                    .body("Error retrieving attempts: " + e.getMessage());
         }
     }
-    
+
     // Get completed attempts without evaluation
     @GetMapping("/submitted/all")
     public ResponseEntity<?> getCompletedAttemptsWithoutEvaluation(
@@ -451,18 +508,19 @@ public class CandidateAttemptController {
             @RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            List<CandidateAttemptCacheDto> attempts = candidateAttemptService.getSubmittedAttemptsWithoutEvaluation(pageable);
+            List<CandidateAttemptCacheDto> attempts = candidateAttemptService
+                    .getSubmittedAttemptsWithoutEvaluation(pageable);
             List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
                     .map(FetchCandidateAttemptDto::new)
                     .collect(Collectors.toList());
-            
+
             return ResponseEntity.ok(attemptDtos);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving attempts: " + e.getMessage());
+                    .body("Error retrieving attempts: " + e.getMessage());
         }
     }
-    
+
     // Count attempts by assessment and status
     @GetMapping("/count/assessment/{assessmentId}/status/{status}")
     public ResponseEntity<?> countAttemptsByAssessmentAndStatus(
@@ -473,10 +531,10 @@ public class CandidateAttemptController {
             return ResponseEntity.ok(count);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error counting attempts: " + e.getMessage());
+                    .body("Error counting attempts: " + e.getMessage());
         }
     }
-    
+
     // Count attempts by candidate
     @GetMapping("/count/candidate/{candidateId}")
     public ResponseEntity<?> countAttemptsByCandidate(@PathVariable Long candidateId) {
@@ -485,10 +543,10 @@ public class CandidateAttemptController {
             return ResponseEntity.ok(count);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error counting attempts: " + e.getMessage());
+                    .body("Error counting attempts: " + e.getMessage());
         }
     }
-    
+
     // Get attempt with details
     @GetMapping("/{id}/details")
     public ResponseEntity<?> getAttemptWithDetails(@PathVariable Long id) {
@@ -497,7 +555,7 @@ public class CandidateAttemptController {
             return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error retrieving attempt details: " + e.getMessage());
+                    .body("Error retrieving attempt details: " + e.getMessage());
         }
     }
 
@@ -505,46 +563,59 @@ public class CandidateAttemptController {
     public ResponseEntity<?> inviteCandidateToAssessment(@PathVariable Long id, @RequestBody String email) {
         try {
             Assessment assessment = assessmentService.getAssessmentById(id);
-            if (assessment.getCandidates().stream().anyMatch(c -> c.getEmail().toLowerCase().equals(email.toLowerCase()))) {
+            if (assessment.getCandidates().stream()
+                    .anyMatch(c -> c.getEmail().toLowerCase().equals(email.toLowerCase()))) {
                 return ResponseEntity.ok("Candidate authenticated");
             }
             return ResponseEntity.badRequest().body("Candidate not authorized to take this assessment");
-            
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error authenticating candidate: " + e.getMessage() + " " + email + " - is this candidate authorized to take this assessment?");
+                    .body("Error authenticating candidate: " + e.getMessage() + " " + email
+                            + " - is this candidate authorized to take this assessment?");
         }
     }
-    
+
     // Start attempt
     // @PostMapping("/{assessmentId}/start")
-    // public ResponseEntity<?> startAttempt(@PathVariable Long assessmentId, @RequestBody Long candidateId, @RequestBody Optional<String> languageChoice) {
-    //     try {
-    //         Assessment assessment = assessmentService.getAssessmentByIdOrThrow(assessmentId);
-    //         // return error if an invalid language choice is provided
-    //         if (!assessment.getLanguageOptions().isEmpty() && languageChoice.isPresent() && !assessment.getLanguageOptions().contains(languageChoice.get())) {
-    //             return ResponseEntity.badRequest().body("Language choice not supported for this assessment");
-    //         }
-
-    //         // return error if language choice is provided for an assessment that does not support it
-    //         if (assessment.getLanguageOptions().isEmpty() && languageChoice.isPresent()) {
-    //             return ResponseEntity.badRequest().body("This assessment does not support language choice.");
-    //         }
-
-    //         // return error if candidate is not found
-    //         // Candidate candidate = candidateService.getCandidateByIdOrThrow(candidateId);
-
-    //         // start the attempt
-    //         CandidateAttempt attempt = candidateAttemptService.startAttempt(candidateId, assessmentId, languageChoice);
-    //         return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt));
-    //     } catch (IllegalStateException | IllegalArgumentException e) {
-    //         return ResponseEntity.badRequest().body("Error starting attempt: " + e.getMessage());
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //             .body("Error starting attempt: " + e.getMessage());
-    //     }
+    // public ResponseEntity<?> startAttempt(@PathVariable Long assessmentId,
+    // @RequestBody Long candidateId, @RequestBody Optional<String> languageChoice)
+    // {
+    // try {
+    // Assessment assessment =
+    // assessmentService.getAssessmentByIdOrThrow(assessmentId);
+    // // return error if an invalid language choice is provided
+    // if (!assessment.getLanguageOptions().isEmpty() && languageChoice.isPresent()
+    // && !assessment.getLanguageOptions().contains(languageChoice.get())) {
+    // return ResponseEntity.badRequest().body("Language choice not supported for
+    // this assessment");
     // }
-    
+
+    // // return error if language choice is provided for an assessment that does
+    // not support it
+    // if (assessment.getLanguageOptions().isEmpty() && languageChoice.isPresent())
+    // {
+    // return ResponseEntity.badRequest().body("This assessment does not support
+    // language choice.");
+    // }
+
+    // // return error if candidate is not found
+    // // Candidate candidate =
+    // candidateService.getCandidateByIdOrThrow(candidateId);
+
+    // // start the attempt
+    // CandidateAttempt attempt = candidateAttemptService.startAttempt(candidateId,
+    // assessmentId, languageChoice);
+    // return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt));
+    // } catch (IllegalStateException | IllegalArgumentException e) {
+    // return ResponseEntity.badRequest().body("Error starting attempt: " +
+    // e.getMessage());
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error starting attempt: " + e.getMessage());
+    // }
+    // }
+
     // Submit attempt
     @PostMapping("/{id}/submit")
     public ResponseEntity<?> submitAttempt(
@@ -557,10 +628,10 @@ public class CandidateAttemptController {
             return ResponseEntity.badRequest().body("Error submitting attempt: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error submitting attempt: " + e.getMessage());
+                    .body("Error submitting attempt: " + e.getMessage());
         }
     }
-    
+
     // Mark as evaluated
     @PostMapping("/{id}/evaluate")
     public ResponseEntity<?> markAsEvaluated(@PathVariable Long id) {
@@ -571,21 +642,22 @@ public class CandidateAttemptController {
             return ResponseEntity.badRequest().body("Error marking as evaluated: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error marking as evaluated: " + e.getMessage());
+                    .body("Error marking as evaluated: " + e.getMessage());
         }
     }
-    
+
     // Check if attempt is overdue
     // @GetMapping("/{id}/is-overdue")
     // public ResponseEntity<?> isAttemptOverdue(@PathVariable Long id) {
-    //     try {
-    //         boolean isOverdue = candidateAttemptService.isAttemptOverdue(id);
-    //         return ResponseEntity.ok(isOverdue);
-    //     } catch (IllegalArgumentException e) {
-    //         return ResponseEntity.badRequest().body("Error checking overdue status: " + e.getMessage());
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //             .body("Error checking overdue status: " + e.getMessage());
-    //     }
+    // try {
+    // boolean isOverdue = candidateAttemptService.isAttemptOverdue(id);
+    // return ResponseEntity.ok(isOverdue);
+    // } catch (IllegalArgumentException e) {
+    // return ResponseEntity.badRequest().body("Error checking overdue status: " +
+    // e.getMessage());
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error checking overdue status: " + e.getMessage());
     // }
-} 
+    // }
+}
