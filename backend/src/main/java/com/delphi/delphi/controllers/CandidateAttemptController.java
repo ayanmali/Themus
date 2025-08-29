@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.dtos.FetchCandidateAttemptDto;
 import com.delphi.delphi.dtos.InviteCandidateDto;
+import com.delphi.delphi.dtos.PaginatedResponseDto;
 import com.delphi.delphi.dtos.PreviewAssessmentDto;
 import com.delphi.delphi.dtos.StartAttemptDto;
 import com.delphi.delphi.dtos.UpdateCandidateAttemptDto;
@@ -176,17 +177,24 @@ public class CandidateAttemptController {
 
             Pageable pageable = PageRequest.of(getCandidateAttemptsDto.getPage(), getCandidateAttemptsDto.getSize(),
                     sort);
-            List<CandidateAttemptCacheDto> attempts = candidateAttemptService.getCandidateAttemptsWithFilters(
+            PaginatedResponseDto<CandidateAttemptCacheDto> paged = candidateAttemptService.getCandidateAttemptsWithFilters(
                     getCandidateAttemptsDto.getCandidateId(), getCandidateAttemptsDto.getAssessmentId(),
                     getCandidateAttemptsDto.getAttemptStatuses(), getCandidateAttemptsDto.getStartedAfter(),
                     getCandidateAttemptsDto.getStartedBefore(),
                     getCandidateAttemptsDto.getCompletedAfter(), getCandidateAttemptsDto.getCompletedBefore(),
                     pageable);
-            List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
+            List<FetchCandidateAttemptDto> attemptDtos = paged.getContent().stream()
                     .map(FetchCandidateAttemptDto::new)
                     .collect(Collectors.toList());
 
-            return ResponseEntity.ok(attemptDtos);
+            PaginatedResponseDto<FetchCandidateAttemptDto> response = new PaginatedResponseDto<>(
+                attemptDtos,
+                paged.getPage(),
+                paged.getSize(),
+                paged.getTotalElements()
+            );
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error retrieving candidate attempts: " + e.getMessage());

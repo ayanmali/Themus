@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.delphi.delphi.components.RedisService;
+import com.delphi.delphi.dtos.PaginatedResponseDto;
 import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateCacheDto;
 import com.delphi.delphi.entities.Assessment;
@@ -244,7 +245,7 @@ public class CandidateAttemptService {
      * @return List of filtered and paginated candidate attempts
      */
     @Transactional(readOnly = true)
-    public List<CandidateAttemptCacheDto> getCandidateAttemptsWithFilters(Long candidateId, Long assessmentId, 
+    public PaginatedResponseDto<CandidateAttemptCacheDto> getCandidateAttemptsWithFilters(Long candidateId, Long assessmentId, 
                                                                  List<AttemptStatus> statuses, LocalDateTime startedAfter, 
                                                                  LocalDateTime startedBefore, LocalDateTime completedAfter, 
                                                                  LocalDateTime completedBefore, Pageable pageable) {
@@ -274,7 +275,7 @@ public class CandidateAttemptService {
                 startedAfter, startedBefore, completedAfter, completedBefore, pageable);
     }
     
-    private List<CandidateAttemptCacheDto> getCandidateAttemptsWithFiltersInternal(Long candidateId, Long assessmentId, 
+    private PaginatedResponseDto<CandidateAttemptCacheDto> getCandidateAttemptsWithFiltersInternal(Long candidateId, Long assessmentId, 
                                                                  List<AttemptStatus> statuses, LocalDateTime startedAfter, 
                                                                  LocalDateTime startedBefore, LocalDateTime completedAfter, 
                                                                  LocalDateTime completedBefore, Pageable pageable) {
@@ -703,7 +704,7 @@ public class CandidateAttemptService {
         }
     }
     
-    private List<CandidateAttemptCacheDto> getGeneralCandidateAttempts(Long candidateId, Pageable pageable) {
+    private PaginatedResponseDto<CandidateAttemptCacheDto> getGeneralCandidateAttempts(Long candidateId, Pageable pageable) {
         String generalCacheKey = generateCandidateGeneralCacheKey(candidateId);
         List<CandidateAttemptCacheDto> cachedResult = getCachedAttemptList(generalCacheKey);
         
@@ -724,7 +725,7 @@ public class CandidateAttemptService {
         return applyPaginationToList(attemptDtos, pageable);
     }
     
-    private List<CandidateAttemptCacheDto> getGeneralAssessmentAttempts(Long assessmentId, Pageable pageable) {
+    private PaginatedResponseDto<CandidateAttemptCacheDto> getGeneralAssessmentAttempts(Long assessmentId, Pageable pageable) {
         String generalCacheKey = generateAssessmentGeneralCacheKey(assessmentId);
         List<CandidateAttemptCacheDto> cachedResult = getCachedAttemptList(generalCacheKey);
         
@@ -745,7 +746,7 @@ public class CandidateAttemptService {
         return applyPaginationToList(attemptDtos, pageable);
     }
     
-    private List<CandidateAttemptCacheDto> fetchFromDatabaseWithFilters(Long candidateId, Long assessmentId,
+    private PaginatedResponseDto<CandidateAttemptCacheDto> fetchFromDatabaseWithFilters(Long candidateId, Long assessmentId,
             List<AttemptStatus> statuses, LocalDateTime startedAfter, LocalDateTime startedBefore,
             LocalDateTime completedAfter, LocalDateTime completedBefore, Pageable pageable, String specificCacheKey) {
         
@@ -808,7 +809,7 @@ public class CandidateAttemptService {
                 .collect(Collectors.toList());
     }
     
-    private List<CandidateAttemptCacheDto> applyPaginationToList(List<CandidateAttemptCacheDto> attempts, Pageable pageable) {
+    private PaginatedResponseDto<CandidateAttemptCacheDto> applyPaginationToList(List<CandidateAttemptCacheDto> attempts, Pageable pageable) {
         // Apply sorting
         List<CandidateAttemptCacheDto> sortedAttempts = new ArrayList<>(attempts);
         if (pageable.getSort().isSorted()) {
@@ -830,7 +831,12 @@ public class CandidateAttemptService {
         List<CandidateAttemptCacheDto> pageContent = start >= sortedAttempts.size() ? 
                 List.of() : sortedAttempts.subList(start, end);
         
-        return pageContent;
+        return new PaginatedResponseDto<>(
+                pageContent,
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                sortedAttempts.size()
+        );
     }
     
     private int compareAttemptsByField(CandidateAttemptCacheDto a1, CandidateAttemptCacheDto a2, String field) {

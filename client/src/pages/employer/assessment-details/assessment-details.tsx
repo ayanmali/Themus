@@ -15,6 +15,7 @@ import useApi from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { PaginatedResponse } from "@/lib/types/paginated-response";
 
 export default function AssessmentDetails() {
     const { apiCall } = useApi();
@@ -176,7 +177,7 @@ export default function AssessmentDetails() {
     });
 
     // Fetch candidate attempts for this assessment
-    const { data: attemptsData, isLoading: attemptsLoading, error: attemptsError } = useQuery({
+    const { data: attemptsData, isLoading: attemptsLoading, error: attemptsError } = useQuery<PaginatedResponse<CandidateAttempt>>({
         queryKey: ['candidateAttempts', 'assessment', assessmentId, currentCandidatePage, candidateStatusFilter],
         queryFn: async () => {
             const statusParam = candidateStatusFilter !== 'all' ? `&status=${candidateStatusFilter.toUpperCase()}` : '';
@@ -214,10 +215,10 @@ export default function AssessmentDetails() {
         refetchOnMount: true,
     });
 
-    // Extract attempts from the response - API returns a list directly, not paginated
-    const candidateAttempts: CandidateAttempt[] = attemptsData || [];
-    const totalAttempts: number = candidateAttempts.length;
-    const totalAttemptsPages: number = Math.ceil(totalAttempts / candidatesPerPage);
+    // Extract attempts from the response
+    const candidateAttempts: CandidateAttempt[] = attemptsData?.content || [];
+    const totalAttempts: number = attemptsData?.totalElements || 0;
+    const totalAttemptsPages: number = attemptsData?.totalPages || 0;
 
     // Extract available candidates from the response
     const availableCandidates: Candidate[] = availableCandidatesData?.content || [];
@@ -488,7 +489,7 @@ export default function AssessmentDetails() {
             case 'started': return 'bg-yellow-600';
             case 'completed': return 'bg-green-600';
             case 'evaluated': return 'bg-purple-600';
-            case 'expired': return 'bg-red-600';
+            case 'expired': return 'bg-gray-600';
             default: return 'bg-gray-600';
         }
     };
