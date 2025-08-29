@@ -31,7 +31,7 @@ import com.delphi.delphi.dtos.StartAttemptDto;
 import com.delphi.delphi.dtos.UpdateCandidateAttemptDto;
 import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateCacheDto;
-import com.delphi.delphi.dtos.get.GetCandidateAttemptsDto;
+import com.delphi.delphi.dtos.filter_queries.GetCandidateAttemptsDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;

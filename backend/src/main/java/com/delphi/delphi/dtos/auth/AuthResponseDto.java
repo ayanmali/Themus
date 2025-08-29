@@ -1,4 +1,4 @@
-package com.delphi.delphi.dtos;
+package com.delphi.delphi.dtos.auth;
 
 // Sent to the client after successful authentication
 public class AuthResponseDto {

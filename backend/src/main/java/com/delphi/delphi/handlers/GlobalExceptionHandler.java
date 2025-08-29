@@ -8,7 +8,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
-import com.delphi.delphi.dtos.AuthErrorResponseDto;
+import com.delphi.delphi.dtos.auth.AuthErrorResponseDto;
 
 import jakarta.servlet.http.HttpServletRequest;
 

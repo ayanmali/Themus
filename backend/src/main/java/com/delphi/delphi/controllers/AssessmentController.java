@@ -37,7 +37,7 @@ import com.delphi.delphi.dtos.NewUserMessageDto;
 import com.delphi.delphi.dtos.PaginatedResponseDto;
 import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
 import com.delphi.delphi.dtos.cache.UserCacheDto;
-import com.delphi.delphi.dtos.get.GetAssessmentsDto;
+import com.delphi.delphi.dtos.filter_queries.GetAssessmentsDto;
 import com.delphi.delphi.dtos.messaging.chat.PublishAssessmentCreationJobDto;
 import com.delphi.delphi.dtos.messaging.chat.PublishChatJobDto;
 import com.delphi.delphi.entities.Assessment;

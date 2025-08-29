@@ -10,66 +10,6 @@ import { useParams } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import useApi from '@/hooks/use-api';
 
-// Mock data for the assessment
-const assessment: Assessment = {
-    id: 5,
-    employerId: "1",
-    createdDate: new Date(),
-    updatedDate: new Date(),
-    name: "Full Stack Developer Assessment",
-    role: "Senior Full Stack Developer",
-    duration: 180,
-    skills: [
-        "React.js/Vue.js",
-        "Node.js/Express",
-        "Database Design",
-        "API Development",
-        "Authentication",
-        "Testing",
-        "Docker",
-        "Kubernetes",
-        "TypeScript"
-    ],
-    candidateAttempts: [
-        {
-            id: 1,
-            candidateId: 1,
-            assessmentId: 5,
-            status: "invited",
-            startedAt: new Date(),
-        }
-    ],
-    description: "This comprehensive assessment evaluates your ability to build a complete web application from scratch. You'll be tasked with creating a task management system that demonstrates your proficiency in both frontend and backend development, including user authentication, data persistence, and responsive design.",
-    rules: [
-        "Complete the assessment within the allocated time frame",
-        "You may use any resources, documentation, or tools you normally would",
-        "Write clean, maintainable, and well-documented code",
-        "Include proper error handling and validation",
-        "Provide a README with setup instructions"
-    ],
-    instructions: [
-        "Read through all requirements carefully before starting",
-        "Set up your development environment with your chosen stack",
-        "Implement features and changes incrementally and test as you go",
-        "Commit your code regularly with meaningful messages",
-        "Submit your solution by submitting a pull request to your repository"
-    ],
-    languageOptions: [
-        "React + Node.js",
-        "Vue.js + Node.js",
-        "React + Python (Django/Flask)",
-        "Vue.js + Python (Django/Flask)",
-    ],
-    status: "ACTIVE",
-    githubRepositoryLink: "https://github.com/user/repo",
-};
-
-const candidate: Candidate = {
-    id: 1,
-    email: "zainjdantes@gmail.com",
-    fullName: "Zain Dantes",
-}
-
 export default function CandidateAssessmentPreview() {
     const [selectedLanguage, setSelectedLanguage] = useState('');
     const [email, setEmail] = useState('');

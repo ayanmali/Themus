@@ -734,6 +734,12 @@ export default function CandidateDetails() {
                                             <span className="text-white">{totalAttempts}</span>
                                         </div>
                                         <div className="flex justify-between">
+                                            <span className="text-gray-400">Evaluated:</span>
+                                            <span className="text-green-400">
+                                                {candidateAttempts.filter(a => a.status === 'evaluated').length}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
                                             <span className="text-gray-400">Completed:</span>
                                             <span className="text-green-400">
                                                 {candidateAttempts.filter(a => a.status === 'completed' || a.status === 'evaluated').length}
@@ -749,6 +755,12 @@ export default function CandidateDetails() {
                                             <span className="text-gray-400">Invited:</span>
                                             <span className="text-blue-400">
                                                 {candidateAttempts.filter(a => a.status === 'invited').length}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Expired:</span>
+                                            <span className="text-red-400">
+                                                {candidateAttempts.filter(a => a.status === 'expired').length}
                                             </span>
                                         </div>
                                     </div>

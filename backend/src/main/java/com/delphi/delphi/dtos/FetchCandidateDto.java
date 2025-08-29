@@ -16,7 +16,7 @@ public class FetchCandidateDto {
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
     private Map<String, String> metadata;
-    private Map<AttemptStatus, List<Long>> attemptStatuses;
+    private Map<AttemptStatus, List<Long>> assessmentStatuses; // maps attempt status to list of assessment ids
 
     public FetchCandidateDto() {
     }
@@ -39,7 +39,7 @@ public class FetchCandidateDto {
         this.createdDate = candidate.getCreatedDate();
         this.updatedDate = candidate.getUpdatedDate();
         this.metadata = candidate.getMetadata() != null ? new HashMap<>(candidate.getMetadata()) : null;
-        this.attemptStatuses = candidate.getAttemptStatuses() != null ? new HashMap<>(candidate.getAttemptStatuses()) : null;
+        this.assessmentStatuses = candidate.getAssessmentStatuses() != null ? new HashMap<>(candidate.getAssessmentStatuses()) : null;
     }
     
     public Long getId() {
@@ -90,12 +90,12 @@ public class FetchCandidateDto {
         this.metadata = metadata;
     }
 
-    public Map<AttemptStatus, List<Long>> getAttemptStatuses() {
-        return attemptStatuses;
+    public Map<AttemptStatus, List<Long>> getAssessmentStatuses() {
+        return assessmentStatuses;
     }
 
-    public void setAttemptStatuses(Map<AttemptStatus, List<Long>> attemptStatuses) {
-        this.attemptStatuses = attemptStatuses;
+    public void setAssessmentStatuses(Map<AttemptStatus, List<Long>> assessmentStatuses) {
+        this.assessmentStatuses = assessmentStatuses;
     }
     
 }

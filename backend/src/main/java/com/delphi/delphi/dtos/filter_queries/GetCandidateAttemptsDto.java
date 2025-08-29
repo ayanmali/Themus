@@ -1,4 +1,4 @@
-package com.delphi.delphi.dtos.get;
+package com.delphi.delphi.dtos.filter_queries;
 
 import java.time.LocalDateTime;
 import java.util.List;

@@ -1,41 +1,45 @@
-package com.delphi.delphi.dtos.get;
+package com.delphi.delphi.dtos.filter_queries;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
-import com.delphi.delphi.utils.enums.AttemptStatus;
+import com.delphi.delphi.utils.enums.AssessmentStatus;
 
 /**
- * Contains filter query parameters for getting candidates
+ * Contains filter query parameters for getting assessments
  */
-public class GetCandidatesDto {
+public class GetAssessmentsDto {
     private int page = 0;
     private int size = 10;
     private String sortBy = "id";
     private String sortDirection = "asc";
-    private Long assessmentId;
-    private List<AttemptStatus> attemptStatuses;
+    private AssessmentStatus status;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime createdAfter;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime createdBefore;
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    private LocalDateTime assessmentStartDate;
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    private LocalDateTime assessmentEndDate;
     private List<String> skills;
     private List<String> languageOptions;
 
-    public GetCandidatesDto() {
+    public GetAssessmentsDto() {
     }
 
-    public GetCandidatesDto(int page, int size, String sortBy, String sortDirection, Long assessmentId, List<AttemptStatus> attemptStatuses, LocalDateTime createdAfter, LocalDateTime createdBefore, List<String> skills, List<String> languageOptions) {
+    public GetAssessmentsDto(int page, int size, String sortBy, String sortDirection, AssessmentStatus status, LocalDateTime createdAfter, LocalDateTime createdBefore, LocalDateTime assessmentStartDate, LocalDateTime assessmentEndDate, List<String> skills, List<String> languageOptions) {
         this.page = page;
         this.size = size;
         this.sortBy = sortBy;
         this.sortDirection = sortDirection;
-        this.assessmentId = assessmentId;
-        this.attemptStatuses = attemptStatuses;
+        this.status = status;
         this.createdAfter = createdAfter;
         this.createdBefore = createdBefore;
+        this.assessmentStartDate = assessmentStartDate;
+        this.assessmentEndDate = assessmentEndDate;
         this.skills = skills;
         this.languageOptions = languageOptions;
     }
@@ -72,20 +76,12 @@ public class GetCandidatesDto {
         this.sortDirection = sortDirection;
     }
 
-    public Long getAssessmentId() {
-        return assessmentId;
+    public AssessmentStatus getStatus() {
+        return status;
     }
 
-    public void setAssessmentId(Long assessmentId) {
-        this.assessmentId = assessmentId;
-    }
-
-    public List<AttemptStatus> getAttemptStatuses() {
-        return attemptStatuses;
-    }
-
-    public void setAttemptStatuses(List<AttemptStatus> attemptStatuses) {
-        this.attemptStatuses = attemptStatuses;
+    public void setStatus(AssessmentStatus status) {
+        this.status = status;
     }
 
     public LocalDateTime getCreatedAfter() {
@@ -104,6 +100,22 @@ public class GetCandidatesDto {
         this.createdBefore = createdBefore;
     }
 
+    public LocalDateTime getAssessmentStartDate() {
+        return assessmentStartDate;
+    }
+
+    public void setAssessmentStartDate(LocalDateTime assessmentStartDate) {
+        this.assessmentStartDate = assessmentStartDate;
+    }
+
+    public LocalDateTime getAssessmentEndDate() {
+        return assessmentEndDate;
+    }
+
+    public void setAssessmentEndDate(LocalDateTime assessmentEndDate) {
+        this.assessmentEndDate = assessmentEndDate;
+    }
+
     public List<String> getSkills() {
         return skills;
     }
@@ -120,6 +132,7 @@ public class GetCandidatesDto {
         this.languageOptions = languageOptions;
     }
 
+    
 
     
 }

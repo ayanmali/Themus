@@ -3,8 +3,8 @@ import { Candidate } from './candidate';
 
 export type CandidateAttempt = {
     id: number;
-    candidateId: number;
-    assessmentId: number;
+    //candidateId: number;
+    //assessmentId: number;
     status: 'invited' | 'started' | 'completed' | 'evaluated' | 'expired';
     startedAt?: Date | null;
     submittedAt?: Date | null;
@@ -17,7 +17,8 @@ export type CandidateAttempt = {
     startedDate?: string;
     completedDate?: string;
     evaluatedDate?: string;
-    evaluationId?: number;
+    //evaluationId?: number;
     assessment?: Assessment;
     candidate?: Candidate;
+    //evaluation?: Evaluation;
 }

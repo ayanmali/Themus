@@ -15,9 +15,9 @@ public class CandidateAttemptCacheDto {
     private LocalDateTime startedDate;
     private LocalDateTime completedDate;
     private LocalDateTime evaluatedDate;
+    private AssessmentCacheDto assessment;
     private CandidateCacheDto candidate;
-    private Long assessmentId;
-    private Long evaluationId;
+    private EvaluationCacheDto evaluation;
 
     // Default constructor for JSON deserialization
     public CandidateAttemptCacheDto() {
@@ -34,9 +34,9 @@ public class CandidateAttemptCacheDto {
         this.completedDate = candidateAttempt.getCompletedDate();
         this.evaluatedDate = candidateAttempt.getEvaluatedDate();
         this.candidate = new CandidateCacheDto(candidateAttempt.getCandidate());
-        this.assessmentId = candidateAttempt.getAssessment().getId();
+        this.assessment = new AssessmentCacheDto(candidateAttempt.getAssessment());
         if (candidateAttempt.getEvaluation() != null) { 
-        this.evaluationId = candidateAttempt.getEvaluation().getId();
+            this.evaluation = new EvaluationCacheDto(candidateAttempt.getEvaluation());
         }
     }
 
@@ -100,17 +100,20 @@ public class CandidateAttemptCacheDto {
     public void setCandidate(CandidateCacheDto candidate) {
         this.candidate = candidate;
     }
-    public Long getAssessmentId() {
-        return assessmentId;
+
+    public EvaluationCacheDto getEvaluation() {
+        return evaluation;
     }
-    public void setAssessmentId(Long assessmentId) {
-        this.assessmentId = assessmentId;
+    public void setEvaluation(EvaluationCacheDto evaluation) {
+        this.evaluation = evaluation;
     }
-    public Long getEvaluationId() {
-        return evaluationId;
+
+    public AssessmentCacheDto getAssessment() {
+        return assessment;
     }
-    public void setEvaluationId(Long evaluationId) {
-        this.evaluationId = evaluationId;
+
+    public void setAssessment(AssessmentCacheDto assessment) {
+        this.assessment = assessment;
     }
 
     

@@ -24,10 +24,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.components.JwtService;
-import com.delphi.delphi.dtos.AuthErrorResponseDto;
 import com.delphi.delphi.dtos.FetchUserDto;
 import com.delphi.delphi.dtos.NewUserDto;
 import com.delphi.delphi.dtos.PasswordLoginDto;
+import com.delphi.delphi.dtos.auth.AuthErrorResponseDto;
 import com.delphi.delphi.dtos.cache.RefreshTokenCacheDto;
 import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.entities.RefreshToken;

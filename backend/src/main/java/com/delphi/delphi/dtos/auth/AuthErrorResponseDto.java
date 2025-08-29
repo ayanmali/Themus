@@ -1,4 +1,4 @@
-package com.delphi.delphi.dtos;
+package com.delphi.delphi.dtos.auth;
 
 import java.time.LocalDateTime;
 

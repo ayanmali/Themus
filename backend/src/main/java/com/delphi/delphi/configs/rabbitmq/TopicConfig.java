@@ -36,6 +36,10 @@ public class TopicConfig {
     // public static final String LLM_RESPONSE_TOPIC_DLX = "llm.response.topic.dlx";
     // public static final String LLM_RESPONSE_TOPIC_DLQ = "llm.response.topic.dlq";
 
+    public static final String EMAIL_TOPIC_EXCHANGE_NAME = "email.topic";
+    public static final String EMAIL_QUEUE_NAME = "email.queue";
+    public static final String EMAIL_ROUTING_KEY = "email";
+
     public final String CANDIDATE_INVITATION_TOPIC_EXCHANGE_NAME;
     public final String CANDIDATE_INVITATION_TOPIC_QUEUE_NAME;
     public final String CANDIDATE_INVITATION_ROUTING_KEY;
@@ -141,7 +145,7 @@ public class TopicConfig {
     @Bean
     public Queue llmResponseChatQueue() {
         return QueueBuilder.durable(LLM_RESPONSE_CHAT_QUEUE_NAME)
-        .ttl(60000) // 1 minute
+        .ttl(600000) // 10 minutes
         .build();
     }
 
@@ -153,6 +157,25 @@ public class TopicConfig {
     @Bean
     public Binding bindingLlmResponseChatExchange(Queue llmResponseChatQueue, TopicExchange llmResponseTopicExchange) {
         return BindingBuilder.bind(llmResponseChatQueue).to(llmResponseTopicExchange).with(LLM_RESPONSE_CHAT_ROUTING_KEY);
+    }
+
+
+    @Bean
+    public TopicExchange emailTopicExchange() {
+        return new TopicExchange(EMAIL_TOPIC_EXCHANGE_NAME);
+    }
+
+    @Bean
+    public Queue emailQueue() {
+        return QueueBuilder
+        .durable(EMAIL_QUEUE_NAME)
+        .ttl(600000) // 10 minutes
+        .build();
+    }
+
+    @Bean
+    public Binding bindingEmailExchange(Queue emailQueue, TopicExchange emailTopicExchange) {
+        return BindingBuilder.bind(emailQueue).to(emailTopicExchange).with(EMAIL_ROUTING_KEY);
     }
 
     /* CANDIDATE INVITATION TOPIC */

@@ -22,7 +22,7 @@ public class CandidateCacheDto {
     private Long userId;
     private List<Long> assessmentIds;
     private List<Long> candidateAttemptIds;
-    private Map<AttemptStatus, List<Long>> attemptStatuses; // maps attempt status to list of candidate attempt ids
+    private Map<AttemptStatus, List<Long>> assessmentStatuses; // maps attempt status to list of assessment ids
     private Map<String, String> metadata;
 
     // Default constructor for Jackson deserialization
@@ -45,11 +45,11 @@ public class CandidateCacheDto {
             this.candidateAttemptIds = candidate.getCandidateAttempts().stream().map(CandidateAttempt::getId).collect(Collectors.toList());
             
             // Populate attemptStatuses map
-            this.attemptStatuses = new HashMap<>();
+            this.assessmentStatuses = new HashMap<>();
             candidate.getCandidateAttempts().forEach(attempt -> {
                 AttemptStatus status = attempt.getStatus();
                 if (status != null) {
-                    attemptStatuses.computeIfAbsent(status, _ -> new ArrayList<>()).add(attempt.getId());
+                    assessmentStatuses.computeIfAbsent(status, _ -> new ArrayList<>()).add(attempt.getAssessment().getId());
                 }
             });
         }
@@ -117,12 +117,12 @@ public class CandidateCacheDto {
         this.metadata = metadata;
     }
 
-    public Map<AttemptStatus, List<Long>> getAttemptStatuses() {
-        return attemptStatuses;
+    public Map<AttemptStatus, List<Long>> getAssessmentStatuses() {
+        return assessmentStatuses;
     }
 
-    public void setAttemptStatuses(Map<AttemptStatus, List<Long>> attemptStatuses) {
-        this.attemptStatuses = attemptStatuses;
+    public void setAssessmentStatuses(Map<AttemptStatus, List<Long>> assessmentStatuses) {
+        this.assessmentStatuses = assessmentStatuses;
     }
 
     

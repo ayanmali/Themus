@@ -29,7 +29,7 @@ import com.delphi.delphi.dtos.NewCandidateDto;
 import com.delphi.delphi.dtos.PaginatedResponseDto;
 import com.delphi.delphi.dtos.cache.CandidateCacheDto;
 import com.delphi.delphi.dtos.cache.UserCacheDto;
-import com.delphi.delphi.dtos.get.GetCandidatesDto;
+import com.delphi.delphi.dtos.filter_queries.GetCandidatesDto;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.repositories.UserRepository;
@@ -94,6 +94,22 @@ public class CandidateController {
                 .body("Error retrieving candidate: " + e.getMessage());
         }
     }
+
+    /**
+     * Returns all assessments that the candidate is in
+     * @param id
+     * @return
+     */
+    // @GetMapping("/{id}/assessments")
+    // public ResponseEntity<?> getCandidateAssessments(@PathVariable Long id) {
+    //     try {
+    //         List<AssessmentCacheDto> assessments = candidateService.getCandidateAssessments(id);
+    //         return ResponseEntity.ok(assessments);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //             .body("Error retrieving candidate assessments: " + e.getMessage());
+    //     }
+    // }
     
     // Get candidate by email
     @GetMapping("/email/{email}")

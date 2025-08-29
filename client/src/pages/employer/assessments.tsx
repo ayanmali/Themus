@@ -43,7 +43,9 @@ export default function EmployerAssessments() {
 
             // Add status filter
             if (appliedFilters.status) {
-                params.append('status', appliedFilters.status);
+                if (appliedFilters.status !== 'ALL') {
+                    params.append('status', appliedFilters.status);
+                }
             }
 
             // Add creation date filters
@@ -189,7 +191,6 @@ export default function EmployerAssessments() {
                                     <SelectItem value="DRAFT">Draft</SelectItem>
                                     <SelectItem value="ACTIVE">Active</SelectItem>
                                     <SelectItem value="INACTIVE">Inactive</SelectItem>
-                                    <SelectItem value="EXPIRED">Expired</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

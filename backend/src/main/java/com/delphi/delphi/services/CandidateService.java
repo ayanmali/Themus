@@ -652,9 +652,9 @@ public class CandidateService {
         // Apply attempt status filtering in memory since it's complex to do in JPA
         if (attemptStatuses != null && !attemptStatuses.isEmpty()) {
             candidateDtos = candidateDtos.stream()
-                    .filter(candidate -> candidate.getAttemptStatuses() != null && 
+                    .filter(candidate -> candidate.getAssessmentStatuses() != null && 
                            attemptStatuses.stream().anyMatch(status -> 
-                               candidate.getAttemptStatuses().containsKey(status)))
+                               candidate.getAssessmentStatuses().containsKey(status)))
                     .collect(Collectors.toList());
         }
         
@@ -674,8 +674,8 @@ public class CandidateService {
                 .filter(candidate -> assessmentId == null || 
                         (candidate.getAssessmentIds() != null && candidate.getAssessmentIds().contains(assessmentId)))
                 .filter(candidate -> attemptStatuses == null || attemptStatuses.isEmpty() ||
-                        (candidate.getAttemptStatuses() != null && 
-                         attemptStatuses.stream().anyMatch(status -> candidate.getAttemptStatuses().containsKey(status))))
+                        (candidate.getAssessmentStatuses() != null && 
+                         attemptStatuses.stream().anyMatch(status -> candidate.getAssessmentStatuses().containsKey(status))))
                 .filter(candidate -> createdAfter == null || 
                         (candidate.getCreatedDate() != null && candidate.getCreatedDate().isAfter(createdAfter)))
                 .filter(candidate -> createdBefore == null || 

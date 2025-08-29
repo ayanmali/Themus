@@ -796,7 +796,8 @@ public class CandidateAttemptService {
         return attempts.stream()
                 .filter(attempt -> candidateId == null || 
                         (attempt.getCandidate() != null && candidateId.equals(attempt.getCandidate().getId())))
-                .filter(attempt -> assessmentId == null || assessmentId.equals(attempt.getAssessmentId()))
+                .filter(attempt -> assessmentId == null || 
+                        (attempt.getAssessment() != null && assessmentId.equals(attempt.getAssessment().getId())))
                 .filter(attempt -> statuses == null || statuses.isEmpty() || statuses.contains(attempt.getStatus()))
                 .filter(attempt -> startedAfter == null || 
                         (attempt.getStartedDate() != null && attempt.getStartedDate().isAfter(startedAfter)))
@@ -882,10 +883,10 @@ public class CandidateAttemptService {
         }
         
         // Evict all specific filter caches
-        evictSpecificAttemptsCache();
+        evictSpecificAttemptsCache(assessmentId, candidateId);
         
         // Evict available candidates cache for this assessment
-        evictAvailableCandidatesCache(assessmentId);
+        evictAvailableCandidatesCache();
     }
     
     private void updateCacheAfterAttemptUpdate(Long candidateId, Long assessmentId, CandidateAttemptCacheDto updatedAttempt) {
@@ -918,7 +919,7 @@ public class CandidateAttemptService {
         }
         
         // Evict all specific filter caches
-        evictSpecificAttemptsCache();
+        evictSpecificAttemptsCache(assessmentId, candidateId);
     }
     
     private void updateCacheAfterAttemptDeletion(Long candidateId, Long assessmentId, CandidateAttemptCacheDto deletedAttempt) {
@@ -939,15 +940,21 @@ public class CandidateAttemptService {
         }
         
         // Evict all specific filter caches
-        evictSpecificAttemptsCache();
+        evictSpecificAttemptsCache(assessmentId, candidateId);
     }
 
-    private void evictSpecificAttemptsCache() {
-        redisService.evictCache("cache:all_attempts:*");
+    private void evictSpecificAttemptsCache(Long assessmentId, Long candidateId) {
+        if (assessmentId != null && candidateId != null) {
+            redisService.evictCache("cache:all_attempts:" + assessmentId + ":" + candidateId + ":*");
+        }
+        if (assessmentId != null) {
+            redisService.evictCache("cache:assessment_attempts:" + assessmentId + ":*");
+        }
     }
     
-    private void evictAvailableCandidatesCache(Long assessmentId) {
+    private void evictAvailableCandidatesCache() {
         // Evict all available candidates cache entries for this assessment
+        // TODO: evict the cache for the specific user
         redisService.evictCache("cache:user_candidates:*");
     }
 
