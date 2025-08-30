@@ -25,7 +25,9 @@ public class EmailSubscriber {
 
     @RabbitListener(queues = TopicConfig.EMAIL_QUEUE_NAME)
     public void processEmail(PublishSendEmailJobDto publishSendEmailJobDto) {
-        log.info("Processing email: {}", publishSendEmailJobDto);
+        log.info("Processing email to: {}", publishSendEmailJobDto.getToEmail());
+        log.info("Processing email subject: {}", publishSendEmailJobDto.getSubject());
+        log.info("Processing email text: {}", publishSendEmailJobDto.getText());
         Job job = jobRepository.findById(publishSendEmailJobDto.getJobId()).orElseThrow(() -> new RuntimeException("Job not found"));
         job.setStatus(JobStatus.RUNNING);
         jobRepository.save(job);

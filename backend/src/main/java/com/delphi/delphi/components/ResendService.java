@@ -1,7 +1,5 @@
 package com.delphi.delphi.components;
 
-import java.time.LocalDateTime;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,6 +44,7 @@ public class ResendService {
     }
 
     public CreateEmailResponse sendEmail(String to, String subject, String text) {
+        log.info("Sending email from: {}", defaultFrom);
         CreateEmailOptions params = CreateEmailOptions.builder()
                 .from(defaultFrom)
                 .to(to)
@@ -65,38 +64,38 @@ public class ResendService {
         }
     }
 
-    public CreateEmailResponse sendScheduledEmail(String from, String to, String subject, String text, LocalDateTime scheduledAt) {
-        CreateEmailOptions params = CreateEmailOptions.builder()
-                .from(from)
-                .to(to)
-                .subject(subject)
-                .html(text)
-                .scheduledAt(scheduledAt.toString())
-                .build();
-        try {
-            return resend.emails().send(params);
-        } catch (ResendException e) {
-            log.error("Error sending email: " + e.getMessage());
-            return null;
-        }
-    }
+    // public CreateEmailResponse sendScheduledEmail(String from, String to, String subject, String text, LocalDateTime scheduledAt) {
+    //     CreateEmailOptions params = CreateEmailOptions.builder()
+    //             .from(from)
+    //             .to(to)
+    //             .subject(subject)
+    //             .html(text)
+    //             .scheduledAt(scheduledAt.toString())
+    //             .build();
+    //     try {
+    //         return resend.emails().send(params);
+    //     } catch (ResendException e) {
+    //         log.error("Error sending email: " + e.getMessage());
+    //         return null;
+    //     }
+    // }
 
-    public CreateEmailResponse sendScheduledEmail(String to, String subject, String text, LocalDateTime scheduledAt) {
+    // public CreateEmailResponse sendScheduledEmail(String to, String subject, String text, LocalDateTime scheduledAt) {
 
-        CreateEmailOptions params = CreateEmailOptions.builder()
-                .from(defaultFrom)
-                .to(to)
-                .subject(subject)
-                .html(text)
-                .scheduledAt(scheduledAt.toString())
-                .build();
-        try {
-            return resend.emails().send(params);
-        } catch (ResendException e) {
-            log.error("Error sending email: " + e.getMessage());
-            return null;
-        }
-    }
+    //     CreateEmailOptions params = CreateEmailOptions.builder()
+    //             .from(defaultFrom)
+    //             .to(to)
+    //             .subject(subject)
+    //             .html(text)
+    //             .scheduledAt(scheduledAt.toString())
+    //             .build();
+    //     try {
+    //         return resend.emails().send(params);
+    //     } catch (ResendException e) {
+    //         log.error("Error sending email: " + e.getMessage());
+    //         return null;
+    //     }
+    // }
 
     public CancelEmailResponse cancelScheduledEmail(String emailId) {
         try {

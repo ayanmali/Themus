@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { Paperclip, Mic, CornerDownLeft } from "lucide-react";
+import { Paperclip, Mic, CornerDownLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   ChatBubble,
@@ -10,61 +10,35 @@ import {
 } from "@/components/ui/chat-bubble";
 import { ChatMessageList } from "@/components/ui/chat-message-list";
 import { ChatInput } from "@/components/ui/chat-input";
+import { ChatMessage } from "@/lib/types/chat-message";
 
-export function ChatMessageListExample() {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      content: "Hello! How can I help you today?",
-      sender: "ai",
-    },
-    {
-      id: 2,
-      content: "I have a question about the component library.",
-      sender: "user",
-    },
-    {
-      id: 3,
-      content: "Sure! I'd be happy to help. What would you like to know?",
-      sender: "ai",
-    },
-  ]);
+interface ChatMessagesProps {
+  messages: ChatMessage[];
+  onSendMessage: (message: string, model: string) => void;
+  isLoading?: boolean;
+  isHistoryLoading?: boolean;
+}
 
+export function ChatMessages({ messages, onSendMessage, isLoading = false, isHistoryLoading = false }: ChatMessagesProps) {
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [model, setModel] = useState("anthropic/claude-4-sonnet");
 
+  // User sends message
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: prev.length + 1,
-        content: input,
-        sender: "user",
-      },
-    ]);
+    // Call the parent's onSendMessage function
+    onSendMessage(input, model);
     setInput("");
-    setIsLoading(true);
-
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: prev.length + 1,
-          content: "This is an AI response to your message.",
-          sender: "ai",
-        },
-      ]);
-      setIsLoading(false);
-    }, 1000);
   };
 
+  // User attaches file
   const handleAttachFile = () => {
     //
   };
 
+  // User uses microphone
   const handleMicrophoneClick = () => {
     //
   };
@@ -73,35 +47,35 @@ export function ChatMessageListExample() {
     <div className="h-full border border-slate-700 bg-background rounded-lg flex flex-col">
       <div className="flex-1 overflow-hidden bg-slate-800">
         <ChatMessageList>
-          {messages.map((message) => (
-            <ChatBubble
-              key={message.id}
-              variant={message.sender === "user" ? "sent" : "received"}
-            >
-              <ChatBubbleAvatar
-                className="h-8 w-8 shrink-0"
-                src={
-                  message.sender === "user"
-                    ? "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=64&h=64&q=80&crop=faces&fit=crop"
-                    : "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=64&h=64&q=80&crop=faces&fit=crop"
-                }
-                fallback={message.sender === "user" ? "US" : "AI"}
-              />
-              <ChatBubbleMessage
-                variant={message.sender === "user" ? "sent" : "received"}
+          {isHistoryLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                <span className="text-gray-400">Loading chat history...</span>
+              </div>
+            </div>
+          ) : (
+            messages.map((message) => (
+              <ChatBubble
+                key={message.id}
+                variant={message.messageType === "USER" ? "sent" : "received"}
               >
-                {message.content}
-              </ChatBubbleMessage>
-            </ChatBubble>
-          ))}
+                <ChatBubbleMessage
+                  variant={message.messageType === "USER" ? "sent" : "received"}
+                >
+                  {message.text}
+                </ChatBubbleMessage>
+              </ChatBubble>
+            ))
+          )}
 
           {isLoading && (
             <ChatBubble variant="received">
-              <ChatBubbleAvatar
+              {/* <ChatBubbleAvatar
                 className="h-8 w-8 shrink-0"
                 src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=64&h=64&q=80&crop=faces&fit=crop"
                 fallback="AI"
-              />
+              /> */}
               <ChatBubbleMessage isLoading />
             </ChatBubble>
           )}

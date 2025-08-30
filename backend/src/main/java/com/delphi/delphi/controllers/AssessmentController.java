@@ -36,6 +36,7 @@ import com.delphi.delphi.dtos.NewCandidateDto;
 import com.delphi.delphi.dtos.NewUserMessageDto;
 import com.delphi.delphi.dtos.PaginatedResponseDto;
 import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
+import com.delphi.delphi.dtos.cache.ChatMessageCacheDto;
 import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.dtos.filter_queries.GetAssessmentsDto;
 import com.delphi.delphi.dtos.messaging.chat.PublishAssessmentCreationJobDto;
@@ -46,6 +47,7 @@ import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.entities.Job;
 import com.delphi.delphi.repositories.JobRepository;
 import com.delphi.delphi.services.AssessmentService;
+import com.delphi.delphi.services.ChatService;
 import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.enums.AssessmentStatus;
@@ -61,6 +63,7 @@ public class AssessmentController {
 
     private final UserService userService;
     private final GithubService githubService;
+    private final ChatService chatService;
     //private final ChatMessagePublisher chatMessagePublisher;
     private final JobRepository jobRepository;
     private final AssessmentService assessmentService;
@@ -69,13 +72,14 @@ public class AssessmentController {
 
     private final Logger log = LoggerFactory.getLogger(AssessmentController.class);
 
-    public AssessmentController(AssessmentService assessmentService, UserService userService, GithubService githubService, JobRepository jobRepository, RabbitTemplate rabbitTemplate, @Value("${github.app.name}") String githubAppName) {
+    public AssessmentController(AssessmentService assessmentService, UserService userService, GithubService githubService, JobRepository jobRepository, RabbitTemplate rabbitTemplate, ChatService chatService, @Value("${github.app.name}") String githubAppName) {
         this.assessmentService = assessmentService;
         //this.chatMessagePublisher = chatMessagePublisher;
         this.userService = userService;
         this.githubService = githubService;
         this.jobRepository = jobRepository;
         this.rabbitTemplate = rabbitTemplate;
+        this.chatService = chatService;
         // state specifies whether this installation is for a user or a candidate
         this.appInstallUrl = String.format("https://github.com/apps/%s/installations/new", githubAppName);
         // state specifies whether this installation is for a user or a candidate
@@ -146,6 +150,18 @@ public class AssessmentController {
     // .body("Internal server error: " + e.getMessage());
     // }
     // }
+
+    @GetMapping("/chat-history/{assessmentId}")
+    public ResponseEntity<?> getChatHistory(@PathVariable Long assessmentId) {
+        try {
+            List<ChatMessageCacheDto> messages = chatService.getMessagesByAssessmentId(assessmentId);
+            return ResponseEntity.ok(messages);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error getting chat history: " + e.getMessage());
+        }
+    }
+
     /*
      * Create a new assessment
      * Publishes a job to the LLM topic

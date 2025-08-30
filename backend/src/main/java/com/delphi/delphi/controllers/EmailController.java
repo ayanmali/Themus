@@ -63,7 +63,7 @@ public class EmailController {
         // TODO: implement custom from address
         //String fromEmail = getCurrentUser().getEmail();
         CandidateCacheDto candidate = candidateService.getCandidateById(emailRequest.getCandidateId());
-        log.info("Passing form data to chat message queue");
+        log.info("Passing email request to queue");
             // Long jobId = UUID.randomUUID().getMostSignificantBits();
             Job job = new Job(JobStatus.PENDING, JobType.SEND_EMAIL);
             job = jobRepository.save(job);

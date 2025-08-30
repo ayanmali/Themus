@@ -879,8 +879,7 @@ public class ChatService {
             }
 
             // Persist the chat message
-            ChatMessage chatMessage = new ChatMessage(message, assessment, model);
-            ChatMessage savedChatMessage = chatMessageRepository.save(chatMessage);
+            ChatMessage savedChatMessage = chatMessageRepository.save(new ChatMessage(message, assessment, model));
 
             // Persist tool calls or tool responses depending on message type
             switch (savedChatMessage.getMessageType()) {
@@ -1163,10 +1162,10 @@ public class ChatService {
     // return chatMessageRepository.save(message);
     // }
 
-    @Cacheable(value = "chatMessages", key = "#assessmentId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Cacheable(value = "chatMessages", key = "#assessmentId")
     @Transactional(readOnly = true)
-    public List<ChatMessageCacheDto> getMessagesByAssessmentId(Long assessmentId, Pageable pageable) {
-        return chatMessageRepository.findByAssessmentId(assessmentId, pageable).getContent().stream()
+    public List<ChatMessageCacheDto> getMessagesByAssessmentId(Long assessmentId) {
+        return chatMessageRepository.findByAssessmentId(assessmentId).stream()
                 .map(ChatMessageCacheDto::new).collect(Collectors.toList());
     }
 

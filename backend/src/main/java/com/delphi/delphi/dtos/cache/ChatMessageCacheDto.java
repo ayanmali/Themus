@@ -6,8 +6,9 @@ import java.util.stream.Collectors;
 
 import org.springframework.ai.chat.messages.MessageType;
 
+import com.delphi.delphi.dtos.FetchToolCallDto;
+import com.delphi.delphi.dtos.FetchToolResponseDto;
 import com.delphi.delphi.entities.ChatMessage;
-import com.delphi.delphi.entities.OpenAiToolCall;
 
 public class ChatMessageCacheDto {
     private Long id;
@@ -15,7 +16,8 @@ public class ChatMessageCacheDto {
     private String model;
     private LocalDateTime createdDate;
     private Long assessmentId;
-    private List<String> toolCallIds;
+    private List<FetchToolCallDto> toolCalls;
+    private List<FetchToolResponseDto> toolResponses;
     private MessageType messageType;
 
     public ChatMessageCacheDto() {
@@ -29,7 +31,10 @@ public class ChatMessageCacheDto {
         this.assessmentId = chatMessage.getAssessment().getId();
         this.messageType = chatMessage.getMessageType();
         if (chatMessage.getToolCalls() != null) {
-            this.toolCallIds = chatMessage.getToolCalls().stream().map(OpenAiToolCall::getId).collect(Collectors.toList());
+            this.toolCalls = chatMessage.getToolCalls().stream().map(FetchToolCallDto::new).collect(Collectors.toList());
+        }
+        if (chatMessage.getToolResponses() != null) {
+            this.toolResponses = chatMessage.getToolResponses().stream().map(FetchToolResponseDto::new).collect(Collectors.toList());
         }
     }
 
@@ -63,11 +68,17 @@ public class ChatMessageCacheDto {
     public void setAssessmentId(Long assessmentId) {
         this.assessmentId = assessmentId;
     }
-    public List<String> getToolCallIds() {
-        return toolCallIds;
+    public List<FetchToolCallDto> getToolCalls() {
+        return toolCalls;
     }
-    public void setToolCallIds(List<String> toolCallIds) {
-        this.toolCallIds = toolCallIds;
+    public void setToolCalls(List<FetchToolCallDto> toolCalls) {
+        this.toolCalls = toolCalls;
+    }
+    public List<FetchToolResponseDto> getToolResponses() {
+        return toolResponses;
+    }
+    public void setToolResponses(List<FetchToolResponseDto> toolResponses) {
+        this.toolResponses = toolResponses;
     }
     public MessageType getMessageType() {
         return messageType;

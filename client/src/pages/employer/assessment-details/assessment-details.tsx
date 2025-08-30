@@ -1,20 +1,22 @@
 import { Assessment } from "@/lib/types/assessment";
-import { ArrowLeft, Calendar, Check, ChevronLeft, ChevronRight, Clock, Edit3, ExternalLink, Link2, MoreHorizontal, Plus, Trash2, X, Loader2, Info } from "lucide-react"
-import { useState } from "react";
+import { ArrowLeft, Calendar, Check, ChevronLeft, ChevronRight, Clock, Edit3, ExternalLink, Link2, MoreHorizontal, Plus, Trash2, X, Loader2, Info, Mail } from "lucide-react"
+import { useState, useEffect } from "react";
 import { CandidateAttempt } from "@/lib/types/candidate-attempt";
 import { Candidate } from "@/lib/types/candidate";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { ChatMessageListExample } from "@/pages/employer/assessment-details/chat-msg-list";
-import { useAuth } from "@/contexts/AuthContext";
+import { ChatMessages } from "@/pages/employer/assessment-details/chat-msgs";
+import { ChatMessage } from "@/lib/types/chat-message";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useApi from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { PaginatedResponse } from "@/lib/types/paginated-response";
 
 export default function AssessmentDetails() {
@@ -56,6 +58,15 @@ export default function AssessmentDetails() {
     // Command dialog state
     const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([]);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+    // Email dialog state
+    const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+    const [emailSubject, setEmailSubject] = useState('');
+    const [emailMessage, setEmailMessage] = useState('');
+    const [selectedCandidateForEmail, setSelectedCandidateForEmail] = useState<CandidateAttempt | null>(null);
+
+    // Chat state
+    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
     // Fetch assessment data
     const { data: assessment, isLoading: assessmentLoading, error: assessmentError } = useQuery({
@@ -175,6 +186,118 @@ export default function AssessmentDetails() {
             });
         },
     });
+
+    // Send email mutation
+    const sendEmailMutation = useMutation({
+        mutationFn: async ({ candidateId, subject, text }: { candidateId: number; subject: string; text: string }) => {
+            const response = await apiCall(`/api/email/send`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    candidateId: candidateId,
+                    subject: subject,
+                    text: text
+                }),
+            });
+            return response;
+        },
+        onSuccess: () => {
+            // Close dialog and reset form
+            setIsEmailDialogOpen(false);
+            setEmailSubject('');
+            setEmailMessage('');
+            setSelectedCandidateForEmail(null);
+            
+            toast({
+                title: "Success",
+                description: "Email sent successfully",
+            });
+        },
+        onError: (error: any) => {
+            toast({
+                title: "Error",
+                description: error.message || "Failed to send email",
+                variant: "destructive",
+            });
+        },
+    });
+
+    // Fetch chat messages
+    const { data: chatHistoryData, isLoading: chatHistoryLoading, error: chatHistoryError } = useQuery<ChatMessage[]>({
+        queryKey: ['chatHistory', assessmentId],
+        queryFn: async (): Promise<ChatMessage[]> => {
+            const response: ChatMessage[] = await apiCall(`/api/assessments/chat-history/${assessmentId}`, {
+                method: 'GET',
+            });
+
+            if (!response) {
+                return [];
+            }
+
+            // Transform backend DTO to frontend ChatMessage type
+            return response;
+            // return response.map((msg: ChatMessage) => ({
+            //     id: msg.id?.toString() || '',
+            //     text: msg.text || '',
+            //     model: msg.model || '',
+            //     messageType: msg.messageType || 'USER',
+            //     createdAt: msg.createdAt,
+            //     updatedAt: new Date(msg.updatedAt),
+            //     toolCalls: msg.toolCalls || [],
+            //     toolResponses: msg.toolResponses || []
+            // }));
+        },
+        enabled: !!assessmentId,
+        retry: 1,
+        retryDelay: 1000,
+    });
+
+    // Update chat messages when data changes
+    useEffect(() => {
+        if (chatHistoryData) {
+            setChatMessages(chatHistoryData);
+        }
+    }, [chatHistoryData]);
+
+    // Send chat message mutation
+    const sendChatMessageMutation = useMutation({
+        mutationFn: async ({ message, model }: { message: string; model: string }) => {
+            const response = await apiCall(`/api/assessments/chat`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    message: message,
+                    assessmentId: assessmentId,
+                    model: model
+                }),
+            });
+            return { ...response, originalMessage: message, originalModel: model };
+        },
+        onSuccess: (data) => {
+            // Add user message to chat immediately
+            const userMessage: ChatMessage = {
+                id: Date.now().toString(),
+                text: data.originalMessage,
+                model: data.originalModel,
+                messageType: 'USER',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+            setChatMessages(prev => [...prev, userMessage]);
+            
+            // Refetch chat history after a delay to get the AI response
+            setTimeout(() => {
+                queryClient.invalidateQueries({ queryKey: ['chatHistory', assessmentId] });
+            }, 3000);
+        },
+        onError: (error: any) => {
+            toast({
+                title: "Error",
+                description: error.message || "Failed to send message",
+                variant: "destructive",
+            });
+        },
+    });
+
+
 
     // Fetch candidate attempts for this assessment
     const { data: attemptsData, isLoading: attemptsLoading, error: attemptsError } = useQuery<PaginatedResponse<CandidateAttempt>>({
@@ -547,7 +670,7 @@ export default function AssessmentDetails() {
                     <button
                         className="flex items-center gap-2 text-gray-200 hover:text-gray-100 mb-6 transition-colors bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg"
                     >
-                        Switch to Candidate View
+                        Candidate View
                     </button>
                 </div>
 
@@ -1098,11 +1221,8 @@ export default function AssessmentDetails() {
                                                                             <DropdownMenuItem 
                                                                                 className="hover:bg-slate-700 transition-colors hover:text-white"
                                                                                 onClick={() => {
-                                                                                    // TODO: Implement send email functionality
-                                                                                    toast({
-                                                                                        title: "Send Email",
-                                                                                        description: "Email functionality coming soon",
-                                                                                    });
+                                                                                    setSelectedCandidateForEmail(attempt);
+                                                                                    setIsEmailDialogOpen(true);
                                                                                 }}
                                                                             >
                                                                                 Send email
@@ -1281,7 +1401,14 @@ export default function AssessmentDetails() {
 
                     <div className="lg:col-span-1">
                         <div className="h-full">
-                            <ChatMessageListExample />
+                            <ChatMessages 
+                                messages={chatMessages} 
+                                onSendMessage={(message, model) => {
+                                    sendChatMessageMutation.mutate({ message, model });
+                                }}
+                                isLoading={sendChatMessageMutation.isPending}
+                                isHistoryLoading={chatHistoryLoading}
+                            />
                         </div>
                     </div>
                 </div>
@@ -1308,6 +1435,89 @@ export default function AssessmentDetails() {
                             className="bg-green-600 hover:bg-green-700 text-white"
                         >
                             Confirm
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Email Dialog */}
+            <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
+                <DialogContent className="sm:max-w-[600px] bg-slate-800 text-white border-slate-500">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Mail size={20} />
+                            Send Email to {selectedCandidateForEmail?.candidate?.fullName || selectedCandidateForEmail?.candidate?.email}
+                        </DialogTitle>
+                        <DialogDescription className="text-gray-300">
+                            Send an email to the candidate.
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <label htmlFor="email-subject" className="text-sm font-medium text-gray-300">
+                                Subject
+                            </label>
+                            <Input
+                                id="email-subject"
+                                value={emailSubject}
+                                onChange={(e) => setEmailSubject(e.target.value)}
+                                placeholder="Enter email subject..."
+                                className="bg-gray-700 text-white border-gray-600 focus:border-blue-400"
+                            />
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <label htmlFor="email-message" className="text-sm font-medium text-gray-300">
+                                Message
+                            </label>
+                            <Textarea
+                                id="email-message"
+                                value={emailMessage}
+                                onChange={(e) => setEmailMessage(e.target.value)}
+                                placeholder="Enter your message..."
+                                className="bg-gray-700 text-white border-gray-600 focus:border-blue-400 min-h-[200px] resize-none"
+                            />
+                        </div>
+                    </div>
+                    
+                    <DialogFooter>
+                        <Button
+                            variant="secondary"
+                            onClick={() => {
+                                setIsEmailDialogOpen(false);
+                                setEmailSubject('');
+                                setEmailMessage('');
+                                setSelectedCandidateForEmail(null);
+                            }}
+                            disabled={sendEmailMutation.isPending}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                if (selectedCandidateForEmail?.candidate?.id && emailSubject.trim() && emailMessage.trim()) {
+                                    sendEmailMutation.mutate({
+                                        candidateId: selectedCandidateForEmail.candidate.id,
+                                        subject: emailSubject.trim(),
+                                        text: emailMessage.trim()
+                                    });
+                                }
+                            }}
+                            disabled={!emailSubject.trim() || !emailMessage.trim() || sendEmailMutation.isPending}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                            {sendEmailMutation.isPending ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Sending...
+                                </>
+                            ) : (
+                                <>
+                                    <Mail size={16} className="mr-2" />
+                                    Send Email
+                                </>
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
