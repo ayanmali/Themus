@@ -233,18 +233,7 @@ export default function AssessmentDetails() {
                 return [];
             }
 
-            // Transform backend DTO to frontend ChatMessage type
             return response;
-            // return response.map((msg: ChatMessage) => ({
-            //     id: msg.id?.toString() || '',
-            //     text: msg.text || '',
-            //     model: msg.model || '',
-            //     messageType: msg.messageType || 'USER',
-            //     createdAt: msg.createdAt,
-            //     updatedAt: new Date(msg.updatedAt),
-            //     toolCalls: msg.toolCalls || [],
-            //     toolResponses: msg.toolResponses || []
-            // }));
         },
         enabled: !!assessmentId,
         retry: 1,
@@ -1399,7 +1388,7 @@ export default function AssessmentDetails() {
                         </div>
                     </div>
 
-                    <div className="lg:col-span-1">
+                    <div className="lg:col-span-1 overflow-y-auto">
                         <div className="h-full">
                             <ChatMessages 
                                 messages={chatMessages} 

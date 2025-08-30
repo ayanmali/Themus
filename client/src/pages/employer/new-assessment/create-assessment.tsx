@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useTransition } from "react";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn, getOpenRouterModels } from "@/lib/utils";
 import {
   Paperclip,
   XIcon,
@@ -352,19 +352,8 @@ export function CreateAssessmentForm() {
     }
   };
 
-  const getOpenRouterModels = async () => {
-    const response = await fetch("https://openrouter.ai/api/v1/models?category=programming", {
-      method: "GET",
-      headers: {},
-    });
-    const body = await response.json();
-    body.data.forEach((model: any) => {
-      setModels(prevModels => [...prevModels, model.id]);
-    });
-  };
-
   useEffect(() => {
-    getOpenRouterModels();
+    getOpenRouterModels(setModels);
   }, []);
 
   const commandSuggestions: CommandSuggestion[] = [

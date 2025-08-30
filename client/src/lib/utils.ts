@@ -123,3 +123,13 @@ const logout = () => {
 export const minutesToHours = (minutes: number) => {
   return Math.floor(minutes / 60);
 }
+
+export const getOpenRouterModels = async (setModels: (models: string[]) => void) => {
+  const response = await fetch("https://openrouter.ai/api/v1/models?category=programming", {
+    method: "GET",
+    headers: {},
+  });
+  const body = await response.json();
+  const modelIds = body.data.map((model: any) => model.id as string);
+  setModels(modelIds)
+}

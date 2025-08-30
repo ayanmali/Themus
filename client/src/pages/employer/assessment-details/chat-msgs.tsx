@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { Paperclip, Mic, CornerDownLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +11,8 @@ import {
 import { ChatMessageList } from "@/components/ui/chat-message-list";
 import { ChatInput } from "@/components/ui/chat-input";
 import { ChatMessage } from "@/lib/types/chat-message";
+import { Select, SelectContent, SelectTrigger, SelectItem, SelectValue } from "@/components/ui/select";
+import { getOpenRouterModels } from "@/lib/utils";
 
 interface ChatMessagesProps {
   messages: ChatMessage[];
@@ -21,7 +23,12 @@ interface ChatMessagesProps {
 
 export function ChatMessages({ messages, onSendMessage, isLoading = false, isHistoryLoading = false }: ChatMessagesProps) {
   const [input, setInput] = useState("");
-  const [model, setModel] = useState("anthropic/claude-4-sonnet");
+  const [models, setModels] = useState<string[]>([]);
+  const [model, setModel] = useState("anthropic/claude-sonnet-4");
+
+  useEffect(() => {
+    getOpenRouterModels(setModels);
+  }, []);
 
   // User sends message
   const handleSubmit = (e: FormEvent) => {
@@ -43,6 +50,19 @@ export function ChatMessages({ messages, onSendMessage, isLoading = false, isHis
     //
   };
 
+  // display just the <DETAILS/> section from the initial user prompt
+  const messageList: ChatMessage[] = [
+    {
+      id: messages[0]?.id, 
+      text: messages[0]?.text.split("<DETAILS>")[1].split("</DETAILS>")[0], 
+      messageType: "USER", 
+      createdAt: messages[0]?.createdAt, 
+      updatedAt: messages[0]?.updatedAt,
+      model: messages[0]?.model
+    }, 
+  ...messages.slice(1).filter((message) => message.messageType !== "SYSTEM")
+];
+
   return (
     <div className="h-full border border-slate-700 bg-background rounded-lg flex flex-col">
       <div className="flex-1 overflow-hidden bg-slate-800">
@@ -55,7 +75,7 @@ export function ChatMessages({ messages, onSendMessage, isLoading = false, isHis
               </div>
             </div>
           ) : (
-            messages.map((message) => (
+            messageList.map((message) => (
               <ChatBubble
                 key={message.id}
                 variant={message.messageType === "USER" ? "sent" : "received"}
@@ -113,8 +133,18 @@ export function ChatMessages({ messages, onSendMessage, isLoading = false, isHis
                 <Mic className="size-4" />
               </Button>
             </div>
+            <Select value={model} onValueChange={(value) => setModel(value)}>
+              <SelectTrigger className="bg-slate-800/60 border-slate-700/50 text-gray-100 placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-violet-500/20 backdrop-blur-sm text-xs">
+                <SelectValue placeholder="Select Model" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800/60 border-slate-700/50 text-gray-100">
+                {models.map((model) => (
+                  <SelectItem key={model} value={model}>{model}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button type="submit" size="sm" className="ml-auto gap-1.5">
-              Send Message
+              
               <CornerDownLeft className="size-3.5" />
             </Button>
           </div>
