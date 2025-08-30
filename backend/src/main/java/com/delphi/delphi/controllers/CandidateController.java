@@ -154,9 +154,9 @@ public class CandidateController {
     public ResponseEntity<?> getAllCandidates(GetCandidatesDto getCandidatesDto) {
         try {
             UserCacheDto user = getCurrentUser();
-            Sort sort = getCandidatesDto.getSortDirection().equalsIgnoreCase("desc") 
-                ? Sort.by(getCandidatesDto.getSortBy()).descending() 
-                : Sort.by(getCandidatesDto.getSortBy()).ascending();
+            Sort sort = getCandidatesDto.getSortDirection().equalsIgnoreCase("asc") 
+                ? Sort.by(getCandidatesDto.getSortBy()).ascending() 
+                : Sort.by(getCandidatesDto.getSortBy()).descending();
             
             Pageable pageable = PageRequest.of(getCandidatesDto.getPage(), getCandidatesDto.getSize(), sort);
             PaginatedResponseDto<CandidateCacheDto> paginatedResponse = candidateService.getCandidatesWithFiltersForUser(

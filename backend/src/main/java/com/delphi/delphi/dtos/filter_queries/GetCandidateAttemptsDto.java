@@ -13,8 +13,8 @@ import com.delphi.delphi.utils.enums.AttemptStatus;
 public class GetCandidateAttemptsDto {
     private int page = 0;
     private int size = 10;
-    private String sortBy = "id";
-    private String sortDirection = "asc";
+    private String sortBy = "createdDate";
+    private String sortDirection = "desc";
     private Long candidateId;
     private Long assessmentId;
     private List<AttemptStatus> attemptStatuses;

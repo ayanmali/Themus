@@ -4,10 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.AssistantMessage.ToolCall;
 import org.springframework.ai.chat.messages.ToolResponseMessage.ToolResponse;
 import org.springframework.stereotype.Component;
 
+import com.delphi.delphi.services.GithubService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,12 +18,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Component
 public class ToolCallHandler {
 
-    private final GithubTools githubTools;
-    private final ObjectMapper objectMapper;
+    private final GithubService githubService;
 
-    public ToolCallHandler(GithubTools githubTools) {
-        this.githubTools = githubTools;
+    private final ObjectMapper objectMapper;
+    private final Logger log = LoggerFactory.getLogger(ToolCallHandler.class);
+
+    public ToolCallHandler(GithubService githubService) {
         this.objectMapper = new ObjectMapper();
+        this.githubService = githubService;
     }
 
     /**
@@ -41,13 +46,18 @@ public class ToolCallHandler {
             // Parse the JSON arguments
             Map<String, Object> args = objectMapper.readValue(toolCall.arguments(), new TypeReference<Map<String, Object>>() {});
 
+            log.info("Encrypted GitHub Token: {}", encryptedGithubToken);
+            log.info("GitHub Username: {}", githubUsername);
+            log.info("GitHub Repo Name: {}", githubRepoName);
+            log.info("Tool Call Arguments: {}", args.toString());
+
             // Execute the tool call based on its name
             switch (toolCall.name()) {
                 case "addBranch" -> {
                     String branchName = (String) args.get("branchName");
                     String baseBranch = (String) args.get("baseBranch");
                     return new ToolResponse(toolCall.id(), toolCall.name(), 
-                        githubTools.addBranch(branchName, baseBranch, encryptedGithubToken, githubUsername, githubRepoName).toString());
+                        githubService.addBranch(encryptedGithubToken, githubUsername, githubRepoName, branchName, baseBranch).block().toString());
                 }
                 case "addFile" -> {
                     String filePath = (String) args.get("filePath");
@@ -55,17 +65,17 @@ public class ToolCallHandler {
                     String commitMessage = (String) args.get("commitMessage");
                     String branch = (String) args.get("branch");
                     return new ToolResponse(toolCall.id(), toolCall.name(), 
-                        githubTools.addFileToRepo(filePath, fileContent, commitMessage, branch, encryptedGithubToken, githubUsername, githubRepoName).toString());
+                        githubService.addFileToRepo(encryptedGithubToken, githubUsername, githubRepoName, filePath, branch, fileContent, commitMessage).block().toString());
                 }
                 case "getRepositoryContents" -> {
                     String filePath = (String) args.get("filePath");
                     String branch = (String) args.get("branch");
                     return new ToolResponse(toolCall.id(), toolCall.name(), 
-                        githubTools.getRepoContents(filePath, branch, encryptedGithubToken, githubUsername, githubRepoName).toString());
+                        githubService.getRepoContents(encryptedGithubToken, githubUsername, githubRepoName, filePath, branch).toString());
                 }
                 case "getRepositoryBranches" -> {
                     return new ToolResponse(toolCall.id(), toolCall.name(), 
-                        githubTools.getRepoBranches(encryptedGithubToken, githubUsername, githubRepoName).toString());
+                        githubService.getRepoBranches(encryptedGithubToken, githubUsername, githubRepoName).block().toString());
                 }
                 case "editFile" -> {
                     String filePath = (String) args.get("filePath");
@@ -73,19 +83,19 @@ public class ToolCallHandler {
                     String commitMessage = (String) args.get("commitMessage");
                     String sha = (String) args.get("sha");
                     return new ToolResponse(toolCall.id(), toolCall.name(), 
-                        githubTools.editFile(filePath, fileContent, commitMessage, sha, encryptedGithubToken, githubUsername, githubRepoName).toString());
+                        githubService.editFile(encryptedGithubToken, githubUsername, githubRepoName, filePath, fileContent, commitMessage, sha).block().toString());
                 }
                 case "deleteFile" -> {
                     String filePath = (String) args.get("filePath");
                     String commitMessage = (String) args.get("commitMessage");
                     String sha = (String) args.get("sha");
                     return new ToolResponse(toolCall.id(), toolCall.name(), 
-                        githubTools.deleteFile(filePath, commitMessage, sha, encryptedGithubToken, githubUsername, githubRepoName));
+                        githubService.deleteFile(encryptedGithubToken, githubUsername, githubRepoName, filePath, commitMessage, sha).block());
                 }
                 case "getBranchDetails" -> {
                     String branchName = (String) args.get("branchName");
                     return new ToolResponse(toolCall.id(), toolCall.name(), 
-                        githubTools.getBranchDetails(branchName, encryptedGithubToken, githubUsername, githubRepoName).toString());
+                        githubService.getBranchDetails(encryptedGithubToken, githubUsername, githubRepoName, branchName).block().toString());
                 }
                 case "sendMessageToUser" -> {
                     // This is a special case - don't execute, just return a placeholder

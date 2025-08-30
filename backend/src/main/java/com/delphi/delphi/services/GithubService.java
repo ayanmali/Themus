@@ -15,23 +15,22 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.core.ParameterizedTypeReference;
 
 import com.delphi.delphi.utils.git.GithubBranchDetails;
 import com.delphi.delphi.utils.git.GithubFile;
 import com.delphi.delphi.utils.git.GithubReference;
+import com.delphi.delphi.utils.git.GithubRepoBranch;
 import com.delphi.delphi.utils.git.GithubRepoContents;
 
 import io.jsonwebtoken.Jwts;
 import reactor.core.publisher.Mono;
-
-import com.delphi.delphi.utils.git.GithubRepoBranch;
 
 @Service
 /*
@@ -65,7 +64,8 @@ public class GithubService {
 
     private final WebClient webClient;
     private final Map<String, String> author;
-
+    private final Base64.Encoder base64Encoder;
+    private final Base64.Decoder base64Decoder;
     private final String privateKeyRaw;
     private PrivateKey privateKey;
     
@@ -77,6 +77,7 @@ public class GithubService {
                         // @Value("${github.candidate.app.client-secret}") String candidateAppClientSecret,
                         @Value("${spring.security.oauth2.client.registration.github.scope}") String githubScope,
                         Map<String, String> author,
+                        
                         EncryptionService encryptionService) {
         this.appId = appId;
         this.clientId = clientId;
@@ -89,6 +90,8 @@ public class GithubService {
             .baseUrl("https://api.github.com")
             .defaultHeader("Accept", "application/vnd.github.v3+json")
             .build();
+        this.base64Encoder = Base64.getEncoder();
+        this.base64Decoder = Base64.getDecoder();
 
         this.author = author;
 
@@ -369,7 +372,7 @@ public class GithubService {
                     "name", repoName,
                     "description", "Assessment repository",
                     "private", true,
-                    "auto_init", true,
+                    "auto_init", false,
                     "isTemplate", true);
 
             log.info("Creating repo '{}' with token: {}...", repoName, githubAccessToken.substring(0, Math.min(10, token.length())));
@@ -422,7 +425,7 @@ public class GithubService {
                     "name", repoName,
                     "description", "Assessment repository",
                     "private", true,
-                    "auto_init", true,
+                    "auto_init", false,
                     "include_all_branches", true,
                     "include_all_tags", true);
 
@@ -559,56 +562,116 @@ public class GithubService {
     public Mono<GithubFile> addFileToRepo(String token, String owner, String repo, String path,
             String branch, String content, String commitMessage) {
         try {
+            log.info("ADD FILE REQUEST:");
+            log.info("TOKEN: {}", token);
+            log.info("OWNER: {}", owner);
+            log.info("REPO: {}", repo);
+            log.info("PATH: {}", path);
+            log.info("BRANCH: {}", branch);
+            log.info("CONTENT: {}", content);
+            log.info("COMMIT MESSAGE: {}", commitMessage);
+            
+            String githubAccessToken = token;
+            if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
+                githubAccessToken = encryptionService.decrypt(token);
+            }
+
+            log.info("Github token decrypted");
+
             String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
 
-            String base64Content = Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
+            log.info("Sending request to: {}", url);
+            String base64Content = encodeToBase64(content);
+
+            log.info("Content encoded to base64");
 
             Map<String, Object> body = Map.of(
                     "message", commitMessage,
                     "content", base64Content,
-                    "branch", branch,
                     "author", author);
+            if (branch != null) {
+                body.put("branch", branch);
+            }
+
+            log.info("Body created");
 
             //HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
             return webClient.put()
                 .uri(url)
-                .header("Authorization", "token " + token)
+                .header("Authorization", "token " + githubAccessToken)
                 .bodyValue(body)
                 .retrieve()
+                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), response -> {
+                    log.error("Github API Error - Status: {}, Body: {}", response.statusCode(), response.bodyToMono(String.class).block());
+                    return response.bodyToMono(String.class)
+                        .flatMap(errorBody -> {
+                            log.error("GitHub API error - Status: {}, Body: {}", response.statusCode(), errorBody);
+                            return Mono.error(new RuntimeException(
+                                String.format("GitHub API error %d: %s", response.statusCode().value(), errorBody)
+                            ));
+                        });
+                })
                 .bodyToMono(GithubFile.class);
         } catch (RestClientException e) {
+            throw new RuntimeException("Error making request to add file to repo: " + e.getMessage());
+        } catch (Exception e) {
             throw new RuntimeException("Error adding file to repo: " + e.getMessage());
         }
     }
 
-    public Mono<GithubRepoContents> getRepoContents(String token, String owner, String repo,
+    public GithubRepoContents getRepoContents(String token, String owner, String repo,
             String path, String branch) {
         try {
+            String githubAccessToken = token;
+            if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
+                githubAccessToken = encryptionService.decrypt(token);
+            }
+            
             String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
             if (branch != null) {
                 url += "?ref=" + branch;
             }
 
-            return webClient.get()
+            GithubRepoContents repoContentsResponse = webClient.get()
                 .uri(url)
-                .header("Authorization", "token " + token)
+                .header("Authorization", "token " + githubAccessToken)
                 .retrieve()
-                .bodyToMono(GithubRepoContents.class);
-        } catch (RestClientException e) {
+                .bodyToMono(GithubRepoContents.class).block();
+            
+            if (repoContentsResponse != null) {
+                if (repoContentsResponse.getType().equals("file")) {
+                    repoContentsResponse.setContent(decodeFromBase64(repoContentsResponse.getContent()));
+                }
+                return repoContentsResponse;
+            }
+            return null;
+        } 
+        catch (RestClientException e) {
+            throw new RuntimeException("Error making request to get repo contents: " + e.getMessage());
+        } 
+        catch (Exception e) {
             throw new RuntimeException("Error getting repo contents: " + e.getMessage());
         }
     }
 
     public Mono<List<GithubRepoBranch>> getRepoBranches(String token, String owner, String repo) {
         try {
+            String githubAccessToken = token;
+            if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
+                githubAccessToken = encryptionService.decrypt(token);
+            }
+            
             String url = String.format("https://api.github.com/repos/%s/%s/branches", owner, repo);
 
             return webClient.get()
                 .uri(url)
-                .header("Authorization", "token " + token)
+                .header("Authorization", "token " + githubAccessToken)
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<GithubRepoBranch>>() {});
         } catch (RestClientException e) {
+            throw new RuntimeException("Error making request to get repo branches: " + e.getMessage());
+        }
+        catch (Exception e) {
             throw new RuntimeException("Error getting repo branches: " + e.getMessage());
         }
     }
@@ -616,10 +679,15 @@ public class GithubService {
     public Mono<GithubReference> addBranch(String token, String owner, String repo, String branchName,
             String baseBranch) {
         try {
+            String githubAccessToken = token;
+            if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
+                githubAccessToken = encryptionService.decrypt(token);
+            }
+            
             String url = String.format("https://api.github.com/repos/%s/%s/git/refs", owner, repo);
 
             // Get the SHA of the base branch first
-            Mono<GithubBranchDetails> branchResponse = getBranchDetails(token, owner, repo, baseBranch);
+            Mono<GithubBranchDetails> branchResponse = getBranchDetails(githubAccessToken, owner, repo, baseBranch);
             GithubBranchDetails branchBody = branchResponse.block();
             if (branchBody == null) {
                 throw new RuntimeException("Failed to get base branch details");
@@ -633,11 +701,14 @@ public class GithubService {
 
             return webClient.post()
                 .uri(url)
-                .header("Authorization", "token " + token)
+                .header("Authorization", "token " + githubAccessToken)
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(GithubReference.class);
         } catch (RestClientException e) {
+            throw new RuntimeException("Error making request to add branch: " + e.getMessage());
+        }
+        catch (Exception e) {
             throw new RuntimeException("Error adding branch: " + e.getMessage());
         }
     }
@@ -645,9 +716,14 @@ public class GithubService {
     public Mono<GithubFile> editFile(String token, String owner, String repo, String path, String content,
             String commitMessage, String sha) {
         try {
+            String githubAccessToken = token;
+            if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
+                githubAccessToken = encryptionService.decrypt(token);
+            }
+            
             String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
 
-            String base64Content = Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
+            String base64Content = encodeToBase64(content);
 
             Map<String, Object> body = Map.of(
                     "message", commitMessage,
@@ -657,11 +733,14 @@ public class GithubService {
 
             return webClient.put()
                 .uri(url)
-                .header("Authorization", "token " + token)
+                .header("Authorization", "token " + githubAccessToken)
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(GithubFile.class);
         } catch (RestClientException e) {
+            throw new RuntimeException("Error making request to edit file: " + e.getMessage());
+        }
+        catch (Exception e) {
             throw new RuntimeException("Error editing file: " + e.getMessage());
         }
     }
@@ -669,6 +748,11 @@ public class GithubService {
     public Mono<String> deleteFile(String token, String owner, String repo, String path,
             String commitMessage, String sha) {
         try {
+            String githubAccessToken = token;
+            if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
+                githubAccessToken = encryptionService.decrypt(token);
+            }
+            
             String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
 
             // Map<String, Object> body = Map.of(
@@ -678,39 +762,58 @@ public class GithubService {
 
             return webClient.delete()
                 .uri(url)
-                .header("Authorization", "token " + token)
+                .header("Authorization", "token " + githubAccessToken)
                 //.bodyValue(body)
                 .retrieve()
                 .bodyToMono(String.class);
         } catch (RestClientException e) {
             throw new RuntimeException("Error deleting file: " + e.getMessage());
         }
+        catch (Exception e) {
+            throw new RuntimeException("Error deleting file: " + e.getMessage());
+        }
     }
 
     public Mono<GithubBranchDetails> getBranchDetails(String token, String owner, String repo, String branch) {
         try {
+            String githubAccessToken = token;
+            if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
+                githubAccessToken = encryptionService.decrypt(token);
+            }
+            
             String url = String.format("https://api.github.com/repos/%s/%s/branches/%s", owner, repo, branch);
 
             return webClient.get()
                 .uri(url)
-                .header("Authorization", "token " + token)
+                .header("Authorization", "token " + githubAccessToken)
                 .retrieve()
                 .bodyToMono(GithubBranchDetails.class);
         } catch (RestClientException e) {
+            throw new RuntimeException("Error getting branch details: " + e.getMessage());
+        }
+        catch (Exception e) {
             throw new RuntimeException("Error getting branch details: " + e.getMessage());
         }
     }
 
     public Mono<Map<String, Object>> getCommitDetails(String token, String owner, String repo, String commit) {
         try {
+            String githubAccessToken = token;
+            if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
+                githubAccessToken = encryptionService.decrypt(token);
+            }
+            
             String url = String.format("https://api.github.com/repos/%s/%s/commits/%s", owner, repo, commit);
 
             return webClient.get()
                 .uri(url)
-                .header("Authorization", "token " + token)
+                .header("Authorization", "token " + githubAccessToken)
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {});
         } catch (RestClientException e) {
+            throw new RuntimeException("Error getting commit details: " + e.getMessage());
+        }
+        catch (Exception e) {
             throw new RuntimeException("Error getting commit details: " + e.getMessage());
         }
     }
@@ -749,5 +852,14 @@ public class GithubService {
     // }
     // throw new RuntimeException("Failed to get branch SHA");
     // }
+
+    // GitHub API requires base64-encoded content for file contents
+    private String encodeToBase64(String content) {
+        return base64Encoder.encodeToString(content.getBytes(StandardCharsets.UTF_8));
+    } 
+
+    private String decodeFromBase64(String content) {
+        return new String(base64Decoder.decode(content), StandardCharsets.UTF_8);
+    }
 
 }

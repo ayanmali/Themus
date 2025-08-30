@@ -351,9 +351,9 @@ public class AssessmentController {
         try {
             UserCacheDto user = getCurrentUser();
 
-            Sort sort = getAssessmentsDto.getSortDirection().equalsIgnoreCase("desc")
-                    ? Sort.by(getAssessmentsDto.getSortBy()).descending()
-                    : Sort.by(getAssessmentsDto.getSortBy()).ascending();
+            Sort sort = getAssessmentsDto.getSortDirection().equalsIgnoreCase("asc")
+                    ? Sort.by(getAssessmentsDto.getSortBy()).ascending()
+                    : Sort.by(getAssessmentsDto.getSortBy()).descending();
 
             Pageable pageable = PageRequest.of(getAssessmentsDto.getPage(), getAssessmentsDto.getSize(), sort);
             PaginatedResponseDto<AssessmentCacheDto> paginatedResponse = assessmentService.getAssessmentsWithFilters(

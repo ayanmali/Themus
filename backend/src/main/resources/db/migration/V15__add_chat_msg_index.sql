@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS idx_chat_messages_assessment_created_at ON themus.chat_messages(assessment_id, created_at);

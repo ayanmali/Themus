@@ -13,8 +13,8 @@ import com.delphi.delphi.utils.enums.AssessmentStatus;
 public class GetAssessmentsDto {
     private int page = 0;
     private int size = 10;
-    private String sortBy = "id";
-    private String sortDirection = "asc";
+    private String sortBy = "createdDate";
+    private String sortDirection = "desc";
     private AssessmentStatus status;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime createdAfter;

@@ -26,7 +26,6 @@ import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -152,6 +151,7 @@ public class ChatService {
                 log.info("Message Type: {}", message.getMessageType().toString());
                 log.info("Message: {}...{}", message.getText().substring(0, Math.min(message.getText().length(), 50)),
                         message.getText().substring(Math.max(message.getText().length() - 30, 0)));
+                log.info("Message Metadata: {}", message.getMetadata().toString());
             }
             log.info("--------------------------------");
 
@@ -185,6 +185,7 @@ public class ChatService {
             // adding LLM response to chat history
             int count = 0;
             ChatResponse response = chatModel.call(prompt);
+            log.info("Response created");
             for (Generation generation : response.getResults()) {
                 log.info("--------------------------------");
                 log.info("GENERATION {}:", count);
@@ -246,13 +247,16 @@ public class ChatService {
                         log.info("GENERATION MESSAGE TYPE: {}", generation.getOutput().getMessageType().toString());
                         log.info("Generation Text: {}", generation.getOutput().getText().substring(0,
                                 Math.min(generation.getOutput().getText().length(), 50)) + "...");
-                        log.info("Generation Tool Calls: {}", generation.getOutput().getToolCalls().toString());
+                        //log.info("Generation Tool Calls: {}", generation.getOutput().getToolCalls().toString());
                         log.info("--------------------------------");
 
                         newMessages.add(generation.getOutput());
 
+                        log.info("Going through tool calls...");
                         List<ToolResponse> toolResponses = new ArrayList<>();
                         for (ToolCall toolCall : generation.getOutput().getToolCalls()) {
+                            log.info("Tool Call Name: {}", toolCall.name());
+                            log.info("Tool Call Arguments: {}", toolCall.arguments());
                             if (toolCall.name().equals("sendMessageToUser")) {
                                 log.info("Detected sendMessageToUser tool call - stopping conversation");
                                 // Parse the JSON arguments to extract the actual message
@@ -272,6 +276,7 @@ public class ChatService {
                             }
                             // TODO:if the tool call is not sendMessageToUser, execute it
                             // executeToolCall should return a ToolResponse object
+                            log.info("Executing tool call: {}", toolCall.name());
                             ToolResponse toolResponse = toolCallHandler.executeToolCall(toolCall, encryptedGithubToken, githubUsername, githubRepoName);
                             if (toolResponse != null) {
                                 toolResponses.add(toolResponse);
@@ -1165,7 +1170,7 @@ public class ChatService {
     @Cacheable(value = "chatMessages", key = "#assessmentId")
     @Transactional(readOnly = true)
     public List<ChatMessageCacheDto> getMessagesByAssessmentId(Long assessmentId) {
-        return chatMessageRepository.findByAssessmentId(assessmentId).stream()
+        return chatMessageRepository.findByAssessmentIdOrderByCreatedAtAsc(assessmentId).stream()
                 .map(ChatMessageCacheDto::new).collect(Collectors.toList());
     }
 

@@ -171,9 +171,9 @@ public class CandidateAttemptController {
     @GetMapping("/filter")
     public ResponseEntity<?> getAllCandidateAttempts(GetCandidateAttemptsDto getCandidateAttemptsDto) {
         try {
-            Sort sort = getCandidateAttemptsDto.getSortDirection().equalsIgnoreCase("desc")
-                    ? Sort.by(getCandidateAttemptsDto.getSortBy()).descending()
-                    : Sort.by(getCandidateAttemptsDto.getSortBy()).ascending();
+            Sort sort = getCandidateAttemptsDto.getSortDirection().equalsIgnoreCase("asc")
+                    ? Sort.by(getCandidateAttemptsDto.getSortBy()).ascending()
+                    : Sort.by(getCandidateAttemptsDto.getSortBy()).descending();
 
             Pageable pageable = PageRequest.of(getCandidateAttemptsDto.getPage(), getCandidateAttemptsDto.getSize(),
                     sort);

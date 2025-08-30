@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from "react";
+import { useState, FormEvent, useEffect, useMemo } from "react";
 import { Paperclip, Mic, CornerDownLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,17 +51,38 @@ export function ChatMessages({ messages, onSendMessage, isLoading = false, isHis
   };
 
   // display just the <DETAILS/> section from the initial user prompt
-  const messageList: ChatMessage[] = [
-    {
-      id: messages[0]?.id, 
-      text: messages[0]?.text.split("<DETAILS>")[1].split("</DETAILS>")[0], 
-      messageType: "USER", 
-      createdAt: messages[0]?.createdAt, 
-      updatedAt: messages[0]?.updatedAt,
-      model: messages[0]?.model
-    }, 
-  ...messages.slice(1).filter((message) => message.messageType !== "SYSTEM")
-];
+  const messageList: ChatMessage[] = useMemo(() => {
+    console.log("testing usememo");
+    if (!messages || messages.length === 0) return [];
+    
+    const firstMessage = messages[0];
+    if (!firstMessage) return messages.filter((message) => message.messageType !== "SYSTEM" && message.text !== "");
+    
+    // Extract the <DETAILS> section from the first message
+    let detailsText = "";
+    try {
+      const detailsMatch = firstMessage.text.match(/<DETAILS>([\s\S]*?)<\/DETAILS>/);
+      detailsText = detailsMatch ? detailsMatch[1] : firstMessage.text;
+    } catch (error) {
+      console.warn("Error parsing DETAILS section:", error);
+      detailsText = firstMessage.text;
+    }
+    
+    const processedFirstMessage: ChatMessage = {
+      id: firstMessage.id,
+      text: detailsText,
+      messageType: "USER" as const,
+      createdAt: firstMessage.createdAt,
+      updatedAt: firstMessage.updatedAt,
+      model: firstMessage.model
+    };
+    
+    const filteredMessages = messages.slice(1).filter((message) => 
+      message.messageType !== "SYSTEM" && message.text !== ""
+    );
+    
+    return [processedFirstMessage, ...filteredMessages];
+  }, [messages]);
 
   return (
     <div className="h-full border border-slate-700 bg-background rounded-lg flex flex-col">

@@ -25,13 +25,16 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "chat_messages")
+@Table(name = "chat_messages", indexes = {
+    @Index(name = "idx_chat_messages_assessment_created", columnList = "assessment_id, created_at")
+})
 /**
  * Assistant messages can contain ToolCalls (i.e. requests to invoke a tool).
  * ToolResponseMessages contain the result of a tool call.
