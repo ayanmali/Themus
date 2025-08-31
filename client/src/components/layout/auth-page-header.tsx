@@ -18,7 +18,7 @@ export const AuthPageHeader = () => {
                                 aria-label="home"
                                 className="flex items-center space-x-2">
                                 {/* <Logo /> */}
-                                <span className="text-white text-xl font-bold pr-16 font-gfs-didot">Themus</span>
+                                <span className="text-white text-xl pr-16 font-lora">Themus</span>
                             </Link>
                         </div>
                     </div>

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Aleo:ital,wght@0,100..900;1,100..900&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Serif+Display:ital@0;1&family=GFS+Didot&family=Manrope:wght@200..800&family=Suranna&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Aleo:ital,wght@0,100..900;1,100..900&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Serif+Display:ital@0;1&family=Fraunces:ital,opsz@0,9..144;1,9..144&family=GFS+Didot&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lora:ital,wght@0,400..700;1,400..700&family=Manrope:wght@200..800&family=Onest:wght@100..900&family=Suranna&display=swap');
 
 /* @font-face {
   font-family: 'CustomFont';
@@ -79,7 +79,7 @@
     font-style: normal;
   }
 
-  /* .font-fraunces {
+  .font-fraunces {
     font-family: "Fraunces", serif;
     font-optical-sizing: auto;
     font-weight: 400;
@@ -87,7 +87,14 @@
     font-variation-settings:
       "SOFT" 0,
       "WONK" 0;
-  } */
+  }
+
+  .font-lora {
+    font-family: "Lora", serif;
+    font-optical-sizing: auto;
+    font-weight: 480;
+    font-style: normal;
+  }
 
   :root {
 
@@ -242,7 +249,7 @@
 
 @layer utilities {
   .serif-heading {
-    @apply text-4xl font-gfs-didot font-medium tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-200 mb-2;
+    @apply text-4xl font-lora tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-200 mb-2;
   }
 }
 

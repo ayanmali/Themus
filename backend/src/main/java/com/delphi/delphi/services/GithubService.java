@@ -25,6 +25,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import com.delphi.delphi.utils.git.GithubBranchDetails;
 import com.delphi.delphi.utils.git.GithubFile;
+import com.delphi.delphi.utils.git.GithubFileResponse;
 import com.delphi.delphi.utils.git.GithubReference;
 import com.delphi.delphi.utils.git.GithubRepoBranch;
 import com.delphi.delphi.utils.git.GithubRepoContents;
@@ -611,7 +612,8 @@ public class GithubService {
                             ));
                         });
                 })
-                .bodyToMono(GithubFile.class);
+                .bodyToMono(GithubFileResponse.class)
+                .map(response -> response.getContent());
         } catch (RestClientException e) {
             throw new RuntimeException("Error making request to add file to repo: " + e.getMessage());
         } catch (Exception e) {
@@ -736,7 +738,8 @@ public class GithubService {
                 .header("Authorization", "token " + githubAccessToken)
                 .bodyValue(body)
                 .retrieve()
-                .bodyToMono(GithubFile.class);
+                .bodyToMono(GithubFileResponse.class)
+                .map(response -> response.getContent());
         } catch (RestClientException e) {
             throw new RuntimeException("Error making request to edit file: " + e.getMessage());
         }

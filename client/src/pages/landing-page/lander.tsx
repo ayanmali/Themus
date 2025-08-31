@@ -14,7 +14,7 @@ export function HeroSection() {
                 <section>
                     <div className="pt-12 lg:pt-44 h-screen relative mx-auto flex max-w-6xl flex-col px-6 lg:grid lg:grid-cols-2">
                         <div className="mx-auto max-w-lg text-center lg:ml-0 lg:text-left">
-                            <h1 className="font-gfs-didot mt-8 max-w-2xl text-balance text-5xl font-semibold md:text-6xl lg:mt-16 xl:text-7xl">Technical Hiring for the Modern Era</h1>
+                            <h1 className="font-lora mt-8 max-w-2xl text-balance text-5xl md:text-6xl lg:mt-16 xl:text-7xl">Technical Hiring for the Modern Era</h1>
                             <p className="mt-8 max-w-2xl text-pretty text-lg">Assess candidates on their ability to debug and enhance AI-generated code and how they use AI programming tools.</p>
 
                             <div className="mt-12 flex flex-col items-center justify-center gap-2 sm:flex-row lg:justify-start">

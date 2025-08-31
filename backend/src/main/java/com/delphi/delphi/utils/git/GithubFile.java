@@ -10,6 +10,8 @@ public class GithubFile implements Entry {
     String path;
     String sha;
 
+    public GithubFile() {}
+
     public GithubFile(String type, String name, String content, String path, String sha) {
         this.type = type;
         this.name = name;

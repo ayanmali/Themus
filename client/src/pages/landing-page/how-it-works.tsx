@@ -20,7 +20,7 @@ const HowItWorks = () => {
 
             {/* Hero Section */}
             <div className="text-center py-12">
-                <h1 className="text-5xl font-gfs-didot md:text-6xl font-bold mb-8 leading-tight">
+                <h1 className="text-5xl font-lora md:text-6xl mb-8 leading-tight">
                     Screening candidates, made easy
                 </h1>
                 <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
@@ -41,7 +41,7 @@ const HowItWorks = () => {
                     <div className="bg-gray-800 p-8 rounded-3xl border border-gray-700 relative overflow-hidden">
                         <div className="mb-6">
                             <span className="text-gray-500 text-sm">01</span>
-                            <h3 className="text-2xl font-bold mt-2 mb-4 font-gfs-didot">Describe the role</h3>
+                            <h3 className="text-2xl mt-2 mb-4 font-lora">Describe the role</h3>
                             <p className="text-gray-400">
                                 Fill out a short form to describe the role you're hiring for.
                             </p>
@@ -72,7 +72,7 @@ const HowItWorks = () => {
                     <div className="bg-gray-800 p-8 rounded-3xl border border-gray-700">
                         <div className="mb-6">
                             <span className="text-gray-500 text-sm">02</span>
-                            <h3 className="text-2xl font-bold mt-2 mb-4 font-gfs-didot">Repository creation</h3>
+                            <h3 className="text-2xl mt-2 mb-4 font-lora">Repository creation</h3>
                             <p className="text-gray-400">
                                 We'll design the assessment and store the files in a private GitHub repository.
                             </p>
@@ -102,7 +102,7 @@ const HowItWorks = () => {
                     <div className="bg-gray-800 p-8 rounded-3xl border border-gray-700">
                         <div className="mb-6">
                             <span className="text-gray-500 text-sm">03</span>
-                            <h3 className="text-2xl font-bold mt-2 mb-4 font-gfs-didot">Invite candidates</h3>
+                            <h3 className="text-2xl mt-2 mb-4 font-lora">Invite candidates</h3>
                             <p className="text-gray-400">
                                 Inviting candidates is as easy as sending them a link to the assessment.
                             </p>
@@ -132,7 +132,7 @@ const HowItWorks = () => {
                     <div className="bg-gray-800 p-8 rounded-3xl border border-gray-700">
                         <div className="mb-6">
                             <span className="text-gray-500 text-sm">04</span>
-                            <h3 className="text-2xl font-bold mt-2 mb-4 font-gfs-didot">Completing the assessment</h3>
+                            <h3 className="text-2xl mt-2 mb-4 font-lora">Completing the assessment</h3>
                             <p className="text-gray-400">
                                 We'll clone the repository for your candidates where they can make changes to the code. They'll submit a pull request with their changes for review when they're finished.
                             </p>
@@ -162,7 +162,7 @@ const HowItWorks = () => {
                     <div className="bg-gray-800 p-8 rounded-3xl border border-gray-700">
                         <div className="mb-6">
                             <span className="text-gray-500 text-sm">05</span>
-                            <h3 className="text-2xl font-bold mt-2 mb-4 font-gfs-didot">Completing the assessment</h3>
+                            <h3 className="text-2xl mt-2 mb-4 font-lora">Completing the assessment</h3>
                             <p className="text-gray-400">
                                 We'll clone the repository for your candidates where they can make changes to the code. They'll submit a pull request with their changes for review when they're finished.
                             </p>

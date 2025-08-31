@@ -17,7 +17,7 @@ const Benefits = () => {
 
             {/* Hero Section */}
             <div className="text-center py-12">
-                <h1 className="text-5xl font-gfs-didot md:text-6xl font-bold mb-8 leading-tight">
+                <h1 className="text-5xl font-lora md:text-6xl mb-8 leading-tight">
                     The new way to screen candidates
                 </h1>
                 <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
