@@ -25,11 +25,11 @@ import com.delphi.delphi.components.messaging.candidates.CandidateInvitationPubl
 import com.delphi.delphi.dtos.NewAssessmentDto;
 import com.delphi.delphi.dtos.PaginatedResponseDto;
 import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
+import com.delphi.delphi.dtos.cache.ChatMessageCacheDto;
 import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
-import com.delphi.delphi.entities.ChatMessage;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.repositories.AssessmentRepository;
 import com.delphi.delphi.repositories.CandidateAttemptRepository;
@@ -186,10 +186,12 @@ public class AssessmentService {
     // Get chat history by assessment ID
     @Cacheable(value = "chat_messages", key = "#id")
     @Transactional(readOnly = true)
-    public List<ChatMessage> getChatMessagesById(Long id) {
+    public List<ChatMessageCacheDto> getChatMessagesById(Long id) {
         return assessmentRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id))
-                .getChatMessages();
+                .getChatMessages().stream()
+                .map(ChatMessageCacheDto::new)
+                .collect(Collectors.toList());
     }
 
     // Get all assessments with pagination

@@ -1,5 +1,7 @@
 package com.delphi.delphi.dtos;
 
+import org.springframework.ai.chat.messages.ToolResponseMessage.ToolResponse;
+
 import com.delphi.delphi.entities.OpenAiToolResponse;
 
 public class FetchToolResponseDto {
@@ -17,6 +19,10 @@ public class FetchToolResponseDto {
         this.id = toolResponse.getId();
         this.name = toolResponse.getName();
         this.responseData = toolResponse.getResponseData();
+    }
+
+    public ToolResponse toToolResponse() {
+        return new ToolResponse(this.id, this.name, this.responseData);
     }
 
     public String getId() {

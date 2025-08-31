@@ -2,6 +2,7 @@ package com.delphi.delphi.controllers;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -13,6 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.delphi.delphi.configs.rabbitmq.TopicConfig;
 import com.delphi.delphi.dtos.FetchAssessmentDto;
@@ -257,7 +260,71 @@ public class AssessmentController {
     // .body("Error chatting with AI agent: " + e.getMessage());
     // }
     // }
-    // Chat with the AI agent
+    // Chat with the AI agent (SSE endpoint for real-time chat)
+    @PostMapping(value = "/chat/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter chatSse(@RequestBody NewUserMessageDto messageDto) {
+        SseEmitter emitter = new SseEmitter(300000L); // 5 minutes timeout
+        
+        try {
+            UserCacheDto user = getCurrentUser();
+            AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(messageDto.getAssessmentId());
+            
+            // Send initial connection confirmation
+            emitter.send(SseEmitter.event()
+                .name("connected")
+                .data(Map.of("message", "Connected to chat stream", "assessmentId", assessment.getId())));
+            
+            // Publish chat completion request to the chat message queue
+            log.info("Publishing chat completion request to the chat message queue");
+            Job job = new Job(JobStatus.PENDING, JobType.CHAT_COMPLETION);
+            job = jobRepository.save(job);
+
+            PublishChatJobDto publishChatJobDto = new PublishChatJobDto(job.getId(), messageDto.getMessage(), assessment, user, messageDto.getModel());
+            rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.LLM_CHAT_ROUTING_KEY, publishChatJobDto);
+            log.info("Chat completion request published to queue");
+            
+            // Send job created confirmation
+            emitter.send(SseEmitter.event()
+                .name("job_created")
+                .data(Map.of("jobId", job.getId().toString(), "assessmentId", assessment.getId(), "status", JobStatus.PENDING.toString())));
+            
+            final UUID jobId = job.getId();
+            
+            // Store the emitter for later use when the job completes
+            chatService.registerSseEmitter(jobId, emitter);
+            
+            // Handle emitter completion/error
+            emitter.onCompletion(() -> {
+                log.info("SSE emitter completed for job: {}", jobId);
+                chatService.removeSseEmitter(jobId);
+            });
+            
+            emitter.onTimeout(() -> {
+                log.info("SSE emitter timed out for job: {}", jobId);
+                chatService.removeSseEmitter(jobId);
+            });
+            
+            emitter.onError((ex) -> {
+                log.error("SSE emitter error for job: {}", jobId, ex);
+                chatService.removeSseEmitter(jobId);
+            });
+            
+        } catch (Exception e) {
+            log.error("Error setting up SSE chat: {}", e.getMessage(), e);
+            try {
+                emitter.send(SseEmitter.event()
+                    .name("error")
+                    .data(Map.of("error", "Failed to setup chat stream: " + e.getMessage())));
+                emitter.complete();
+            } catch (Exception ex) {
+                log.error("Error sending error event: {}", ex.getMessage());
+            }
+        }
+        
+        return emitter;
+    }
+
+    // Chat with the AI agent (legacy synchronous endpoint)
     @PostMapping("/chat")
     public ResponseEntity<?> chat(@RequestBody NewUserMessageDto messageDto) {
         try {

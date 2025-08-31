@@ -1,5 +1,7 @@
 package com.delphi.delphi.components.messaging.chat;
 
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -35,6 +37,7 @@ public class CreateAssessmentWorker {
             // Agent loop
             log.info("Create assessment job processing - running agent loop...", publishAssessmentCreationJobDto.getJobId().toString());
             chatService.getChatCompletion(
+                List.of(),
                 AssessmentCreationPrompts.USER_PROMPT, 
                 publishAssessmentCreationJobDto.getUserPromptVariables(), 
                 publishAssessmentCreationJobDto.getModel(), 

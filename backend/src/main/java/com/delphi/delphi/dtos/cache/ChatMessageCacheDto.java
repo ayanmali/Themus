@@ -2,9 +2,15 @@ package com.delphi.delphi.dtos.cache;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
+import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.ToolResponseMessage;
+import org.springframework.ai.chat.messages.UserMessage;
 
 import com.delphi.delphi.dtos.FetchToolCallDto;
 import com.delphi.delphi.dtos.FetchToolResponseDto;
@@ -36,6 +42,29 @@ public class ChatMessageCacheDto {
         if (chatMessage.getToolResponses() != null) {
             this.toolResponses = chatMessage.getToolResponses().stream().map(FetchToolResponseDto::new).collect(Collectors.toList());
         }
+    }
+
+    public Message toMessage() {
+        switch (this.getMessageType()) {
+            case USER -> {
+                return new UserMessage(this.getText());
+            }
+            case ASSISTANT -> {
+                return new AssistantMessage(this.getText(), Map.of(), this.getToolCalls().stream().map(FetchToolCallDto::toToolCall).collect(Collectors.toList()));
+            }
+            case SYSTEM -> {
+                return new SystemMessage(this.getText());
+            }
+            case TOOL -> {
+                // For tool response messages, return a basic message
+                // We'll handle tool responses separately in the ChatService
+                return new ToolResponseMessage(
+                    this.getToolResponses().stream().map(FetchToolResponseDto::toToolResponse).collect(Collectors.toList())
+                );
+            }
+            default -> throw new IllegalArgumentException("Invalid message type: " + this.getMessageType());
+        }
+       
     }
 
     public Long getId() {

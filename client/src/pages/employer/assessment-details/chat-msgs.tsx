@@ -19,6 +19,7 @@ interface ChatMessagesProps {
   onSendMessage: (message: string, model: string) => void;
   isLoading?: boolean;
   isHistoryLoading?: boolean;
+  //assessmentId?: number;
 }
 
 export function ChatMessages({ messages, onSendMessage, isLoading = false, isHistoryLoading = false }: ChatMessagesProps) {
@@ -39,6 +40,8 @@ export function ChatMessages({ messages, onSendMessage, isLoading = false, isHis
     onSendMessage(input, model);
     setInput("");
   };
+
+
 
   // User attaches file
   const handleAttachFile = () => {

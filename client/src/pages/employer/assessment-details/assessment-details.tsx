@@ -18,6 +18,7 @@ import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/comp
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PaginatedResponse } from "@/lib/types/paginated-response";
+import { useSseChat } from "@/hooks/use-sse-chat";
 
 export default function AssessmentDetails() {
     const { apiCall } = useApi();
@@ -247,7 +248,15 @@ export default function AssessmentDetails() {
         }
     }, [chatHistoryData]);
 
-    // Send chat message mutation
+    // SSE Chat hook
+    const { sendMessage: sendSseMessage, isLoading: isSseLoading } = useSseChat({
+        assessmentId: assessmentId ? parseInt(assessmentId) : 0,
+        onNewMessages: (newMessages) => {
+            setChatMessages(prev => [...prev, ...newMessages]);
+        }
+    });
+
+    // Send chat message mutation (fallback)
     const sendChatMessageMutation = useMutation({
         mutationFn: async ({ message, model }: { message: string; model: string }) => {
             const response = await apiCall(`/api/assessments/chat`, {
@@ -285,6 +294,28 @@ export default function AssessmentDetails() {
             });
         },
     });
+
+    // Combined send message function
+    const handleSendMessage = (message: string, model: string) => {
+        // Add user message to chat immediately
+        const userMessage: ChatMessage = {
+            id: Date.now().toString(),
+            text: message,
+            model: model,
+            messageType: 'USER',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+        setChatMessages(prev => [...prev, userMessage]);
+
+        // Try SSE first, fallback to regular mutation
+        try {
+            sendSseMessage(message, model, '/api/assessments/chat/sse');
+        } catch (error) {
+            console.log('SSE failed, falling back to regular chat');
+            sendChatMessageMutation.mutate({ message, model });
+        }
+    };
 
 
 
@@ -1392,11 +1423,10 @@ export default function AssessmentDetails() {
                         <div className="h-full">
                             <ChatMessages 
                                 messages={chatMessages} 
-                                onSendMessage={(message, model) => {
-                                    sendChatMessageMutation.mutate({ message, model });
-                                }}
-                                isLoading={sendChatMessageMutation.isPending}
+                                onSendMessage={handleSendMessage}
+                                isLoading={sendChatMessageMutation.isPending || isSseLoading}
                                 isHistoryLoading={chatHistoryLoading}
+                                //assessmentId={assessment?.id}
                             />
                         </div>
                     </div>

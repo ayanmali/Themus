@@ -1,8 +1,11 @@
 package com.delphi.delphi.services;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -28,6 +31,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.delphi.delphi.components.GithubTools;
 import com.delphi.delphi.components.ToolCallHandler;
@@ -77,6 +81,9 @@ public class ChatService {
     private final String PRESET = "assessment-creation";
     private final boolean PARALLEL_TOOL_CALLS = true;
 
+    // SSE emitter management
+    private final Map<UUID, SseEmitter> sseEmitters = new ConcurrentHashMap<>();
+
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
 
     public ChatService(ChatMessageRepository chatMessageRepository, ChatModel chatModel,
@@ -107,7 +114,7 @@ public class ChatService {
      * Stops agent execution to wait for user confirmation/feedback
      */
     // @Cacheable(value = "chatCompletions", key = "#chatHistoryId")
-    public List<ChatMessageCacheDto> getChatCompletion(String userMessage,
+    public List<ChatMessageCacheDto> getChatCompletion(List<Message> existingMessages,String userMessage,
             String model, Long assessmentId, String encryptedGithubToken, String githubUsername,
             String githubRepoName) {
         try {
@@ -134,7 +141,8 @@ public class ChatService {
             // model);
 
             // get the messages from the chat history (context window)
-            List<Message> existingMessages = assessment.getMessagesAsSpringMessages();
+            //List<Message> existingMessages = assessment.getMessagesAsSpringMessages();
+            // TODO: create a cache in Redis to temporarily store new messages until they are added to the chat_messages cache
             List<Message> newMessages = new ArrayList<>();
             /*
             Entire context window represented as:
@@ -142,6 +150,7 @@ public class ChatService {
             */
 
             // update conversation history in memory
+            // TODO: add the user message to the cache in Redis
             newMessages.add(new UserMessage(userMessage));
 
             // printing all messages in context window
@@ -173,6 +182,7 @@ public class ChatService {
                     .parallelToolCalls(PARALLEL_TOOL_CALLS)
                     .build();
 
+            // TODO: load newmessages from redis cache
             Prompt prompt = new Prompt(
                 Stream.concat(existingMessages.stream(), newMessages.stream()).toList(),
                     chatOptions);
@@ -200,6 +210,7 @@ public class ChatService {
                 // sendMessageToUser tool call?
                 //newMessages.add(generation.getOutput());
                 if (!generation.getOutput().hasToolCalls()) {
+                    // TODO: add the message to the newMessagescache in Redis
                     newMessages.add(generation.getOutput());
                 }
                 count++;
@@ -250,6 +261,7 @@ public class ChatService {
                         //log.info("Generation Tool Calls: {}", generation.getOutput().getToolCalls().toString());
                         log.info("--------------------------------");
 
+                        // TODO: add the message to the newMessagescache in Redis
                         newMessages.add(generation.getOutput());
 
                         log.info("Going through tool calls...");
@@ -265,10 +277,12 @@ public class ChatService {
                                     Map<String, Object> args = objectMapper.readValue(toolCall.arguments(), new TypeReference<Map<String, Object>>() {});
                                     String messageContent = (String) args.get("message");
                                     // store the actual message content as an assistant message
+                                    // TODO: add the message to the newMessagescache in Redis
                                     newMessages.add(new AssistantMessage(messageContent));
                                 } catch (JsonProcessingException e) {
                                     log.error("Error parsing sendMessageToUser arguments: {}", e.getMessage());
                                     // Fallback: use the raw arguments if parsing fails
+                                    // TODO: add the message to the newMessagescache in Redis
                                     newMessages.add(new AssistantMessage(toolCall.arguments()));
                                 }
                                 endConversation = true;
@@ -285,6 +299,7 @@ public class ChatService {
                             // objects here */), assessment, model);
                         }
                         // generate a tool response message
+                        // TODO: add the message to the newMessagescache in Redis
                         newMessages.add(new ToolResponseMessage(toolResponses));
                     }
 
@@ -317,6 +332,7 @@ public class ChatService {
                     // }
 
                     // Getting the next response from the LLM
+                    // TODO: load newmessages from redis cache
                     prompt = new Prompt(Stream.concat(existingMessages.stream(), newMessages.stream()).toList(), chatOptions);
 
                     response = chatModel.call(prompt);
@@ -347,6 +363,9 @@ public class ChatService {
             // Math.min(generation.getOutput().getText().length(), 100)) + "...");
             // count++;
             // }
+            // TODO: add each message in newMessages to chat_messages cache
+            // ...
+            // save new messages to primary DB (batch write)
             return addMessagesToChatHistory(newMessages, assessment, model);
         } catch (Exception e) {
             log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
@@ -359,7 +378,7 @@ public class ChatService {
      * Stops agent execution to wait for user confirmation/feedback
      */
     // @Cacheable(value = "chatCompletions", key = "#chatHistoryId")
-    public List<ChatMessageCacheDto> getChatCompletion(String userPromptTemplateMessage, Map<String, Object> userPromptVariables,
+    public List<ChatMessageCacheDto> getChatCompletion(List<Message> existingMessages, String userPromptTemplateMessage, Map<String, Object> userPromptVariables,
             String model, Long assessmentId, String encryptedGithubToken, String githubUsername,
             String githubRepoName) {
         try {
@@ -392,7 +411,7 @@ public class ChatService {
             // model);
 
             // get the messages from the chat history (context window)
-            List<Message> existingMessages = assessment.getMessagesAsSpringMessages();
+            // TODO: load newmessages from redis cache
             List<Message> newMessages = new ArrayList<>();
             /*
             Entire context window represented as:
@@ -599,6 +618,9 @@ public class ChatService {
             // Math.min(generation.getOutput().getText().length(), 100)) + "...");
             // count++;
             // }
+            // TODO: add each message in newMessages to chat_messages cache
+            // ...
+            // save new messages to primary DB (batch write)
             return addMessagesToChatHistory(newMessages, assessment, model);
         } catch (Exception e) {
             log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
@@ -857,7 +879,7 @@ public class ChatService {
     // }
 
     /**
-     * Storing in memory conversation history to DB
+     * Storing in memory conversation history to primary DB
      */
     public List<ChatMessageCacheDto> addMessagesToChatHistory(List<Message> messages, Assessment assessment, String model) {
         List<ChatMessageCacheDto> savedDtos = new ArrayList<>();
@@ -1188,6 +1210,53 @@ public class ChatService {
         ChatMessage existingMessage = chatMessageRepository.findById(id)
                 .orElseThrow(() -> new Exception("Chat message not found with id: " + id));
         chatMessageRepository.delete(existingMessage);
+    }
+
+    /**
+     * SSE Emitter Management Methods
+     */
+    
+    public void registerSseEmitter(UUID jobId, SseEmitter emitter) {
+        sseEmitters.put(jobId, emitter);
+        log.info("Registered SSE emitter for job: {}", jobId);
+    }
+    
+    public void removeSseEmitter(UUID jobId) {
+        SseEmitter emitter = sseEmitters.remove(jobId);
+        if (emitter != null) {
+            log.info("Removed SSE emitter for job: {}", jobId);
+        }
+    }
+    
+    public void sendSseEvent(UUID jobId, String eventName, Object data) {
+        SseEmitter emitter = sseEmitters.get(jobId);
+        if (emitter != null) {
+            try {
+                emitter.send(SseEmitter.event()
+                    .name(eventName)
+                    .data(data));
+                log.info("Sent SSE event '{}' for job: {}", eventName, jobId);
+            } catch (IOException e) {
+                log.error("Error sending SSE event '{}' for job: {}", eventName, jobId, e);
+                removeSseEmitter(jobId);
+            }
+        } else {
+            log.warn("No SSE emitter found for job: {}", jobId);
+        }
+    }
+    
+    public void completeSseEmitter(UUID jobId) {
+        SseEmitter emitter = sseEmitters.get(jobId);
+        if (emitter != null) {
+            try {
+                emitter.complete();
+                log.info("Completed SSE emitter for job: {}", jobId);
+            } catch (Exception e) {
+                log.error("Error completing SSE emitter for job: {}", jobId, e);
+            } finally {
+                removeSseEmitter(jobId);
+            }
+        }
     }
 
 }
