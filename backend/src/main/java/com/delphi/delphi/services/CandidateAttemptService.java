@@ -348,6 +348,7 @@ public class CandidateAttemptService {
 
     // Delete candidate attempt
     @CacheEvict(value = "attempts", key = "#id")
+    @Transactional
     public void deleteCandidateAttempt(Long id) {
         CandidateAttempt attempt = candidateAttemptRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("CandidateAttempt not found with id: " + id));

@@ -1,5 +1,6 @@
 package com.delphi.delphi.controllers;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -309,14 +310,14 @@ public class AssessmentController {
                 chatService.removeSseEmitter(jobId);
             });
             
-        } catch (Exception e) {
+        } catch (IOException | AmqpException e) {
             log.error("Error setting up SSE chat: {}", e.getMessage(), e);
             try {
                 emitter.send(SseEmitter.event()
                     .name("error")
                     .data(Map.of("error", "Failed to setup chat stream: " + e.getMessage())));
                 emitter.complete();
-            } catch (Exception ex) {
+            } catch (IOException ex) {
                 log.error("Error sending error event: {}", ex.getMessage());
             }
         }

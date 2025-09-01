@@ -78,18 +78,19 @@ public class CandidateAttempt {
     private LocalDateTime evaluatedDate;
     
     // Many-to-one relationship with Candidate
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, cascade=CascadeType.ALL)
     @JoinColumn(name = "candidate_id", nullable = false)
     private Candidate candidate;
     
     // Many-to-one relationship with Assessment
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, cascade=CascadeType.ALL)
     @JoinColumn(name = "assessment_id", nullable = false)
     @JsonIgnore
     private Assessment assessment;
     
     // One-to-one relationship with Evaluation (placeholder)
-    @OneToOne(mappedBy = "candidateAttempt", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // TODO: set orphanRemoval to true
+    @OneToOne(mappedBy = "candidateAttempt", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = false)
     private Evaluation evaluation;
 
     public CandidateAttempt() {

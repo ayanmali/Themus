@@ -419,6 +419,7 @@ public class ChatService {
             */
 
             // update conversation history in memory
+            // TODO: add the user message to the cache in Redis
             newMessages.add(userMessage);
 
             // printing all messages in context window

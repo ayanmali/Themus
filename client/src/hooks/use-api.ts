@@ -128,6 +128,11 @@ const useApi = () => {
         throw error;
       }
 
+      // Handle 204 No Content responses (no body to parse)
+      if (response.status === 204) {
+        return null;
+      }
+
       return await response.json();
     } catch (error) {
       console.error('API call failed:', error);

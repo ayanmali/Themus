@@ -2,9 +2,11 @@ package com.delphi.delphi.components.messaging.chat;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
@@ -13,8 +15,8 @@ import com.delphi.delphi.dtos.cache.ChatMessageCacheDto;
 import com.delphi.delphi.dtos.messaging.chat.PublishChatJobDto;
 import com.delphi.delphi.entities.Job;
 import com.delphi.delphi.repositories.JobRepository;
-import com.delphi.delphi.services.ChatService;
 import com.delphi.delphi.services.AssessmentService;
+import com.delphi.delphi.services.ChatService;
 import com.delphi.delphi.utils.enums.JobStatus;
 @Component
 /**
@@ -43,9 +45,10 @@ public class LLMChatWorker {
             chatService.sendSseEvent(publishLLMChatJobDto.getJobId(), "job_running", 
                 Map.of("message", "Processing chat completion", "jobId", publishLLMChatJobDto.getJobId().toString()));
             
-            List<Message> existingMessages = assessmentService.getChatMessagesById(publishLLMChatJobDto.getAssessmentId());
+            List<Message> existingMessages = assessmentService.getChatMessagesById(publishLLMChatJobDto.getAssessmentId()).stream().map(ChatMessageCacheDto::toMessage).collect(Collectors.toList());
                 // Agent loop
             List<ChatMessageCacheDto> messages = chatService.getChatCompletion(
+                existingMessages,
                 publishLLMChatJobDto.getMessageText(), 
                 publishLLMChatJobDto.getModel(), 
                 publishLLMChatJobDto.getAssessmentId(), 

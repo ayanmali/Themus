@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PaginatedResponse } from "@/lib/types/paginated-response";
 import { useSseChat } from "@/hooks/use-sse-chat";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 export default function AssessmentDetails() {
     const { apiCall } = useApi();
@@ -38,6 +39,7 @@ export default function AssessmentDetails() {
     const [tempRole, setTempRole] = useState('');
     const [tempStartDate, setTempStartDate] = useState<Date | undefined>(undefined);
     const [tempEndDate, setTempEndDate] = useState<Date | undefined>(undefined);
+    const [durationUnit, setDurationUnit] = useState<'minutes' | 'hours'>('minutes');
 
     // State for tracking changes
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -166,6 +168,7 @@ export default function AssessmentDetails() {
             const response = await apiCall(`/api/attempts/${attemptId}/delete`, {
                 method: 'DELETE',
             });
+            // For 204 responses, apiCall returns null, which is fine
             return response;
         },
         onSuccess: () => {
@@ -398,9 +401,14 @@ export default function AssessmentDetails() {
 
     // Helper function to track changes
     const addPendingChange = (field: keyof Assessment, value: any) => {
+        console.log('field', field);
+        console.log('value', value);
+        console.log('durationUnit', durationUnit);
         setPendingChanges(prev => ({
             ...prev,
-            [field]: value
+            [field]: (field === 'duration' && durationUnit === 'hours')
+                ? Number(value) * 60
+                : value
         }));
         setHasUnsavedChanges(true);
     };
@@ -409,6 +417,7 @@ export default function AssessmentDetails() {
     const clearPendingChanges = () => {
         setPendingChanges({});
         setHasUnsavedChanges(false);
+        setDurationUnit('minutes');
     };
 
     // Helper function to save all pending changes
@@ -436,6 +445,13 @@ export default function AssessmentDetails() {
     };
 
 
+    const getCurrentDuration = (): number => {
+        if (pendingChanges.duration !== undefined) {
+            return durationUnit === 'minutes' ? pendingChanges.duration as number : pendingChanges.duration as number / 60;
+        }
+        return durationUnit === 'minutes' ? assessment?.duration || 0 : assessment?.duration || 0 / 60;
+    };
+    
 
     // Helper functions for specific field types
     const getCurrentName = (): string => {
@@ -884,6 +900,47 @@ export default function AssessmentDetails() {
                                                 onStartDateChange={(date) => addPendingChange('startDate', date || undefined)}
                                                 onEndDateChange={(date) => addPendingChange('endDate', date || undefined)}
                                             />
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-6">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-5">
+                                                <h3 className="text-lg font-semibold">Duration</h3>
+                                                <TooltipProvider delayDuration={100}>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Info size={16} className="text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors" />
+                                                        </TooltipTrigger>
+                                                        <TooltipContent className="bg-gray-800 text-white border-gray-500">
+                                                            <p>The amount of time candidates have to complete the assessment.</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            </div>
+                                        </div>
+                                        <div className="bg-gray-700 rounded-lg p-4 flex items-center gap-2">
+                                            <Input
+                                                value={getCurrentDuration() || ''}
+                                                type="number"
+                                                min={1}
+                                                max={999}
+                                                onChange={(e) => addPendingChange('duration', e.target.value)}
+                                                className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none"
+                                                placeholder="Enter duration..."
+                                            />
+                                            <Select
+                                                value={durationUnit}
+                                                onValueChange={(value: 'minutes' | 'hours') => setDurationUnit(value)}
+                                            >
+                                                <SelectTrigger className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none">
+                                                    <SelectValue placeholder="Select duration unit" />
+                                                </SelectTrigger>
+                                                <SelectContent className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-500 focus:border-blue-400 focus:outline-none">
+                                                    <SelectItem value="minutes">Minutes</SelectItem>
+                                                    <SelectItem value="hours">Hours</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </div>
                                     </div>
 

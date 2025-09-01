@@ -5,7 +5,6 @@ import { minutesToHours } from '@/lib/utils';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { navigate } from 'wouter/use-browser-location';
-import { Candidate } from '@/lib/types/candidate';
 import { useParams } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import useApi from '@/hooks/use-api';
@@ -206,7 +205,7 @@ export default function CandidateAssessmentPreview() {
                     {/* Main Content */}
                     <div className="lg:col-span-2 space-y-8">
                         {/* Skills & Competencies */}
-                        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                        {/* <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
                             <div className="flex items-center space-x-2 mb-4">
                                 <Users className="h-5 w-5 text-purple-400" />
                                 <h2 className="text-xl font-semibold text-white">Skills & Competencies</h2>
@@ -219,7 +218,7 @@ export default function CandidateAssessmentPreview() {
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        </div> */}
 
                         {/* Description */}
                         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
@@ -265,7 +264,7 @@ export default function CandidateAssessmentPreview() {
                     {/* Sidebar */}
                     <div className="space-y-6">
                         {/* Language Selection */}
-                        {assessment.languageOptions?.length && (
+                        {assessment.languageOptions?.length && assessment.languageOptions?.length > 0 ? (
                             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
                                 <h3 className="text-lg font-semibold text-white mb-4">Choose your stack</h3>
                                 <div className="space-y-2">
@@ -303,7 +302,10 @@ export default function CandidateAssessmentPreview() {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                            </div>)}
+                            </div>) : (
+                                <>
+                                </>
+                            )}
 
                         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
                             <h3 className="text-lg font-semibold text-white mb-4">Enter your email address</h3>
