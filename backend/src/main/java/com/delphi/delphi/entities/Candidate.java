@@ -78,7 +78,7 @@ public class Candidate {
     private User user;
     
     // One-to-many relationship with CandidateAttempt
-    @OneToMany(mappedBy = "candidate", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "candidate", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<CandidateAttempt> candidateAttempts;
     

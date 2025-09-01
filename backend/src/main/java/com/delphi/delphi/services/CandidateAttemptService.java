@@ -113,6 +113,7 @@ public class CandidateAttemptService {
         redisService.set("candidate_attempt_password:" + candidateAttempt.getId(), encryptedPassword); // 1 day
         updateCacheAfterAttemptCreation(candidateAttempt.getCandidate().getId(), candidateAttempt.getAssessment().getId(), result);
         
+        log.info("CANDIDATE ATTEMPT PASSWORD: {}", password);
         return result;
     }
 
@@ -352,16 +353,46 @@ public class CandidateAttemptService {
     public void deleteCandidateAttempt(Long id) {
         CandidateAttempt attempt = candidateAttemptRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("CandidateAttempt not found with id: " + id));
-        
+
         // Get attempt DTO and IDs before deletion for cache removal
         CandidateAttemptCacheDto attemptDto = new CandidateAttemptCacheDto(attempt);
-        Long candidateId = attempt.getCandidate().getId();
-        Long assessmentId = attempt.getAssessment().getId();
+        Long candidateId = attemptDto.getCandidate().getId();
+        Long assessmentId = attemptDto.getAssessment().getId();
+        Long userId = attemptDto.getAssessment().getUserId();
         
+        // IMPORTANT: Clean up bidirectional relationships before deletion
+        // Remove the attempt from the candidate's attempts list
+        Candidate candidate = attempt.getCandidate();
+        if (candidate.getCandidateAttempts() != null) {
+            candidate.getCandidateAttempts().removeIf(att -> att.getId().equals(id));
+        }
+        
+        // Remove the attempt from the assessment's attempts list
+        Assessment assessment = attempt.getAssessment();
+        if (assessment.getCandidateAttempts() != null) {
+            assessment.getCandidateAttempts().removeIf(att -> att.getId().equals(id));
+        }
+        
+        // Remove the candidate from the assessment's candidates list
+        if (assessment.getCandidates() != null) {
+            assessment.getCandidates().removeIf(c -> c.getId().equals(candidateId));
+        }
+        
+        // Remove the assessment from the candidate's assessments list
+        if (candidate.getAssessments() != null) {
+            candidate.getAssessments().removeIf(a -> a.getId().equals(assessmentId));
+        }
+        
+        // Now delete the attempt
         candidateAttemptRepository.deleteById(id);
         
         // Update cache: remove from general caches and evict specific caches
         updateCacheAfterAttemptDeletion(candidateId, assessmentId, attemptDto);
+        
+        // IMPORTANT: Invalidate the available candidates cache for this assessment
+        // This ensures the candidate appears in the available candidates list after deletion
+        // We need to invalidate all user_candidates caches since we don't know which user is viewing the assessment
+        redisService.evictCache("cache:user_candidates:" + userId + ":*");
     }
 
     // Get attempts by candidate ID

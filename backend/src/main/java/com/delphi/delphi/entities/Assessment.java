@@ -134,7 +134,7 @@ public class Assessment {
     private Map<String, String> metadata;
     
     // One-to-many relationship with CandidateAttempt
-    @OneToMany(mappedBy = "assessment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "assessment", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<CandidateAttempt> candidateAttempts;
     
