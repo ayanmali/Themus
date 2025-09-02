@@ -6,10 +6,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -20,7 +22,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.delphi.delphi.components.RedisService;
+import com.delphi.delphi.dtos.AuthenticateCandidateDto;
 import com.delphi.delphi.dtos.PaginatedResponseDto;
+import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateCacheDto;
 import com.delphi.delphi.entities.Assessment;
@@ -49,11 +53,18 @@ public class CandidateAttemptService {
     private final Logger log = LoggerFactory.getLogger(CandidateAttemptService.class);
     private final RedisService redisService;
     private final String candidateAttemptPasswordCacheKeyPrefix = "candidate_attempt_password:";
+    private final String githubCacheKeyPrefix = "github_install_url_random_string:";
+    private final String tokenCacheKeyPrefix = "candidate_github_token:";
+    private final String usernameCacheKeyPrefix = "candidate_github_username:";
+    private final GithubService githubService;
+    private final String appInstallBaseUrl;
 
-    public CandidateAttemptService(CandidateAttemptRepository candidateAttemptRepository, RedisService redisService, EncryptionService encryptionService) {
+    public CandidateAttemptService(CandidateAttemptRepository candidateAttemptRepository, RedisService redisService, EncryptionService encryptionService, @Value("${github.app.name}") String githubAppName, GithubService githubService) {
         this.candidateAttemptRepository = candidateAttemptRepository;
         this.redisService = redisService;
         this.encryptionService = encryptionService;
+        this.appInstallBaseUrl = String.format("https://github.com/apps/%s/installations/new", githubAppName);
+        this.githubService = githubService;
     }
 
     // Invite a candidate to an assessment
@@ -117,6 +128,59 @@ public class CandidateAttemptService {
         return result;
     }
 
+    private String generateGitHubInstallUrl(String candidateEmail) {
+        String randomString = UUID.randomUUID().toString();
+        redisService.setWithExpiration(githubCacheKeyPrefix + candidateEmail, randomString, 10, TimeUnit.MINUTES);
+        String installUrl = String.format("%s?state=%s_candidate_%s", appInstallBaseUrl, randomString, candidateEmail);
+        return installUrl;
+    }
+
+    @Cacheable(value = "attempts", key = "#candidateEmail + ':' + #assessmentId")
+    @Transactional(readOnly = true)
+    public CandidateAttemptCacheDto getCandidateAttemptByCandidateEmailAndAssessmentId(String candidateEmail, Long assessmentId) {
+        return new CandidateAttemptCacheDto(candidateAttemptRepository.findByCandidateEmailAndAssessmentId(candidateEmail, assessmentId).orElseThrow(() -> new IllegalArgumentException("Candidate does not have an attempt for this assessment")));
+    }
+
+    @Cacheable(value = "attempts", key = "#candidateEmail + ':' + #assessmentId")
+    @Transactional(readOnly = true)
+    public CandidateAttemptCacheDto getCandidateAttemptByCandidateIdAndAssessmentId(Long candidateId, Long assessmentId) {
+        return new CandidateAttemptCacheDto(candidateAttemptRepository.findByCandidateIdAndAssessmentId(candidateId, assessmentId).orElseThrow(() -> new IllegalArgumentException("Candidate does not have an attempt for this assessment")));
+    }
+
+    public String authenticateCandidate(AuthenticateCandidateDto authenticateCandidateDto) {
+        // Check if the candidate has a github token and username
+        Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + authenticateCandidateDto.getCandidateEmail());
+        Object candidateGithubUsername = redisService.get(usernameCacheKeyPrefix + authenticateCandidateDto.getCandidateEmail());
+
+        if (candidateGithubToken == null || candidateGithubUsername == null
+                || githubService.validateGithubCredentials(candidateGithubToken.toString()) == null) {
+            throw new IllegalArgumentException("Github account not connected. Please connect your Github account to start the assessment.");
+        }
+
+        CandidateAttemptCacheDto existingAttempt = getCandidateAttemptByCandidateEmailAndAssessmentId(authenticateCandidateDto.getCandidateEmail(), authenticateCandidateDto.getAssessmentId());
+        
+        // Check if candidate already has an attempt for this assessment
+        Object encryptedPassword = redisService.get(candidateAttemptPasswordCacheKeyPrefix + existingAttempt.getId());
+        if (encryptedPassword == null) {
+            throw new IllegalArgumentException("Candidate attempt password not found. Have you been invited to this assessment?");
+        }
+
+        // Decrypt the password and see if there is a match
+        String actualPassword;
+        try {
+            actualPassword = encryptionService.decrypt(encryptedPassword.toString());
+        } catch (Exception e) {
+            log.error("Error decrypting password: {}", e.getMessage());
+            throw new RuntimeException("Error decrypting password: " + e.getMessage());
+        }
+
+        if (!authenticateCandidateDto.getPlainTextPassword().equals(actualPassword)) {
+            throw new IllegalArgumentException("Candidate attempt password does not match.");
+        }
+
+        return generateGitHubInstallUrl(authenticateCandidateDto.getCandidateEmail());
+    }
+
     /**
      * Start a new candidate attempt: change status to from INVITED to STARTED
      * Note: the candidate must already have an attempt for this assessment
@@ -129,24 +193,7 @@ public class CandidateAttemptService {
      * @return The updated candidate attempt
      */
     @CachePut(value = "attempts", key = "#result.id")
-    public CandidateAttemptCacheDto startAttempt(CandidateCacheDto candidate, Assessment assessment, String languageChoice, String password, String githubUsername) {
-        // Check if candidate already has an attempt for this assessment
-        Object encryptedPassword = redisService.get(candidateAttemptPasswordCacheKeyPrefix + candidate.getId());
-        if (encryptedPassword == null) {
-            throw new IllegalArgumentException("Candidate attempt password not found. Does this candidate have an attempt for this assessment?");
-        }
-        String actualPassword;
-        try {
-            actualPassword = encryptionService.decrypt(encryptedPassword.toString());
-        } catch (Exception e) {
-            log.error("Error decrypting password: {}", e.getMessage());
-            throw new RuntimeException("Error decrypting password: " + e.getMessage());
-        }
-
-        if (!password.equals(actualPassword)) {
-            throw new IllegalArgumentException("Candidate attempt password does not match.");
-        }
-
+    public CandidateAttemptCacheDto startAttempt(CandidateCacheDto candidate, AssessmentCacheDto assessment, String languageChoice) {
         if (!assessment.getLanguageOptions().isEmpty() && !assessment.getLanguageOptions().contains(languageChoice)) {
             throw new IllegalArgumentException("Language choice not supported for this assessment");
         }
@@ -156,7 +203,7 @@ public class CandidateAttemptService {
                 assessment.getId()).orElseThrow(() -> new IllegalArgumentException("Candidate does not have an attempt for this assessment"));
 
         String repoName = "assessment-" + assessment.getId() + "-" + String.valueOf(Instant.now().toEpochMilli());
-        String fullGithubUrl = "https://github.com/" + githubUsername + "/" + repoName;
+        String fullGithubUrl = "https://github.com/" + "TODO:" + "/" + repoName;
 
         existingAttempt.setStatus(AttemptStatus.STARTED);
         existingAttempt.setStartedDate(LocalDateTime.now());
@@ -168,15 +215,44 @@ public class CandidateAttemptService {
         CandidateAttemptCacheDto result = new CandidateAttemptCacheDto(
             candidateAttemptRepository.save(existingAttempt));
 
+        // Creating candidate github repo
+        String templateOwner = "TODO:";
+        String templateRepoName = assessment.getGithubRepoName();
+        String githubAccessToken;
+        try {
+            githubAccessToken = encryptionService.decrypt("TODO:");
+        } catch (Exception e) {
+            log.error("Error decrypting github access token: {}", e.getMessage());
+            throw new RuntimeException("Error decrypting github access token: " + e.getMessage());
+        }
+
+        // Extract repository name from the full URL for GitHub API call
+        githubService.createPersonalRepoFromTemplate(githubAccessToken, templateOwner, templateRepoName, repoName);
+
         // Update cache: update general caches and evict specific caches
         updateCacheAfterAttemptUpdate(candidate.getId(), assessment.getId(), result);
         
         return result;
     }
 
+    public boolean hasValidGithubToken(String candidateEmail) {
+        Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + candidateEmail);
+        // get a new token if the candidate doesn't have one or if the token is invalid
+        try {
+            if (candidateGithubToken == null || githubService
+            .validateGithubCredentials(encryptionService.decrypt(candidateGithubToken.toString())) == null) {
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("Error decrypting Github token - returning false: {}", e.getMessage());
+            return false;
+        }
+        return true;
+    }
+
     // Create a new candidate attempt
     @CachePut(value = "attempts", key = "#result.id")
-    public CandidateAttemptCacheDto startAttempt(CandidateAttempt candidateAttempt) {
+    public CandidateAttemptCacheDto createAttempt(CandidateAttempt candidateAttempt) {
         if (!candidateAttemptRepository.existsById(candidateAttempt.getId())) {
             throw new IllegalArgumentException("Candidate attempt not found with id: " + candidateAttempt.getId());
         }
@@ -360,6 +436,7 @@ public class CandidateAttemptService {
         Long assessmentId = attemptDto.getAssessment().getId();
         Long userId = attemptDto.getAssessment().getUserId();
         
+        // TODO: see if this can be deleted
         // IMPORTANT: Clean up bidirectional relationships before deletion
         // Remove the attempt from the candidate's attempts list
         Candidate candidate = attempt.getCandidate();
@@ -382,6 +459,7 @@ public class CandidateAttemptService {
         if (candidate.getAssessments() != null) {
             candidate.getAssessments().removeIf(a -> a.getId().equals(assessmentId));
         }
+        ////////
         
         // Now delete the attempt
         candidateAttemptRepository.deleteById(id);

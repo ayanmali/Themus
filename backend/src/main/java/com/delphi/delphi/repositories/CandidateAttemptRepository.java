@@ -97,6 +97,9 @@ public interface CandidateAttemptRepository extends JpaRepository<CandidateAttem
     @Query("SELECT ca FROM CandidateAttempt ca WHERE ca.assessment.user.id = :userId")
     Page<CandidateAttempt> findByAssessmentUserId(@Param("userId") Long userId, Pageable pageable);
     
+    // Find attempts by candidate email and assessment id
+    @Query("SELECT ca FROM CandidateAttempt ca WHERE ca.candidate.email = :candidateEmail AND ca.assessment.id = :assessmentId")    
+    Optional<CandidateAttempt> findByCandidateEmailAndAssessmentId(@Param("candidateEmail") String candidateEmail, @Param("assessmentId") Long assessmentId);
     // Find candidate attempts with multiple optional filters
     // Use COALESCE to avoid untyped `? is null` SQL parameters that break on PostgreSQL
 //     @Query("SELECT ca FROM CandidateAttempt ca WHERE " +

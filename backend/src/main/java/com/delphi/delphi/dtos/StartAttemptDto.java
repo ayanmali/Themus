@@ -4,29 +4,19 @@ package com.delphi.delphi.dtos;
 * NOT when they have been invited
 */
 public class StartAttemptDto {
-    private String githubRepositoryLink;
     private String languageChoice;
     private String candidateEmail;
     private Long assessmentId;
-    private String password;
+    private String plainTextPassword;
 
     public StartAttemptDto() {
     }
 
-    public StartAttemptDto(String githubRepositoryLink, String languageChoice, String candidateEmail, Long assessmentId, String password) {
-        this.githubRepositoryLink = githubRepositoryLink;
+    public StartAttemptDto(String languageChoice, String candidateEmail, Long assessmentId, String password) {
         this.languageChoice = languageChoice;
         this.candidateEmail = candidateEmail;
         this.assessmentId = assessmentId;
-        this.password = password;
-    }
-
-    public String getGithubRepositoryLink() {
-        return githubRepositoryLink;
-    }
-
-    public void setGithubRepositoryLink(String githubRepositoryLink) {
-        this.githubRepositoryLink = githubRepositoryLink;
+        this.plainTextPassword = password;
     }
 
     public String getLanguageChoice() {
@@ -53,12 +43,12 @@ public class StartAttemptDto {
         this.assessmentId = assessmentId;
     }
 
-    public String getPassword() {
-        return password;
+    public String getPlainTextPassword() {
+        return plainTextPassword;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
+    public void setPlainTextPassword(String plainTextPassword) {
+        this.plainTextPassword = plainTextPassword;
     }
    
 }

@@ -33,6 +33,7 @@ import { TechChoices } from "./tech-choices";
 import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import useApi from "@/hooks/use-api";
 import { Textarea } from "@/components/ui/textarea";
+import { useSseAssessmentCreation } from "@/hooks/use-sse-assessment-creation";
 
 // Create a schema for the assessment creation form
 const createAssessmentSchema = z.object({
@@ -185,16 +186,9 @@ export function CreateAssessmentForm() {
   //   form.setValue("model", defaultModel, { shouldValidate: true, shouldDirty: true });
   // }
 
-  // Create assessment mutation
-  const createAssessmentMutation = useMutation({
-    mutationFn: async (data: CreateAssessmentFormValues) => {
-      const res = await apiCall("/api/assessments/new", {
-        method: "POST",
-        body: JSON.stringify(data)
-      });
-      return res;
-    },
-    onSuccess: async (data: any) => {
+  // SSE Assessment creation hook
+  const { createAssessment, isLoading: isSseLoading, isConnected } = useSseAssessmentCreation({
+    onAssessmentCreated: async (data: any) => {
       // Invalidate all assessment-related queries to ensure fresh data
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['assessments'] }),
@@ -205,7 +199,7 @@ export function CreateAssessmentForm() {
       // Force refetch the assessments data to ensure it's fresh
       await queryClient.refetchQueries({ queryKey: ['assessments'] });
       
-      const newAssessmentId = data?.assessment?.id ?? data?.id;
+      const newAssessmentId = data?.assessmentId;
       toast({
         title: "Assessment created",
         description: "Your assessment has been created successfully",
@@ -216,10 +210,10 @@ export function CreateAssessmentForm() {
         navigate("/assessments");
       }
     },
-    onError: (error: Error) => {
+    onError: (error: string) => {
       toast({
         title: "Failed to create assessment",
-        description: error.message,
+        description: error,
         variant: "destructive",
       });
     },
@@ -338,8 +332,8 @@ export function CreateAssessmentForm() {
         });
       }
       
-      // Proceed with assessment creation
-      createAssessmentMutation.mutate(apiData);
+      // Proceed with assessment creation using SSE
+      createAssessment(apiData);
     } catch (error) {
       console.error('Error in form submission:', error);
       toast({
@@ -588,11 +582,19 @@ export function CreateAssessmentForm() {
         <Button
           type="submit"
           form="assessment-form"
-          disabled={createAssessmentMutation.isPending || isCheckingGitHub}
+          disabled={isSseLoading || isCheckingGitHub}
           className="bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-600/20 border-0"
         >
-          {isCheckingGitHub ? "Checking GitHub..." : createAssessmentMutation.isPending ? "Creating..." : "Create Assessment"}
+          {isCheckingGitHub ? "Checking GitHub..." : isSseLoading ? "Creating..." : "Create Assessment"}
         </Button>
+        
+        {/* SSE Connection Status Indicator */}
+        {isSseLoading && (
+          <div className="flex items-center gap-2 text-sm text-slate-400">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span>Connected to AI - Creating assessment...</span>
+          </div>
+        )}
       </div>
 
       {/* Add top padding to prevent content from being hidden behind the fixed header */}
@@ -1078,12 +1080,32 @@ export function CreateAssessmentForm() {
                 </Button> */}
                 <Button
                   type="submit"
-                  disabled={createAssessmentMutation.isPending || isCheckingGitHub}
+                  disabled={isSseLoading || isCheckingGitHub}
                   className="bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-600/20 border-0"
                 >
-                  {isCheckingGitHub ? "Checking GitHub..." : createAssessmentMutation.isPending ? "Creating..." : "Create Assessment"}
+                  {isCheckingGitHub ? "Checking GitHub..." : isSseLoading ? "Creating..." : "Create Assessment"}
                 </Button>
               </div>
+              
+              {/* Real-time Progress Indicator */}
+              {isSseLoading && (
+                <motion.div
+                  className="mt-4 p-4 bg-slate-800/60 border border-slate-700/50 rounded-lg backdrop-blur-sm"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-white">AI is creating your assessment</div>
+                      <div className="text-xs text-slate-400 mt-1">
+                        {isConnected ? "Connected to AI - Processing..." : "Connecting to AI..."}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
             </form>
           </Form>
 

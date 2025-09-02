@@ -2,8 +2,6 @@ package com.delphi.delphi.controllers;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -23,12 +21,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.components.RedisService;
+import com.delphi.delphi.dtos.AuthenticateCandidateDto;
 import com.delphi.delphi.dtos.FetchCandidateAttemptDto;
 import com.delphi.delphi.dtos.InviteCandidateDto;
 import com.delphi.delphi.dtos.PaginatedResponseDto;
 import com.delphi.delphi.dtos.PreviewAssessmentDto;
 import com.delphi.delphi.dtos.StartAttemptDto;
 import com.delphi.delphi.dtos.UpdateCandidateAttemptDto;
+import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateCacheDto;
 import com.delphi.delphi.dtos.filter_queries.GetCandidateAttemptsDto;
@@ -60,9 +60,6 @@ public class CandidateAttemptController {
     private final RedisService redisService;
     private final GithubService githubService;
     private final String tokenCacheKeyPrefix = "candidate_github_token:";
-    private final String githubCacheKeyPrefix = "github_install_url_random_string:";
-    private final String usernameCacheKeyPrefix = "candidate_github_username:";
-    private final String appInstallBaseUrl;
 
     public CandidateAttemptController(CandidateAttemptService candidateAttemptService,
             AssessmentService assessmentService,
@@ -77,7 +74,6 @@ public class CandidateAttemptController {
         this.candidateService = candidateService;
         this.redisService = redisService;
         this.githubService = githubService;
-        this.appInstallBaseUrl = String.format("https://github.com/apps/%s/installations/new", githubAppName);
         this.encryptionService = encryptionService;
     }
 
@@ -86,6 +82,7 @@ public class CandidateAttemptController {
     public ResponseEntity<?> inviteCandidate(@Valid @RequestBody InviteCandidateDto inviteCandidateDto) {
         try {
             // Fetch the candidate and assessment entities
+            
             Candidate candidate = candidateRepository.findById(inviteCandidateDto.getCandidateId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Candidate not found with id: " + inviteCandidateDto.getCandidateId()));
@@ -110,41 +107,38 @@ public class CandidateAttemptController {
         }
     }
 
-    // Start a new candidate attempt
+    /**
+     * check if provided email and password match. If so, generate a github install url and return it
+     * @param authenticateCandidateDto
+     * @return
+     */
+    @PostMapping("/live/authenticate")
+    public ResponseEntity<?> authenticateCandidate(@Valid @RequestBody AuthenticateCandidateDto authenticateCandidateDto) {
+        try {
+            String url = candidateAttemptService.authenticateCandidate(authenticateCandidateDto);
+            return ResponseEntity.ok(Map.of("url", url));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error authenticating candidate: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Update DB and create the candidate's github repo
+     * @param startAttemptDto
+     * @return
+     */
     @PostMapping("/start")
     public ResponseEntity<?> startCandidateAttempt(@Valid @RequestBody StartAttemptDto startAttemptDto) {
         try {
             CandidateCacheDto candidate = candidateService.getCandidateByEmail(startAttemptDto.getCandidateEmail());
-            Assessment assessment = assessmentService.getAssessmentById(startAttemptDto.getAssessmentId());
-
-            // Check if the candidate has a github token and username
-            Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + candidate.getEmail());
-            Object candidateGithubUsername = redisService.get(usernameCacheKeyPrefix + candidate.getEmail());
-
-            if (candidateGithubToken == null || candidateGithubUsername == null
-                    || githubService.validateGithubCredentials(candidateGithubToken.toString()) == null) {
-                return ResponseEntity.ok(
-                        "Github account not connected. Please connect your Github account to start the assessment.");
-            }
-            
-            String githubUsername = candidateGithubUsername.toString();
+            AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(startAttemptDto.getAssessmentId());
 
             // Updating DB with full GitHub repository URL
             CandidateAttemptCacheDto createdAttempt = candidateAttemptService.startAttempt(
                     candidate,
                     assessment,
-                    startAttemptDto.getLanguageChoice(),
-                    startAttemptDto.getPassword(),
-                    githubUsername);
-
-            // Creating candidate github repo
-            String templateOwner = assessment.getUser().getGithubUsername();
-            String templateRepoName = assessment.getGithubRepoName();
-            String githubAccessToken = encryptionService.decrypt(candidateGithubToken.toString());
-
-            // Extract repository name from the full URL for GitHub API call
-            String repoName = createdAttempt.getGithubRepositoryLink().substring(createdAttempt.getGithubRepositoryLink().lastIndexOf("/") + 1);
-            githubService.createPersonalRepoFromTemplate(githubAccessToken, templateOwner, templateRepoName, repoName);
+                    startAttemptDto.getLanguageChoice());
 
             return ResponseEntity.status(HttpStatus.CREATED).body(new FetchCandidateAttemptDto(createdAttempt));
         } catch (IllegalArgumentException e) {
@@ -415,19 +409,22 @@ public class CandidateAttemptController {
     }
 
     // for candidates to generate a github install url
-    @PostMapping("/live/github/generate-install-url")
-    public ResponseEntity<?> generateGitHubInstallUrl(@RequestBody String candidateEmail) {
-        try {
-            String randomString = UUID.randomUUID().toString();
-            redisService.setWithExpiration(githubCacheKeyPrefix + candidateEmail, randomString, 10, TimeUnit.MINUTES);
-            String installUrl = String.format("%s?state=%s_candidate_%s", appInstallBaseUrl, randomString,
-                    candidateEmail);
-            return ResponseEntity.ok(installUrl);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error generating GitHub install URL: " + e.getMessage());
-        }
-    }
+    // @PostMapping("/live/github/generate-install-url")
+    // public ResponseEntity<?> generateGitHubInstallUrl(@RequestBody GenerateInstallUrlDto request) {
+    //     try {
+            
+    //         String candidateEmail = request.getCandidateEmail();
+    //         String plainTextPassword = request.getPlainTextPassword();
+
+    //         String randomString = UUID.randomUUID().toString();
+    //         redisService.setWithExpiration(githubCacheKeyPrefix + candidateEmail, randomString, 10, TimeUnit.MINUTES);
+    //         String installUrl = String.format("%s?state=%s_candidate_%s", appInstallBaseUrl, randomString, candidateEmail);
+    //         return ResponseEntity.ok(installUrl);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error generating GitHub install URL: " + e.getMessage());
+    //     }
+    // }
 
     @GetMapping("/live/{assessmentId}/can-take-assessment")
     public ResponseEntity<?> canTakeAssessment(@PathVariable Long assessmentId, @RequestBody String candidateEmail) {
@@ -456,14 +453,8 @@ public class CandidateAttemptController {
     @GetMapping("/live/has-valid-github-token")
     public ResponseEntity<?> hasValidGithubToken(@RequestBody String email) {
         try {
-            Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + email);
-
-            // get a new token if the candidate doesn't have one or if the token is invalid
-            if (candidateGithubToken == null || githubService
-                    .validateGithubCredentials(encryptionService.decrypt(candidateGithubToken.toString())) == null) {
-                return ResponseEntity.ok(Map.of("result", false));
-            }
-            return ResponseEntity.ok(Map.of("result", true));
+            boolean hasValidGithubToken = candidateAttemptService.hasValidGithubToken(email);
+            return ResponseEntity.ok(Map.of("result", hasValidGithubToken));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error checking if candidate has valid Github token: " + e.getMessage());
@@ -568,22 +559,22 @@ public class CandidateAttemptController {
         }
     }
 
-    @PostMapping("/{id}/authenticate-candidate")
-    public ResponseEntity<?> inviteCandidateToAssessment(@PathVariable Long id, @RequestBody String email) {
-        try {
-            Assessment assessment = assessmentService.getAssessmentById(id);
-            if (assessment.getCandidates().stream()
-                    .anyMatch(c -> c.getEmail().toLowerCase().equals(email.toLowerCase()))) {
-                return ResponseEntity.ok("Candidate authenticated");
-            }
-            return ResponseEntity.badRequest().body("Candidate not authorized to take this assessment");
+    // @PostMapping("/{id}/authenticate-candidate")
+    // public ResponseEntity<?> inviteCandidateToAssessment(@PathVariable Long id, @RequestBody String email) {
+    //     try {
+    //         Assessment assessment = assessmentService.getAssessmentById(id);
+    //         if (assessment.getCandidates().stream()
+    //                 .anyMatch(c -> c.getEmail().toLowerCase().equals(email.toLowerCase()))) {
+    //             return ResponseEntity.ok("Candidate authenticated");
+    //         }
+    //         return ResponseEntity.badRequest().body("Candidate not authorized to take this assessment");
 
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error authenticating candidate: " + e.getMessage() + " " + email
-                            + " - is this candidate authorized to take this assessment?");
-        }
-    }
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error authenticating candidate: " + e.getMessage() + " " + email
+    //                         + " - is this candidate authorized to take this assessment?");
+    //     }
+    // }
 
     // Start attempt
     // @PostMapping("/{assessmentId}/start")

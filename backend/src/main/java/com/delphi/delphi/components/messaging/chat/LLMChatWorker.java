@@ -39,15 +39,16 @@ public class LLMChatWorker {
         Job job = jobRepository.findById(publishLLMChatJobDto.getJobId()).orElseThrow(() -> new RuntimeException("Job not found"));
         try {
             job.setStatus(JobStatus.RUNNING);
-            jobRepository.save(job);
+            job = jobRepository.save(job);
             
             // Send SSE event that job is running
             chatService.sendSseEvent(publishLLMChatJobDto.getJobId(), "job_running", 
                 Map.of("message", "Processing chat completion", "jobId", publishLLMChatJobDto.getJobId().toString()));
             
             List<Message> existingMessages = assessmentService.getChatMessagesById(publishLLMChatJobDto.getAssessmentId()).stream().map(ChatMessageCacheDto::toMessage).collect(Collectors.toList());
-                // Agent loop
-            List<ChatMessageCacheDto> messages = chatService.getChatCompletion(
+            // Agent loop
+            chatService.getChatCompletion(
+                job.getId(),
                 existingMessages,
                 publishLLMChatJobDto.getMessageText(), 
                 publishLLMChatJobDto.getModel(), 
@@ -57,17 +58,23 @@ public class LLMChatWorker {
                 publishLLMChatJobDto.getGithubRepoName()
             );
 
+            log.info("Chat completion completed + cached");
+
             log.info("Saving completed chat completion job with ID: {}", publishLLMChatJobDto.getJobId().toString());    
             job.setStatus(JobStatus.COMPLETED);
             job.setResult("Chat completion completed");
             jobRepository.save(job);
             
+            log.info("Sending SSE event with the new messages");
             // Send SSE event with the new messages
-            chatService.sendSseEvent(publishLLMChatJobDto.getJobId(), "chat_completed", 
-                Map.of("messages", messages, "jobId", publishLLMChatJobDto.getJobId().toString()));
+            //chatService.sendSseEvent(publishLLMChatJobDto.getJobId(), "chat_completed", 
+                //Map.of("messages", messages, "jobId", publishLLMChatJobDto.getJobId().toString()));
             
+            log.info("Completing SSE emitter");
             // Complete the SSE emitter
             chatService.completeSseEmitter(publishLLMChatJobDto.getJobId());
+
+            log.info("Chat completion job completed");
 
         } catch (IllegalArgumentException e) {
             job.setStatus(JobStatus.FAILED);

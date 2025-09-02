@@ -27,13 +27,14 @@ import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.ai.support.ToolCallbacks;
-import org.springframework.cache.annotation.CacheEvict;
+// import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.delphi.delphi.components.GithubTools;
+import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.components.ToolCallHandler;
 import com.delphi.delphi.dtos.cache.ChatMessageCacheDto;
 import com.delphi.delphi.entities.Assessment;
@@ -78,6 +79,8 @@ public class ChatService {
 
     private final GithubTools githubTools;
 
+    private final RedisService redisService;
+
     private final String PRESET = "assessment-creation";
     private final boolean PARALLEL_TOOL_CALLS = true;
 
@@ -91,7 +94,8 @@ public class ChatService {
             OpenAIToolCallRepository openAIToolCallRepository,
             OpenAIToolResponseRepository openAIToolResponseRepository,
             ToolCallHandler toolCallHandler,
-            GithubTools githubTools) {
+            GithubTools githubTools,
+            RedisService redisService) {
         this.chatMessageRepository = chatMessageRepository;
         this.chatModel = chatModel;
         this.assessmentRepository = assessmentRepository;
@@ -99,6 +103,7 @@ public class ChatService {
         this.openAIToolResponseRepository = openAIToolResponseRepository;
         this.toolCallHandler = toolCallHandler;
         this.githubTools = githubTools;
+        this.redisService = redisService;
     }
 
     /**
@@ -114,7 +119,7 @@ public class ChatService {
      * Stops agent execution to wait for user confirmation/feedback
      */
     // @Cacheable(value = "chatCompletions", key = "#chatHistoryId")
-    public List<ChatMessageCacheDto> getChatCompletion(List<Message> existingMessages,String userMessage,
+    public List<ChatMessageCacheDto> getChatCompletion(UUID jobId, List<Message> existingMessages,String userMessage,
             String model, Long assessmentId, String encryptedGithubToken, String githubUsername,
             String githubRepoName) {
         try {
@@ -151,7 +156,9 @@ public class ChatService {
 
             // update conversation history in memory
             // TODO: add the user message to the cache in Redis
-            newMessages.add(new UserMessage(userMessage));
+            UserMessage userMsg = new UserMessage(userMessage);
+            newMessages.add(userMsg);
+            sendSseEvent(jobId, "message", userMsg);
 
             // printing all messages in context window
             log.info("--------------------------------");
@@ -212,6 +219,7 @@ public class ChatService {
                 if (!generation.getOutput().hasToolCalls()) {
                     // TODO: add the message to the newMessagescache in Redis
                     newMessages.add(generation.getOutput());
+                    sendSseEvent(jobId, "message", generation.getOutput());
                 }
                 count++;
             }
@@ -263,6 +271,7 @@ public class ChatService {
 
                         // TODO: add the message to the newMessagescache in Redis
                         newMessages.add(generation.getOutput());
+                        sendSseEvent(jobId, "message", generation.getOutput());
 
                         log.info("Going through tool calls...");
                         List<ToolResponse> toolResponses = new ArrayList<>();
@@ -279,11 +288,13 @@ public class ChatService {
                                     // store the actual message content as an assistant message
                                     // TODO: add the message to the newMessagescache in Redis
                                     newMessages.add(new AssistantMessage(messageContent));
+                                    sendSseEvent(jobId, "message", new AssistantMessage(messageContent));
                                 } catch (JsonProcessingException e) {
                                     log.error("Error parsing sendMessageToUser arguments: {}", e.getMessage());
                                     // Fallback: use the raw arguments if parsing fails
                                     // TODO: add the message to the newMessagescache in Redis
                                     newMessages.add(new AssistantMessage(toolCall.arguments()));
+                                    sendSseEvent(jobId, "message", new AssistantMessage(toolCall.arguments()));
                                 }
                                 endConversation = true;
                                 break;
@@ -301,6 +312,7 @@ public class ChatService {
                         // generate a tool response message
                         // TODO: add the message to the newMessagescache in Redis
                         newMessages.add(new ToolResponseMessage(toolResponses));
+                        sendSseEvent(jobId, "message", new ToolResponseMessage(toolResponses));
                     }
 
                     if (endConversation) {
@@ -378,7 +390,7 @@ public class ChatService {
      * Stops agent execution to wait for user confirmation/feedback
      */
     // @Cacheable(value = "chatCompletions", key = "#chatHistoryId")
-    public List<ChatMessageCacheDto> getChatCompletion(List<Message> existingMessages, String userPromptTemplateMessage, Map<String, Object> userPromptVariables,
+    public List<ChatMessageCacheDto> getChatCompletion(UUID jobId,List<Message> existingMessages, String userPromptTemplateMessage, Map<String, Object> userPromptVariables,
             String model, Long assessmentId, String encryptedGithubToken, String githubUsername,
             String githubRepoName) {
         try {
@@ -421,6 +433,7 @@ public class ChatService {
             // update conversation history in memory
             // TODO: add the user message to the cache in Redis
             newMessages.add(userMessage);
+            sendSseEvent(jobId, "message", userMessage);
 
             // printing all messages in context window
             log.info("--------------------------------");
@@ -477,6 +490,7 @@ public class ChatService {
 
                 if (!generation.getOutput().hasToolCalls()) {
                     newMessages.add(generation.getOutput());
+                    sendSseEvent(jobId, "message", generation.getOutput());
                 }
                 count++;
             }
@@ -527,7 +541,7 @@ public class ChatService {
                         log.info("--------------------------------");
 
                         newMessages.add(generation.getOutput());
-
+                        sendSseEvent(jobId, "message", generation.getOutput());
                         List<ToolResponse> toolResponses = new ArrayList<>();
                         for (ToolCall toolCall : generation.getOutput().getToolCalls()) {
                             if (toolCall.name().equals("sendMessageToUser")) {
@@ -539,10 +553,12 @@ public class ChatService {
                                     String messageContent = (String) args.get("message");
                                     // store the actual message content as an assistant message
                                     newMessages.add(new AssistantMessage(messageContent));
+                                    sendSseEvent(jobId, "message", new AssistantMessage(messageContent));
                                 } catch (JsonProcessingException e) {
                                     log.error("Error parsing sendMessageToUser arguments: {}", e.getMessage());
                                     // Fallback: use the raw arguments if parsing fails
                                     newMessages.add(new AssistantMessage(toolCall.arguments()));
+                                    sendSseEvent(jobId, "message", new AssistantMessage(toolCall.arguments()));
                                 }
                                 endConversation = true;
                                 break;
@@ -558,6 +574,7 @@ public class ChatService {
                         }
                         // generate a tool response message
                         newMessages.add(new ToolResponseMessage(toolResponses));
+                        sendSseEvent(jobId, "message", new ToolResponseMessage(toolResponses));
                     }
 
                     if (endConversation) {
@@ -881,6 +898,7 @@ public class ChatService {
 
     /**
      * Storing in memory conversation history to primary DB
+     * Writing a batch of chat messages to PostgreSQL at a time
      */
     public List<ChatMessageCacheDto> addMessagesToChatHistory(List<Message> messages, Assessment assessment, String model) {
         List<ChatMessageCacheDto> savedDtos = new ArrayList<>();
@@ -909,6 +927,18 @@ public class ChatService {
             // Persist the chat message
             ChatMessage savedChatMessage = chatMessageRepository.save(new ChatMessage(message, assessment, model));
 
+            // 1. Update individual message cache
+            redisService.set("cache:chat_messages:message:" + savedChatMessage.getId(), new ChatMessageCacheDto(savedChatMessage));
+
+            // 2. Update assessment cache by adding the new message to the existing list
+            String assessmentCacheKey = "cache:chat_messages:assessment:" + assessment.getId();
+            List<ChatMessageCacheDto> existingMessages = getMessagesByAssessmentId(assessment.getId());
+            
+            // Add the new message to the existing list
+            existingMessages.add(new ChatMessageCacheDto(savedChatMessage));
+            
+            // Update the assessment cache with the updated list
+            redisService.set(assessmentCacheKey, existingMessages);
             // Persist tool calls or tool responses depending on message type
             switch (savedChatMessage.getMessageType()) {
                 case MessageType.ASSISTANT -> {
@@ -936,6 +966,7 @@ public class ChatService {
             }
 
             savedDtos.add(new ChatMessageCacheDto(savedChatMessage));
+                        
         }
 
         log.info("Saved {} chat messages to DB", savedDtos.size());
@@ -943,68 +974,69 @@ public class ChatService {
     }
 
         /**
+         * Deprecated
          * Storing in memory conversation history to DB
          */
-    public ChatMessageCacheDto addMessageToChatHistory(AbstractMessage message, Assessment assessment, String model)
-            throws Exception {
-        if (message.getText() == null || message.getText().isEmpty() || message.getText().isBlank()) {
-            if (message instanceof AssistantMessage assistantMessage 
-                && (assistantMessage.getToolCalls() == null
-                    || assistantMessage.getToolCalls().isEmpty())) {
-                log.info("AssistantMessage text is empty or null and tool calls are empty or null, skipping...");
-                return null;
-            }
-            else if (message instanceof ToolResponseMessage toolResponseMessage
-                    && (toolResponseMessage.getResponses() == null
-                            || toolResponseMessage.getResponses().isEmpty())) {
-                log.info("ToolResponseMessage text is empty or null and tool responses are empty or null, skipping...");
-                return null;
-            }
-        }
+    // public ChatMessageCacheDto addMessageToChatHistory(AbstractMessage message, Assessment assessment, String model)
+    //         throws Exception {
+    //     if (message.getText() == null || message.getText().isEmpty() || message.getText().isBlank()) {
+    //         if (message instanceof AssistantMessage assistantMessage 
+    //             && (assistantMessage.getToolCalls() == null
+    //                 || assistantMessage.getToolCalls().isEmpty())) {
+    //             log.info("AssistantMessage text is empty or null and tool calls are empty or null, skipping...");
+    //             return null;
+    //         }
+    //         else if (message instanceof ToolResponseMessage toolResponseMessage
+    //                 && (toolResponseMessage.getResponses() == null
+    //                         || toolResponseMessage.getResponses().isEmpty())) {
+    //             log.info("ToolResponseMessage text is empty or null and tool responses are empty or null, skipping...");
+    //             return null;
+    //         }
+    //     }
 
-        ChatMessage chatMessage = new ChatMessage(message, assessment, model);
+    //     ChatMessage chatMessage = new ChatMessage(message, assessment, model);
 
-        // Save the ChatMessage first to get its ID
-        ChatMessage savedChatMessage = chatMessageRepository.save(chatMessage);
+    //     // Save the ChatMessage first to get its ID
+    //     ChatMessage savedChatMessage = chatMessageRepository.save(chatMessage);
 
-        switch (message.getMessageType()) {
-            case MessageType.ASSISTANT -> {
-                log.info("ADDING ASSISTANT MESSAGE TO CHAT HISTORY");
-                // save tool calls in DB after ChatMessage is saved
-                if (savedChatMessage.getToolCalls() != null && !savedChatMessage.getToolCalls().isEmpty()) {
-                    savedChatMessage.getToolCalls().stream().map(toolCall -> {
-                        toolCall.setChatMessage(savedChatMessage);
-                        return openAIToolCallRepository.save(toolCall);
-                    }).collect(Collectors.toList());
-                }
-                break;
-            }
-            case MessageType.USER -> {
-                log.info("ADDING USER MESSAGE TO CHAT HISTORY");
-                break;
-            }
-            // case MessageType.SYSTEM -> {
-            // return addMessageToChatHistory(new ChatMessage(message, assessment,
-            // message.getModel()));
-            // }
-            case MessageType.TOOL -> {
-                log.info("ADDING TOOL RESPONSE MESSAGE TO CHAT HISTORY");
-                // save tool responses in DB after ChatMessage is saved
-                if (savedChatMessage.getToolResponses() != null && !savedChatMessage.getToolResponses().isEmpty()) {
-                    savedChatMessage.getToolResponses().stream().map(toolResponse -> {
-                        toolResponse.setChatMessage(savedChatMessage);
-                        return openAIToolResponseRepository.save(toolResponse);
-                    }).collect(Collectors.toList());
-                }
-                break;
-            }
-            default -> {
-                throw new IllegalArgumentException("Invalid message type: " + message.getMessageType());
-            }
-        }
+    //     switch (message.getMessageType()) {
+    //         case MessageType.ASSISTANT -> {
+    //             log.info("ADDING ASSISTANT MESSAGE TO CHAT HISTORY");
+    //             // save tool calls in DB after ChatMessage is saved
+    //             if (savedChatMessage.getToolCalls() != null && !savedChatMessage.getToolCalls().isEmpty()) {
+    //                 savedChatMessage.getToolCalls().stream().map(toolCall -> {
+    //                     toolCall.setChatMessage(savedChatMessage);
+    //                     return openAIToolCallRepository.save(toolCall);
+    //                 }).collect(Collectors.toList());
+    //             }
+    //             break;
+    //         }
+    //         case MessageType.USER -> {
+    //             log.info("ADDING USER MESSAGE TO CHAT HISTORY");
+    //             break;
+    //         }
+    //         // case MessageType.SYSTEM -> {
+    //         // return addMessageToChatHistory(new ChatMessage(message, assessment,
+    //         // message.getModel()));
+    //         // }
+    //         case MessageType.TOOL -> {
+    //             log.info("ADDING TOOL RESPONSE MESSAGE TO CHAT HISTORY");
+    //             // save tool responses in DB after ChatMessage is saved
+    //             if (savedChatMessage.getToolResponses() != null && !savedChatMessage.getToolResponses().isEmpty()) {
+    //                 savedChatMessage.getToolResponses().stream().map(toolResponse -> {
+    //                     toolResponse.setChatMessage(savedChatMessage);
+    //                     return openAIToolResponseRepository.save(toolResponse);
+    //                 }).collect(Collectors.toList());
+    //             }
+    //             break;
+    //         }
+    //         default -> {
+    //             throw new IllegalArgumentException("Invalid message type: " + message.getMessageType());
+    //         }
+    //     }
 
-        return new ChatMessageCacheDto(savedChatMessage);
-    }
+    //     return new ChatMessageCacheDto(savedChatMessage);
+    // }
 
     // @CachePut(value = "chatHistories", key = "#result.id")
     // public ChatMessageCacheDto addMessageToChatHistory(ChatMessage message)
@@ -1179,7 +1211,7 @@ public class ChatService {
     /*
      * Get a message by message id
      */
-    @Cacheable(value = "chatMessages", key = "#id")
+    @Cacheable(value = "chat_messages", key = "'message:' + #id")
     public ChatMessageCacheDto getMessageById(Long id) throws Exception {
         return new ChatMessageCacheDto(chatMessageRepository.findById(id)
                 .orElseThrow(() -> new Exception("Chat message not found with id: " + id)));
@@ -1190,7 +1222,7 @@ public class ChatService {
     // return chatMessageRepository.save(message);
     // }
 
-    @Cacheable(value = "chatMessages", key = "#assessmentId")
+    @Cacheable(value = "chat_messages", key = "'assessment:' + #assessmentId")
     @Transactional(readOnly = true)
     public List<ChatMessageCacheDto> getMessagesByAssessmentId(Long assessmentId) {
         return chatMessageRepository.findByAssessmentIdOrderByCreatedAtAsc(assessmentId).stream()
@@ -1206,12 +1238,30 @@ public class ChatService {
     // return chatMessageRepository.save(existingMessage);
     // }
 
-    @CacheEvict(value = "chatMessages", key = "#id")
-    public void deleteMessage(Long id) throws Exception {
-        ChatMessage existingMessage = chatMessageRepository.findById(id)
-                .orElseThrow(() -> new Exception("Chat message not found with id: " + id));
-        chatMessageRepository.delete(existingMessage);
-    }
+    // @CacheEvict(value = "chat_messages", beforeInvocation = true, key = "message:" + "#id")
+    // public void deleteMessage(Long id) throws Exception {
+    //     // Get the message first to find its assessment ID before deletion
+    //     ChatMessage message = chatMessageRepository.findById(id)
+    //             .orElseThrow(() -> new Exception("Chat message not found with id: " + id));
+        
+    //     Long assessmentId = message.getAssessment().getId();
+        
+    //     // Delete the message from the database
+    //     chatMessageRepository.deleteById(id);
+        
+    //     // Update the assessment cache by removing the deleted message
+    //     // Get fresh data from the database to ensure we have the most up-to-date list
+    //     List<ChatMessage> freshMessages = chatMessageRepository.findByAssessmentIdOrderByCreatedAtAsc(assessmentId);
+    //     List<ChatMessageCacheDto> currentMessages = freshMessages.stream()
+    //             .map(ChatMessageCacheDto::new)
+    //             .collect(Collectors.toList());
+        
+    //     // Update the assessment cache with the fresh list (which no longer contains the deleted message)
+    //     // The cache key should match the @Cacheable annotation format
+    //     redisService.set("chat_messages:assessment:" + assessmentId, currentMessages);
+        
+    //     log.info("Deleted message with id: {} and updated assessment cache for assessment: {}", id, assessmentId);
+    // }
 
     /**
      * SSE Emitter Management Methods

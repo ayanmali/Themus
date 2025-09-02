@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, Code, BookOpen, Users, CheckCircle, AlertCircle, Play } from 'lucide-react';
+import { Clock, Code, BookOpen, Users, CheckCircle, AlertCircle, Play, Info } from 'lucide-react';
 import { Assessment } from '@/lib/types/assessment';
 import { minutesToHours } from '@/lib/utils';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -8,6 +8,7 @@ import { navigate } from 'wouter/use-browser-location';
 import { useParams } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import useApi from '@/hooks/use-api';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 export default function CandidateAssessmentPreview() {
     const [selectedLanguage, setSelectedLanguage] = useState('');
@@ -44,9 +45,15 @@ export default function CandidateAssessmentPreview() {
 
     const handleStart = async () => {
         // Github app installation URL with state parameter specifying this is a candidate installation
-        const githubInstallUrl: string = await apiCall(`/api/attempts/live/github/generate-install-url?email=${email}`, {
+        const githubInstallUrl: string = await apiCall(`/api/attempts/live/github/generate-install-url`, {
             method: 'POST',
+            body: JSON.stringify({
+                candidateEmail: email,
+                plainTextPassword: password,
+            }),
         });
+
+        console.log('GitHub install URL:', githubInstallUrl);
 
         if (assessment?.languageOptions?.length && !selectedLanguage) {
             alert('Please select a language/framework combination before starting.');
@@ -335,7 +342,19 @@ export default function CandidateAssessmentPreview() {
                             </div>
                         </div>
                         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                            <h3 className="text-lg font-semibold text-white mb-4">Password</h3>
+                            <div className="flex items-center gap-x-2">
+                                <h3 className="text-lg font-semibold text-white mb-4">Password</h3>
+                                <TooltipProvider delayDuration={100}>
+                                    <Tooltip>
+                                        <TooltipTrigger className="cursor-pointer">
+                                            <Info className="w-4 h-4" />
+                                        </TooltipTrigger>
+                                        <TooltipContent className="bg-slate-700 border-slate-600 text-gray-100">
+                                            <p>Enter the password provided in the email invitation to start the assessment (case-sensitive)</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
                             <div className="space-y-2">
                                 {/* <label className="block text-sm font-medium text-gray-300 mb-2">
                                         Language/Framework Combination

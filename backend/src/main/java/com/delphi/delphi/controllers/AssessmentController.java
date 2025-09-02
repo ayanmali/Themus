@@ -166,12 +166,84 @@ public class AssessmentController {
         }
     }
 
+    // /*
+    //  * Create a new assessment
+    //  * Publishes a job to the LLM topic
+    //  */
+    // @PostMapping("/new")
+    // public ResponseEntity<?> createAssessment(@Valid @RequestBody NewAssessmentDto newAssessmentDto, HttpServletResponse response) {
+    //     try {
+    //         UserCacheDto user = getCurrentUser();
+    //         log.info("User's email: {}", user.getEmail());
+    //         log.info("User's id: {}", user.getId());
+    //         log.info("User's github access token: {}", user.getGithubAccessToken());
+    //         log.info("User's github username: {}", user.getGithubUsername());
+    //         log.info("User's github account type: {}", user.getGithubAccountType());
+    //         log.info("Assessmentcontroller - Checking if user is connected to github");
+
+    //         if (!userService.connectedGithub(user)) {
+    //             log.info("User is not connected to github, redirecting to installation page");
+    //             response.setHeader("Location", appInstallUrl);
+    //             response.setStatus(302);
+    //             return ResponseEntity.status(HttpStatus.FOUND).build();
+    //         }
+
+    //         log.info("User is connected to github, validating credentials");
+    //         Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user.getGithubAccessToken());
+    //         log.info("Github credentials validated: {}", githubCredentialsValid);
+    //         if (githubCredentialsValid == null) {
+    //             log.info("Github credentials are invalid, redirecting to installation page");
+    //             response.setHeader("Location", appInstallUrl);
+    //             response.setStatus(302);
+    //             return ResponseEntity.status(HttpStatus.FOUND).build();
+    //         }
+    //         log.info("Github credentials are valid, creating assessment");
+    //         // if user is not connected to github, redirect them to the installation page
+    //         log.info("assessment creation request received: {}", newAssessmentDto);
+    //         AssessmentCacheDto assessment = assessmentService.createAssessment(newAssessmentDto, user);
+    //         log.info("assessment created: {}", assessment);
+
+    //         // Publish to assessment creation queue instead of direct call
+    //         log.info("Passing form data to chat message queue");
+    //         // Long jobId = UUID.randomUUID().getMostSignificantBits();
+    //         Job job = new Job(JobStatus.PENDING, JobType.CREATE_ASSESSMENT);
+    //         job = jobRepository.save(job);
+
+    //         log.info("Job created: {}", job.getId());
+
+    //         PublishAssessmentCreationJobDto publishAssessmentCreationJobDto = new PublishAssessmentCreationJobDto(job.getId(), assessment, user, newAssessmentDto.getModel());
+    //         rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.CREATE_ASSESSMENT_ROUTING_KEY, publishAssessmentCreationJobDto);
+    //         log.info("Assessment creation job published to queue");
+
+    //         // String requestId = chatMessagePublisher.publishChatCompletionRequest(
+    //         //         AssessmentCreationPrompts.USER_PROMPT,
+    //         //         Map.of("ROLE", newAssessmentDto.getRole(),
+    //         //                 "DURATION", newAssessmentDto.getDuration(),
+    //         //                 "SKILLS", newAssessmentDto.getSkills(),
+    //         //                 "LANGUAGE_OPTIONS", newAssessmentDto.getLanguageOptions(),
+    //         //                 "OTHER_DETAILS", newAssessmentDto.getDescription()),
+    //         //         newAssessmentDto.getModel(),
+    //         //         assessment.getId(),
+    //         //         user.getId());
+
+    //         return ResponseEntity.status(HttpStatus.CREATED).body(
+    //                 Map.of("jobId", job.getId(), "status", JobStatus.PENDING.toString(), "assessment", new FetchAssessmentDto(assessment)));
+    //                         //"chatRequestId", requestId));
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error creating assessment: " + e.getMessage());
+    //     }
+    // }
+
     /*
      * Create a new assessment
      * Publishes a job to the LLM topic
+     * SSE Endpoint for real-time assessment creation
      */
-    @PostMapping("/new")
-    public ResponseEntity<?> createAssessment(@Valid @RequestBody NewAssessmentDto newAssessmentDto, HttpServletResponse response) {
+    @PostMapping(value = "/new", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter createAssessmentSse(@Valid @RequestBody NewAssessmentDto newAssessmentDto, HttpServletResponse response) {
+        SseEmitter emitter = new SseEmitter(300000L); // 5 minutes timeout
+        
         try {
             UserCacheDto user = getCurrentUser();
             log.info("User's email: {}", user.getEmail());
@@ -185,7 +257,12 @@ public class AssessmentController {
                 log.info("User is not connected to github, redirecting to installation page");
                 response.setHeader("Location", appInstallUrl);
                 response.setStatus(302);
-                return ResponseEntity.status(HttpStatus.FOUND).build();
+                // Send error event via SSE before redirecting
+                emitter.send(SseEmitter.event()
+                    .name("error")
+                    .data(Map.of("error", "GitHub connection required", "redirectUrl", appInstallUrl)));
+                emitter.complete();
+                return emitter;
             }
 
             log.info("User is connected to github, validating credentials");
@@ -195,44 +272,74 @@ public class AssessmentController {
                 log.info("Github credentials are invalid, redirecting to installation page");
                 response.setHeader("Location", appInstallUrl);
                 response.setStatus(302);
-                return ResponseEntity.status(HttpStatus.FOUND).build();
+                // Send error event via SSE before redirecting
+                emitter.send(SseEmitter.event()
+                    .name("error")
+                    .data(Map.of("error", "Invalid GitHub credentials", "redirectUrl", appInstallUrl)));
+                emitter.complete();
+                return emitter;
             }
+
             log.info("Github credentials are valid, creating assessment");
-            // if user is not connected to github, redirect them to the installation page
             log.info("assessment creation request received: {}", newAssessmentDto);
             AssessmentCacheDto assessment = assessmentService.createAssessment(newAssessmentDto, user);
             log.info("assessment created: {}", assessment);
 
+            // Send initial connection confirmation
+            emitter.send(SseEmitter.event()
+                .name("connected")
+                .data(Map.of("message", "Connected to assessment creation stream", "assessmentId", assessment.getId())));
+
             // Publish to assessment creation queue instead of direct call
             log.info("Passing form data to chat message queue");
-            // Long jobId = UUID.randomUUID().getMostSignificantBits();
             Job job = new Job(JobStatus.PENDING, JobType.CREATE_ASSESSMENT);
             job = jobRepository.save(job);
 
             log.info("Job created: {}", job.getId());
 
+            // Send job created confirmation
+            emitter.send(SseEmitter.event()
+                .name("job_created")
+                .data(Map.of("jobId", job.getId().toString(), "assessmentId", assessment.getId(), "status", JobStatus.PENDING.toString())));
+
             PublishAssessmentCreationJobDto publishAssessmentCreationJobDto = new PublishAssessmentCreationJobDto(job.getId(), assessment, user, newAssessmentDto.getModel());
             rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.CREATE_ASSESSMENT_ROUTING_KEY, publishAssessmentCreationJobDto);
             log.info("Assessment creation job published to queue");
 
-            // String requestId = chatMessagePublisher.publishChatCompletionRequest(
-            //         AssessmentCreationPrompts.USER_PROMPT,
-            //         Map.of("ROLE", newAssessmentDto.getRole(),
-            //                 "DURATION", newAssessmentDto.getDuration(),
-            //                 "SKILLS", newAssessmentDto.getSkills(),
-            //                 "LANGUAGE_OPTIONS", newAssessmentDto.getLanguageOptions(),
-            //                 "OTHER_DETAILS", newAssessmentDto.getDescription()),
-            //         newAssessmentDto.getModel(),
-            //         assessment.getId(),
-            //         user.getId());
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(
-                    Map.of("jobId", job.getId(), "status", JobStatus.PENDING.toString(), "assessment", new FetchAssessmentDto(assessment)));
-                            //"chatRequestId", requestId));
+            final UUID jobId = job.getId();
+            
+            // Store the emitter for later use when the job completes
+            chatService.registerSseEmitter(jobId, emitter);
+            
+            // Handle emitter completion/error
+            emitter.onCompletion(() -> {
+                log.info("SSE emitter completed for assessment creation job: {}", jobId);
+                chatService.removeSseEmitter(jobId);
+            });
+            
+            emitter.onTimeout(() -> {
+                log.info("SSE emitter timed out for assessment creation job: {}", jobId);
+                chatService.removeSseEmitter(jobId);
+            });
+            
+            emitter.onError((ex) -> {
+                log.error("SSE emitter error for assessment creation job: {}", jobId, ex);
+                chatService.removeSseEmitter(jobId);
+            });
+            
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error creating assessment: " + e.getMessage());
+            log.error("Error setting up SSE assessment creation: {}", e.getMessage(), e);
+            try {
+                emitter.send(SseEmitter.event()
+                    .name("error")
+                    .data(Map.of("error", "Failed to setup assessment creation stream: " + e.getMessage())));
+                emitter.complete();
+            } catch (Exception ex) {
+                log.error("Error sending error event: {}", ex.getMessage());
+            }
         }
+        
+        return emitter;
     }
 
     // @GetMapping("/test-agent")
@@ -262,7 +369,7 @@ public class AssessmentController {
     // }
     // }
     // Chat with the AI agent (SSE endpoint for real-time chat)
-    @PostMapping(value = "/chat/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatSse(@RequestBody NewUserMessageDto messageDto) {
         SseEmitter emitter = new SseEmitter(300000L); // 5 minutes timeout
         
@@ -326,34 +433,34 @@ public class AssessmentController {
     }
 
     // Chat with the AI agent (legacy synchronous endpoint)
-    @PostMapping("/chat")
-    public ResponseEntity<?> chat(@RequestBody NewUserMessageDto messageDto) {
-        try {
-            UserCacheDto user = getCurrentUser();
-            AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(messageDto.getAssessmentId());
-            // publish chat completion request to the chat message queue
-            log.info("Publishing chat completion request to the chat message queue");
-            // String jobId = UUID.randomUUID().toString();
-            Job job = new Job(JobStatus.PENDING, JobType.CHAT_COMPLETION);
-            job = jobRepository.save(job);
+    // @PostMapping("/chat")
+    // public ResponseEntity<?> chat(@RequestBody NewUserMessageDto messageDto) {
+    //     try {
+    //         UserCacheDto user = getCurrentUser();
+    //         AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(messageDto.getAssessmentId());
+    //         // publish chat completion request to the chat message queue
+    //         log.info("Publishing chat completion request to the chat message queue");
+    //         // String jobId = UUID.randomUUID().toString();
+    //         Job job = new Job(JobStatus.PENDING, JobType.CHAT_COMPLETION);
+    //         job = jobRepository.save(job);
 
-            PublishChatJobDto publishChatJobDto = new PublishChatJobDto(job.getId(), messageDto.getMessage(), assessment, user, messageDto.getModel());
-            rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.LLM_CHAT_ROUTING_KEY, publishChatJobDto);
-            log.info("Chat completion request published to queue");
-            // String requestId = chatMessagePublisher.publishChatCompletionRequest(
-            //         messageDto.getMessage(),
-            //         messageDto.getModel(),
-            //         messageDto.getAssessmentId(),
-            //         user.getId()
-            // );
+    //         PublishChatJobDto publishChatJobDto = new PublishChatJobDto(job.getId(), messageDto.getMessage(), assessment, user, messageDto.getModel());
+    //         rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.LLM_CHAT_ROUTING_KEY, publishChatJobDto);
+    //         log.info("Chat completion request published to queue");
+    //         // String requestId = chatMessagePublisher.publishChatCompletionRequest(
+    //         //         messageDto.getMessage(),
+    //         //         messageDto.getModel(),
+    //         //         messageDto.getAssessmentId(),
+    //         //         user.getId()
+    //         // );
 
-            // Return request ID for client to track the async response
-            return ResponseEntity.accepted().body(Map.of("jobId", job.getId().toString(), "assessmentId", assessment.getId(), "status", JobStatus.PENDING.toString()));
-        } catch (AmqpException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error submitting chat request: " + e.getMessage());
-        }
-    }
+    //         // Return request ID for client to track the async response
+    //         return ResponseEntity.accepted().body(Map.of("jobId", job.getId().toString(), "assessmentId", assessment.getId(), "status", JobStatus.PENDING.toString()));
+    //     } catch (AmqpException e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error submitting chat request: " + e.getMessage());
+    //     }
+    // }
 
     // Add an existing candidate to an assessment
     @PostMapping("/{assessmentId}/invite-candidate/{candidateId}")

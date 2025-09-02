@@ -1,32 +1,25 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ChatMessage } from '@/lib/types/chat-message';
 import useApi from './use-api';
 
-interface UseSseChatProps {
-  assessmentId: number;
-  onNewMessages: (messages: ChatMessage[]) => void;
+interface UseSseAssessmentCreationProps {
+  onAssessmentCreated?: (assessment: any) => void;
+  onError?: (error: string) => void;
 }
 
-export function useSseChat({ assessmentId, onNewMessages }: UseSseChatProps) {
+export function useSseAssessmentCreation({ onAssessmentCreated, onError }: UseSseAssessmentCreationProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const { apiCall } = useApi();
 
-  const sendMessage = useCallback(async (message: string, model: string, url: string) => {
-    if (!assessmentId) return;
-
+  const createAssessment = useCallback(async (assessmentData: any) => {
     setIsLoading(true);
     
     try {
-      // Send the message to create the job and get SSE connection
-      const response = await apiCall(url, {
+      // Send the assessment creation request and get SSE connection
+      const response = await apiCall('/api/assessments/new', {
         method: 'POST',
-        body: JSON.stringify({
-          message,
-          model,
-          assessmentId
-        }),
+        body: JSON.stringify(assessmentData),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -57,11 +50,14 @@ export function useSseChat({ assessmentId, onNewMessages }: UseSseChatProps) {
         }
       }
     } catch (error) {
-      console.error('Error with SSE chat:', error);
+      console.error('Error with SSE assessment creation:', error);
+      if (onError) {
+        onError('Failed to create assessment');
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [assessmentId, apiCall, onNewMessages]);
+  }, [apiCall, onAssessmentCreated, onError]);
 
   const handleSseEvent = useCallback((data: any) => {
     switch (data.event) {
@@ -75,21 +71,24 @@ export function useSseChat({ assessmentId, onNewMessages }: UseSseChatProps) {
       case 'job_running':
         console.log('Job running:', data.data);
         break;
-      case 'chat_completed':
-        console.log('Chat completed:', data.data);
-        if (data.data.messages) {
-          onNewMessages(data.data.messages);
+      case 'assessment_created':
+        console.log('Assessment created:', data.data);
+        if (onAssessmentCreated) {
+          onAssessmentCreated(data.data);
         }
         setIsConnected(false);
         break;
       case 'error':
         console.error('SSE error:', data.data);
+        if (onError) {
+          onError(data.data.error || 'Assessment creation failed');
+        }
         setIsConnected(false);
         break;
       default:
         console.log('Unknown SSE event:', data);
     }
-  }, [onNewMessages]);
+  }, [onAssessmentCreated, onError]);
 
   const disconnect = useCallback(() => {
     if (eventSourceRef.current) {
@@ -106,10 +105,9 @@ export function useSseChat({ assessmentId, onNewMessages }: UseSseChatProps) {
   }, [disconnect]);
 
   return {
-    sendMessage,
+    createAssessment,
     isConnected,
     isLoading,
     disconnect
   };
 }
-
