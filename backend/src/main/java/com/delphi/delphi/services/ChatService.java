@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.messages.AbstractMessage;
+
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.AssistantMessage.ToolCall;
 import org.springframework.ai.chat.messages.Message;
@@ -31,15 +31,14 @@ import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.delphi.delphi.components.GithubTools;
 import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.components.ToolCallHandler;
 import com.delphi.delphi.dtos.cache.ChatMessageCacheDto;
-import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.ChatMessage;
-import com.delphi.delphi.repositories.AssessmentRepository;
 import com.delphi.delphi.repositories.ChatMessageRepository;
 import com.delphi.delphi.repositories.OpenAIToolCallRepository;
 import com.delphi.delphi.repositories.OpenAIToolResponseRepository;
@@ -65,8 +64,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class ChatService {
 
-    private final AssessmentRepository assessmentRepository;
-
     private final ChatMessageRepository chatMessageRepository;
 
     private final OpenAIToolCallRepository openAIToolCallRepository;
@@ -90,7 +87,6 @@ public class ChatService {
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
 
     public ChatService(ChatMessageRepository chatMessageRepository, ChatModel chatModel,
-            AssessmentRepository assessmentRepository,
             OpenAIToolCallRepository openAIToolCallRepository,
             OpenAIToolResponseRepository openAIToolResponseRepository,
             ToolCallHandler toolCallHandler,
@@ -98,7 +94,6 @@ public class ChatService {
             RedisService redisService) {
         this.chatMessageRepository = chatMessageRepository;
         this.chatModel = chatModel;
-        this.assessmentRepository = assessmentRepository;
         this.openAIToolCallRepository = openAIToolCallRepository;
         this.openAIToolResponseRepository = openAIToolResponseRepository;
         this.toolCallHandler = toolCallHandler;
@@ -138,8 +133,8 @@ public class ChatService {
             // "old people"));
 
             // create a user message from the template and substitute the values
-            Assessment assessment = assessmentRepository.findById(assessmentId)
-                    .orElseThrow(() -> new Exception("Assessment not found with id: " + assessmentId));
+            // Assessment assessment = assessmentService.getAssessmentById(assessmentId);
+            //         .orElseThrow(() -> new Exception("Assessment not found with id: " + assessmentId));
 
             // add the user message to the messages list
             // addMessageToChatHistory(new UserMessage(userMessage.getText()), assessment,
@@ -165,8 +160,13 @@ public class ChatService {
             log.info("MESSAGES IN CONTEXT WINDOW:");
             for (Message message : Stream.concat(existingMessages.stream(), newMessages.stream()).toList()) {
                 log.info("Message Type: {}", message.getMessageType().toString());
-                log.info("Message: {}...{}", message.getText().substring(0, Math.min(message.getText().length(), 50)),
-                        message.getText().substring(Math.max(message.getText().length() - 30, 0)));
+                String messageText = message.getText();
+                if (messageText != null) {
+                    log.info("Message: {}...{}", messageText.substring(0, Math.min(messageText.length(), 50)),
+                            messageText.substring(Math.max(messageText.length() - 30, 0)));
+                } else {
+                    log.info("Message: null");
+                }
                 log.info("Message Metadata: {}", message.getMetadata().toString());
             }
             log.info("--------------------------------");
@@ -378,7 +378,7 @@ public class ChatService {
             // TODO: add each message in newMessages to chat_messages cache
             // ...
             // save new messages to primary DB (batch write)
-            return addMessagesToChatHistory(newMessages, assessment, model);
+            return addMessagesToChatHistory(newMessages, assessmentId, model);
         } catch (Exception e) {
             log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to get completion from AI service: " + e.getMessage(), e);
@@ -394,6 +394,7 @@ public class ChatService {
             String model, Long assessmentId, String encryptedGithubToken, String githubUsername,
             String githubRepoName) {
         try {
+            // Input validation
             if (userPromptTemplateMessage == null || userPromptTemplateMessage.isEmpty()) {
                 throw new Exception("User prompt template message cannot be empty");
             }
@@ -412,8 +413,9 @@ public class ChatService {
             // "old people"));
 
             // create a user message from the template and substitute the values
-            Assessment assessment = assessmentRepository.findById(assessmentId)
-                    .orElseThrow(() -> new Exception("Assessment not found with id: " + assessmentId));
+            
+            // Assessment assessment = assessmentService.findById(assessmentId)
+            //         .orElseThrow(() -> new Exception("Assessment not found with id: " + assessmentId));
 
             PromptTemplate userPromptTemplate = new PromptTemplate(userPromptTemplateMessage);
             Message userMessage = userPromptTemplate.createMessage(userPromptVariables);
@@ -474,7 +476,19 @@ public class ChatService {
 
             // adding LLM response to chat history
             int count = 0;
-            ChatResponse response = chatModel.call(prompt);
+            ChatResponse response;
+            // Retrying in case the LLM generates a faulty response
+            try {
+                response = chatModel.call(prompt);
+            } catch (RestClientException e) {
+                log.error("Error calling OpenRouter via Spring AI: {}. Retrying...", e.getMessage(), e);
+                try {
+                    response = chatModel.call(prompt);
+                } catch (Exception ex) {
+                    log.error("Error calling OpenRouter via Spring AI: {}", ex.getMessage(), ex);
+                    throw new RuntimeException("Failed to get completion from AI service: " + ex.getMessage(), ex);
+                }
+            }
             for (Generation generation : response.getResults()) {
                 log.info("--------------------------------");
                 log.info("GENERATION {}:", count);
@@ -639,7 +653,7 @@ public class ChatService {
             // TODO: add each message in newMessages to chat_messages cache
             // ...
             // save new messages to primary DB (batch write)
-            return addMessagesToChatHistory(newMessages, assessment, model);
+            return addMessagesToChatHistory(newMessages, assessmentId, model);
         } catch (Exception e) {
             log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to get completion from AI service: " + e.getMessage(), e);
@@ -900,7 +914,7 @@ public class ChatService {
      * Storing in memory conversation history to primary DB
      * Writing a batch of chat messages to PostgreSQL at a time
      */
-    public List<ChatMessageCacheDto> addMessagesToChatHistory(List<Message> messages, Assessment assessment, String model) {
+    public List<ChatMessageCacheDto> addMessagesToChatHistory(List<Message> messages, Long assessmentId, String model) {
         List<ChatMessageCacheDto> savedDtos = new ArrayList<>();
 
         for (Message message : messages) {
@@ -925,14 +939,14 @@ public class ChatService {
             }
 
             // Persist the chat message
-            ChatMessage savedChatMessage = chatMessageRepository.save(new ChatMessage(message, assessment, model));
+            ChatMessage savedChatMessage = chatMessageRepository.save(new ChatMessage(message, assessmentId, model));
 
             // 1. Update individual message cache
             redisService.set("cache:chat_messages:message:" + savedChatMessage.getId(), new ChatMessageCacheDto(savedChatMessage));
 
             // 2. Update assessment cache by adding the new message to the existing list
-            String assessmentCacheKey = "cache:chat_messages:assessment:" + assessment.getId();
-            List<ChatMessageCacheDto> existingMessages = getMessagesByAssessmentId(assessment.getId());
+            String assessmentCacheKey = "cache:chat_messages:assessment:" + assessmentId;
+            List<ChatMessageCacheDto> existingMessages = getMessagesByAssessmentId(assessmentId);
             
             // Add the new message to the existing list
             existingMessages.add(new ChatMessageCacheDto(savedChatMessage));
@@ -1055,7 +1069,7 @@ public class ChatService {
     // log.info("Tool calls: {}", message.getToolCalls());
 
     // Assessment assessment =
-    // assessmentRepository.findById(message.getAssessment().getId())
+    // assessmentService.findById(message.getAssessment().getId())
     // .orElseThrow(() -> new Exception("Assessment not found with id: " +
     // message.getAssessment().getId()));
 
@@ -1081,7 +1095,7 @@ public class ChatService {
     // }
 
     // assessment.addMessage(savedMessage);
-    // assessmentRepository.save(assessment);
+    // assessmentService.save(assessment);
     // log.info("ChatMessage added to assessment chat history in DB with id: {}",
     // savedMessage.getId());
 
@@ -1130,7 +1144,7 @@ public class ChatService {
 
     // // Add message to assessment and save
     // assessment.addMessage(chatMessage);
-    // assessmentRepository.save(assessment);
+    // assessmentService.save(assessment);
     // log.info("ChatMessage added to assessment chat history in DB with id: {}",
     // chatMessage.getId());
 
@@ -1171,7 +1185,7 @@ public class ChatService {
     // chatMessage = chatMessageRepository.save(chatMessage);
     // log.info("Message added to DB with id: {}", chatMessage.getId());
     // assessment.addMessage(chatMessage);
-    // assessmentRepository.save(assessment);
+    // assessmentService.save(assessment);
     // log.info("ChatMessage added to assessment chat history in DB with id: {}",
     // chatMessage.getId());
 
@@ -1184,7 +1198,7 @@ public class ChatService {
     // throws Exception {
     // log.info("Adding chat message to DB with id: {} - message: {}", assessmentId,
     // text.substring(0, Math.min(text.length(), 100)) + "...");
-    // Assessment assessment = assessmentRepository.findById(assessmentId)
+    // Assessment assessment = assessmentService.findById(assessmentId)
     // .orElseThrow(() -> new Exception("Assessment not found with id: " +
     // assessmentId));
     // ChatMessage chatMessage = new ChatMessage();
@@ -1202,7 +1216,7 @@ public class ChatService {
     // chatMessageRepository.save(chatMessage);
     // log.info("Message added to DB with id: {}", chatMessage.getId());
     // assessment.addMessage(chatMessage);
-    // assessmentRepository.save(assessment);
+    // assessmentService.save(assessment);
     // log.info("ChatMessage added to assessment chat history in DB with id: {}",
     // chatMessage.getId());
     // return new ChatMessageCacheDto(chatMessage);
@@ -1285,10 +1299,20 @@ public class ChatService {
             try {
                 emitter.send(SseEmitter.event()
                     .name(eventName)
+                    .id(jobId.toString())
                     .data(data));
                 log.info("Sent SSE event '{}' for job: {}", eventName, jobId);
             } catch (IOException e) {
-                log.error("Error sending SSE event '{}' for job: {}", eventName, jobId, e);
+                log.error("Error sending SSE event '{}' for job: {} - {}", eventName, jobId, e.getMessage());
+                // Complete the emitter properly on IO error to prevent hanging connections
+                try {
+                    emitter.completeWithError(e);
+                } catch (Exception ex) {
+                    log.error("Error completing SSE emitter with error for job: {}", jobId, ex);
+                }
+                removeSseEmitter(jobId);
+            } catch (IllegalStateException e) {
+                log.warn("SSE emitter already completed for job: {} - {}", jobId, e.getMessage());
                 removeSseEmitter(jobId);
             }
         } else {
@@ -1297,11 +1321,24 @@ public class ChatService {
     }
     
     public void completeSseEmitter(UUID jobId) {
-        SseEmitter emitter = sseEmitters.get(jobId);
+        SseEmitter emitter = sseEmitters.remove(jobId); // Remove and get in one operation
         if (emitter != null) {
             try {
+                // Send a final event to indicate completion before closing
+                emitter.send(SseEmitter.event()
+                    .name("stream_complete")
+                    .data(Map.of("message", "Stream completed successfully", "jobId", jobId.toString())));
                 emitter.complete();
                 log.info("Completed SSE emitter for job: {}", jobId);
+            } catch (IOException e) {
+                log.error("Error sending final SSE event for job: {} - {}", jobId, e.getMessage());
+                try {
+                    emitter.completeWithError(e);
+                } catch (Exception ex) {
+                    log.error("Error completing SSE emitter with error for job: {}", jobId, ex);
+                }
+            } catch (IllegalStateException e) {
+                log.warn("SSE emitter already completed for job: {} - {}", jobId, e.getMessage());
             } catch (Exception e) {
                 log.error("Error completing SSE emitter for job: {}", jobId, e);
             } finally {

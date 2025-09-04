@@ -34,7 +34,7 @@ public class ChatMessageCacheDto {
         this.text = chatMessage.getText();
         this.model = chatMessage.getModel();
         this.createdDate = chatMessage.getCreatedAt();
-        this.assessmentId = chatMessage.getAssessment().getId();
+        this.assessmentId = chatMessage.getAssessmentId();
         this.messageType = chatMessage.getMessageType();
         if (chatMessage.getToolCalls() != null) {
             this.toolCalls = chatMessage.getToolCalls().stream().map(FetchToolCallDto::new).collect(Collectors.toList());

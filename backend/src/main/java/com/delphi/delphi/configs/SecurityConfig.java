@@ -1,6 +1,7 @@
 package com.delphi.delphi.configs;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -12,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.task.DelegatingSecurityContextAsyncTaskExecutor;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -50,7 +52,26 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**", "/api/recordings/**", "/api/attempts/live/**", "/api/users/github/callback", "/").permitAll()
                 .anyRequest().authenticated()
             )
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            // .exceptionHandling(exceptions -> exceptions
+            //     .authenticationEntryPoint((request, response, ex) -> {
+            //         // For SSE endpoints, don't redirect or send error responses that could interfere with streaming
+            //         if (request.getHeader("Accept") != null && request.getHeader("Accept").contains("text/event-stream")) {
+            //             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            //             return;
+            //         }
+            //         response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+            //     })
+            //     .accessDeniedHandler((request, response, ex) -> {
+            //         // For SSE endpoints, handle access denied gracefully
+            //         if (request.getHeader("Accept") != null && request.getHeader("Accept").contains("text/event-stream")) {
+            //             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            //             return;
+            //         }
+            //         response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied");
+            //     })
+            // )
+            .securityContext(securityContext -> securityContext.requireExplicitSave(false))
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
             //.httpBasic(Customizer.withDefaults());
 
@@ -101,6 +122,14 @@ public class SecurityConfig {
         
     //     return http.build();
     // }
+
+    // Configure async security context propagation
+    @Bean
+    public DelegatingSecurityContextAsyncTaskExecutor taskExecutor() {
+        return new DelegatingSecurityContextAsyncTaskExecutor(
+            new SimpleAsyncTaskExecutor()
+        );
+    }
     
 
     @Bean

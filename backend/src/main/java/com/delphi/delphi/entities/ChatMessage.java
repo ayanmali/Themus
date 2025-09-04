@@ -57,8 +57,8 @@ public class ChatMessage {
     
     @ManyToOne
     @JoinColumn(name = "assessment_id", nullable = false)
-    @JsonIgnore
-    private Assessment assessment;
+    //@JsonIgnore
+    private Long assessmentId;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
@@ -88,9 +88,9 @@ public class ChatMessage {
     public ChatMessage() {
     }
 
-    public ChatMessage(String text, List<OpenAiToolCall> toolCalls, Assessment assessment, MessageType messageType, String model) {
+    public ChatMessage(String text, List<OpenAiToolCall> toolCalls, Long assessmentId, MessageType messageType, String model) {
         this.text = text;
-        this.assessment = assessment;
+        this.assessmentId = assessmentId;
         this.model = model;
         this.messageType = messageType;
         if (!toolCalls.isEmpty()) {
@@ -104,9 +104,9 @@ public class ChatMessage {
      * @param assessment
      * @param model
      */
-    public ChatMessage (Message message, Assessment assessment, String model) {
+    public ChatMessage (Message message, Long assessmentId, String model) {
         this.text = message.getText();
-        this.assessment = assessment;
+        this.assessmentId = assessmentId;
         this.model = model;
         this.messageType = message.getMessageType();
 
@@ -169,12 +169,12 @@ public class ChatMessage {
         this.text = text;
     }
 
-    public Assessment getAssessment() {
-        return assessment;
+    public Long getAssessmentId() {
+        return assessmentId;
     }
 
-    public void setAssessment(Assessment assessment) {
-        this.assessment = assessment;
+    public void setAssessmentId(Long assessmentId) {
+        this.assessmentId = assessmentId;
     }
 
     public String getModel() {

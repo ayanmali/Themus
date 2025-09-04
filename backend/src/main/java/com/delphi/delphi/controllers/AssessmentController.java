@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -18,8 +19,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.task.DelegatingSecurityContextAsyncTaskExecutor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -65,10 +68,12 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/assessments")
 public class AssessmentController {
 
+    private final DelegatingSecurityContextAsyncTaskExecutor taskExecutor;
+
     private final UserService userService;
     private final GithubService githubService;
     private final ChatService chatService;
-    //private final ChatMessagePublisher chatMessagePublisher;
+    // private final ChatMessagePublisher chatMessagePublisher;
     private final JobRepository jobRepository;
     private final AssessmentService assessmentService;
     private final RabbitTemplate rabbitTemplate;
@@ -76,9 +81,12 @@ public class AssessmentController {
 
     private final Logger log = LoggerFactory.getLogger(AssessmentController.class);
 
-    public AssessmentController(AssessmentService assessmentService, UserService userService, GithubService githubService, JobRepository jobRepository, RabbitTemplate rabbitTemplate, ChatService chatService, @Value("${github.app.name}") String githubAppName) {
+    public AssessmentController(AssessmentService assessmentService, UserService userService,
+            GithubService githubService, JobRepository jobRepository, RabbitTemplate rabbitTemplate,
+            ChatService chatService, @Value("${github.app.name}") String githubAppName,
+            DelegatingSecurityContextAsyncTaskExecutor taskExecutor) {
         this.assessmentService = assessmentService;
-        //this.chatMessagePublisher = chatMessagePublisher;
+        // this.chatMessagePublisher = chatMessagePublisher;
         this.userService = userService;
         this.githubService = githubService;
         this.jobRepository = jobRepository;
@@ -86,7 +94,7 @@ public class AssessmentController {
         this.chatService = chatService;
         // state specifies whether this installation is for a user or a candidate
         this.appInstallUrl = String.format("https://github.com/apps/%s/installations/new", githubAppName);
-        // state specifies whether this installation is for a user or a candidate
+        this.taskExecutor = taskExecutor;
     }
 
     private UserCacheDto getCurrentUser() {
@@ -167,72 +175,80 @@ public class AssessmentController {
     }
 
     // /*
-    //  * Create a new assessment
-    //  * Publishes a job to the LLM topic
-    //  */
+    // * Create a new assessment
+    // * Publishes a job to the LLM topic
+    // */
     // @PostMapping("/new")
-    // public ResponseEntity<?> createAssessment(@Valid @RequestBody NewAssessmentDto newAssessmentDto, HttpServletResponse response) {
-    //     try {
-    //         UserCacheDto user = getCurrentUser();
-    //         log.info("User's email: {}", user.getEmail());
-    //         log.info("User's id: {}", user.getId());
-    //         log.info("User's github access token: {}", user.getGithubAccessToken());
-    //         log.info("User's github username: {}", user.getGithubUsername());
-    //         log.info("User's github account type: {}", user.getGithubAccountType());
-    //         log.info("Assessmentcontroller - Checking if user is connected to github");
+    // public ResponseEntity<?> createAssessment(@Valid @RequestBody
+    // NewAssessmentDto newAssessmentDto, HttpServletResponse response) {
+    // try {
+    // UserCacheDto user = getCurrentUser();
+    // log.info("User's email: {}", user.getEmail());
+    // log.info("User's id: {}", user.getId());
+    // log.info("User's github access token: {}", user.getGithubAccessToken());
+    // log.info("User's github username: {}", user.getGithubUsername());
+    // log.info("User's github account type: {}", user.getGithubAccountType());
+    // log.info("Assessmentcontroller - Checking if user is connected to github");
 
-    //         if (!userService.connectedGithub(user)) {
-    //             log.info("User is not connected to github, redirecting to installation page");
-    //             response.setHeader("Location", appInstallUrl);
-    //             response.setStatus(302);
-    //             return ResponseEntity.status(HttpStatus.FOUND).build();
-    //         }
+    // if (!userService.connectedGithub(user)) {
+    // log.info("User is not connected to github, redirecting to installation
+    // page");
+    // response.setHeader("Location", appInstallUrl);
+    // response.setStatus(302);
+    // return ResponseEntity.status(HttpStatus.FOUND).build();
+    // }
 
-    //         log.info("User is connected to github, validating credentials");
-    //         Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user.getGithubAccessToken());
-    //         log.info("Github credentials validated: {}", githubCredentialsValid);
-    //         if (githubCredentialsValid == null) {
-    //             log.info("Github credentials are invalid, redirecting to installation page");
-    //             response.setHeader("Location", appInstallUrl);
-    //             response.setStatus(302);
-    //             return ResponseEntity.status(HttpStatus.FOUND).build();
-    //         }
-    //         log.info("Github credentials are valid, creating assessment");
-    //         // if user is not connected to github, redirect them to the installation page
-    //         log.info("assessment creation request received: {}", newAssessmentDto);
-    //         AssessmentCacheDto assessment = assessmentService.createAssessment(newAssessmentDto, user);
-    //         log.info("assessment created: {}", assessment);
+    // log.info("User is connected to github, validating credentials");
+    // Map<String, Object> githubCredentialsValid =
+    // githubService.validateGithubCredentials(user.getGithubAccessToken());
+    // log.info("Github credentials validated: {}", githubCredentialsValid);
+    // if (githubCredentialsValid == null) {
+    // log.info("Github credentials are invalid, redirecting to installation page");
+    // response.setHeader("Location", appInstallUrl);
+    // response.setStatus(302);
+    // return ResponseEntity.status(HttpStatus.FOUND).build();
+    // }
+    // log.info("Github credentials are valid, creating assessment");
+    // // if user is not connected to github, redirect them to the installation page
+    // log.info("assessment creation request received: {}", newAssessmentDto);
+    // AssessmentCacheDto assessment =
+    // assessmentService.createAssessment(newAssessmentDto, user);
+    // log.info("assessment created: {}", assessment);
 
-    //         // Publish to assessment creation queue instead of direct call
-    //         log.info("Passing form data to chat message queue");
-    //         // Long jobId = UUID.randomUUID().getMostSignificantBits();
-    //         Job job = new Job(JobStatus.PENDING, JobType.CREATE_ASSESSMENT);
-    //         job = jobRepository.save(job);
+    // // Publish to assessment creation queue instead of direct call
+    // log.info("Passing form data to chat message queue");
+    // // Long jobId = UUID.randomUUID().getMostSignificantBits();
+    // Job job = new Job(JobStatus.PENDING, JobType.CREATE_ASSESSMENT);
+    // job = jobRepository.save(job);
 
-    //         log.info("Job created: {}", job.getId());
+    // log.info("Job created: {}", job.getId());
 
-    //         PublishAssessmentCreationJobDto publishAssessmentCreationJobDto = new PublishAssessmentCreationJobDto(job.getId(), assessment, user, newAssessmentDto.getModel());
-    //         rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.CREATE_ASSESSMENT_ROUTING_KEY, publishAssessmentCreationJobDto);
-    //         log.info("Assessment creation job published to queue");
+    // PublishAssessmentCreationJobDto publishAssessmentCreationJobDto = new
+    // PublishAssessmentCreationJobDto(job.getId(), assessment, user,
+    // newAssessmentDto.getModel());
+    // rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME,
+    // TopicConfig.CREATE_ASSESSMENT_ROUTING_KEY, publishAssessmentCreationJobDto);
+    // log.info("Assessment creation job published to queue");
 
-    //         // String requestId = chatMessagePublisher.publishChatCompletionRequest(
-    //         //         AssessmentCreationPrompts.USER_PROMPT,
-    //         //         Map.of("ROLE", newAssessmentDto.getRole(),
-    //         //                 "DURATION", newAssessmentDto.getDuration(),
-    //         //                 "SKILLS", newAssessmentDto.getSkills(),
-    //         //                 "LANGUAGE_OPTIONS", newAssessmentDto.getLanguageOptions(),
-    //         //                 "OTHER_DETAILS", newAssessmentDto.getDescription()),
-    //         //         newAssessmentDto.getModel(),
-    //         //         assessment.getId(),
-    //         //         user.getId());
+    // // String requestId = chatMessagePublisher.publishChatCompletionRequest(
+    // // AssessmentCreationPrompts.USER_PROMPT,
+    // // Map.of("ROLE", newAssessmentDto.getRole(),
+    // // "DURATION", newAssessmentDto.getDuration(),
+    // // "SKILLS", newAssessmentDto.getSkills(),
+    // // "LANGUAGE_OPTIONS", newAssessmentDto.getLanguageOptions(),
+    // // "OTHER_DETAILS", newAssessmentDto.getDescription()),
+    // // newAssessmentDto.getModel(),
+    // // assessment.getId(),
+    // // user.getId());
 
-    //         return ResponseEntity.status(HttpStatus.CREATED).body(
-    //                 Map.of("jobId", job.getId(), "status", JobStatus.PENDING.toString(), "assessment", new FetchAssessmentDto(assessment)));
-    //                         //"chatRequestId", requestId));
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body("Error creating assessment: " + e.getMessage());
-    //     }
+    // return ResponseEntity.status(HttpStatus.CREATED).body(
+    // Map.of("jobId", job.getId(), "status", JobStatus.PENDING.toString(),
+    // "assessment", new FetchAssessmentDto(assessment)));
+    // //"chatRequestId", requestId));
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error creating assessment: " + e.getMessage());
+    // }
     // }
 
     /*
@@ -241,9 +257,8 @@ public class AssessmentController {
      * SSE Endpoint for real-time assessment creation
      */
     @PostMapping(value = "/new", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter createAssessmentSse(@Valid @RequestBody NewAssessmentDto newAssessmentDto, HttpServletResponse response) {
-        SseEmitter emitter = new SseEmitter(300000L); // 5 minutes timeout
-        
+    public ResponseEntity<?> createAssessmentSse(@Valid @RequestBody NewAssessmentDto newAssessmentDto,
+            HttpServletResponse response) {
         try {
             UserCacheDto user = getCurrentUser();
             log.info("User's email: {}", user.getEmail());
@@ -257,27 +272,18 @@ public class AssessmentController {
                 log.info("User is not connected to github, redirecting to installation page");
                 response.setHeader("Location", appInstallUrl);
                 response.setStatus(302);
-                // Send error event via SSE before redirecting
-                emitter.send(SseEmitter.event()
-                    .name("error")
-                    .data(Map.of("error", "GitHub connection required", "redirectUrl", appInstallUrl)));
-                emitter.complete();
-                return emitter;
+                return ResponseEntity.status(HttpStatus.FOUND).build();
             }
 
             log.info("User is connected to github, validating credentials");
-            Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user.getGithubAccessToken());
+            Map<String, Object> githubCredentialsValid = githubService
+                    .validateGithubCredentials(user.getGithubAccessToken());
             log.info("Github credentials validated: {}", githubCredentialsValid);
             if (githubCredentialsValid == null) {
                 log.info("Github credentials are invalid, redirecting to installation page");
                 response.setHeader("Location", appInstallUrl);
                 response.setStatus(302);
-                // Send error event via SSE before redirecting
-                emitter.send(SseEmitter.event()
-                    .name("error")
-                    .data(Map.of("error", "Invalid GitHub credentials", "redirectUrl", appInstallUrl)));
-                emitter.complete();
-                return emitter;
+                return ResponseEntity.status(HttpStatus.FOUND).build();
             }
 
             log.info("Github credentials are valid, creating assessment");
@@ -285,72 +291,92 @@ public class AssessmentController {
             AssessmentCacheDto assessment = assessmentService.createAssessment(newAssessmentDto, user);
             log.info("assessment created: {}", assessment);
 
-            // Send initial connection confirmation
-            emitter.send(SseEmitter.event()
-                .name("connected")
-                .data(Map.of("message", "Connected to assessment creation stream", "assessmentId", assessment.getId())));
-
             // Publish to assessment creation queue instead of direct call
             log.info("Passing form data to chat message queue");
             Job job = new Job(JobStatus.PENDING, JobType.CREATE_ASSESSMENT);
             job = jobRepository.save(job);
-
-            log.info("Job created: {}", job.getId());
-
-            // Send job created confirmation
-            emitter.send(SseEmitter.event()
-                .name("job_created")
-                .data(Map.of("jobId", job.getId().toString(), "assessmentId", assessment.getId(), "status", JobStatus.PENDING.toString())));
-
-            PublishAssessmentCreationJobDto publishAssessmentCreationJobDto = new PublishAssessmentCreationJobDto(job.getId(), assessment, user, newAssessmentDto.getModel());
-            rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.CREATE_ASSESSMENT_ROUTING_KEY, publishAssessmentCreationJobDto);
-            log.info("Assessment creation job published to queue");
-
             final UUID jobId = job.getId();
-            
-            // Store the emitter for later use when the job completes
+
+            SseEmitter emitter = new SseEmitter(300000L); // 5 minutes timeout
             chatService.registerSseEmitter(jobId, emitter);
-            
+
             // Handle emitter completion/error
             emitter.onCompletion(() -> {
                 log.info("SSE emitter completed for assessment creation job: {}", jobId);
                 chatService.removeSseEmitter(jobId);
             });
-            
+
             emitter.onTimeout(() -> {
                 log.info("SSE emitter timed out for assessment creation job: {}", jobId);
                 chatService.removeSseEmitter(jobId);
+                emitter.complete();
             });
-            
+
             emitter.onError((ex) -> {
                 log.error("SSE emitter error for assessment creation job: {}", jobId, ex);
                 chatService.removeSseEmitter(jobId);
+                emitter.completeWithError(ex);
             });
-            
+
+            log.info("Job created: {}", jobId);
+
+            try {
+                // Send job created confirmation
+                emitter.send(SseEmitter.event()
+                        .name("job_created")
+                        .data(Map.of("jobId", jobId.toString(), "assessmentId", assessment.getId(), "status",
+                                JobStatus.PENDING.toString())));
+            } catch (IOException e) {
+                log.error("Error sending job created confirmation: {}", e.getMessage());
+                emitter.completeWithError(e);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Error sending job created confirmation: " + e.getMessage());
+            }
+
+            CompletableFuture.runAsync(() -> {
+                // Copy security context to async thread
+                SecurityContext securityContext = SecurityContextHolder.getContext();
+                SecurityContextHolder.setContext(securityContext);
+
+                try {
+                    PublishAssessmentCreationJobDto publishAssessmentCreationJobDto = new PublishAssessmentCreationJobDto(
+                            jobId, assessment, user, newAssessmentDto.getModel());
+                    rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME,
+                            TopicConfig.CREATE_ASSESSMENT_ROUTING_KEY, publishAssessmentCreationJobDto);
+                    log.info("Assessment creation job published to queue");
+                } catch (Exception e) {
+                    log.error("Error publishing assessment creation job", e);
+                    try {
+                        emitter.send(SseEmitter.event()
+                                    .name("error")
+                                    .data(Map.of("error", e.getMessage())));
+                        emitter.complete();
+                    } catch (IOException ioEx) {
+                        emitter.completeWithError(ioEx);
+                    }
+                } finally {
+                    SecurityContextHolder.clearContext();
+                }
+            }, taskExecutor);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(emitter);
+
         } catch (Exception e) {
             log.error("Error setting up SSE assessment creation: {}", e.getMessage(), e);
-            try {
-                emitter.send(SseEmitter.event()
-                    .name("error")
-                    .data(Map.of("error", "Failed to setup assessment creation stream: " + e.getMessage())));
-                emitter.complete();
-            } catch (Exception ex) {
-                log.error("Error sending error event: {}", ex.getMessage());
-            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error setting up SSE assessment creation: " + e.getMessage());
         }
-        
-        return emitter;
     }
 
     // @GetMapping("/test-agent")
     // public ResponseEntity<?> testAgent() {
-    //     try {
-    //         ChatResponse chatResponse = chatService.testAgent("What is the weather in San Francisco?", "z-ai/glm-4.5-air:free");
-    //         return ResponseEntity.ok(chatResponse);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body("Error testing agent: " + e.getMessage());
-    //     }
+    // try {
+    // ChatResponse chatResponse = chatService.testAgent("What is the weather in San
+    // Francisco?", "z-ai/glm-4.5-air:free");
+    // return ResponseEntity.ok(chatResponse);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error testing agent: " + e.getMessage());
+    // }
     // }
     // Chat with the AI agent
     // @PostMapping("/chat")
@@ -372,94 +398,101 @@ public class AssessmentController {
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatSse(@RequestBody NewUserMessageDto messageDto) {
         SseEmitter emitter = new SseEmitter(300000L); // 5 minutes timeout
-        
+
         try {
             UserCacheDto user = getCurrentUser();
             AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(messageDto.getAssessmentId());
-            
+
             // Send initial connection confirmation
             emitter.send(SseEmitter.event()
-                .name("connected")
-                .data(Map.of("message", "Connected to chat stream", "assessmentId", assessment.getId())));
-            
+                    .name("connected")
+                    .data(Map.of("message", "Connected to chat stream", "assessmentId", assessment.getId())));
+
             // Publish chat completion request to the chat message queue
             log.info("Publishing chat completion request to the chat message queue");
             Job job = new Job(JobStatus.PENDING, JobType.CHAT_COMPLETION);
             job = jobRepository.save(job);
 
-            PublishChatJobDto publishChatJobDto = new PublishChatJobDto(job.getId(), messageDto.getMessage(), assessment, user, messageDto.getModel());
-            rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.LLM_CHAT_ROUTING_KEY, publishChatJobDto);
+            PublishChatJobDto publishChatJobDto = new PublishChatJobDto(job.getId(), messageDto.getMessage(),
+                    assessment, user, messageDto.getModel());
+            rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.LLM_CHAT_ROUTING_KEY,
+                    publishChatJobDto);
             log.info("Chat completion request published to queue");
-            
+
             // Send job created confirmation
             emitter.send(SseEmitter.event()
-                .name("job_created")
-                .data(Map.of("jobId", job.getId().toString(), "assessmentId", assessment.getId(), "status", JobStatus.PENDING.toString())));
-            
+                    .name("job_created")
+                    .data(Map.of("jobId", job.getId().toString(), "assessmentId", assessment.getId(), "status",
+                            JobStatus.PENDING.toString())));
+
             final UUID jobId = job.getId();
-            
+
             // Store the emitter for later use when the job completes
             chatService.registerSseEmitter(jobId, emitter);
-            
+
             // Handle emitter completion/error
             emitter.onCompletion(() -> {
                 log.info("SSE emitter completed for job: {}", jobId);
                 chatService.removeSseEmitter(jobId);
             });
-            
+
             emitter.onTimeout(() -> {
                 log.info("SSE emitter timed out for job: {}", jobId);
                 chatService.removeSseEmitter(jobId);
             });
-            
+
             emitter.onError((ex) -> {
                 log.error("SSE emitter error for job: {}", jobId, ex);
                 chatService.removeSseEmitter(jobId);
             });
-            
+
         } catch (IOException | AmqpException e) {
             log.error("Error setting up SSE chat: {}", e.getMessage(), e);
             try {
                 emitter.send(SseEmitter.event()
-                    .name("error")
-                    .data(Map.of("error", "Failed to setup chat stream: " + e.getMessage())));
+                        .name("error")
+                        .data(Map.of("error", "Failed to setup chat stream: " + e.getMessage())));
                 emitter.complete();
             } catch (IOException ex) {
                 log.error("Error sending error event: {}", ex.getMessage());
             }
         }
-        
+
         return emitter;
     }
 
     // Chat with the AI agent (legacy synchronous endpoint)
     // @PostMapping("/chat")
     // public ResponseEntity<?> chat(@RequestBody NewUserMessageDto messageDto) {
-    //     try {
-    //         UserCacheDto user = getCurrentUser();
-    //         AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(messageDto.getAssessmentId());
-    //         // publish chat completion request to the chat message queue
-    //         log.info("Publishing chat completion request to the chat message queue");
-    //         // String jobId = UUID.randomUUID().toString();
-    //         Job job = new Job(JobStatus.PENDING, JobType.CHAT_COMPLETION);
-    //         job = jobRepository.save(job);
+    // try {
+    // UserCacheDto user = getCurrentUser();
+    // AssessmentCacheDto assessment =
+    // assessmentService.getAssessmentByIdCache(messageDto.getAssessmentId());
+    // // publish chat completion request to the chat message queue
+    // log.info("Publishing chat completion request to the chat message queue");
+    // // String jobId = UUID.randomUUID().toString();
+    // Job job = new Job(JobStatus.PENDING, JobType.CHAT_COMPLETION);
+    // job = jobRepository.save(job);
 
-    //         PublishChatJobDto publishChatJobDto = new PublishChatJobDto(job.getId(), messageDto.getMessage(), assessment, user, messageDto.getModel());
-    //         rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.LLM_CHAT_ROUTING_KEY, publishChatJobDto);
-    //         log.info("Chat completion request published to queue");
-    //         // String requestId = chatMessagePublisher.publishChatCompletionRequest(
-    //         //         messageDto.getMessage(),
-    //         //         messageDto.getModel(),
-    //         //         messageDto.getAssessmentId(),
-    //         //         user.getId()
-    //         // );
+    // PublishChatJobDto publishChatJobDto = new PublishChatJobDto(job.getId(),
+    // messageDto.getMessage(), assessment, user, messageDto.getModel());
+    // rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME,
+    // TopicConfig.LLM_CHAT_ROUTING_KEY, publishChatJobDto);
+    // log.info("Chat completion request published to queue");
+    // // String requestId = chatMessagePublisher.publishChatCompletionRequest(
+    // // messageDto.getMessage(),
+    // // messageDto.getModel(),
+    // // messageDto.getAssessmentId(),
+    // // user.getId()
+    // // );
 
-    //         // Return request ID for client to track the async response
-    //         return ResponseEntity.accepted().body(Map.of("jobId", job.getId().toString(), "assessmentId", assessment.getId(), "status", JobStatus.PENDING.toString()));
-    //     } catch (AmqpException e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body("Error submitting chat request: " + e.getMessage());
-    //     }
+    // // Return request ID for client to track the async response
+    // return ResponseEntity.accepted().body(Map.of("jobId", job.getId().toString(),
+    // "assessmentId", assessment.getId(), "status", JobStatus.PENDING.toString()));
+    // } catch (AmqpException e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error submitting chat request: " + e.getMessage());
+    // }
     // }
 
     // Add an existing candidate to an assessment
@@ -478,15 +511,17 @@ public class AssessmentController {
      * Add a new candidate and invite them to an assessment
      */
     @PostMapping("/{assessmentId}/add-and-invite")
-    public ResponseEntity<?> addAndInviteCandidate(@Valid @RequestBody NewCandidateDto newCandidateDto, @PathVariable Long assessmentId) {
+    public ResponseEntity<?> addAndInviteCandidate(@Valid @RequestBody NewCandidateDto newCandidateDto,
+            @PathVariable Long assessmentId) {
         try {
-            CandidateAttempt candidateAttempt = assessmentService.addCandidateFromNew(assessmentId, newCandidateDto.getFirstName(), newCandidateDto.getLastName(), newCandidateDto.getEmail());
+            CandidateAttempt candidateAttempt = assessmentService.addCandidateFromNew(assessmentId,
+                    newCandidateDto.getFirstName(), newCandidateDto.getLastName(), newCandidateDto.getEmail());
             return ResponseEntity.status(HttpStatus.CREATED).body(new FetchCandidateAttemptDto(candidateAttempt));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error creating candidate: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Internal server error: " + e.getMessage());
+                    .body("Internal server error: " + e.getMessage());
         }
     }
 
@@ -509,13 +544,13 @@ public class AssessmentController {
         try {
             AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(id);
             // if (assessment.getStatus() == AssessmentStatus.ACTIVE) {
-            //     return ResponseEntity.ok(new FetchAssessmentDto(assessment));
+            // return ResponseEntity.ok(new FetchAssessmentDto(assessment));
             // } else {
-            //     return ResponseEntity.notFound().build();
+            // return ResponseEntity.notFound().build();
             // }
             return ResponseEntity.ok(new FetchAssessmentDto(assessment));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("Error retrieving assessment: " + e.getMessage());
         }
     }
@@ -532,8 +567,11 @@ public class AssessmentController {
 
             Pageable pageable = PageRequest.of(getAssessmentsDto.getPage(), getAssessmentsDto.getSize(), sort);
             PaginatedResponseDto<AssessmentCacheDto> paginatedResponse = assessmentService.getAssessmentsWithFilters(
-                user, getAssessmentsDto.getStatus(), getAssessmentsDto.getCreatedAfter(), getAssessmentsDto.getCreatedBefore(), getAssessmentsDto.getAssessmentStartDate(), getAssessmentsDto.getAssessmentEndDate(), getAssessmentsDto.getSkills(), getAssessmentsDto.getLanguageOptions(), pageable);
-            
+                    user, getAssessmentsDto.getStatus(), getAssessmentsDto.getCreatedAfter(),
+                    getAssessmentsDto.getCreatedBefore(), getAssessmentsDto.getAssessmentStartDate(),
+                    getAssessmentsDto.getAssessmentEndDate(), getAssessmentsDto.getSkills(),
+                    getAssessmentsDto.getLanguageOptions(), pageable);
+
             // Convert AssessmentCacheDto to FetchAssessmentDto
             List<FetchAssessmentDto> assessmentDtos = paginatedResponse.getContent().stream()
                     .map(FetchAssessmentDto::new)
@@ -541,11 +579,10 @@ public class AssessmentController {
 
             // Create response with pagination metadata
             PaginatedResponseDto<FetchAssessmentDto> response = new PaginatedResponseDto<>(
-                assessmentDtos,
-                paginatedResponse.getPage(),
-                paginatedResponse.getSize(),
-                paginatedResponse.getTotalElements()
-            );
+                    assessmentDtos,
+                    paginatedResponse.getPage(),
+                    paginatedResponse.getSize(),
+                    paginatedResponse.getTotalElements());
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -570,7 +607,8 @@ public class AssessmentController {
             updateAssessment.setLanguageOptions(assessmentUpdates.getLanguageOptions());
             updateAssessment.setMetadata(assessmentUpdates.getMetadata());
             updateAssessment.setDetails(assessmentUpdates.getDetails());
-            updateAssessment.setStatus(assessmentUpdates.getStatus() == null ? null : AssessmentStatus.valueOf(assessmentUpdates.getStatus().toUpperCase()));
+            updateAssessment.setStatus(assessmentUpdates.getStatus() == null ? null
+                    : AssessmentStatus.valueOf(assessmentUpdates.getStatus().toUpperCase()));
             AssessmentCacheDto updatedAssessment = assessmentService.updateAssessment(id, updateAssessment);
             return ResponseEntity.ok(new FetchAssessmentDto(updatedAssessment));
         } catch (IllegalArgumentException e) {
@@ -598,55 +636,61 @@ public class AssessmentController {
     // Get assessments by user ID
     // @GetMapping("/get")
     // public ResponseEntity<?> getAssessmentsByUser(
-    //         @RequestParam(defaultValue = "0") int page,
-    //         @RequestParam(defaultValue = "10") int size) {
-    //     try {
-    //         User user = getCurrentUser();
-    //         Pageable pageable = PageRequest.of(page, size);
-    //         Page<Assessment> assessments = assessmentService.getAssessmentsByUserId(user.getId(), pageable);
-    //         Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size) {
+    // try {
+    // User user = getCurrentUser();
+    // Pageable pageable = PageRequest.of(page, size);
+    // Page<Assessment> assessments =
+    // assessmentService.getAssessmentsByUserId(user.getId(), pageable);
+    // Page<FetchAssessmentDto> assessmentDtos =
+    // assessments.map(FetchAssessmentDto::new);
 
-    //         return ResponseEntity.ok(assessmentDtos);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body("Error retrieving assessments: " + e.getMessage());
-    //     }
+    // return ResponseEntity.ok(assessmentDtos);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error retrieving assessments: " + e.getMessage());
+    // }
     // }
 
     // Get assessments by status
     // @GetMapping("/status/{status}")
     // public ResponseEntity<?> getAssessmentsByStatus(
-    //         @PathVariable AssessmentStatus status,
-    //         @RequestParam(defaultValue = "0") int page,
-    //         @RequestParam(defaultValue = "10") int size) {
-    //     try {
-    //         Pageable pageable = PageRequest.of(page, size);
-    //         Page<Assessment> assessments = assessmentService.getAssessmentsByStatus(status, pageable);
-    //         Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
+    // @PathVariable AssessmentStatus status,
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size) {
+    // try {
+    // Pageable pageable = PageRequest.of(page, size);
+    // Page<Assessment> assessments =
+    // assessmentService.getAssessmentsByStatus(status, pageable);
+    // Page<FetchAssessmentDto> assessmentDtos =
+    // assessments.map(FetchAssessmentDto::new);
 
-    //         return ResponseEntity.ok(assessmentDtos);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body("Error retrieving assessments: " + e.getMessage());
-    //     }
+    // return ResponseEntity.ok(assessmentDtos);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error retrieving assessments: " + e.getMessage());
+    // }
     // }
 
     // // Get assessments by type
     // @GetMapping("/type/{type}")
     // public ResponseEntity<?> getAssessmentsByType(
-    //         @PathVariable AssessmentType type,
-    //         @RequestParam(defaultValue = "0") int page,
-    //         @RequestParam(defaultValue = "10") int size) {
-    //     try {
-    //         Pageable pageable = PageRequest.of(page, size);
-    //         Page<Assessment> assessments = assessmentService.getAssessmentsByType(type, pageable);
-    //         Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
+    // @PathVariable AssessmentType type,
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size) {
+    // try {
+    // Pageable pageable = PageRequest.of(page, size);
+    // Page<Assessment> assessments = assessmentService.getAssessmentsByType(type,
+    // pageable);
+    // Page<FetchAssessmentDto> assessmentDtos =
+    // assessments.map(FetchAssessmentDto::new);
 
-    //         return ResponseEntity.ok(assessmentDtos);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body("Error retrieving assessments: " + e.getMessage());
-    //     }
+    // return ResponseEntity.ok(assessmentDtos);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error retrieving assessments: " + e.getMessage());
+    // }
     // }
 
     // Search assessments by name
@@ -694,58 +738,66 @@ public class AssessmentController {
     // Get assessments within date range
     // @GetMapping("/date-range")
     // public ResponseEntity<?> getAssessmentsInDateRange(
-    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-    //         @RequestParam(defaultValue = "0") int page,
-    //         @RequestParam(defaultValue = "10") int size) {
-    //     try {
-    //         Pageable pageable = PageRequest.of(page, size);
-    //         Page<Assessment> assessments = assessmentService.getAssessmentsInDateRange(startDate, endDate, pageable);
-    //         Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
+    // @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    // LocalDateTime startDate,
+    // @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    // LocalDateTime endDate,
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size) {
+    // try {
+    // Pageable pageable = PageRequest.of(page, size);
+    // Page<Assessment> assessments =
+    // assessmentService.getAssessmentsInDateRange(startDate, endDate, pageable);
+    // Page<FetchAssessmentDto> assessmentDtos =
+    // assessments.map(FetchAssessmentDto::new);
 
-    //         return ResponseEntity.ok(assessmentDtos);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body("Error retrieving assessments: " + e.getMessage());
-    //     }
+    // return ResponseEntity.ok(assessmentDtos);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error retrieving assessments: " + e.getMessage());
+    // }
     // }
 
     // Get active assessments
     // @GetMapping("/active")
     // public ResponseEntity<?> getActiveAssessments(
-    //         @RequestParam(defaultValue = "0") int page,
-    //         @RequestParam(defaultValue = "10") int size) {
-    //     try {
-    //         Pageable pageable = PageRequest.of(page, size);
-    //         Page<Assessment> assessments = assessmentService.getActiveAssessmentsInDateRange(LocalDateTime.now(),
-    //                 pageable);
-    //         Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size) {
+    // try {
+    // Pageable pageable = PageRequest.of(page, size);
+    // Page<Assessment> assessments =
+    // assessmentService.getActiveAssessmentsInDateRange(LocalDateTime.now(),
+    // pageable);
+    // Page<FetchAssessmentDto> assessmentDtos =
+    // assessments.map(FetchAssessmentDto::new);
 
-    //         return ResponseEntity.ok(assessmentDtos);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body("Error retrieving active assessments: " + e.getMessage());
-    //     }
+    // return ResponseEntity.ok(assessmentDtos);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error retrieving active assessments: " + e.getMessage());
+    // }
     // }
 
     // Get assessments by duration range
     // @GetMapping("/duration-range")
     // public ResponseEntity<?> getAssessmentsByDurationRange(
-    //         @RequestParam Integer minDuration,
-    //         @RequestParam Integer maxDuration,
-    //         @RequestParam(defaultValue = "0") int page,
-    //         @RequestParam(defaultValue = "10") int size) {
-    //     try {
-    //         Pageable pageable = PageRequest.of(page, size);
-    //         Page<Assessment> assessments = assessmentService.getAssessmentsByDurationRange(minDuration, maxDuration,
-    //                 pageable);
-    //         Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
+    // @RequestParam Integer minDuration,
+    // @RequestParam Integer maxDuration,
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size) {
+    // try {
+    // Pageable pageable = PageRequest.of(page, size);
+    // Page<Assessment> assessments =
+    // assessmentService.getAssessmentsByDurationRange(minDuration, maxDuration,
+    // pageable);
+    // Page<FetchAssessmentDto> assessmentDtos =
+    // assessments.map(FetchAssessmentDto::new);
 
-    //         return ResponseEntity.ok(assessmentDtos);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body("Error retrieving assessments: " + e.getMessage());
-    //     }
+    // return ResponseEntity.ok(assessmentDtos);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error retrieving assessments: " + e.getMessage());
+    // }
     // }
 
     // Get assessments by skill
@@ -772,19 +824,21 @@ public class AssessmentController {
     // Get assessments by language option
     // @GetMapping("/language/{language}")
     // public ResponseEntity<?> getAssessmentsByLanguageOption(
-    //         @PathVariable String language,
-    //         @RequestParam(defaultValue = "0") int page,
-    //         @RequestParam(defaultValue = "10") int size) {
-    //     try {
-    //         Pageable pageable = PageRequest.of(page, size);
-    //         Page<Assessment> assessments = assessmentService.getAssessmentsByLanguageOption(language, pageable);
-    //         Page<FetchAssessmentDto> assessmentDtos = assessments.map(FetchAssessmentDto::new);
+    // @PathVariable String language,
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size) {
+    // try {
+    // Pageable pageable = PageRequest.of(page, size);
+    // Page<Assessment> assessments =
+    // assessmentService.getAssessmentsByLanguageOption(language, pageable);
+    // Page<FetchAssessmentDto> assessmentDtos =
+    // assessments.map(FetchAssessmentDto::new);
 
-    //         return ResponseEntity.ok(assessmentDtos);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body("Error retrieving assessments: " + e.getMessage());
-    //     }
+    // return ResponseEntity.ok(assessmentDtos);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error retrieving assessments: " + e.getMessage());
+    // }
     // }
 
     // Count assessments by user and status
@@ -913,7 +967,7 @@ public class AssessmentController {
             @PathVariable Long id,
             @RequestBody Map<String, String> metadata) {
         try {
-                Assessment assessment = assessmentService.updateMetadata(id, metadata);
+            Assessment assessment = assessmentService.updateMetadata(id, metadata);
             return ResponseEntity.ok(new FetchAssessmentDto(assessment));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error updating metadata: " + e.getMessage());
