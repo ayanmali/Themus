@@ -26,8 +26,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
@@ -55,8 +53,8 @@ public class ChatMessage {
     @Column(name = "model")
     private String model;
     
-    @ManyToOne
-    @JoinColumn(name = "assessment_id", nullable = false)
+    // @ManyToOne
+    // @JoinColumn(name = "assessment_id", nullable = false)
     //@JsonIgnore
     private Long assessmentId;
 

@@ -13,7 +13,7 @@ import com.delphi.delphi.entities.ChatMessage;
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
 
     // Find chat messages by assessment ID, sorted by creation date
-    @Query("SELECT cm FROM ChatMessage cm WHERE cm.assessment.id = :assessmentId ORDER BY cm.createdAt ASC")
+    @Query("SELECT cm FROM ChatMessage cm WHERE cm.assessmentId = :assessmentId ORDER BY cm.createdAt ASC")
     List<ChatMessage> findByAssessmentIdOrderByCreatedAtAsc(@Param("assessmentId") Long assessmentId);
     
     // Legacy method for backward compatibility

@@ -114,34 +114,22 @@ public class ChatService {
      * Stops agent execution to wait for user confirmation/feedback
      */
     // @Cacheable(value = "chatCompletions", key = "#chatHistoryId")
-    public List<ChatMessageCacheDto> getChatCompletion(UUID jobId, List<Message> existingMessages,String userMessage,
+
+    public List<ChatMessageCacheDto> getChatCompletion(UUID jobId, List<Message> existingMessages, String userMessage,
+            String model, Long assessmentId, String encryptedGithubToken, String githubUsername,
+            String githubRepoName) {
+        return getChatCompletion(jobId, existingMessages, new UserMessage(userMessage), model, assessmentId, encryptedGithubToken, githubUsername, githubRepoName);
+    }
+
+    public List<ChatMessageCacheDto> getChatCompletion(UUID jobId, List<Message> existingMessages, Message userMessage,
             String model, Long assessmentId, String encryptedGithubToken, String githubUsername,
             String githubRepoName) {
         try {
-            if (userMessage == null || userMessage.isEmpty()) {
+            if (userMessage == null || userMessage.getText().isEmpty()) {
                 throw new Exception("User message cannot be empty");
             }
             boolean endConversation = false;
-            // The Spring AI ChatModel handles the call to OpenRouter based on
-            // application.properties
-
-            // Create a system message from a template and substitute the values
-            // SystemPromptTemplate systemPromptTemplate = new SystemPromptTemplate("Tell me
-            // a {adjective} joke about {topic}");
-            // Message systemMessage =
-            // systemPromptTemplate.createMessage(Map.of("adjective", "offensive", "topic",
-            // "old people"));
-
-            // create a user message from the template and substitute the values
-            // Assessment assessment = assessmentService.getAssessmentById(assessmentId);
-            //         .orElseThrow(() -> new Exception("Assessment not found with id: " + assessmentId));
-
-            // add the user message to the messages list
-            // addMessageToChatHistory(new UserMessage(userMessage.getText()), assessment,
-            // model);
-
-            // get the messages from the chat history (context window)
-            //List<Message> existingMessages = assessment.getMessagesAsSpringMessages();
+            
             // TODO: create a cache in Redis to temporarily store new messages until they are added to the chat_messages cache
             List<Message> newMessages = new ArrayList<>();
             /*
@@ -151,9 +139,8 @@ public class ChatService {
 
             // update conversation history in memory
             // TODO: add the user message to the cache in Redis
-            UserMessage userMsg = new UserMessage(userMessage);
-            newMessages.add(userMsg);
-            sendSseEvent(jobId, "message", userMsg);
+            newMessages.add(userMessage);
+            //sendSseEvent(jobId, "message", userMsg);
 
             // printing all messages in context window
             log.info("--------------------------------");
@@ -201,7 +188,19 @@ public class ChatService {
 
             // adding LLM response to chat history
             int count = 0;
-            ChatResponse response = chatModel.call(prompt);
+            ChatResponse response;
+            // Retrying in case the LLM generates a faulty response
+            try {
+                response = chatModel.call(prompt);
+            } catch (RestClientException e) {
+                log.error("Error calling OpenRouter via Spring AI: {}. Retrying...", e.getMessage(), e);
+                try {
+                    response = chatModel.call(prompt);
+                } catch (Exception ex) {
+                    log.error("Error calling OpenRouter via Spring AI: {}", ex.getMessage(), ex);
+                    throw new RuntimeException("Failed to get completion from AI service: " + ex.getMessage(), ex);
+                }
+            }
             log.info("Response created");
             for (Generation generation : response.getResults()) {
                 log.info("--------------------------------");
@@ -266,7 +265,7 @@ public class ChatService {
                         log.info("GENERATION MESSAGE TYPE: {}", generation.getOutput().getMessageType().toString());
                         log.info("Generation Text: {}", generation.getOutput().getText().substring(0,
                                 Math.min(generation.getOutput().getText().length(), 50)) + "...");
-                        //log.info("Generation Tool Calls: {}", generation.getOutput().getToolCalls().toString());
+                        log.info("Generation Tool Calls: {}", generation.getOutput().getToolCalls().toString());
                         log.info("--------------------------------");
 
                         // TODO: add the message to the newMessagescache in Redis
@@ -401,259 +400,10 @@ public class ChatService {
             if (userPromptVariables == null || userPromptVariables.isEmpty()) {
                 throw new Exception("User prompt variables cannot be empty");
             }
-            boolean endConversation = false;
-            // The Spring AI ChatModel handles the call to OpenRouter based on
-            // application.properties
-
-            // Create a system message from a template and substitute the values
-            // SystemPromptTemplate systemPromptTemplate = new SystemPromptTemplate("Tell me
-            // a {adjective} joke about {topic}");
-            // Message systemMessage =
-            // systemPromptTemplate.createMessage(Map.of("adjective", "offensive", "topic",
-            // "old people"));
-
-            // create a user message from the template and substitute the values
-            
-            // Assessment assessment = assessmentService.findById(assessmentId)
-            //         .orElseThrow(() -> new Exception("Assessment not found with id: " + assessmentId));
-
             PromptTemplate userPromptTemplate = new PromptTemplate(userPromptTemplateMessage);
             Message userMessage = userPromptTemplate.createMessage(userPromptVariables);
-
-            // add the user message to the messages list
-            // addMessageToChatHistory(new UserMessage(userMessage.getText()), assessment,
-            // model);
-
-            // get the messages from the chat history (context window)
-            // TODO: load newmessages from redis cache
-            List<Message> newMessages = new ArrayList<>();
-            /*
-            Entire context window represented as:
-            Stream.concat(existingMessages.stream(), newMessages.stream()).toList()
-            */
-
-            // update conversation history in memory
-            // TODO: add the user message to the cache in Redis
-            newMessages.add(userMessage);
-            sendSseEvent(jobId, "message", userMessage);
-
-            // printing all messages in context window
-            log.info("--------------------------------");
-            log.info("MESSAGES IN CONTEXT WINDOW:");
-            for (Message message : Stream.concat(existingMessages.stream(), newMessages.stream()).toList()) {
-                log.info("Message Type: {}", message.getMessageType().toString());
-                log.info("Message: {}...{}", message.getText().substring(0, Math.min(message.getText().length(), 50)),
-                        message.getText().substring(Math.max(message.getText().length() - 30, 0)));
-            }
-            log.info("--------------------------------");
-
-            // create a prompt message from template
-            // PromptTemplate pt = new PromptTemplate("You are a helpful assistant. You are
-            // given a conversation history and a user message. You need to respond to the
-            // user message based on the conversation history. The conversation history is:
-            // {conversationHistory}. The user message is: {userMessage}. The response
-            // should be in the same language as the conversation history.");
-            // Message systemMessage = pt.createMessage(Map.of("conversationHistory",
-            // messages, "userMessage", userMessage));
-
-            // creating a prompt with a system message and a user message
-            OpenAiChatOptions chatOptions = OpenAiChatOptions.builder()
-                    .model(String.format("%s@preset/%s", model, PRESET))
-                    .toolCallbacks(ToolCallbacks.from(githubTools))
-                    .toolChoice(OpenAiApi.ChatCompletionRequest.ToolChoiceBuilder.AUTO)
-                    .internalToolExecutionEnabled(false) // disable framework-enabled tool execution
-                    .parallelToolCalls(PARALLEL_TOOL_CALLS)
-                    .build();
-
-            Prompt prompt = new Prompt(
-                Stream.concat(existingMessages.stream(), newMessages.stream()).toList(),
-                    chatOptions);
-
-            // Create a new prompt with a user message
-            // Prompt p2 = new Prompt(new UserMessage(""), OpenAiChatOptions.builder()
-            // .model(model)
-            // .build());
-
-            // adding LLM response to chat history
-            int count = 0;
-            ChatResponse response;
-            // Retrying in case the LLM generates a faulty response
-            try {
-                response = chatModel.call(prompt);
-            } catch (RestClientException e) {
-                log.error("Error calling OpenRouter via Spring AI: {}. Retrying...", e.getMessage(), e);
-                try {
-                    response = chatModel.call(prompt);
-                } catch (Exception ex) {
-                    log.error("Error calling OpenRouter via Spring AI: {}", ex.getMessage(), ex);
-                    throw new RuntimeException("Failed to get completion from AI service: " + ex.getMessage(), ex);
-                }
-            }
-            for (Generation generation : response.getResults()) {
-                log.info("--------------------------------");
-                log.info("GENERATION {}:", count);
-                log.info("GENERATION MESSAGE TYPE: {}", generation.getOutput().getMessageType().toString());
-                log.info("Generation Text: {}", generation.getOutput().getText().substring(0,
-                        Math.min(generation.getOutput().getText().length(), 50)) + "...");
-                log.info("Generation Tool Calls: {}", generation.getOutput().getToolCalls().toString());
-                log.info("--------------------------------");
-
-                // addMessageToChatHistory(generation.getOutput(), assessment, model);
-                // TODO: dont add message to chat history if it wasnt generated by the sendMessageToUser tool call?
-                //newMessages.add(generation.getOutput());
-
-                if (!generation.getOutput().hasToolCalls()) {
-                    newMessages.add(generation.getOutput());
-                    sendSseEvent(jobId, "message", generation.getOutput());
-                }
-                count++;
-            }
-
-            // log.info("--------------------------------");
-            // log.info("TOOL CALLS:");
-            // taking the first Generation
-            // log.info("RESPONSE METADATA: {}", response.getMetadata().toString());
-            // log.info("RESPONSE MESSAGE TYPE: {}",
-            // response.getResult().getOutput().getMessageType().toString());
-            // log.info("RESPONSE TEXT: {}", response.getResult().getOutput().getText());
-            // log.info("HAS TOOL CALLS: {}",
-            // response.getResult().getOutput().hasToolCalls());
-            // log.info("RESPONSE TOOL CALLS: {}",
-            // response.getResult().getOutput().getToolCalls().toString());
-
-            // get the response manually
-
-            // Agent loop
-            // NOTE: I dont think we need to get tool responses for sendMessageToUser tool
-            // calls since it would trigger the LLM again and cause it to send another
-            // message back to user
-            while (response.hasToolCalls() && !endConversation) {
-                try {
-                    // log.info("Executing tool calls...");
-
-                    // Check if any tool call is sendUserMessage
-                    // boolean hasSendUserMessage = false;
-                    // for (Generation generation : response.getResults()) {
-                    // if (generation.getOutput().getToolCalls() != null) {
-                    // for (ToolCall toolCall : generation.getOutput().getToolCalls()) {
-                    // if ("sendUserMessage".equals(toolCall.name())) {
-                    // hasSendUserMessage = true;
-                    // log.info("Detected sendUserMessage tool call - stopping conversation");
-                    // break;
-                    // }
-                    // }
-                    // }
-                    // }
-
-                    // TODO: make tool calls asynchronous (virtual threads or @async annotations)
-                    for (Generation generation : response.getResults()) {
-                        log.info("--------------------------------");
-                        log.info("GENERATION MESSAGE TYPE: {}", generation.getOutput().getMessageType().toString());
-                        log.info("Generation Text: {}", generation.getOutput().getText().substring(0,
-                                Math.min(generation.getOutput().getText().length(), 50)) + "...");
-                        log.info("Generation Tool Calls: {}", generation.getOutput().getToolCalls().toString());
-                        log.info("--------------------------------");
-
-                        newMessages.add(generation.getOutput());
-                        sendSseEvent(jobId, "message", generation.getOutput());
-                        List<ToolResponse> toolResponses = new ArrayList<>();
-                        for (ToolCall toolCall : generation.getOutput().getToolCalls()) {
-                            if (toolCall.name().equals("sendMessageToUser")) {
-                                log.info("Detected sendMessageToUser tool call - stopping conversation");
-                                // Parse the JSON arguments to extract the actual message
-                                try {
-                                    ObjectMapper objectMapper = new ObjectMapper();
-                                    Map<String, Object> args = objectMapper.readValue(toolCall.arguments(), new TypeReference<Map<String, Object>>() {});
-                                    String messageContent = (String) args.get("message");
-                                    // store the actual message content as an assistant message
-                                    newMessages.add(new AssistantMessage(messageContent));
-                                    sendSseEvent(jobId, "message", new AssistantMessage(messageContent));
-                                } catch (JsonProcessingException e) {
-                                    log.error("Error parsing sendMessageToUser arguments: {}", e.getMessage());
-                                    // Fallback: use the raw arguments if parsing fails
-                                    newMessages.add(new AssistantMessage(toolCall.arguments()));
-                                    sendSseEvent(jobId, "message", new AssistantMessage(toolCall.arguments()));
-                                }
-                                endConversation = true;
-                                break;
-                            }
-                            // TODO:if the tool call is not sendMessageToUser, execute it
-                            // executeToolCall should return a ToolResponse object
-                            ToolResponse toolResponse = toolCallHandler.executeToolCall(toolCall, encryptedGithubToken, githubUsername, githubRepoName);
-                            if (toolResponse != null) {
-                                toolResponses.add(toolResponse);
-                            }
-                            // addMessageToChatHistory(new ToolResponseMessage(/* List of ToolResponse
-                            // objects here */), assessment, model);
-                        }
-                        // generate a tool response message
-                        newMessages.add(new ToolResponseMessage(toolResponses));
-                        sendSseEvent(jobId, "message", new ToolResponseMessage(toolResponses));
-                    }
-
-                    if (endConversation) {
-                        break;
-                    }
-
-                    // ToolExecutionResult toolExecutionResult =
-                    // toolCallingManager.executeToolCalls(prompt, response);
-                    // log.info("--------------------------------");
-                    // log.info("TOOL EXECUTION RESULT CONVERSATION HISTORY:");
-                    // for (Message message : toolExecutionResult.conversationHistory()) {
-                    // log.info("Message Type: {}", message.getMessageType().toString());
-                    // log.info("Message: {}...{}", message.getText().substring(0,
-                    // Math.min(message.getText().length(), 50)),
-                    // message.getText().substring(Math.max(message.getText().length() - 30, 0)));
-                    // }
-                    // log.info("--------------------------------");
-
-                    // If sendUserMessage was called, stop the conversation
-                    // if (hasSendUserMessage) {
-                    // log.info("Stopping conversation due to sendUserMessage tool call");
-                    // // Add the tool execution result to chat history
-                    // for (Message message : toolExecutionResult.conversationHistory()) {
-                    // if (message instanceof AbstractMessage abstractMessage) {
-                    // addMessageToChatHistory(abstractMessage, assessment, model);
-                    // }
-                    // }
-                    // break;
-                    // }
-
-                    // Getting the next response from the LLM
-                    prompt = new Prompt(Stream.concat(existingMessages.stream(), newMessages.stream()).toList(), chatOptions);
-
-                    response = chatModel.call(prompt);
-                    // add message to chat history
-                    // addMessageToChatHistory(response.getResult().getOutput(), assessment, model);
-                    // log.info("--------------------------------");
-                    // log.info("RESPONSE:");
-                    // log.info("RESPONSE METADATA: {}",
-                    // response.getResult().getMetadata().toString());
-                    // log.info("RESPONSE MESSAGE TYPE: {}",
-                    // response.getResult().getOutput().getMessageType().toString());
-                    // log.info("RESPONSE TEXT: {}", response.getResult().getOutput().getText());
-                    // log.info("RESPONSE TOOL CALLS: {}",
-                    // response.getResult().getOutput().getToolCalls().toString());
-                } catch (Exception e) {
-                    log.error("Error executing tool calls: {}", e.getMessage(), e);
-                    throw e;
-                }
-            }
-            // agent loop is finished executing
-            log.info("--------------------------------");
-
-            // log.info("Response: {}", response.getResults().stream().map(r ->
-            // r.getOutput().getText()).collect(Collectors.joining("\n\n")));
-            // for (Generation generation : response.getResults()) {
-            // log.info("Generation {}: {}", count,
-            // generation.getOutput().getText().substring(0,
-            // Math.min(generation.getOutput().getText().length(), 100)) + "...");
-            // count++;
-            // }
-            // TODO: add each message in newMessages to chat_messages cache
-            // ...
-            // save new messages to primary DB (batch write)
-            return addMessagesToChatHistory(newMessages, assessmentId, model);
+            
+            return getChatCompletion(jobId, existingMessages, userMessage, model, assessmentId, encryptedGithubToken, githubUsername, githubRepoName);
         } catch (Exception e) {
             log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to get completion from AI service: " + e.getMessage(), e);

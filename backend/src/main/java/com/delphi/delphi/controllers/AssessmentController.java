@@ -19,7 +19,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.task.DelegatingSecurityContextAsyncTaskExecutor;
@@ -335,8 +334,8 @@ public class AssessmentController {
 
             CompletableFuture.runAsync(() -> {
                 // Copy security context to async thread
-                SecurityContext securityContext = SecurityContextHolder.getContext();
-                SecurityContextHolder.setContext(securityContext);
+                // SecurityContext securityContext = SecurityContextHolder.getContext();
+                // SecurityContextHolder.setContext(securityContext);
 
                 try {
                     PublishAssessmentCreationJobDto publishAssessmentCreationJobDto = new PublishAssessmentCreationJobDto(
@@ -355,12 +354,16 @@ public class AssessmentController {
                         emitter.completeWithError(ioEx);
                     }
                 } finally {
+                    // TODO: see if this can be deleted
                     SecurityContextHolder.clearContext();
                 }
             }, taskExecutor);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(emitter);
 
+        } catch (AmqpException e) {
+            log.error("Error pushing assessment creation job to queue: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error setting up SSE assessment creation: " + e.getMessage());
         } catch (Exception e) {
             log.error("Error setting up SSE assessment creation: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error setting up SSE assessment creation: " + e.getMessage());
@@ -396,69 +399,95 @@ public class AssessmentController {
     // }
     // Chat with the AI agent (SSE endpoint for real-time chat)
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter chatSse(@RequestBody NewUserMessageDto messageDto) {
-        SseEmitter emitter = new SseEmitter(300000L); // 5 minutes timeout
-
+    public ResponseEntity<?> chatSse(@Valid @RequestBody NewUserMessageDto messageDto, HttpServletResponse response) {
         try {
             UserCacheDto user = getCurrentUser();
+
+            if (!userService.connectedGithub(user)) {
+                log.info("User is not connected to github, redirecting to installation page");
+                response.setHeader("Location", appInstallUrl);
+                response.setStatus(302);
+                return ResponseEntity.status(HttpStatus.FOUND).build();
+            }
+
             AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(messageDto.getAssessmentId());
 
-            // Send initial connection confirmation
-            emitter.send(SseEmitter.event()
-                    .name("connected")
-                    .data(Map.of("message", "Connected to chat stream", "assessmentId", assessment.getId())));
-
-            // Publish chat completion request to the chat message queue
-            log.info("Publishing chat completion request to the chat message queue");
             Job job = new Job(JobStatus.PENDING, JobType.CHAT_COMPLETION);
             job = jobRepository.save(job);
-
-            PublishChatJobDto publishChatJobDto = new PublishChatJobDto(job.getId(), messageDto.getMessage(),
-                    assessment, user, messageDto.getModel());
-            rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.LLM_CHAT_ROUTING_KEY,
-                    publishChatJobDto);
-            log.info("Chat completion request published to queue");
-
-            // Send job created confirmation
-            emitter.send(SseEmitter.event()
-                    .name("job_created")
-                    .data(Map.of("jobId", job.getId().toString(), "assessmentId", assessment.getId(), "status",
-                            JobStatus.PENDING.toString())));
-
             final UUID jobId = job.getId();
-
-            // Store the emitter for later use when the job completes
+            
+            SseEmitter emitter = new SseEmitter(300000L); // 5 minutes timeout
             chatService.registerSseEmitter(jobId, emitter);
 
             // Handle emitter completion/error
             emitter.onCompletion(() -> {
-                log.info("SSE emitter completed for job: {}", jobId);
+                log.info("SSE emitter completed for assessment creation job: {}", jobId);
                 chatService.removeSseEmitter(jobId);
             });
 
             emitter.onTimeout(() -> {
-                log.info("SSE emitter timed out for job: {}", jobId);
+                log.info("SSE emitter timed out for assessment creation job: {}", jobId);
                 chatService.removeSseEmitter(jobId);
+                emitter.complete();
             });
 
             emitter.onError((ex) -> {
-                log.error("SSE emitter error for job: {}", jobId, ex);
+                log.error("SSE emitter error for assessment creation job: {}", jobId, ex);
                 chatService.removeSseEmitter(jobId);
+                emitter.completeWithError(ex);
             });
 
-        } catch (IOException | AmqpException e) {
-            log.error("Error setting up SSE chat: {}", e.getMessage(), e);
+            log.info("Job created: {}", jobId);
+            
             try {
+                // Send job created confirmation
                 emitter.send(SseEmitter.event()
-                        .name("error")
-                        .data(Map.of("error", "Failed to setup chat stream: " + e.getMessage())));
-                emitter.complete();
-            } catch (IOException ex) {
-                log.error("Error sending error event: {}", ex.getMessage());
+                        .name("job_created")
+                        .data(Map.of("jobId", jobId.toString(), "assessmentId", assessment.getId(), "status",
+                                JobStatus.PENDING.toString())));
+            } catch (IOException e) {
+                log.error("Error sending job created confirmation: {}", e.getMessage());
+                emitter.completeWithError(e);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Error sending job created confirmation: " + e.getMessage());
             }
-        }
 
-        return emitter;
+            CompletableFuture.runAsync(() -> {
+                // Copy security context to async thread
+                // SecurityContext securityContext = SecurityContextHolder.getContext();
+                // SecurityContextHolder.setContext(securityContext);
+
+                try {
+                    PublishChatJobDto publishChatJobDto = new PublishChatJobDto(jobId, messageDto.getMessage(),
+                            assessment, user, messageDto.getModel());
+                    rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.LLM_CHAT_ROUTING_KEY,
+                            publishChatJobDto);
+                    log.info("Assessment creation job published to queue");
+                } catch (Exception e) {
+                    log.error("Error publishing assessment creation job", e);
+                    try {
+                        emitter.send(SseEmitter.event()
+                                    .name("error")
+                                    .data(Map.of("error", e.getMessage())));
+                        emitter.complete();
+                    } catch (IOException ioEx) {
+                        emitter.completeWithError(ioEx);
+                    }
+                } finally {
+                    // TODO: see if this can be deleted
+                    SecurityContextHolder.clearContext();
+                }
+            }, taskExecutor);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(emitter);
+
+        } catch (AmqpException e) {
+            log.error("Error pushing chat job to queue: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error pushing chat job to queue: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error setting up SSE chat: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error setting up SSE chat: " + e.getMessage());
+        }
     }
 
     // Chat with the AI agent (legacy synchronous endpoint)

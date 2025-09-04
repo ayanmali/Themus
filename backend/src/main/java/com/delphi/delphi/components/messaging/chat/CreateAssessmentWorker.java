@@ -78,15 +78,15 @@ public class CreateAssessmentWorker {
 
         } catch (IllegalArgumentException e) {
             log.error("Validation error in assessment creation job {}: {}", jobId, e.getMessage());
-            handleJobFailure(job, jobId, e, "Validation error: " + e.getMessage());
+            MessageUtils.handleJobFailure(chatService, jobRepository, job, jobId, e, "Validation error: " + e.getMessage());
 
         } catch (RuntimeException e) {
             log.error("Runtime error in assessment creation job {}: {}", jobId, e.getMessage(), e);
-            handleJobFailure(job, jobId, e, "Service error: " + e.getMessage());
+            MessageUtils.handleJobFailure(chatService, jobRepository, job, jobId, e, "Service error: " + e.getMessage());
 
         } catch (Exception e) {
             log.error("Unexpected error in assessment creation job {}: {}", jobId, e.getMessage(), e);
-            handleJobFailure(job, jobId, e, "Unexpected error: " + e.getMessage());
+            MessageUtils.handleJobFailure(chatService, jobRepository, job, jobId, e, "Unexpected error: " + e.getMessage());
 
         } finally {
             // Always complete the SSE emitter, regardless of success or failure
@@ -101,23 +101,4 @@ public class CreateAssessmentWorker {
         }
     }
 
-    private void handleJobFailure(Job job, UUID jobId, Exception e, String errorMessage) {
-        try {
-            // Update job status in database
-            if (job != null) {
-                job.setStatus(JobStatus.FAILED);
-                job.setResult(errorMessage);
-                jobRepository.save(job);
-            }
-            
-            // Send error event via SSE
-            chatService.sendSseEvent(jobId, "error", 
-                Map.of("error", errorMessage,
-                       "jobId", jobId.toString(),
-                       "status", "failed"));
-                       
-        } catch (Exception ex) {
-            log.error("Additional error while handling job failure for {}: {}", jobId, ex.getMessage());
-        }
-    }
 }

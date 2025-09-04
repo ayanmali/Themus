@@ -144,7 +144,7 @@ public class Assessment {
     private List<Candidate> candidates;
 
     // One-to-many relationship with ChatMessages
-    @OneToMany(mappedBy = "assessment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "assessmentId", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<ChatMessage> chatMessages;
 
