@@ -18,7 +18,7 @@ import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/comp
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PaginatedResponse } from "@/lib/types/paginated-response";
-import { useSseChat } from "@/hooks/use-sse-chat";
+import { useSse } from "@/hooks/use-sse";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 export default function AssessmentDetails() {
@@ -252,9 +252,9 @@ export default function AssessmentDetails() {
     }, [chatHistoryData]);
 
     // SSE Chat hook
-    const { sendMessage: sendSseMessage, isLoading: isSseLoading } = useSseChat({
-        assessmentId: assessmentId ? parseInt(assessmentId) : 0,
-        onNewMessages: (newMessages) => {
+    const { sendMessage: sendSseMessage, isLoading: isSseLoading } = useSse({
+        //assessmentId: assessmentId ? parseInt(assessmentId) : 0,
+        onEventHandler: (newMessages) => {
             setChatMessages(prev => [...prev, ...newMessages]);
         }
     });
@@ -313,7 +313,7 @@ export default function AssessmentDetails() {
 
         // Try SSE first, fallback to regular mutation
         try {
-            sendSseMessage(message, model, '/api/assessments/chat/sse');
+            sendSseMessage({message, model, assessmentId}, '/api/assessments/chat/sse');
         } catch (error) {
             console.log('SSE failed, falling back to regular chat');
             sendChatMessageMutation.mutate({ message, model });

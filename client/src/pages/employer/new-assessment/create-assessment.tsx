@@ -33,7 +33,7 @@ import { TechChoices } from "./tech-choices";
 import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import useApi from "@/hooks/use-api";
 import { Textarea } from "@/components/ui/textarea";
-import { useSseAssessmentCreation } from "@/hooks/use-sse-assessment-creation";
+import { useSse } from "@/hooks/use-sse";;
 
 // Create a schema for the assessment creation form
 const createAssessmentSchema = z.object({
@@ -187,15 +187,14 @@ export function CreateAssessmentForm() {
   // }
 
   // SSE Assessment creation hook
-  const { createAssessment, isLoading: isSseLoading, isConnected } = useSseAssessmentCreation({
+  const { sendMessage: createAssessment, isLoading: isSseLoading, isConnected } = useSse({
     // Callback function to handle the assessment creation
-    onAssessmentCreated: async (data: {
+    onEventHandler: async (data: {
       jobId: string;
       assessmentId: string;
       //status: string;
       //message: string;
     }) => {
-      console.log('onAssessmentCreated callback triggered with data:', data);
       
       // Invalidate all assessment-related queries to ensure fresh data
       await Promise.all([
@@ -208,7 +207,7 @@ export function CreateAssessmentForm() {
       await queryClient.refetchQueries({ queryKey: ['assessments'] });
       
       const newAssessmentId = data?.assessmentId;
-      console.log('Extracted assessment ID:', newAssessmentId);
+      //console.log('Extracted assessment ID:', newAssessmentId);
       
       toast({
         title: "Assessment created",
@@ -346,8 +345,8 @@ export function CreateAssessmentForm() {
       }
       
       // Proceed with assessment creation using SSE
-      console.log('🎯 About to call createAssessment with data:', apiData);
-      createAssessment(apiData);
+      //console.log('🎯 About to call createAssessment with data:', apiData);
+      createAssessment(apiData, '/api/assessments/new');
     } catch (error) {
       console.error('Error in form submission:', error);
       toast({
@@ -573,7 +572,6 @@ export function CreateAssessmentForm() {
             <Button
               type="button"
               variant="outline"
-              //onClick={() => navigate("/assessments")}
               className="bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-700/80 hover:text-white hover:border-slate-600/50 backdrop-blur-sm"
             >
               Cancel
@@ -606,7 +604,7 @@ export function CreateAssessmentForm() {
         {isSseLoading && (
           <div className="flex items-center gap-2 text-sm text-slate-400">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span>Connected to AI - Creating assessment...</span>
+            <span>Connected to AI - Planning your assessment...</span>
           </div>
         )}
       </div>

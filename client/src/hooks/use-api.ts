@@ -135,9 +135,7 @@ const useApi = () => {
 
       // Check if this is an SSE response
       const contentType = response.headers.get('content-type');
-      console.log('🔍 Response content-type:', contentType);
       if (contentType && contentType.includes('text/event-stream')) {
-        console.log('✅ Detected SSE response, returning response object directly');
         // Return the response object directly for SSE streams
         return response;
       }

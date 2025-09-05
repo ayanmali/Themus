@@ -2,43 +2,38 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import useApi from './use-api';
 import { CreateAssessmentFormValues } from '@/pages/employer/new-assessment/create-assessment';
 
-interface UseSseAssessmentCreationProps {
-  onAssessmentCreated?: (assessment: {
-    jobId: string;
-    assessmentId: string;
-    //status: string;
-    //message: string;
-  }) => void;
+interface UseSseProps {
+  onEventHandler?: (assessment: any) => void; // Handler for when an event is received from the SSE stream (e.g. assessment_created, chat_completion, etc)
   onError?: (error: string) => void;
 }
 
-export function useSseAssessmentCreation({ onAssessmentCreated, onError }: UseSseAssessmentCreationProps) {
+export function useSse({ onEventHandler, onError }: UseSseProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const { apiCall } = useApi();
 
-  const createAssessment = useCallback(async (assessmentData: CreateAssessmentFormValues) => {
-    console.log('🚀 Starting assessment creation with data:', assessmentData);
+  const sendMessage = useCallback(async (data: any, url: string) => {
+    //console.log('🚀 Starting assessment creation with data:', assessmentData);
     setIsLoading(true);
     
     try {
       // Send the assessment creation request and get SSE connection
-      console.log('📡 Making API call to /api/assessments/new');
-      const response = await apiCall('/api/assessments/new', {
+      //console.log('📡 Making API call to /api/assessments/new');
+      const response = await apiCall(url, {
         method: 'POST',
-        body: JSON.stringify(assessmentData),
+        body: JSON.stringify(data),
         headers: {
           'Content-Type': 'application/json',
         },
       });
       
-      console.log('📨 API response received:', response);
-      console.log('📨 Response type:', typeof response);
-      console.log('📨 Response has body:', !!response?.body);
+      //console.log('📨 API response received:', response);
+      //console.log('📨 Response type:', typeof response);
+      //console.log('📨 Response has body:', !!response?.body);
 
       if (response && response.body) {
-        console.log('📖 Starting to read SSE stream');
+        //console.log('📖 Starting to read SSE stream');
         // Handle the SSE response
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -89,30 +84,30 @@ export function useSseAssessmentCreation({ onAssessmentCreated, onError }: UseSs
                 eventName = line.slice(6).trim();
                 console.log('📖 Found event name:', eventName);
             } 
-            else if (line.trim() && !line.startsWith('event:') && !line.startsWith('id:') && !line.startsWith('data:')) {
-              // This might be a data line without the "data: " prefix
-            //   try {
-            //     const data = JSON.parse(line);
-            //     console.log('📖 Parsed SSE data (no prefix):', data);
-            //     handleSseEvent(eventName, data);
-            //   } catch (error) {
-            //     // Not JSON, ignore
-            //   }
-            }
+            // else if (line.trim() && !line.startsWith('event:') && !line.startsWith('id:') && !line.startsWith('data:')) {
+            //   // This might be a data line without the "data: " prefix
+            // //   try {
+            // //     const data = JSON.parse(line);
+            // //     console.log('📖 Parsed SSE data (no prefix):', data);
+            // //     handleSseEvent(eventName, data);
+            // //   } catch (error) {
+            // //     // Not JSON, ignore
+            // //   }
+            // }
           }
         }
       } else {
         console.log('❌ No response body found or response is null');
       }
     } catch (error) {
-      console.error('Error with SSE assessment creation:', error);
+      console.error('Error with obtaining SSE stream:', error);
       if (onError) {
-        onError('Failed to create assessment');
+        onError('Failed to get SSE stream');
       }
     } finally {
       setIsLoading(false);
     }
-  }, [apiCall, onAssessmentCreated, onError]);
+  }, [apiCall, onEventHandler, onError]);
 
   const handleSseEvent = useCallback((eventName: string, data: any) => {
     switch (eventName) {
@@ -129,22 +124,29 @@ export function useSseAssessmentCreation({ onAssessmentCreated, onError }: UseSs
       case 'assessment_created':
         console.log('Assessment created event received:', data);
         console.log('Assessment ID from data:', data?.assessmentId);
-        if (onAssessmentCreated) {
-          onAssessmentCreated(data);
+        if (onEventHandler) {
+            onEventHandler(data);
         }
         setIsConnected(false);
         break;
+       case 'chat_completion':
+            console.log('Chat completed:', data);
+            if (onEventHandler && data.messages) {
+                onEventHandler(data.messages);
+            }
+            setIsConnected(false);
+            break;
       case 'error':
         console.error('SSE error:', data);
         if (onError) {
-          onError(data.error || 'Assessment creation failed');
+          onError(data.error || 'SSE stream failed');
         }
         setIsConnected(false);
         break;
       default:
         console.log('Unknown SSE event:', eventName, data);
     }
-  }, [onAssessmentCreated, onError]);
+  }, [onEventHandler, onError]);
 
   const disconnect = useCallback(() => {
     if (eventSourceRef.current) {
@@ -161,7 +163,7 @@ export function useSseAssessmentCreation({ onAssessmentCreated, onError }: UseSs
   }, [disconnect]);
 
   return {
-    createAssessment,
+    sendMessage,
     isConnected,
     isLoading,
     disconnect
