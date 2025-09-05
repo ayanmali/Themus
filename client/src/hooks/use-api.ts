@@ -133,6 +133,15 @@ const useApi = () => {
         return null;
       }
 
+      // Check if this is an SSE response
+      const contentType = response.headers.get('content-type');
+      console.log('🔍 Response content-type:', contentType);
+      if (contentType && contentType.includes('text/event-stream')) {
+        console.log('✅ Detected SSE response, returning response object directly');
+        // Return the response object directly for SSE streams
+        return response;
+      }
+
       return await response.json();
     } catch (error) {
       console.error('API call failed:', error);

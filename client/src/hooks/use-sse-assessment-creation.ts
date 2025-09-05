@@ -1,8 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import useApi from './use-api';
+import { CreateAssessmentFormValues } from '@/pages/employer/new-assessment/create-assessment';
 
 interface UseSseAssessmentCreationProps {
-  onAssessmentCreated?: (assessment: any) => void;
+  onAssessmentCreated?: (assessment: {
+    jobId: string;
+    assessmentId: string;
+    //status: string;
+    //message: string;
+  }) => void;
   onError?: (error: string) => void;
 }
 
@@ -12,11 +18,13 @@ export function useSseAssessmentCreation({ onAssessmentCreated, onError }: UseSs
   const eventSourceRef = useRef<EventSource | null>(null);
   const { apiCall } = useApi();
 
-  const createAssessment = useCallback(async (assessmentData: any) => {
+  const createAssessment = useCallback(async (assessmentData: CreateAssessmentFormValues) => {
+    console.log('🚀 Starting assessment creation with data:', assessmentData);
     setIsLoading(true);
     
     try {
       // Send the assessment creation request and get SSE connection
+      console.log('📡 Making API call to /api/assessments/new');
       const response = await apiCall('/api/assessments/new', {
         method: 'POST',
         body: JSON.stringify(assessmentData),
@@ -24,30 +32,77 @@ export function useSseAssessmentCreation({ onAssessmentCreated, onError }: UseSs
           'Content-Type': 'application/json',
         },
       });
+      
+      console.log('📨 API response received:', response);
+      console.log('📨 Response type:', typeof response);
+      console.log('📨 Response has body:', !!response?.body);
 
       if (response && response.body) {
+        console.log('📖 Starting to read SSE stream');
         // Handle the SSE response
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
 
+        let eventName = '';
+        let eventId = '';
+        let buffer = '';
+
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            console.log('📖 SSE stream completed');
+            break;
+          }
 
           const chunk = decoder.decode(value);
-          const lines = chunk.split('\n');
+          console.log('📖 Received SSE chunk:', chunk);
+          
+          // Add chunk to buffer
+          buffer += chunk;
+          
+          // Process complete lines from buffer
+          const lines = buffer.split('\n');
+          // Keep the last incomplete line in buffer
+          buffer = lines.pop() || '';
 
+          console.log('📖 **Processing SSE lines:', lines);
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
+            console.log('📖 Processing SSE line:', line); 
+            if (line.startsWith('id:')) {
+              eventId = line.slice(3).trim();
+              console.log('📖 Found event ID:', eventId);
+            } 
+            else if (line.startsWith('data:')) {
               try {
-                const data = JSON.parse(line.slice(6));
-                handleSseEvent(data);
+                const dataString = line.slice(5);
+                if (dataString.trim()) {
+                  const data = JSON.parse(dataString);
+                  console.log('📖 Parsed SSE data:', data);
+                  handleSseEvent(eventName, data);
+                }
               } catch (error) {
-                console.error('Error parsing SSE data:', error);
+                console.error('❌ Error parsing SSE data:', error);
+                console.error('❌ Raw data line:', line);
               }
+            }
+            else if (line.startsWith('event:')) {
+                eventName = line.slice(6).trim();
+                console.log('📖 Found event name:', eventName);
+            } 
+            else if (line.trim() && !line.startsWith('event:') && !line.startsWith('id:') && !line.startsWith('data:')) {
+              // This might be a data line without the "data: " prefix
+            //   try {
+            //     const data = JSON.parse(line);
+            //     console.log('📖 Parsed SSE data (no prefix):', data);
+            //     handleSseEvent(eventName, data);
+            //   } catch (error) {
+            //     // Not JSON, ignore
+            //   }
             }
           }
         }
+      } else {
+        console.log('❌ No response body found or response is null');
       }
     } catch (error) {
       console.error('Error with SSE assessment creation:', error);
@@ -59,34 +114,35 @@ export function useSseAssessmentCreation({ onAssessmentCreated, onError }: UseSs
     }
   }, [apiCall, onAssessmentCreated, onError]);
 
-  const handleSseEvent = useCallback((data: any) => {
-    switch (data.event) {
+  const handleSseEvent = useCallback((eventName: string, data: any) => {
+    switch (eventName) {
       case 'connected':
-        console.log('SSE connected:', data.data);
+        console.log('SSE connected:', data);
         setIsConnected(true);
         break;
       case 'job_created':
-        console.log('Job created:', data.data);
+        console.log('Job created:', data);
         break;
       case 'job_running':
-        console.log('Job running:', data.data);
+        console.log('Job running:', data);
         break;
       case 'assessment_created':
-        console.log('Assessment created:', data.data);
+        console.log('Assessment created event received:', data);
+        console.log('Assessment ID from data:', data?.assessmentId);
         if (onAssessmentCreated) {
-          onAssessmentCreated(data.data);
+          onAssessmentCreated(data);
         }
         setIsConnected(false);
         break;
       case 'error':
-        console.error('SSE error:', data.data);
+        console.error('SSE error:', data);
         if (onError) {
-          onError(data.data.error || 'Assessment creation failed');
+          onError(data.error || 'Assessment creation failed');
         }
         setIsConnected(false);
         break;
       default:
-        console.log('Unknown SSE event:', data);
+        console.log('Unknown SSE event:', eventName, data);
     }
   }, [onAssessmentCreated, onError]);
 

@@ -118,7 +118,12 @@ public class ChatService {
     public List<ChatMessageCacheDto> getChatCompletion(UUID jobId, List<Message> existingMessages, String userMessage,
             String model, Long assessmentId, String encryptedGithubToken, String githubUsername,
             String githubRepoName) {
-        return getChatCompletion(jobId, existingMessages, new UserMessage(userMessage), model, assessmentId, encryptedGithubToken, githubUsername, githubRepoName);
+        try {
+            return getChatCompletion(jobId, existingMessages, new UserMessage(userMessage), model, assessmentId, encryptedGithubToken, githubUsername, githubRepoName);
+        } catch (Exception e) {
+            log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to get completion from AI service: " + e.getMessage(), e);
+        }
     }
 
     public List<ChatMessageCacheDto> getChatCompletion(UUID jobId, List<Message> existingMessages, Message userMessage,
@@ -158,15 +163,6 @@ public class ChatService {
             }
             log.info("--------------------------------");
 
-            // create a prompt message from template
-            // PromptTemplate pt = new PromptTemplate("You are a helpful assistant. You are
-            // given a conversation history and a user message. You need to respond to the
-            // user message based on the conversation history. The conversation history is:
-            // {conversationHistory}. The user message is: {userMessage}. The response
-            // should be in the same language as the conversation history.");
-            // Message systemMessage = pt.createMessage(Map.of("conversationHistory",
-            // messages, "userMessage", userMessage));
-
             // creating a prompt with a system message and a user message
             OpenAiChatOptions chatOptions = OpenAiChatOptions.builder()
                     .model(String.format("%s@preset/%s", model, PRESET))
@@ -180,11 +176,6 @@ public class ChatService {
             Prompt prompt = new Prompt(
                 Stream.concat(existingMessages.stream(), newMessages.stream()).toList(),
                     chatOptions);
-
-            // Create a new prompt with a user message
-            // Prompt p2 = new Prompt(new UserMessage(""), OpenAiChatOptions.builder()
-            // .model(model)
-            // .build());
 
             // adding LLM response to chat history
             int count = 0;
@@ -222,20 +213,6 @@ public class ChatService {
                 }
                 count++;
             }
-
-            // log.info("--------------------------------");
-            // log.info("TOOL CALLS:");
-            // taking the first Generation
-            // log.info("RESPONSE METADATA: {}", response.getMetadata().toString());
-            // log.info("RESPONSE MESSAGE TYPE: {}",
-            // response.getResult().getOutput().getMessageType().toString());
-            // log.info("RESPONSE TEXT: {}", response.getResult().getOutput().getText());
-            // log.info("HAS TOOL CALLS: {}",
-            // response.getResult().getOutput().hasToolCalls());
-            // log.info("RESPONSE TOOL CALLS: {}",
-            // response.getResult().getOutput().getToolCalls().toString());
-
-            // get the response manually
 
             // Agent loop
             // NOTE: I dont think we need to get tool responses for sendMessageToUser tool

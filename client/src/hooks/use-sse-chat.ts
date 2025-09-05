@@ -37,20 +37,46 @@ export function useSseChat({ assessmentId, onNewMessages }: UseSseChatProps) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
 
+        let eventName = '';
+        let eventId = '';
+        let buffer = '';
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
           const chunk = decoder.decode(value);
-          const lines = chunk.split('\n');
+          
+          // Add chunk to buffer
+          buffer += chunk;
+          
+          // Process complete lines from buffer
+          const lines = buffer.split('\n');
+          // Keep the last incomplete line in buffer
+          buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
+            if (line.startsWith('event: ')) {
+              eventName = line.slice(7).trim();
+            } else if (line.startsWith('id: ')) {
+              eventId = line.slice(4).trim();
+            } else if (line.startsWith('data: ')) {
               try {
-                const data = JSON.parse(line.slice(6));
-                handleSseEvent(data);
+                const dataString = line.slice(6);
+                if (dataString.trim()) {
+                  const data = JSON.parse(dataString);
+                  handleSseEvent(eventName, data);
+                }
               } catch (error) {
                 console.error('Error parsing SSE data:', error);
+              }
+            } else if (line.trim() && !line.startsWith('event:') && !line.startsWith('id:') && !line.startsWith('data:')) {
+              // This might be a data line without the "data: " prefix
+              try {
+                const data = JSON.parse(line);
+                handleSseEvent(eventName, data);
+              } catch (error) {
+                // Not JSON, ignore
               }
             }
           }
@@ -63,31 +89,32 @@ export function useSseChat({ assessmentId, onNewMessages }: UseSseChatProps) {
     }
   }, [assessmentId, apiCall, onNewMessages]);
 
-  const handleSseEvent = useCallback((data: any) => {
-    switch (data.event) {
+  const handleSseEvent = useCallback((eventName: string, data: any) => {
+    console.log('📖 Handling SSE event:', eventName, data);
+    switch (eventName) {
       case 'connected':
-        console.log('SSE connected:', data.data);
+        console.log('SSE connected:', data);
         setIsConnected(true);
         break;
       case 'job_created':
-        console.log('Job created:', data.data);
+        console.log('Job created:', data);
         break;
       case 'job_running':
-        console.log('Job running:', data.data);
+        console.log('Job running:', data);
         break;
       case 'chat_completed':
-        console.log('Chat completed:', data.data);
-        if (data.data.messages) {
-          onNewMessages(data.data.messages);
+        console.log('Chat completed:', data);
+        if (data.messages) {
+          onNewMessages(data.messages);
         }
         setIsConnected(false);
         break;
       case 'error':
-        console.error('SSE error:', data.data);
+        console.error('SSE error:', data);
         setIsConnected(false);
         break;
       default:
-        console.log('Unknown SSE event:', data);
+        console.log('Unknown SSE event:', eventName, data);
     }
   }, [onNewMessages]);
 

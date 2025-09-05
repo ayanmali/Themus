@@ -49,7 +49,7 @@ const createAssessmentSchema = z.object({
   // endDate: z.coerce.date().min(new Date(), { message: "End date must be in the future" }),
 });
 
-type CreateAssessmentFormValues = z.infer<typeof createAssessmentSchema>;
+export type CreateAssessmentFormValues = z.infer<typeof createAssessmentSchema>;
 
 // interface UseAutoResizeTextareaProps {
 //   minHeight: number;
@@ -188,7 +188,15 @@ export function CreateAssessmentForm() {
 
   // SSE Assessment creation hook
   const { createAssessment, isLoading: isSseLoading, isConnected } = useSseAssessmentCreation({
-    onAssessmentCreated: async (data: any) => {
+    // Callback function to handle the assessment creation
+    onAssessmentCreated: async (data: {
+      jobId: string;
+      assessmentId: string;
+      //status: string;
+      //message: string;
+    }) => {
+      console.log('onAssessmentCreated callback triggered with data:', data);
+      
       // Invalidate all assessment-related queries to ensure fresh data
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['assessments'] }),
@@ -200,13 +208,18 @@ export function CreateAssessmentForm() {
       await queryClient.refetchQueries({ queryKey: ['assessments'] });
       
       const newAssessmentId = data?.assessmentId;
+      console.log('Extracted assessment ID:', newAssessmentId);
+      
       toast({
         title: "Assessment created",
         description: "Your assessment has been created successfully",
       });
+      
       if (newAssessmentId) {
+        console.log('Redirecting to assessment view:', `/assessments/view/${newAssessmentId}`);
         navigate(`/assessments/view/${newAssessmentId}`);
       } else {
+        console.log('No assessment ID found, redirecting to assessments list');
         navigate("/assessments");
       }
     },
@@ -333,6 +346,7 @@ export function CreateAssessmentForm() {
       }
       
       // Proceed with assessment creation using SSE
+      console.log('🎯 About to call createAssessment with data:', apiData);
       createAssessment(apiData);
     } catch (error) {
       console.error('Error in form submission:', error);
