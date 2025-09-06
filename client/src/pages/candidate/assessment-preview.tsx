@@ -44,33 +44,37 @@ export default function CandidateAssessmentPreview() {
     };
 
     const handleStart = async () => {
-        // Github app installation URL with state parameter specifying this is a candidate installation
-        const githubInstallUrl: string = await apiCall(`/api/attempts/live/github/generate-install-url`, {
-            method: 'POST',
-            body: JSON.stringify({
-                candidateEmail: email,
-                plainTextPassword: password,
-            }),
-        });
-
-        console.log('GitHub install URL:', githubInstallUrl);
-
-        if (assessment?.languageOptions?.length && !selectedLanguage) {
-            alert('Please select a language/framework combination before starting.');
-            return;
-        }
         if (!email || !isValidEmail(email)) {
             alert('Please enter a valid email address before starting.');
             return;
         }
 
-        // if it does, then we can just redirect to the assessment page
-        const isAbleToTakeAssessment = await apiCall(`/api/attempts/live/can-take-assessment?assessmentId=${assessment?.id}&email=${email}`, {
+        const isAbleToTakeAssessment = await apiCall(`/api/attempts/live/can-take-assessment?assessmentId=${assessmentId}&email=${email}`, {
             method: 'GET',
         });
 
         if (!isAbleToTakeAssessment.result) {
             alert('You are not eligible to take this assessment. You either have not been invited, or have already taken the assessment. Please contact the employer to re-invite you.');
+            return;
+        }
+
+        // Github app installation URL with state parameter specifying this is a candidate installation
+        const authResp = await apiCall(`/api/attempts/live/authenticate`, {
+            method: 'POST',
+            body: JSON.stringify({
+                candidateEmail: email,
+                plainTextPassword: password,
+                assessmentId: assessmentId
+            }),
+        });
+
+        if (!authResp.result) {
+            alert('You are not invited to take this assessment.');
+            return;
+        }
+
+        if (assessment?.languageOptions?.length && !selectedLanguage) {
+            alert('Please select a language/framework combination before starting.');
             return;
         }
 
@@ -86,8 +90,11 @@ export default function CandidateAssessmentPreview() {
         });
 
         if (!candidateHasValidGithubToken.result) {
+            const githubInstallUrl = await apiCall(`/api/attempts/live/generate-github-install-url?email=${email}`, {
+                method: 'POST'
+            })
             // Open GitHub in a new tab
-            window.open(githubInstallUrl, '_blank');
+            window.open(githubInstallUrl.url, '_blank');
             // Start polling for GitHub token validation
             startPollingForGitHubToken();
             return;

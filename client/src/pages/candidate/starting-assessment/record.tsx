@@ -10,6 +10,11 @@ import { useScreenRecording } from "@/hooks/use-screen-recording";
 import type { RecordingOptions, Recording } from "@/lib/types/recording";
 import CandidateInstructions from "@/components/candidate-assessment/candidate-instructions";
 
+/**
+ * When candidate starts recording,
+ * their github repository is created for them and it opens in another tab
+ * @returns 
+ */
 export default function Record() {
   const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);

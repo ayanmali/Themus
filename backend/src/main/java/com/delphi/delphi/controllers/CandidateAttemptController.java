@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.dtos.AuthenticateCandidateDto;
 import com.delphi.delphi.dtos.FetchCandidateAttemptDto;
 import com.delphi.delphi.dtos.InviteCandidateDto;
@@ -40,8 +39,6 @@ import com.delphi.delphi.repositories.CandidateRepository;
 import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.CandidateAttemptService;
 import com.delphi.delphi.services.CandidateService;
-import com.delphi.delphi.services.EncryptionService;
-import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.utils.enums.AttemptStatus;
 
 import jakarta.validation.Valid;
@@ -49,32 +46,22 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/attempts")
 public class CandidateAttemptController {
-
-    private final EncryptionService encryptionService;
-
     private final CandidateService candidateService;
     private final AssessmentService assessmentService;
     private final CandidateAttemptService candidateAttemptService;
     private final AssessmentRepository assessmentRepository;
     private final CandidateRepository candidateRepository;
-    private final RedisService redisService;
-    private final GithubService githubService;
-    private final String tokenCacheKeyPrefix = "candidate_github_token:";
 
     public CandidateAttemptController(CandidateAttemptService candidateAttemptService,
             AssessmentService assessmentService,
             AssessmentRepository assessmentRepository,
             CandidateRepository candidateRepository, CandidateService candidateService,
-            RedisService redisService, GithubService githubService,
-            @Value("${github.app.name}") String githubAppName, EncryptionService encryptionService) {
+            @Value("${github.app.name}") String githubAppName) {
         this.assessmentService = assessmentService;
         this.candidateAttemptService = candidateAttemptService;
         this.assessmentRepository = assessmentRepository;
         this.candidateRepository = candidateRepository;
         this.candidateService = candidateService;
-        this.redisService = redisService;
-        this.githubService = githubService;
-        this.encryptionService = encryptionService;
     }
 
     // Invite a candidate to an assessment
@@ -115,11 +102,26 @@ public class CandidateAttemptController {
     @PostMapping("/live/authenticate")
     public ResponseEntity<?> authenticateCandidate(@Valid @RequestBody AuthenticateCandidateDto authenticateCandidateDto) {
         try {
-            String url = candidateAttemptService.authenticateCandidate(authenticateCandidateDto);
-            return ResponseEntity.ok(Map.of("url", url));
+            boolean isAuthenticated = candidateAttemptService.authenticateCandidate(authenticateCandidateDto);
+            return ResponseEntity.ok(Map.of("result", isAuthenticated));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error authenticating candidate: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/live/generate-github-install-url")
+    public ResponseEntity<?> generateGitHubInstallUrl(@RequestParam String email) {
+        try {
+            return ResponseEntity.ok(
+                Map.of(
+                    "url",
+                        candidateAttemptService.generateGitHubInstallUrl(email)
+                ));
+        }
+        catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error authenticating candidate: " + e.getMessage());
         }
     }
 
@@ -451,7 +453,7 @@ public class CandidateAttemptController {
     }
 
     @GetMapping("/live/has-valid-github-token")
-    public ResponseEntity<?> hasValidGithubToken(@RequestBody String email) {
+    public ResponseEntity<?> hasValidGithubToken(@RequestParam String email) {
         try {
             boolean hasValidGithubToken = candidateAttemptService.hasValidGithubToken(email);
             return ResponseEntity.ok(Map.of("result", hasValidGithubToken));

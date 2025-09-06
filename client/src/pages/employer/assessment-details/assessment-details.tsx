@@ -313,7 +313,7 @@ export default function AssessmentDetails() {
 
         // Try SSE first, fallback to regular mutation
         try {
-            sendSseMessage({message, model, assessmentId}, '/api/assessments/chat/sse');
+            sendSseMessage({message, model, assessmentId}, '/api/assessments/chat');
         } catch (error) {
             console.log('SSE failed, falling back to regular chat');
             sendChatMessageMutation.mutate({ message, model });

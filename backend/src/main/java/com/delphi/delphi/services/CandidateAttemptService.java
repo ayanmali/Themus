@@ -128,7 +128,8 @@ public class CandidateAttemptService {
         return result;
     }
 
-    private String generateGitHubInstallUrl(String candidateEmail) {
+    //@Cacheable(value = "candidate_github_install_urls", key = "#candidateEmail")
+    public String generateGitHubInstallUrl(String candidateEmail) {
         String randomString = UUID.randomUUID().toString();
         redisService.setWithExpiration(githubCacheKeyPrefix + candidateEmail, randomString, 10, TimeUnit.MINUTES);
         String installUrl = String.format("%s?state=%s_candidate_%s", appInstallBaseUrl, randomString, candidateEmail);
@@ -147,7 +148,7 @@ public class CandidateAttemptService {
         return new CandidateAttemptCacheDto(candidateAttemptRepository.findByCandidateIdAndAssessmentId(candidateId, assessmentId).orElseThrow(() -> new IllegalArgumentException("Candidate does not have an attempt for this assessment")));
     }
 
-    public String authenticateCandidate(AuthenticateCandidateDto authenticateCandidateDto) {
+    public boolean authenticateCandidate(AuthenticateCandidateDto authenticateCandidateDto) {
         // Check if the candidate has a github token and username
         Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + authenticateCandidateDto.getCandidateEmail());
         Object candidateGithubUsername = redisService.get(usernameCacheKeyPrefix + authenticateCandidateDto.getCandidateEmail());
@@ -178,7 +179,7 @@ public class CandidateAttemptService {
             throw new IllegalArgumentException("Candidate attempt password does not match.");
         }
 
-        return generateGitHubInstallUrl(authenticateCandidateDto.getCandidateEmail());
+        return true;
     }
 
     /**

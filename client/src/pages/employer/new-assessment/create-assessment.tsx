@@ -586,7 +586,10 @@ export function CreateAssessmentForm() {
             </DialogHeader>
             <DialogFooter>
               <Button variant="default" className="bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-700/80 hover:text-white hover:border-slate-600/50 backdrop-blur-sm" onClick={() => navigate("/assessments")}>Discard</Button>
-              <Button type="submit" form="assessment-form" variant="default" className="bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-700/80 hover:text-white hover:border-slate-600/50 backdrop-blur-sm" onClick={() => navigate("/assessments")}>Save as draft</Button>
+              <Button type="submit" form="assessment-form" variant="default" className="bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-700/80 hover:text-white hover:border-slate-600/50 backdrop-blur-sm"
+                onClick={() => navigate("/assessments")}>
+                  Save as draft
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
