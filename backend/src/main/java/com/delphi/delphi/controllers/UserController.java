@@ -129,11 +129,11 @@ public class UserController {
 
             log.info("Github credentials valid: {}", githubCredentialsValid);
             if (githubCredentialsValid == null) {
-                return ResponseEntity.ok(Map.of("redirectUrl", userService.generateGitHubInstallUrl(user.getEmail()), 
+                return ResponseEntity.ok(Map.of("result", false, "redirectUrl", userService.generateGitHubInstallUrl(user.getEmail()), 
                                                 "requiresRedirect", true));
             }
 
-            return ResponseEntity.ok(new FetchUserDto(user));
+            return ResponseEntity.ok(Map.of("result", true));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error checking if user is connected to github: " + e.getMessage());

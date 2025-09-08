@@ -244,15 +244,15 @@ export function CreateAssessmentForm() {
   };
 
   // Function to check if user has valid GitHub token
-  const checkGitHubToken = async (): Promise<boolean> => {
+  const checkGitHubToken = async (): Promise<{ result: boolean, redirectUrl?: string, requiresRedirect?: boolean }> => {
     try {
       const response = await apiCall("/api/users/is-connected-github", {
         method: "GET",
       });
-      return !!response;
+      return response;
     } catch (error) {
       console.error('Error checking GitHub token:', error);
-      return false;
+      return { result: false };
     }
   };
 
@@ -272,7 +272,7 @@ export function CreateAssessmentForm() {
         const hasValidToken = await checkGitHubToken();
         console.log('Polling attempt', attempts + 1, ':', hasValidToken);
 
-        if (hasValidToken) {
+        if (hasValidToken?.result) {
           console.log('Valid GitHub token found');
           return true;
         }
@@ -312,13 +312,13 @@ export function CreateAssessmentForm() {
     try {
       // Check if user has valid GitHub token
       const hasValidGitHubToken = await checkGitHubToken();
-      if (!hasValidGitHubToken) {
+      if (!hasValidGitHubToken?.result) {
         // Open GitHub app installation in new window
-        const githubInstallUrl = await apiCall("/api/users/github/generate-install-url", {
-          method: "POST",
-        });
-        console.log('GitHub install URL:', githubInstallUrl.url);
-        window.open(githubInstallUrl.url, '_blank');
+        // const githubInstallUrl = await apiCall("/api/users/github/generate-install-url", {
+        //   method: "POST",
+        // });
+        console.log('GitHub install URL:', hasValidGitHubToken.redirectUrl);
+        window.open(hasValidGitHubToken.redirectUrl, '_blank');
         
         // Show loading state
         toast({
