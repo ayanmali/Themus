@@ -309,7 +309,8 @@ public class GithubService {
                 .block();
 
             if (result == null) {
-                throw new RuntimeException("Github credentials are null");
+                //throw new RuntimeException("Github credentials are null");
+                return null;
             }
 
             log.info("Github credentials valid, result: {}", result.toString());

@@ -129,6 +129,7 @@ public class CandidateAttemptService {
     }
 
     //@Cacheable(value = "candidate_github_install_urls", key = "#candidateEmail")
+    // for candidates to generate a github install url
     public String generateGitHubInstallUrl(String candidateEmail) {
         String randomString = UUID.randomUUID().toString();
         redisService.setWithExpiration(githubCacheKeyPrefix + candidateEmail, randomString, 10, TimeUnit.MINUTES);
@@ -148,16 +149,16 @@ public class CandidateAttemptService {
         return new CandidateAttemptCacheDto(candidateAttemptRepository.findByCandidateIdAndAssessmentId(candidateId, assessmentId).orElseThrow(() -> new IllegalArgumentException("Candidate does not have an attempt for this assessment")));
     }
 
-    public boolean authenticateCandidate(AuthenticateCandidateDto authenticateCandidateDto) {
+    public boolean isCandidateConnectedToGithub(String email) {
         // Check if the candidate has a github token and username
-        Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + authenticateCandidateDto.getCandidateEmail());
-        Object candidateGithubUsername = redisService.get(usernameCacheKeyPrefix + authenticateCandidateDto.getCandidateEmail());
+        Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + email);
+        Object candidateGithubUsername = redisService.get(usernameCacheKeyPrefix + email);
 
-        if (candidateGithubToken == null || candidateGithubUsername == null
-                || githubService.validateGithubCredentials(candidateGithubToken.toString()) == null) {
-            throw new IllegalArgumentException("Github account not connected. Please connect your Github account to start the assessment.");
-        }
+        return !(candidateGithubToken == null || candidateGithubUsername == null
+                || githubService.validateGithubCredentials(candidateGithubToken.toString()) == null);
+    }
 
+    public boolean authenticateCandidate(AuthenticateCandidateDto authenticateCandidateDto) {
         CandidateAttemptCacheDto existingAttempt = getCandidateAttemptByCandidateEmailAndAssessmentId(authenticateCandidateDto.getCandidateEmail(), authenticateCandidateDto.getAssessmentId());
         
         // Check if candidate already has an attempt for this assessment
@@ -175,11 +176,7 @@ public class CandidateAttemptService {
             throw new RuntimeException("Error decrypting password: " + e.getMessage());
         }
 
-        if (!authenticateCandidateDto.getPlainTextPassword().equals(actualPassword)) {
-            throw new IllegalArgumentException("Candidate attempt password does not match.");
-        }
-
-        return true;
+        return authenticateCandidateDto.getPlainTextPassword().equals(actualPassword);
     }
 
     /**

@@ -37,8 +37,19 @@ export default function Record() {
     error: recordingError,
   } = useScreenRecording(recordingOptions);
 
+  // TODO:
+  const createCandidateRepo = async () => {
+    try {
+
+    }
+    catch (error) {
+
+    }
+  }
+
   const handleStartRecording = async () => {
     try {
+      const candidateRepoUrl: string = await createCandidateRepo();
       await startRecording();
     } catch (error) {
       if (error instanceof Error && error.name === "NotAllowedError") {

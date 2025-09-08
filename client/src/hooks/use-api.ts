@@ -140,7 +140,12 @@ const useApi = () => {
         return response;
       }
 
-      return await response.json();
+      const data = await response.json();
+
+      // Do not auto-handle redirects here; let callers decide how to handle
+      // any requiresRedirect/redirectUrl fields in the response.
+
+      return data;
     } catch (error) {
       console.error('API call failed:', error);
       throw error;

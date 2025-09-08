@@ -4,7 +4,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -51,12 +52,12 @@ public class CandidateAttemptController {
     private final CandidateAttemptService candidateAttemptService;
     private final AssessmentRepository assessmentRepository;
     private final CandidateRepository candidateRepository;
+    private final Logger log = LoggerFactory.getLogger(CandidateAttemptController.class);
 
     public CandidateAttemptController(CandidateAttemptService candidateAttemptService,
             AssessmentService assessmentService,
             AssessmentRepository assessmentRepository,
-            CandidateRepository candidateRepository, CandidateService candidateService,
-            @Value("${github.app.name}") String githubAppName) {
+            CandidateRepository candidateRepository, CandidateService candidateService) {
         this.assessmentService = assessmentService;
         this.candidateAttemptService = candidateAttemptService;
         this.assessmentRepository = assessmentRepository;
@@ -103,7 +104,28 @@ public class CandidateAttemptController {
     public ResponseEntity<?> authenticateCandidate(@Valid @RequestBody AuthenticateCandidateDto authenticateCandidateDto) {
         try {
             boolean isAuthenticated = candidateAttemptService.authenticateCandidate(authenticateCandidateDto);
-            return ResponseEntity.ok(Map.of("result", isAuthenticated));
+            log.info("Candidate is authenticated: {}", isAuthenticated);
+            if (!isAuthenticated) {
+                log.info("Candidate is not connected to github, redirecting...");
+                // return an error
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("Your password does not match with an email address associated with this assessment.");
+            }
+
+            log.info("Candidate is authenticated, checking if they are connected to github...");
+            boolean isConnectedToGithub = candidateAttemptService.isCandidateConnectedToGithub(authenticateCandidateDto.getCandidateEmail()) && candidateAttemptService.hasValidGithubToken(authenticateCandidateDto.getCandidateEmail());
+            if (!isConnectedToGithub) {
+                log.info("Candidate is not connected to github, returning redirect URL...");
+                // Return redirect URL instead of server-side redirect to avoid CORS issues
+                return ResponseEntity.ok(Map.of(
+                    "result", false,
+                    "redirectUrl", candidateAttemptService.generateGitHubInstallUrl(authenticateCandidateDto.getCandidateEmail()),
+                    "requiresRedirect", true
+                ));
+            }
+
+            log.info("Candidate is connected to Github and has provided a valid attempt password, continuing...");
+            return ResponseEntity.ok(Map.of("result", true));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error authenticating candidate: " + e.getMessage());
@@ -429,12 +451,12 @@ public class CandidateAttemptController {
     // }
 
     @GetMapping("/live/{assessmentId}/can-take-assessment")
-    public ResponseEntity<?> canTakeAssessment(@PathVariable Long assessmentId, @RequestBody String candidateEmail) {
+    public ResponseEntity<?> canTakeAssessment(@PathVariable Long assessmentId, @RequestParam String email) {
         // TODO: check if this email address corresponds to a valid candidate attempt in
         // the DB
         // if it does, then we can just redirect to the assessment page
         Assessment assessment = assessmentService.getAssessmentById(assessmentId);
-        CandidateCacheDto candidate = candidateService.getCandidateByEmail(candidateEmail);
+        CandidateCacheDto candidate = candidateService.getCandidateByEmail(email);
 
         if (assessment.getCandidateAttempts().stream()
                 .anyMatch(attempt -> attempt.getCandidate().getId().equals(candidate.getId())

@@ -1,7 +1,11 @@
 package com.delphi.delphi.services;
 
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -30,11 +34,15 @@ public class UserService {
 
     private final RedisService redisService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, EncryptionService encryptionService, RedisService redisService) {
+    private final String githubCacheKeyPrefix = "github_install_url_random_string:";
+    private final String appInstallBaseUrl;
+
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, EncryptionService encryptionService, RedisService redisService, @Value("${github.app.name}") String githubAppName) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.encryptionService = encryptionService;
         this.redisService = redisService;
+        this.appInstallBaseUrl = String.format("https://github.com/apps/%s/installations/new", githubAppName);
     }
     
     // Create a new user
@@ -68,6 +76,13 @@ public class UserService {
     public UserCacheDto getUserByIdOrThrow(Long id) {
         return new UserCacheDto(userRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id)));
+    }
+
+    // for users to generate a github install url
+    public String generateGitHubInstallUrl(String email) {
+        String randomString = UUID.randomUUID().toString();
+        redisService.setWithExpiration(githubCacheKeyPrefix + email, randomString, 10, TimeUnit.MINUTES);
+        return String.format("%s?state=%s_user_%s", appInstallBaseUrl, randomString, email);
     }
     
     // Get user by email

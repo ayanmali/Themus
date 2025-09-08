@@ -120,7 +120,8 @@ public class UserController {
             log.info("Usercontroller - User: {}", user);
             if (!userService.connectedGithub(user)) {
                 log.info("Github credentials not found in DB");
-                return ResponseEntity.ok(false);
+                return ResponseEntity.ok(Map.of("redirectUrl", userService.generateGitHubInstallUrl(user.getEmail()), 
+                                                "requiresRedirect", true));
             }
             log.info("Usercontroller - Validating github credentials...");
             // check if github credentials are valid
@@ -128,7 +129,8 @@ public class UserController {
 
             log.info("Github credentials valid: {}", githubCredentialsValid);
             if (githubCredentialsValid == null) {
-                return ResponseEntity.ok(false);
+                return ResponseEntity.ok(Map.of("redirectUrl", userService.generateGitHubInstallUrl(user.getEmail()), 
+                                                "requiresRedirect", true));
             }
 
             return ResponseEntity.ok(new FetchUserDto(user));

@@ -9,6 +9,7 @@ import { useParams } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import useApi from '@/hooks/use-api';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { toast } from '@/hooks/use-toast';
 
 export default function CandidateAssessmentPreview() {
     const [selectedLanguage, setSelectedLanguage] = useState('');
@@ -49,7 +50,7 @@ export default function CandidateAssessmentPreview() {
             return;
         }
 
-        const isAbleToTakeAssessment = await apiCall(`/api/attempts/live/can-take-assessment?assessmentId=${assessmentId}&email=${email}`, {
+        const isAbleToTakeAssessment = await apiCall(`/api/attempts/live/${assessmentId}/can-take-assessment?email=${email}`, {
             method: 'GET',
         });
 
@@ -59,17 +60,48 @@ export default function CandidateAssessmentPreview() {
         }
 
         // Github app installation URL with state parameter specifying this is a candidate installation
-        const authResp = await apiCall(`/api/attempts/live/authenticate`, {
-            method: 'POST',
-            body: JSON.stringify({
-                candidateEmail: email,
-                plainTextPassword: password,
-                assessmentId: assessmentId
-            }),
-        });
+        try {
+            const authResp = await apiCall(`/api/attempts/live/authenticate`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    candidateEmail: email,
+                    plainTextPassword: password,
+                    assessmentId: assessmentId
+                }),
+            });
+            // Check if user needs to be redirected to GitHub app installation
+            // Ensures that candidate has valid github connection
+            if (authResp?.requiresRedirect && authResp?.redirectUrl) {
+                // Enter polling state immediately so UI updates and disables button
+                setIsStarting(true);
+                // Open GitHub installation in new tab
+                window.open(authResp.redirectUrl, '_blank');
+                // Start polling for GitHub connection
+                startPollingForGitHubConnection();
+                return;
+            }
 
-        if (!authResp.result) {
-            alert('You are not invited to take this assessment.');
+            if (authResp?.result === false) {
+                alert('You are not invited to take this assessment.');
+                return;
+            }
+        } catch (error: any) {
+            // Handle authentication errors
+            if (error.status === 401) {
+                //alert(error.message || 'Your email and password do not match. Please check your credentials and try again.');
+                toast({
+                    title: "Authentication Error",
+                    description: 'Your email and password do not match. Please check your credentials and try again.',
+                    variant: "destructive",
+                });
+            } else {
+                //alert('An error occurred during authentication. Please try again.');
+                toast({
+                    title: "Authentication Error",
+                    description: 'An error occurred during authentication. Please try again: ' + error.message,
+                    variant: "destructive",
+                });
+            }
             return;
         }
 
@@ -85,27 +117,64 @@ export default function CandidateAssessmentPreview() {
         setIsStarting(true);
 
         // check if the candidate has a valid github token
-        const candidateHasValidGithubToken = await apiCall(`/api/attempts/live/has-valid-github-token?email=${email}`, {
-            method: 'GET',
-        });
-
-        if (!candidateHasValidGithubToken.result) {
-            const githubInstallUrl = await apiCall(`/api/attempts/live/generate-github-install-url?email=${email}`, {
-                method: 'POST'
-            })
-            // Open GitHub in a new tab
-            window.open(githubInstallUrl.url, '_blank');
-            // Start polling for GitHub token validation
-            startPollingForGitHubToken();
-            return;
-        } else {
-            // redirect to starting page
-            setIsStarting(false);
-            navigate(`/${attemptId}/starting`);
-        }
+        
+        // redirect to starting page
+        console.log('Candidate has a valid github token, redirecting to starting page');
+        setIsStarting(false);
+        navigate(`/${attemptId}/starting`);
+        
     };
 
-    // Polling function to check if GitHub token is valid
+    // Polling function to check if GitHub connection is established
+    const startPollingForGitHubConnection = async () => {
+        const maxAttempts = 60; // 5 minutes with 5-second intervals
+        const pollInterval = 5000; // 5 seconds
+        let attempts = 0;
+
+        const poll = async () => {
+            if (attempts >= maxAttempts) {
+                console.log('GitHub connection polling timeout reached');
+                setIsStarting(false);
+                toast({
+                    title: "Connection Timeout",
+                    description: 'GitHub connection timeout. Please try again.',
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            try {
+                const response = await apiCall(`/api/attempts/live/has-valid-github-token?email=${email}`, {
+                    method: 'GET',
+                });
+
+                console.log('GitHub connection polling attempt', attempts + 1, ':', response);
+
+                if (response.result) {
+                    // GitHub connection established, redirect to starting page
+                    console.log('GitHub connection established, redirecting...');
+                    setIsStarting(false);
+                    
+                    // Redirect to /null/starting as requested
+                    navigate('/null/starting');
+                    return;
+                }
+
+                // Continue polling
+                attempts++;
+                setTimeout(poll, pollInterval);
+            } catch (error) {
+                console.error('GitHub connection polling error:', error);
+                attempts++;
+                setTimeout(poll, pollInterval);
+            }
+        };
+
+        // Start polling
+        poll();
+    };
+
+    // Polling function to check if GitHub token is valid (legacy - keeping for backward compatibility)
     const startPollingForGitHubToken = async () => {
         const maxAttempts = 60; // 5 minutes with 7-second intervals
         const pollInterval = 7000; // 7 seconds
@@ -399,7 +468,7 @@ export default function CandidateAssessmentPreview() {
                                 {isStarting ? (
                                     <>
                                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                                        <span>Connect GitHub Account</span>
+                                        <span>Waiting for GitHub Connection...</span>
                                     </>
                                 ) : (
                                     <>

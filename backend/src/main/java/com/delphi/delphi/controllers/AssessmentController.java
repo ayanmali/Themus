@@ -267,11 +267,10 @@ public class AssessmentController {
             log.info("User's github account type: {}", user.getGithubAccountType());
             log.info("Assessmentcontroller - Checking if user is connected to github");
 
+            // TODO: replace 302 responses with redirect URL responses
             if (!userService.connectedGithub(user)) {
                 log.info("User is not connected to github, redirecting to installation page");
-                response.setHeader("Location", appInstallUrl);
-                response.setStatus(302);
-                return ResponseEntity.status(HttpStatus.FOUND).build();
+                return ResponseEntity.ok(Map.of("redirectUrl", userService.generateGitHubInstallUrl(user.getEmail()), "requiresRedirect", true));
             }
 
             log.info("User is connected to github, validating credentials");
@@ -280,9 +279,7 @@ public class AssessmentController {
             log.info("Github credentials validated: {}", githubCredentialsValid);
             if (githubCredentialsValid == null) {
                 log.info("Github credentials are invalid, redirecting to installation page");
-                response.setHeader("Location", appInstallUrl);
-                response.setStatus(302);
-                return ResponseEntity.status(HttpStatus.FOUND).build();
+                return ResponseEntity.ok(Map.of("redirectUrl", appInstallUrl, "requiresRedirect", true));
             }
 
             log.info("Github credentials are valid, creating assessment");
@@ -405,10 +402,9 @@ public class AssessmentController {
 
             if (!userService.connectedGithub(user)) {
                 log.info("User is not connected to github, redirecting to installation page");
-                response.setHeader("Location", appInstallUrl);
-                response.setStatus(302);
-                return ResponseEntity.status(HttpStatus.FOUND).build();
+                return ResponseEntity.ok(Map.of("redirectUrl", appInstallUrl, "requiresRedirect", true));
             }
+            log.info("User is connected to github, proceeding...");
 
             AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(messageDto.getAssessmentId());
 
