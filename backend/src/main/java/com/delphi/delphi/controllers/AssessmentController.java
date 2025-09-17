@@ -340,7 +340,7 @@ public class AssessmentController {
                     rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME,
                             TopicConfig.CREATE_ASSESSMENT_ROUTING_KEY, publishAssessmentCreationJobDto);
                     log.info("Assessment creation job published to queue");
-                } catch (Exception e) {
+                } catch (AmqpException e) {
                     log.error("Error publishing assessment creation job", e);
                     try {
                         emitter.send(SseEmitter.event()
@@ -459,7 +459,7 @@ public class AssessmentController {
                     rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.LLM_CHAT_ROUTING_KEY,
                             publishChatJobDto);
                     log.info("Assessment creation job published to queue");
-                } catch (Exception e) {
+                } catch (AmqpException e) {
                     log.error("Error publishing assessment creation job", e);
                     try {
                         emitter.send(SseEmitter.event()

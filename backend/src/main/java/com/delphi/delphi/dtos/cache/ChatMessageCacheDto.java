@@ -50,7 +50,15 @@ public class ChatMessageCacheDto {
                 return new UserMessage(this.getText());
             }
             case ASSISTANT -> {
-                return new AssistantMessage(this.getText(), Map.of(), this.getToolCalls().stream().map(FetchToolCallDto::toToolCall).collect(Collectors.toList()));
+                // preventing null pointer exceptions
+                if (this.toolCalls != null && !this.toolCalls.isEmpty()) {
+                    return new AssistantMessage(
+                        this.getText(), 
+                        Map.of(), 
+                        this.getToolCalls().stream().map(FetchToolCallDto::toToolCall).collect(Collectors.toList()));
+                } else {
+                    return new AssistantMessage(this.getText(), Map.of());
+                }
             }
             case SYSTEM -> {
                 return new SystemMessage(this.getText());

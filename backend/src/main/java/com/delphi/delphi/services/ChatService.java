@@ -76,6 +76,8 @@ public class ChatService {
 
     private final RedisService redisService;
 
+    private final ObjectMapper objectMapper;
+
     private final String PRESET = "assessment-creation";
     private final boolean PARALLEL_TOOL_CALLS = true;
 
@@ -97,6 +99,7 @@ public class ChatService {
         this.toolCallHandler = toolCallHandler;
         this.githubTools = githubTools;
         this.redisService = redisService;
+        this.objectMapper = new ObjectMapper();
     }
 
     /**
@@ -244,8 +247,10 @@ public class ChatService {
                         log.info("--------------------------------");
 
                         // TODO: add the message to the newMessagescache in Redis
-                        newMessages.add(generation.getOutput());
-                        sendSseEvent(jobId, "message", generation.getOutput());
+                        // if generation.getOutput() contains a sendMessageToUser tool call, add the text argument to the assistant message text field
+                        AssistantMessage asstMsg = getGenerationOutput(generation.getOutput());
+                        newMessages.add(asstMsg);
+                        sendSseEvent(jobId, "message", asstMsg);
                         
                         //sendSseEvent(jobId, "message", generation.getOutput());
 
@@ -256,26 +261,9 @@ public class ChatService {
                             log.info("Tool Call Arguments: {}", toolCall.arguments());
                             if (toolCall.name().equals("sendMessageToUser")) {
                                 log.info("Detected sendMessageToUser tool call - stopping conversation");
-                                // Parse the JSON arguments to extract the actual message
-                                try {
-                                    ObjectMapper objectMapper = new ObjectMapper();
-                                    Map<String, Object> args = objectMapper.readValue(toolCall.arguments(), new TypeReference<Map<String, Object>>() {});
-                                    String messageContent = (String) args.get("message");
-                                    // store the actual message content as an assistant message
-                                    // TODO: add the message to the newMessagescache in Redis
-                                    //newMessages.add(new AssistantMessage(messageContent));
-                                    //sendSseEvent(jobId, "message", new AssistantMessage(messageContent));
-                                } catch (JsonProcessingException e) {
-                                    log.error("Error parsing sendMessageToUser arguments: {}", e.getMessage());
-                                    // Fallback: use the raw arguments if parsing fails
-                                    // TODO: add the message to the newMessagescache in Redis
-                                    newMessages.add(new AssistantMessage(toolCall.arguments()));
-                                    sendSseEvent(jobId, "message", new AssistantMessage(toolCall.arguments()));
-                                }
                                 endConversation = true;
                                 break;
                             }
-                            // TODO:if the tool call is not sendMessageToUser, execute it
                             // executeToolCall should return a ToolResponse object
                             log.info("Executing tool call: {}", toolCall.name());
                             ToolResponse toolResponse = toolCallHandler.executeToolCall(toolCall, encryptedGithubToken, githubUsername, githubRepoName);
@@ -359,6 +347,32 @@ public class ChatService {
             log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to get completion from AI service: " + e.getMessage(), e);
         }
+    }
+
+    private AssistantMessage getGenerationOutput(AssistantMessage output) {
+        List<ToolCall> toolCalls = output.getToolCalls();
+        if (toolCalls != null && !toolCalls.isEmpty()) {
+            for (ToolCall toolCall : toolCalls) {
+                if ("sendMessageToUser".equals(toolCall.name())) {
+                    try {
+                        // Parse the JSON arguments string
+                        String argumentsJson = toolCall.arguments();
+                        Map<String, Object> args = objectMapper.readValue(argumentsJson, new TypeReference<Map<String, Object>>() {});
+                        
+                        // Extract the message content
+                        Object messageObj = args.get("message");
+                        if (messageObj instanceof String messageText && !messageText.isBlank()) {
+                            // Return new AssistantMessage with the extracted text
+                            return new AssistantMessage(messageText, output.getMetadata());
+                        }
+                    } catch (JsonProcessingException e) {
+                        log.error("Error parsing sendMessageToUser arguments: {}", e.getMessage());
+                        // Fallback: return original message if parsing fails
+                    }
+                }
+            }
+        }
+        return output;
     }
 
     /**
@@ -648,22 +662,24 @@ public class ChatService {
 
         for (Message message : messages) {
             // Ignore empty assistant messages with no tool calls
-            if (message instanceof AssistantMessage assistantMessage) {
-                boolean noText = assistantMessage.getText() == null || assistantMessage.getText().isBlank();
-                boolean noToolCalls = assistantMessage.getToolCalls() == null || assistantMessage.getToolCalls().isEmpty();
-                if (noText && noToolCalls) {
-                    log.info("AssistantMessage text and tool calls are empty or null, skipping...");
-                    continue;
+            switch (message) {
+                case AssistantMessage assistantMessage -> {
+                    boolean noText = assistantMessage.getText() == null || assistantMessage.getText().isBlank();
+                    boolean noToolCalls = assistantMessage.getToolCalls() == null || assistantMessage.getToolCalls().isEmpty();
+                    if (noText && noToolCalls) {
+                        log.info("AssistantMessage text and tool calls are empty or null, skipping...");
+                        continue;
+                    }
                 }
-            }
-
-            // Ignore empty tool response messages with no tool responses
-            else if (message instanceof ToolResponseMessage toolResponseMessage) {
-                boolean noText = toolResponseMessage.getText() == null || toolResponseMessage.getText().isBlank();
-                boolean noResponses = toolResponseMessage.getResponses() == null || toolResponseMessage.getResponses().isEmpty();
-                if (noText && noResponses) {
-                    log.info("ToolResponseMessage text and tool responses are empty or null, skipping...");
-                    continue;
+                case ToolResponseMessage toolResponseMessage -> {
+                    boolean noText = toolResponseMessage.getText() == null || toolResponseMessage.getText().isBlank();
+                    boolean noResponses = toolResponseMessage.getResponses() == null || toolResponseMessage.getResponses().isEmpty();
+                    if (noText && noResponses) {
+                        log.info("ToolResponseMessage text and tool responses are empty or null, skipping...");
+                        continue;
+                    }
+                }
+                default -> {
                 }
             }
 

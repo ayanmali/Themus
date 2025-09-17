@@ -53,7 +53,9 @@ public class LLMChatWorker {
 
             // Agent loop
             log.info("Chat job processing - running agent loop...", jobId.toString());
+            // Get the assessment's chat messages as Spring AI messages
             List<Message> existingMessages = assessmentService.getChatMessagesById(publishChatJobDto.getAssessmentId()).stream().map(ChatMessageCacheDto::toMessage).collect(Collectors.toList());
+            log.info("Assessment messages obtained");
             chatService.getChatCompletion(
                     jobId,
                     existingMessages, // No existing messages for new assessment

@@ -114,24 +114,14 @@ export function ChatMessages({ messages, onSendMessage, isLoading = false, isHis
                     </ChatBubble>
                   )}
 
-                  {/* Render tool call labels and sendMessageToUser text as bubbles */}
+                  {/* Render tool call labels as bubbles */}
                   {message.toolCalls && message.toolCalls.length > 0 && (
                     <div className="space-y-2">
                       {message.toolCalls.map((toolCall) => {
                         let sendText: string | null = null;
-                        if (toolCall.name === "sendMessageToUser") {
-                          try {
-                            const args = JSON.parse(toolCall.arguments || '{}');
-                            if (typeof args.message === 'string' && args.message.trim() !== '') {
-                              sendText = args.message as string;
-                            }
-                          } catch (e) {
-                            // ignore parse errors
-                          }
-                        }
                         return (
                           <div key={toolCall.id} className="space-y-1">
-                            {toolCall.name !== "sendMessageToUser" && <div className="text-xs text-gray-400">Tool: {toolCall.name}</div>}
+                            <div className="text-xs text-gray-400">Tool: {toolCall.name}</div>
                             {sendText && (
                               <ChatBubble variant="received">
                                 <ChatBubbleMessage variant="received">

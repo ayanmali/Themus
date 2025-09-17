@@ -5,14 +5,14 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.delphi.delphi.entities.Job;
 import com.delphi.delphi.repositories.JobRepository;
-
 import com.delphi.delphi.services.ChatService;
 import com.delphi.delphi.utils.enums.JobStatus;
 
 public class MessageUtils {
-    private static Logger log = LoggerFactory.getLogger(MessageUtils.class);
+    private static final Logger log = LoggerFactory.getLogger(MessageUtils.class);
 
     public static void handleJobFailure(ChatService chatService, JobRepository jobRepository, Job job, UUID jobId, Exception e, String errorMessage) {
         try {
