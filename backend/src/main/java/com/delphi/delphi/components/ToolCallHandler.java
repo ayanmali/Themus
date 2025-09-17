@@ -16,6 +16,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
+/**
+ * Handles logic for executing tool calls when the LLM requests to call a tool.
+ */
 public class ToolCallHandler {
 
     private final GithubService githubService;

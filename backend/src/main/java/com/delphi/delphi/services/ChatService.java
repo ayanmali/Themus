@@ -11,7 +11,6 @@ import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.AssistantMessage.ToolCall;
 import org.springframework.ai.chat.messages.Message;
@@ -27,7 +26,6 @@ import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.ai.support.ToolCallbacks;
-// import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -248,6 +246,8 @@ public class ChatService {
                         // TODO: add the message to the newMessagescache in Redis
                         newMessages.add(generation.getOutput());
                         sendSseEvent(jobId, "message", generation.getOutput());
+                        
+                        //sendSseEvent(jobId, "message", generation.getOutput());
 
                         log.info("Going through tool calls...");
                         List<ToolResponse> toolResponses = new ArrayList<>();
@@ -263,8 +263,8 @@ public class ChatService {
                                     String messageContent = (String) args.get("message");
                                     // store the actual message content as an assistant message
                                     // TODO: add the message to the newMessagescache in Redis
-                                    newMessages.add(new AssistantMessage(messageContent));
-                                    sendSseEvent(jobId, "message", new AssistantMessage(messageContent));
+                                    //newMessages.add(new AssistantMessage(messageContent));
+                                    //sendSseEvent(jobId, "message", new AssistantMessage(messageContent));
                                 } catch (JsonProcessingException e) {
                                     log.error("Error parsing sendMessageToUser arguments: {}", e.getMessage());
                                     // Fallback: use the raw arguments if parsing fails
@@ -643,6 +643,8 @@ public class ChatService {
      */
     public List<ChatMessageCacheDto> addMessagesToChatHistory(List<Message> messages, Long assessmentId, String model) {
         List<ChatMessageCacheDto> savedDtos = new ArrayList<>();
+        String assessmentCacheKey = "cache:chat_messages:assessment:" + assessmentId;
+        List<ChatMessageCacheDto> existingMessages = getMessagesByAssessmentId(assessmentId);
 
         for (Message message : messages) {
             // Ignore empty assistant messages with no tool calls
@@ -656,7 +658,7 @@ public class ChatService {
             }
 
             // Ignore empty tool response messages with no tool responses
-            if (message instanceof ToolResponseMessage toolResponseMessage) {
+            else if (message instanceof ToolResponseMessage toolResponseMessage) {
                 boolean noText = toolResponseMessage.getText() == null || toolResponseMessage.getText().isBlank();
                 boolean noResponses = toolResponseMessage.getResponses() == null || toolResponseMessage.getResponses().isEmpty();
                 if (noText && noResponses) {
@@ -672,8 +674,6 @@ public class ChatService {
             redisService.set("cache:chat_messages:message:" + savedChatMessage.getId(), new ChatMessageCacheDto(savedChatMessage));
 
             // 2. Update assessment cache by adding the new message to the existing list
-            String assessmentCacheKey = "cache:chat_messages:assessment:" + assessmentId;
-            List<ChatMessageCacheDto> existingMessages = getMessagesByAssessmentId(assessmentId);
             
             // Add the new message to the existing list
             existingMessages.add(new ChatMessageCacheDto(savedChatMessage));

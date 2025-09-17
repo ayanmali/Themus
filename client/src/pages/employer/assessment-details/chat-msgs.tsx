@@ -55,11 +55,10 @@ export function ChatMessages({ messages, onSendMessage, isLoading = false, isHis
 
   // display just the <DETAILS/> section from the initial user prompt
   const messageList: ChatMessage[] = useMemo(() => {
-    console.log("testing usememo");
     if (!messages || messages.length === 0) return [];
     
     const firstMessage = messages[0];
-    if (!firstMessage) return messages.filter((message) => message.messageType !== "SYSTEM" && message.text !== "");
+    if (!firstMessage) return messages.filter((message) => message.messageType !== "SYSTEM" || (message.text !== "" && message.toolCalls?.length === 0));
     
     // Extract the <DETAILS> section from the first message
     let detailsText = "";
@@ -81,7 +80,7 @@ export function ChatMessages({ messages, onSendMessage, isLoading = false, isHis
     };
     
     const filteredMessages = messages.slice(1).filter((message) => 
-      message.messageType !== "SYSTEM" && message.text !== ""
+      message.messageType !== "SYSTEM" || (message.text !== "" && message.toolCalls?.length === 0)
     );
     
     return [processedFirstMessage, ...filteredMessages];
@@ -99,18 +98,55 @@ export function ChatMessages({ messages, onSendMessage, isLoading = false, isHis
               </div>
             </div>
           ) : (
-            messageList.map((message) => (
-              <ChatBubble
-                key={message.id}
-                variant={message.messageType === "USER" ? "sent" : "received"}
-              >
-                <ChatBubbleMessage
-                  variant={message.messageType === "USER" ? "sent" : "received"}
-                >
-                  {message.text}
-                </ChatBubbleMessage>
-              </ChatBubble>
-            ))
+            <div>
+              {messageList.map((message) => (
+                <div key={message.id} className="space-y-2">
+                  {/* Render message text bubble if present */}
+                  {message.text && message.text.trim() !== "" && (
+                    <ChatBubble
+                      variant={message.messageType === "USER" ? "sent" : "received"}
+                    >
+                      <ChatBubbleMessage
+                        variant={message.messageType === "USER" ? "sent" : "received"}
+                      >
+                        {message.text}
+                      </ChatBubbleMessage>
+                    </ChatBubble>
+                  )}
+
+                  {/* Render tool call labels and sendMessageToUser text as bubbles */}
+                  {message.toolCalls && message.toolCalls.length > 0 && (
+                    <div className="space-y-2">
+                      {message.toolCalls.map((toolCall) => {
+                        let sendText: string | null = null;
+                        if (toolCall.name === "sendMessageToUser") {
+                          try {
+                            const args = JSON.parse(toolCall.arguments || '{}');
+                            if (typeof args.message === 'string' && args.message.trim() !== '') {
+                              sendText = args.message as string;
+                            }
+                          } catch (e) {
+                            // ignore parse errors
+                          }
+                        }
+                        return (
+                          <div key={toolCall.id} className="space-y-1">
+                            {toolCall.name !== "sendMessageToUser" && <div className="text-xs text-gray-400">Tool: {toolCall.name}</div>}
+                            {sendText && (
+                              <ChatBubble variant="received">
+                                <ChatBubbleMessage variant="received">
+                                  {sendText}
+                                </ChatBubbleMessage>
+                              </ChatBubble>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
 
           {isLoading && (

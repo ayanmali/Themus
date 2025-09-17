@@ -252,6 +252,7 @@ export default function AssessmentDetails() {
     }, [chatHistoryData]);
 
     // SSE Chat hook
+    // Message sending handles incoming and outgoing messages
     const { sendMessage: sendSseMessage, isLoading: isSseLoading } = useSse({
         //assessmentId: assessmentId ? parseInt(assessmentId) : 0,
         onEventHandler: (newMessages) => {
@@ -302,7 +303,7 @@ export default function AssessmentDetails() {
     const handleSendMessage = (message: string, model: string) => {
         // Add user message to chat immediately
         const userMessage: ChatMessage = {
-            id: Date.now().toString(),
+            id: Date.now().toString(), // placeholder
             text: message,
             model: model,
             messageType: 'USER',
@@ -319,8 +320,6 @@ export default function AssessmentDetails() {
             sendChatMessageMutation.mutate({ message, model });
         }
     };
-
-
 
     // Fetch candidate attempts for this assessment
     const { data: attemptsData, isLoading: attemptsLoading, error: attemptsError } = useQuery<PaginatedResponse<CandidateAttempt>>({

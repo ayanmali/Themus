@@ -13,6 +13,7 @@ export function useSse({ onEventHandler, onError }: UseSseProps) {
   const eventSourceRef = useRef<EventSource | null>(null);
   const { apiCall } = useApi();
 
+  // Send a message to the SSE stream
   const sendMessage = useCallback(async (data: any, url: string) => {
     //console.log('🚀 Starting assessment creation with data:', assessmentData);
     setIsLoading(true);
@@ -109,6 +110,8 @@ export function useSse({ onEventHandler, onError }: UseSseProps) {
     }
   }, [apiCall, onEventHandler, onError]);
 
+  // Helper function to handle SSE events
+  // SSE events can contain multiple events, so we need to handle them all
   const handleSseEvent = useCallback((eventName: string, data: any) => {
     switch (eventName) {
       case 'connected':
