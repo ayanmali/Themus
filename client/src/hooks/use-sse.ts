@@ -129,6 +129,13 @@ export function useSse({ onEventHandler, onError }: UseSseProps) {
         }
         setIsConnected(false);
         break;
+      case 'message':
+        // Single chat message event emitted during streaming
+        // Normalize to array to match onEventHandler usage upstream
+        if (onEventHandler && data) {
+          onEventHandler(Array.isArray(data) ? data : [data]);
+        }
+        break;
        case 'chat_completion':
             console.log('Chat completed:', data);
             if (onEventHandler && data.messages) {

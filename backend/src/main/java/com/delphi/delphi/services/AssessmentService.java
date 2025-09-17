@@ -184,7 +184,7 @@ public class AssessmentService {
     }
 
     // Get chat history by assessment ID
-    @Cacheable(value = "chat_messages", key = "assessment:" + "#id")
+    @Cacheable(value = "chat_messages", key = "'assessment:' + #id")
     @Transactional(readOnly = true)
     public List<ChatMessageCacheDto> getChatMessagesById(Long id) {
         return assessmentRepository.findById(id)

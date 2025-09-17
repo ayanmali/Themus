@@ -9,6 +9,9 @@ public class FetchToolCallDto {
     private String name;
     private String arguments;
 
+    public FetchToolCallDto() {
+    }
+
     public FetchToolCallDto(String id, String name, String arguments) {
         this.id = id;
         this.name = name;
