@@ -67,6 +67,12 @@ public class Assessment {
 
     @Column(columnDefinition = "TEXT")
     private String details;
+
+    @Column(columnDefinition = "TEXT")
+    private String rules;
+
+    @Column(columnDefinition = "TEXT")
+    private String instructions;
     
     @NotBlank(message = "Role is required")
     @Size(max = 100, message = "Role name must not exceed 100 characters")
@@ -353,5 +359,21 @@ public class Assessment {
             AssessmentStatus.ACTIVE.equals(status)) {
             this.status = AssessmentStatus.INACTIVE;
         }
+    }
+
+    public String getRules() {
+        return rules;
+    }
+
+    public void setRules(String rules) {
+        this.rules = rules;
+    }
+
+    public String getInstructions() {
+        return instructions;
+    }
+
+    public void setInstructions(String instructions) {
+        this.instructions = instructions;
     }
 }

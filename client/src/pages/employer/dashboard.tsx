@@ -308,10 +308,7 @@ const EmployerDashboard = () => {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="serif-heading">{`Welcome Back, ${user?.name}`}</h1>
-              <p className="text-gray-400 flex items-center space-x-2">
-                <Calendar className="w-4 h-4" />
-                <span>Saturday, June 21, 2025</span>
-              </p>
+            
             </div>
             {/* <div className="flex space-x-3">
               <button className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">

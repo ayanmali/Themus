@@ -38,6 +38,7 @@ import com.delphi.delphi.repositories.UserRepository;
 import com.delphi.delphi.specifications.AssessmentSpecifications;
 import com.delphi.delphi.utils.enums.AssessmentStatus;
 import com.delphi.delphi.utils.enums.AttemptStatus;
+import com.delphi.delphi.utils.exceptions.AssessmentNotFoundException;
 import com.delphi.delphi.utils.git.GithubAccountType;
 
 @Service
@@ -180,7 +181,7 @@ public class AssessmentService {
     @Transactional(readOnly = true)
     public Assessment getAssessmentById(Long id) {
         return assessmentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id));
+                .orElseThrow(() -> new AssessmentNotFoundException("Assessment not found with id: " + id));
     }
 
     // Get chat history by assessment ID
@@ -188,7 +189,7 @@ public class AssessmentService {
     @Transactional(readOnly = true)
     public List<ChatMessageCacheDto> getChatMessagesById(Long id) {
         return assessmentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id))
+                .orElseThrow(() -> new AssessmentNotFoundException("Assessment not found with id: " + id))
                 .getChatMessages().stream()
                 .map(ChatMessageCacheDto::new)
                 .collect(Collectors.toList());

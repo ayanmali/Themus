@@ -59,6 +59,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * There are two different caches used here
  * 1. chat_messages - information about a given chat message
  * 2. chat_histories - the list of chat messages for an assessment
+ * 
+ * TODO: cache intermediate chat messages in Redis
  */
 public class ChatService {
 

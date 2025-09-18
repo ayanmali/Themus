@@ -196,10 +196,7 @@ const CandidateDashboard = () => {
                         <h1 className="text-3xl font-bold text-white mb-2">
                             Welcome back, {user?.name}
                         </h1>
-                        <p className="text-gray-400 flex items-center space-x-2">
-                            <Calendar className="w-4 h-4" />
-                            <span>Saturday, June 24, 2025</span>
-                        </p>
+                        
                     </div>
                     <div className="flex space-x-3 mt-4 lg:mt-0">
                         <button className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">

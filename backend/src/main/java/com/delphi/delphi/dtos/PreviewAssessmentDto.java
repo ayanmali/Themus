@@ -13,7 +13,8 @@ public class PreviewAssessmentDto {
     private String name;
     private String employerName;
     private String description;
-    private String details;
+    private String rules;
+    private String instructions;
     private String role;
     private AssessmentStatus status;
     // private LocalDateTime startDate;
@@ -30,7 +31,8 @@ public class PreviewAssessmentDto {
         this.employerName = assessment.getUser().getOrganizationName();
         this.name = assessment.getName();
         this.description = assessment.getDescription();
-        this.details = assessment.getDetails();
+        this.rules = assessment.getRules();
+        this.instructions = assessment.getInstructions();
         this.role = assessment.getRole();
         this.duration = assessment.getDuration();
         this.languageOptions = assessment.getLanguageOptions();
@@ -69,14 +71,6 @@ public class PreviewAssessmentDto {
         this.description = description;
     }
 
-    public String getDetails() {
-        return details;
-    }
-
-    public void setDetails(String details) {
-        this.details = details;
-    }
-
     public String getRole() {
         return role;
     }
@@ -107,5 +101,21 @@ public class PreviewAssessmentDto {
 
     public void setStatus(AssessmentStatus status) {
         this.status = status;
+    }
+
+    public String getRules() {
+        return rules;
+    }
+
+    public void setRules(String rules) {
+        this.rules = rules;
+    }
+
+    public String getInstructions() {
+        return instructions;
+    }
+
+    public void setInstructions(String instructions) {
+        this.instructions = instructions;
     }
 }

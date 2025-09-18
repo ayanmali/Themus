@@ -18,6 +18,8 @@ public class AssessmentCacheDto {
     private String name;
     private String description;
     private String details;
+    private String rules;
+    private String instructions;
     private String role;
     private AssessmentStatus status;
     private LocalDateTime startDate;
@@ -44,6 +46,8 @@ public class AssessmentCacheDto {
         this.name = assessment.getName();
         this.description = assessment.getDescription();
         this.details = assessment.getDetails();
+        this.rules = assessment.getRules();
+        this.instructions = assessment.getInstructions();
         this.role = assessment.getRole();
         this.status = assessment.getStatus();
         this.startDate = assessment.getStartDate();
@@ -187,6 +191,22 @@ public class AssessmentCacheDto {
     }
     public void setChatMessageIds(List<Long> chatMessageIds) {
         this.chatMessageIds = chatMessageIds;
+    }
+
+    public String getRules() {
+        return rules;
+    }
+
+    public void setRules(String rules) {
+        this.rules = rules;
+    }
+
+    public String getInstructions() {
+        return instructions;
+    }
+
+    public void setInstructions(String instructions) {
+        this.instructions = instructions;
     }
 
     

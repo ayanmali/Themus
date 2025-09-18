@@ -115,17 +115,28 @@ const useApi = () => {
 
       if (!response.ok) {
         console.log('Response invalid:', response);
-        // Try to parse error response for structured errors
-        let errorData;
+        // Try to parse error response for structured errors; fallback to plain text
+        let parsed: any = null;
+        let bodyText = '';
         try {
-          errorData = await response.json();
+          bodyText = await response.text();
+          try {
+            parsed = bodyText ? JSON.parse(bodyText) : null;
+          } catch {
+            parsed = null;
+          }
         } catch {
-          errorData = { message: `HTTP error! status: ${response.status}` };
+          // ignore
         }
-        
-        // Create error object with status
-        const error = { ...errorData, status: response.status };
-        throw error;
+
+        const message = (parsed && (parsed.message || parsed.error || parsed.detail))
+          || (bodyText && bodyText.trim())
+          || `Request failed with status ${response.status}`;
+
+        const err: any = new Error(message);
+        err.status = response.status;
+        err.data = parsed ?? bodyText;
+        throw err;
       }
 
       // Handle 204 No Content responses (no body to parse)

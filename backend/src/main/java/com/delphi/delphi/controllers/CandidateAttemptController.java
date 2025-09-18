@@ -41,6 +41,8 @@ import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.CandidateAttemptService;
 import com.delphi.delphi.services.CandidateService;
 import com.delphi.delphi.utils.enums.AttemptStatus;
+import com.delphi.delphi.utils.exceptions.AssessmentNotFoundException;
+import com.delphi.delphi.utils.exceptions.CandidateNotFoundException;
 
 import jakarta.validation.Valid;
 
@@ -70,7 +72,7 @@ public class CandidateAttemptController {
     public ResponseEntity<?> inviteCandidate(@Valid @RequestBody InviteCandidateDto inviteCandidateDto) {
         try {
             // Fetch the candidate and assessment entities
-            
+
             Candidate candidate = candidateRepository.findById(inviteCandidateDto.getCandidateId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Candidate not found with id: " + inviteCandidateDto.getCandidateId()));
@@ -96,12 +98,15 @@ public class CandidateAttemptController {
     }
 
     /**
-     * check if provided email and password match. If so, generate a github install url and return it
+     * check if provided email and password match. If so, generate a github install
+     * url and return it
+     * 
      * @param authenticateCandidateDto
      * @return
      */
     @PostMapping("/live/authenticate")
-    public ResponseEntity<?> authenticateCandidate(@Valid @RequestBody AuthenticateCandidateDto authenticateCandidateDto) {
+    public ResponseEntity<?> authenticateCandidate(
+            @Valid @RequestBody AuthenticateCandidateDto authenticateCandidateDto) {
         try {
             boolean isAuthenticated = candidateAttemptService.authenticateCandidate(authenticateCandidateDto);
             log.info("Candidate is authenticated: {}", isAuthenticated);
@@ -113,15 +118,17 @@ public class CandidateAttemptController {
             }
 
             log.info("Candidate is authenticated, checking if they are connected to github...");
-            boolean isConnectedToGithub = candidateAttemptService.isCandidateConnectedToGithub(authenticateCandidateDto.getCandidateEmail()) && candidateAttemptService.hasValidGithubToken(authenticateCandidateDto.getCandidateEmail());
+            boolean isConnectedToGithub = candidateAttemptService
+                    .isCandidateConnectedToGithub(authenticateCandidateDto.getCandidateEmail())
+                    && candidateAttemptService.hasValidGithubToken(authenticateCandidateDto.getCandidateEmail());
             if (!isConnectedToGithub) {
                 log.info("Candidate is not connected to github, returning redirect URL...");
                 // Return redirect URL instead of server-side redirect to avoid CORS issues
                 return ResponseEntity.ok(Map.of(
-                    "result", false,
-                    "redirectUrl", candidateAttemptService.generateGitHubInstallUrl(authenticateCandidateDto.getCandidateEmail()),
-                    "requiresRedirect", true
-                ));
+                        "result", false,
+                        "redirectUrl",
+                        candidateAttemptService.generateGitHubInstallUrl(authenticateCandidateDto.getCandidateEmail()),
+                        "requiresRedirect", true));
             }
 
             log.info("Candidate is connected to Github and has provided a valid attempt password, continuing...");
@@ -136,19 +143,18 @@ public class CandidateAttemptController {
     public ResponseEntity<?> generateGitHubInstallUrl(@RequestParam String email) {
         try {
             return ResponseEntity.ok(
-                Map.of(
-                    "url",
-                        candidateAttemptService.generateGitHubInstallUrl(email)
-                ));
-        }
-        catch (Exception e) {
+                    Map.of(
+                            "url",
+                            candidateAttemptService.generateGitHubInstallUrl(email)));
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error authenticating candidate: " + e.getMessage());
+                    .body("Error authenticating candidate: " + e.getMessage());
         }
     }
 
     /**
      * Update DB and create the candidate's github repo
+     * 
      * @param startAttemptDto
      * @return
      */
@@ -195,22 +201,22 @@ public class CandidateAttemptController {
 
             Pageable pageable = PageRequest.of(getCandidateAttemptsDto.getPage(), getCandidateAttemptsDto.getSize(),
                     sort);
-            PaginatedResponseDto<CandidateAttemptCacheDto> paged = candidateAttemptService.getCandidateAttemptsWithFilters(
-                    getCandidateAttemptsDto.getCandidateId(), getCandidateAttemptsDto.getAssessmentId(),
-                    getCandidateAttemptsDto.getAttemptStatuses(), getCandidateAttemptsDto.getStartedAfter(),
-                    getCandidateAttemptsDto.getStartedBefore(),
-                    getCandidateAttemptsDto.getCompletedAfter(), getCandidateAttemptsDto.getCompletedBefore(),
-                    pageable);
+            PaginatedResponseDto<CandidateAttemptCacheDto> paged = candidateAttemptService
+                    .getCandidateAttemptsWithFilters(
+                            getCandidateAttemptsDto.getCandidateId(), getCandidateAttemptsDto.getAssessmentId(),
+                            getCandidateAttemptsDto.getAttemptStatuses(), getCandidateAttemptsDto.getStartedAfter(),
+                            getCandidateAttemptsDto.getStartedBefore(),
+                            getCandidateAttemptsDto.getCompletedAfter(), getCandidateAttemptsDto.getCompletedBefore(),
+                            pageable);
             List<FetchCandidateAttemptDto> attemptDtos = paged.getContent().stream()
                     .map(FetchCandidateAttemptDto::new)
                     .collect(Collectors.toList());
 
             PaginatedResponseDto<FetchCandidateAttemptDto> response = new PaginatedResponseDto<>(
-                attemptDtos,
-                paged.getPage(),
-                paged.getSize(),
-                paged.getTotalElements()
-            );
+                    attemptDtos,
+                    paged.getPage(),
+                    paged.getSize(),
+                    paged.getTotalElements());
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -434,20 +440,23 @@ public class CandidateAttemptController {
 
     // for candidates to generate a github install url
     // @PostMapping("/live/github/generate-install-url")
-    // public ResponseEntity<?> generateGitHubInstallUrl(@RequestBody GenerateInstallUrlDto request) {
-    //     try {
-            
-    //         String candidateEmail = request.getCandidateEmail();
-    //         String plainTextPassword = request.getPlainTextPassword();
+    // public ResponseEntity<?> generateGitHubInstallUrl(@RequestBody
+    // GenerateInstallUrlDto request) {
+    // try {
 
-    //         String randomString = UUID.randomUUID().toString();
-    //         redisService.setWithExpiration(githubCacheKeyPrefix + candidateEmail, randomString, 10, TimeUnit.MINUTES);
-    //         String installUrl = String.format("%s?state=%s_candidate_%s", appInstallBaseUrl, randomString, candidateEmail);
-    //         return ResponseEntity.ok(installUrl);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body("Error generating GitHub install URL: " + e.getMessage());
-    //     }
+    // String candidateEmail = request.getCandidateEmail();
+    // String plainTextPassword = request.getPlainTextPassword();
+
+    // String randomString = UUID.randomUUID().toString();
+    // redisService.setWithExpiration(githubCacheKeyPrefix + candidateEmail,
+    // randomString, 10, TimeUnit.MINUTES);
+    // String installUrl = String.format("%s?state=%s_candidate_%s",
+    // appInstallBaseUrl, randomString, candidateEmail);
+    // return ResponseEntity.ok(installUrl);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error generating GitHub install URL: " + e.getMessage());
+    // }
     // }
 
     @GetMapping("/live/{assessmentId}/can-take-assessment")
@@ -455,23 +464,32 @@ public class CandidateAttemptController {
         // TODO: check if this email address corresponds to a valid candidate attempt in
         // the DB
         // if it does, then we can just redirect to the assessment page
-        Assessment assessment = assessmentService.getAssessmentById(assessmentId);
-        CandidateCacheDto candidate = candidateService.getCandidateByEmail(email);
+        try {
+            Assessment assessment = assessmentService.getAssessmentById(assessmentId);
+            CandidateCacheDto candidate = candidateService.getCandidateByEmail(email);
 
-        if (assessment.getCandidateAttempts().stream()
-                .anyMatch(attempt -> attempt.getCandidate().getId().equals(candidate.getId())
-                        && attempt.getStatus().equals(AttemptStatus.INVITED))) {
+            if (assessment.getCandidateAttempts().stream()
+                    .anyMatch(attempt -> attempt.getCandidate().getId().equals(candidate.getId())
+                            && attempt.getStatus().equals(AttemptStatus.INVITED))) {
+                return ResponseEntity.ok(
+                        Map.of("result", true,
+                                "attemptId", assessment.getCandidateAttempts().stream()
+                                        .filter(attempt -> attempt.getCandidate().getId().equals(candidate.getId())
+                                                && attempt.getStatus().equals(AttemptStatus.INVITED))
+                                        .findFirst()
+                                        .get()
+                                        .getId()));
+            }
             return ResponseEntity.ok(
-                    Map.of("result", true,
-                            "attemptId", assessment.getCandidateAttempts().stream()
-                                    .filter(attempt -> attempt.getCandidate().getId().equals(candidate.getId())
-                                            && attempt.getStatus().equals(AttemptStatus.INVITED))
-                                    .findFirst()
-                                    .get()
-                                    .getId()));
+                    Map.of("result", false));
+        } catch (AssessmentNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Assessment with id: " + assessmentId + " not found");
+        } catch (CandidateNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Candidate with email: " + email + " does not have an attempt for this assessment");
         }
-        return ResponseEntity.ok(
-                Map.of("result", false));
+
     }
 
     @GetMapping("/live/has-valid-github-token")
@@ -584,20 +602,22 @@ public class CandidateAttemptController {
     }
 
     // @PostMapping("/{id}/authenticate-candidate")
-    // public ResponseEntity<?> inviteCandidateToAssessment(@PathVariable Long id, @RequestBody String email) {
-    //     try {
-    //         Assessment assessment = assessmentService.getAssessmentById(id);
-    //         if (assessment.getCandidates().stream()
-    //                 .anyMatch(c -> c.getEmail().toLowerCase().equals(email.toLowerCase()))) {
-    //             return ResponseEntity.ok("Candidate authenticated");
-    //         }
-    //         return ResponseEntity.badRequest().body("Candidate not authorized to take this assessment");
+    // public ResponseEntity<?> inviteCandidateToAssessment(@PathVariable Long id,
+    // @RequestBody String email) {
+    // try {
+    // Assessment assessment = assessmentService.getAssessmentById(id);
+    // if (assessment.getCandidates().stream()
+    // .anyMatch(c -> c.getEmail().toLowerCase().equals(email.toLowerCase()))) {
+    // return ResponseEntity.ok("Candidate authenticated");
+    // }
+    // return ResponseEntity.badRequest().body("Candidate not authorized to take
+    // this assessment");
 
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body("Error authenticating candidate: " + e.getMessage() + " " + email
-    //                         + " - is this candidate authorized to take this assessment?");
-    //     }
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error authenticating candidate: " + e.getMessage() + " " + email
+    // + " - is this candidate authorized to take this assessment?");
+    // }
     // }
 
     // Start attempt

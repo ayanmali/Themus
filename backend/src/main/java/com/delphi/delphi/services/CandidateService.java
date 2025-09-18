@@ -28,6 +28,7 @@ import com.delphi.delphi.repositories.UserRepository;
 import com.delphi.delphi.specifications.CandidateSpecifications;
 import com.delphi.delphi.utils.CacheUtils;
 import com.delphi.delphi.utils.enums.AttemptStatus;
+import com.delphi.delphi.utils.exceptions.CandidateNotFoundException;
 
 @Service
 @Transactional
@@ -101,7 +102,7 @@ public class CandidateService {
     @Transactional(readOnly = true)
     public CandidateCacheDto getCandidateById(Long id) {
         return new CandidateCacheDto(candidateRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Candidate not found with id: " + id)));
+                .orElseThrow(() -> new CandidateNotFoundException("Candidate not found with id: " + id)));
     }
 
     // Get candidate by email
@@ -109,7 +110,7 @@ public class CandidateService {
     @Transactional(readOnly = true)
     public CandidateCacheDto getCandidateByEmail(String email) {
         return new CandidateCacheDto(candidateRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Candidate not found with email: " + email)));
+                .orElseThrow(() -> new CandidateNotFoundException("Candidate not found with email: " + email)));
     }
 
     // Get all candidates with pagination

@@ -28,11 +28,11 @@ export default function CandidateAssessmentPreview() {
             const response = await apiCall(`/api/attempts/live/${assessmentId}`, {
                 method: 'GET',
             });
-            
+
             if (!response.id) {
                 throw new Error('Failed to fetch assessment');
             }
-            
+
             return response;
         },
         enabled: !!assessmentId, // Only run query if assessmentId is valid
@@ -50,12 +50,22 @@ export default function CandidateAssessmentPreview() {
             return;
         }
 
-        const isAbleToTakeAssessment = await apiCall(`/api/attempts/live/${assessmentId}/can-take-assessment?email=${email}`, {
-            method: 'GET',
-        });
-
-        if (!isAbleToTakeAssessment.result) {
-            alert('You are not eligible to take this assessment. You either have not been invited, or have already taken the assessment. Please contact the employer to re-invite you.');
+        try {
+            const isAbleToTakeAssessment = await apiCall(`/api/attempts/live/${assessmentId}/can-take-assessment?email=${email}`, {
+                method: 'GET',
+            });
+            if (!isAbleToTakeAssessment.result) {
+                alert('You are not eligible to take this assessment. You either have not been invited, or have already taken the assessment. Please contact the employer to re-invite you.');
+                return;
+            }
+            setAttemptId(isAbleToTakeAssessment.attemptId);
+            console.log('Attempt ID:', isAbleToTakeAssessment.attemptId);
+        } catch (error: any) {
+            toast({
+                title: "Invalid Credentials",
+                description: error.message || 'An error occurred during authentication. Please try again.',
+                variant: "destructive",
+            });
             return;
         }
 
@@ -106,23 +116,25 @@ export default function CandidateAssessmentPreview() {
         }
 
         if (assessment?.languageOptions?.length && !selectedLanguage) {
-            alert('Please select a language/framework combination before starting.');
+            toast({
+                description: 'Please select a tech stack before starting.',
+                variant: "destructive",
+            });
             return;
         }
 
-        setAttemptId(isAbleToTakeAssessment.attemptId);
-
         // github app flow
 
-        setIsStarting(true);
+        //setIsStarting(true);
 
         // check if the candidate has a valid github token
-        
+
         // redirect to starting page
         console.log('Candidate has a valid github token, redirecting to starting page');
+        console.log('Attempt ID:', attemptId);
         setIsStarting(false);
-        navigate(`/${attemptId}/starting`);
-        
+        navigate(`/assessments/starting/${attemptId}`);
+
     };
 
     // Polling function to check if GitHub connection is established
@@ -154,7 +166,7 @@ export default function CandidateAssessmentPreview() {
                     // GitHub connection established, redirect to starting page
                     console.log('GitHub connection established, redirecting...');
                     setIsStarting(false);
-                    
+
                     // Redirect to /null/starting as requested
                     navigate('/null/starting');
                     return;
@@ -199,7 +211,7 @@ export default function CandidateAssessmentPreview() {
                     // Valid token found, redirect to starting page
                     console.log('Valid GitHub token found, redirecting...');
                     setIsStarting(false);
-                    
+
                     // Extract attempt_id from the response or use a default
                     const attemptId = response.attemptId || 'default';
                     // window.location.href = `/${attemptId}/starting`;
@@ -217,7 +229,7 @@ export default function CandidateAssessmentPreview() {
             }
         };
 
-                // Start polling
+        // Start polling
         poll();
     };
 
@@ -275,7 +287,7 @@ export default function CandidateAssessmentPreview() {
                             <div className="flex items-center space-x-2 text-gray-400">
                                 <Clock className="h-4 w-4" />
                                 <span className="text-sm">
-                                    Time Limit: {minutesToHours(assessment.duration ?? 0)} hours
+                                    Time Limit: {`${(assessment.duration ?? 0) % 60 === 0 ? minutesToHours(assessment.duration ?? 0) : assessment.duration ?? 0} ${(assessment.duration ?? 0 % 60) === 0 ? 'hours' : 'minutes'}`}
                                 </span>
                             </div>
                         </div>
@@ -386,9 +398,9 @@ export default function CandidateAssessmentPreview() {
                                     </Select>
                                 </div>
                             </div>) : (
-                                <>
-                                </>
-                            )}
+                            <>
+                            </>
+                        )}
 
                         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
                             <h3 className="text-lg font-semibold text-white mb-4">Enter your email address</h3>
@@ -463,7 +475,7 @@ export default function CandidateAssessmentPreview() {
                                 onClick={handleStart}
                                 disabled={(!selectedLanguage && !!assessment.languageOptions?.length) || !email || !isValidEmail(email) || isStarting}
                                 className="w-full  disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
-                                // className="w-full bg-gradient-to-r duration-1000 from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
+                            // className="w-full bg-gradient-to-r duration-1000 from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
                             >
                                 {isStarting ? (
                                     <>
