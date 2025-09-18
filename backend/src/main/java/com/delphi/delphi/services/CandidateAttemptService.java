@@ -224,7 +224,9 @@ public class CandidateAttemptService {
 
         try {
             // Extract repository name from the full URL for GitHub API call
-            githubService.createPersonalRepoFromTemplate(candidateGithubToken.toString(), owner, templateRepoName, repoName);
+            githubService.createCandidateRepo(templateRepoName, repoName);
+            // add candidate as a contributor to the repo
+            githubService.addContributorToCandidateRepo(repoName, candidateGithubUsername.toString());
         } catch (Exception e) {
             log.error("Error decrypting github access token and creating repo: {}", e.getMessage());
             throw new RuntimeException("Error decrypting github access token: " + e.getMessage());

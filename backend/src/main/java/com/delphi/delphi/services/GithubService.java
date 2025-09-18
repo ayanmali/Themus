@@ -23,6 +23,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.delphi.delphi.utils.Constants;
 import com.delphi.delphi.utils.git.GithubBranchDetails;
 import com.delphi.delphi.utils.git.GithubFile;
 import com.delphi.delphi.utils.git.GithubFileResponse;
@@ -64,11 +65,13 @@ public class GithubService {
     // private final String candidateAppClientSecret;
 
     private final WebClient webClient;
-    private final Map<String, String> author;
     private final Base64.Encoder base64Encoder;
     private final Base64.Decoder base64Decoder;
     private final String privateKeyRaw;
+
     private PrivateKey privateKey;
+
+    private final String THEMUS_GITHUB_TOKEN;
     
     public GithubService(@Value("${github.app.app-id}") String appId,
                         @Value("${github.app.client-id}") String clientId,
@@ -77,14 +80,14 @@ public class GithubService {
                         // @Value("${github.candidate.app.client-id}") String candidateAppClientId,
                         // @Value("${github.candidate.app.client-secret}") String candidateAppClientSecret,
                         @Value("${spring.security.oauth2.client.registration.github.scope}") String githubScope,
-                        Map<String, String> author,
-                        
+                        @Value("${themus.github.token}") String themusGithubToken,
                         EncryptionService encryptionService) {
         this.appId = appId;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.privateKeyRaw = privateKeyRaw;
         this.githubScope = githubScope;
+        this.THEMUS_GITHUB_TOKEN = themusGithubToken;
         // this.candidateAppClientId = candidateAppClientId;
         // this.candidateAppClientSecret = candidateAppClientSecret;
         this.webClient = WebClient.builder()
@@ -93,8 +96,6 @@ public class GithubService {
             .build();
         this.base64Encoder = Base64.getEncoder();
         this.base64Decoder = Base64.getDecoder();
-
-        this.author = author;
 
         loadPrivateKey();
 
@@ -413,6 +414,42 @@ public class GithubService {
             throw new RuntimeException("Error creating repo: " + e.getMessage(), e);
         }
     }
+
+    /**
+     * Creates a repository on the official Themus GitHub account
+     * @param templateRepoName
+     * @param repoName
+     * @return
+     */
+    public GithubRepoContents createCandidateRepo(String templateRepoName, String repoName) {
+        return createPersonalRepoFromTemplate(THEMUS_GITHUB_TOKEN, Constants.THEMUS_USERNAME, templateRepoName, repoName);
+    }
+
+    public void addContributorToCandidateRepo(String repoName, String candidateGithubUsername) {
+        addContributor(THEMUS_GITHUB_TOKEN, Constants.THEMUS_USERNAME, repoName, candidateGithubUsername);
+    }
+
+    public void addContributor(String token, String owner, String repo, String username) {
+        try {
+            String githubAccessToken = token;
+            if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
+                githubAccessToken = encryptionService.decrypt(token);
+            }
+            String url = String.format("https://api.github.com/repos/%s/%s/collaborators/%s", owner, repo, username);
+            webClient.put()
+                .uri(url)
+                .header("Authorization", "Bearer " + githubAccessToken)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+        } catch (RestClientException e) {
+            log.error("RestClient error adding contributor: {}", e.getMessage(), e);
+            throw new RuntimeException("Error adding contributor: " + e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("Error adding contributor: {}", e.getMessage(), e);
+            throw new RuntimeException("Error adding contributor: " + e.getMessage(), e);
+        }
+    }
     
     public GithubRepoContents createPersonalRepoFromTemplate(String token, String templateOwner, String templateRepoName, String repoName) {
         try {
@@ -472,7 +509,7 @@ public class GithubService {
         }
     }
 
-    public GithubRepoContents createOrgRepo(String token, String orgName,String repoName) {
+    public GithubRepoContents createOrgRepo(String token, String orgName, String repoName) {
         try {
             String githubAccessToken = token;
             if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
@@ -594,7 +631,7 @@ public class GithubService {
             Map<String, Object> body = Map.of(
                     "message", commitMessage,
                     "content", base64Content,
-                    "author", author);
+                    "author", Constants.AUTHOR);
             if (branch != null) {
                 body.put("branch", branch);
             }
@@ -736,7 +773,7 @@ public class GithubService {
                     "message", commitMessage,
                     "content", base64Content,
                     "sha", sha,
-                    "author", author);
+                    "author", Constants.AUTHOR);
 
             return webClient.put()
                 .uri(url)

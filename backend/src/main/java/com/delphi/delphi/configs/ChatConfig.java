@@ -1,7 +1,5 @@
 package com.delphi.delphi.configs;
 
-import java.util.Map;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
@@ -22,8 +20,4 @@ public class ChatConfig {
         return new RestTemplate();
     }
 
-    @Bean
-    public Map<String, String> author() {
-        return Map.of("name", "themus-bot[bot]", "email", "220768808+themus-bot[bot]@users.noreply.github.com");
-    }
 }

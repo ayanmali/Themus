@@ -1,7 +1,13 @@
 package com.delphi.delphi.utils;
 
+import java.util.Map;
+
 public class Constants {
     public static final String CONTRIBUTOR_USERNAME = "themus-bot[bot]";
+    public static final Map<String, String> AUTHOR = Map.of("name", "themus-bot[bot]", "email", "220768808+themus-bot[bot]@users.noreply.github.com");
+
+    // Themus account
+    public static final String THEMUS_USERNAME = "Themus-dev";
     // public static final String GITHUB_BRANCH_NAME = "main";
     // public static final String GITHUB_OWNER = "ayanmali";
     // public static final String GITHUB_ACCESS_TOKEN = "";
