@@ -4,7 +4,6 @@ import { Assessment } from '@/lib/types/assessment';
 import { minutesToHours } from '@/lib/utils';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { navigate } from 'wouter/use-browser-location';
 import { useParams } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import useApi from '@/hooks/use-api';
@@ -15,11 +14,41 @@ export default function CandidateAssessmentPreview() {
     const [selectedLanguage, setSelectedLanguage] = useState('');
     const [email, setEmail] = useState('');
     const [isStarting, setIsStarting] = useState(false);
-    const [attemptId, setAttemptId] = useState<number | null>(null);
+    const [hasStarted, setHasStarted] = useState(false);
     const [password, setPassword] = useState('');
     const params = useParams();
     const { apiCall } = useApi();
     const assessmentId = Number(params.assessment_id);
+
+    // State variable doesn't work for some reason - gets set to null upon navigation
+    let attemptId: number | null = null;
+
+    // Creates the candidate's github repository from the template
+    const createCandidateRepo = async () => {
+        try {
+            const data: {
+                id: number;
+                githubRepositoryLink: string;
+                languageChoice: string;
+                startedDate: string;
+            } = await apiCall(`/api/attempts/live/start`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    languageChoice: selectedLanguage,
+                    candidateEmail: email,
+                    assessmentId: assessmentId,
+                }),
+            });
+            return data;
+        }
+        catch (error: any) {
+            toast({
+                title: "Error",
+                description: error.message,
+                variant: "destructive",
+            });
+        }
+    }
 
     // Fetch assessment data using Tanstack Query
     const { data: assessment, isLoading, error } = useQuery({
@@ -58,7 +87,7 @@ export default function CandidateAssessmentPreview() {
                 alert('You are not eligible to take this assessment. You either have not been invited, or have already taken the assessment. Please contact the employer to re-invite you.');
                 return;
             }
-            setAttemptId(isAbleToTakeAssessment.attemptId);
+            attemptId = isAbleToTakeAssessment.attemptId;
             console.log('Attempt ID:', isAbleToTakeAssessment.attemptId);
         } catch (error: any) {
             toast({
@@ -132,8 +161,25 @@ export default function CandidateAssessmentPreview() {
         // redirect to starting page
         console.log('Candidate has a valid github token, redirecting to starting page');
         console.log('Attempt ID:', attemptId);
+        try {
+            const candidateRepoData = await createCandidateRepo();
+            //await startRecording();
+            window.open(candidateRepoData?.githubRepositoryLink, "_blank");
+          }
+        catch (error: any) {
+            // if (error instanceof Error && error.name === "NotAllowedError") {
+            //   setShowPermissionDialog(true);
+            // }
+            toast({
+                title: "Error",
+                description: error.message,
+                variant: "destructive",
+            });
+        }
         setIsStarting(false);
-        navigate(`/assessments/starting/${attemptId}`);
+        //navigate(`/assessments/starting/${attemptId}`);
+
+        setHasStarted(true);
 
     };
 
@@ -167,8 +213,8 @@ export default function CandidateAssessmentPreview() {
                     console.log('GitHub connection established, redirecting...');
                     setIsStarting(false);
 
-                    // Redirect to /null/starting as requested
-                    navigate('/null/starting');
+                    //navigate(`/assessments/starting/${attemptId}`);
+                    setHasStarted(true);
                     return;
                 }
 
@@ -187,51 +233,51 @@ export default function CandidateAssessmentPreview() {
     };
 
     // Polling function to check if GitHub token is valid (legacy - keeping for backward compatibility)
-    const startPollingForGitHubToken = async () => {
-        const maxAttempts = 60; // 5 minutes with 7-second intervals
-        const pollInterval = 7000; // 7 seconds
-        let attempts = 0;
+    // const startPollingForGitHubToken = async () => {
+    //     const maxAttempts = 60; // 5 minutes with 7-second intervals
+    //     const pollInterval = 7000; // 7 seconds
+    //     let attempts = 0;
 
-        const poll = async () => {
-            if (attempts >= maxAttempts) {
-                console.log('Polling timeout reached');
-                setIsStarting(false);
-                alert('GitHub connection timeout. Please try again.');
-                return;
-            }
+    //     const poll = async () => {
+    //         if (attempts >= maxAttempts) {
+    //             console.log('Polling timeout reached');
+    //             setIsStarting(false);
+    //             alert('GitHub connection timeout. Please try again.');
+    //             return;
+    //         }
 
-            try {
-                const response = await apiCall(`/api/attempts/live/has-valid-github-token?email=${email}`, {
-                    method: 'GET',
-                });
+    //         try {
+    //             const response = await apiCall(`/api/attempts/live/has-valid-github-token?email=${email}`, {
+    //                 method: 'GET',
+    //             });
 
-                console.log('Polling attempt', attempts + 1, ':', response);
+    //             console.log('Polling attempt', attempts + 1, ':', response);
 
-                if (response.result) {
-                    // Valid token found, redirect to starting page
-                    console.log('Valid GitHub token found, redirecting...');
-                    setIsStarting(false);
+    //             if (response.result) {
+    //                 // Valid token found, redirect to starting page
+    //                 console.log('Valid GitHub token found, redirecting...');
+    //                 setIsStarting(false);
 
-                    // Extract attempt_id from the response or use a default
-                    const attemptId = response.attemptId || 'default';
-                    // window.location.href = `/${attemptId}/starting`;
-                    navigate(`/${attemptId}/starting`);
-                    return;
-                }
+    //                 // Extract attempt_id from the response or use a default
+    //                 const attemptId = response.attemptId || 'default';
+    //                 //navigate(`/assessments/starting/${attemptId}`);
+    //                 setHasStarted(true);
+    //                 return;
+    //             }
 
-                // Continue polling
-                attempts++;
-                setTimeout(poll, pollInterval);
-            } catch (error) {
-                console.error('Polling error:', error);
-                attempts++;
-                setTimeout(poll, pollInterval);
-            }
-        };
+    //             // Continue polling
+    //             attempts++;
+    //             setTimeout(poll, pollInterval);
+    //         } catch (error) {
+    //             console.error('Polling error:', error);
+    //             attempts++;
+    //             setTimeout(poll, pollInterval);
+    //         }
+    //     };
 
-        // Start polling
-        poll();
-    };
+    //     // Start polling
+    //     poll();
+    // };
 
     // Show loading state
     if (isLoading) {
@@ -286,9 +332,16 @@ export default function CandidateAssessmentPreview() {
                             </div>
                             <div className="flex items-center space-x-2 text-gray-400">
                                 <Clock className="h-4 w-4" />
-                                <span className="text-sm">
-                                    Time Limit: {`${(assessment.duration ?? 0) % 60 === 0 ? minutesToHours(assessment.duration ?? 0) : assessment.duration ?? 0} ${(assessment.duration ?? 0 % 60) === 0 ? 'hours' : 'minutes'}`}
-                                </span>
+                                {hasStarted ? (
+                                    <span className="text-sm">
+                                        Time Remaining: {`${(assessment.duration ?? 0) % 60 === 0 ? minutesToHours(assessment.duration ?? 0) : assessment.duration ?? 0} ${(assessment.duration ?? 0 % 60) === 0 ? 'hours' : 'minutes'}`}
+                                    </span>
+
+                                ) : (
+                                    <span className="text-sm">
+                                        Time Limit: {`${(assessment.duration ?? 0) % 60 === 0 ? minutesToHours(assessment.duration ?? 0) : assessment.duration ?? 0} ${(assessment.duration ?? 0 % 60) === 0 ? 'hours' : 'minutes'}`}
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -357,11 +410,73 @@ export default function CandidateAssessmentPreview() {
                     </div>
 
                     {/* Sidebar */}
-                    <div className="space-y-6">
-                        {/* Language Selection */}
-                        {assessment.languageOptions?.length && assessment.languageOptions?.length > 0 ? (
+                    {hasStarted ? (
+                        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                            <h3 className="text-lg font-semibold text-white mb-4">Good luck!</h3>
+                            <p className="text-gray-300">The GitHub repository has been created for you. You can start the assessment now.</p>
                             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                                <h3 className="text-lg font-semibold text-white mb-4">Choose your stack</h3>
+                                <button
+                                    //onClick={handleFinish}
+                                    //disabled={(!selectedLanguage && !!assessment.languageOptions?.length) || !email || !isValidEmail(email) || isStarting}
+                                    disabled={isStarting}
+                                    className="w-full  disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
+                                // className="w-full bg-gradient-to-r duration-1000 from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
+                                >
+                                    <CheckCircle className="h-5 w-5" />
+                                    <span>I'm ready to submit</span>
+                                </button>
+                            </div>
+                        </div>
+
+                    ) : (
+                        <div className="space-y-6">
+                            {/* Language Selection */}
+                            {assessment.languageOptions?.length && assessment.languageOptions?.length > 0 ? (
+                                <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                                    <h3 className="text-lg font-semibold text-white mb-4">Choose your stack</h3>
+                                    <div className="space-y-2">
+                                        {/* <label className="block text-sm font-medium text-gray-300 mb-2">
+                                        Language/Framework Combination
+                                    </label> */}
+                                        {/* <select
+                                    value={selectedLanguage}
+                                    onChange={(e) => setSelectedLanguage(e.target.value)}
+                                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="">Select your preferred language...</option>
+                                    {assessment.languageOptions?.map((option) => (
+                                        <option key={option.replace(" ", "-").toLowerCase()} value={option}>
+                                            {option}
+                                        </option>
+                                    ))}
+                                </select> */}
+                                        <Select
+                                            value={selectedLanguage}
+                                            onValueChange={(value) => setSelectedLanguage(value)}
+                                        >
+                                            <SelectTrigger className="w-11/12 bg-slate-700 text-gray-100">
+                                                <SelectValue placeholder="Select a language/framework" />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-slate-700 text-gray-100">
+                                                <SelectGroup>
+                                                    <SelectLabel>Languages/Frameworks</SelectLabel>
+                                                    {assessment.languageOptions?.map((option) => (
+                                                        <SelectItem key={option.replace(" ", "-").toLowerCase()} value={option}>
+                                                            {option}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>) : (
+                                <>
+                                </>
+                            )}
+
+                            {/*Email/password*/}
+                            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                                <h3 className="text-lg font-semibold text-white mb-4">Enter your email address</h3>
                                 <div className="space-y-2">
                                     {/* <label className="block text-sm font-medium text-gray-300 mb-2">
                                         Language/Framework Combination
@@ -378,37 +493,34 @@ export default function CandidateAssessmentPreview() {
                                         </option>
                                     ))}
                                 </select> */}
-                                    <Select
-                                        value={selectedLanguage}
-                                        onValueChange={(value) => setSelectedLanguage(value)}
-                                    >
-                                        <SelectTrigger className="w-11/12 bg-slate-700 text-gray-100">
-                                            <SelectValue placeholder="Select a language/framework" />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-slate-700 text-gray-100">
-                                            <SelectGroup>
-                                                <SelectLabel>Languages/Frameworks</SelectLabel>
-                                                {assessment.languageOptions?.map((option) => (
-                                                    <SelectItem key={option.replace(" ", "-").toLowerCase()} value={option}>
-                                                        {option}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectGroup>
-                                        </SelectContent>
-                                    </Select>
+                                    <Input
+                                        type="email"
+                                        placeholder="Enter your email address"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="w-11/12 bg-slate-700 text-gray-100"
+                                    />
                                 </div>
-                            </div>) : (
-                            <>
-                            </>
-                        )}
-
-                        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                            <h3 className="text-lg font-semibold text-white mb-4">Enter your email address</h3>
-                            <div className="space-y-2">
-                                {/* <label className="block text-sm font-medium text-gray-300 mb-2">
+                            </div>
+                            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                                <div className="flex items-center gap-x-2">
+                                    <h3 className="text-lg font-semibold text-white mb-4">Password</h3>
+                                    <TooltipProvider delayDuration={100}>
+                                        <Tooltip>
+                                            <TooltipTrigger className="cursor-pointer">
+                                                <Info className="w-4 h-4" />
+                                            </TooltipTrigger>
+                                            <TooltipContent className="bg-slate-700 border-slate-600 text-gray-100">
+                                                <p>Enter the password provided in the email invitation to start the assessment (case-sensitive)</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </div>
+                                <div className="space-y-2">
+                                    {/* <label className="block text-sm font-medium text-gray-300 mb-2">
                                         Language/Framework Combination
                                     </label> */}
-                                {/* <select
+                                    {/* <select
                                     value={selectedLanguage}
                                     onChange={(e) => setSelectedLanguage(e.target.value)}
                                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -420,89 +532,50 @@ export default function CandidateAssessmentPreview() {
                                         </option>
                                     ))}
                                 </select> */}
-                                <Input
-                                    type="email"
-                                    placeholder="Enter your email address"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="w-11/12 bg-slate-700 text-gray-100"
-                                />
+                                    <Input
+                                        type="password"
+                                        placeholder="Enter your password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-11/12 bg-slate-700 text-gray-100"
+                                    />
+                                </div>
                             </div>
-                        </div>
-                        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                            <div className="flex items-center gap-x-2">
-                                <h3 className="text-lg font-semibold text-white mb-4">Password</h3>
-                                <TooltipProvider delayDuration={100}>
-                                    <Tooltip>
-                                        <TooltipTrigger className="cursor-pointer">
-                                            <Info className="w-4 h-4" />
-                                        </TooltipTrigger>
-                                        <TooltipContent className="bg-slate-700 border-slate-600 text-gray-100">
-                                            <p>Enter the password provided in the email invitation to start the assessment (case-sensitive)</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </div>
-                            <div className="space-y-2">
-                                {/* <label className="block text-sm font-medium text-gray-300 mb-2">
-                                        Language/Framework Combination
-                                    </label> */}
-                                {/* <select
-                                    value={selectedLanguage}
-                                    onChange={(e) => setSelectedLanguage(e.target.value)}
-                                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                >
-                                    <option value="">Select your preferred language...</option>
-                                    {assessment.languageOptions?.map((option) => (
-                                        <option key={option.replace(" ", "-").toLowerCase()} value={option}>
-                                            {option}
-                                        </option>
-                                    ))}
-                                </select> */}
-                                <Input
-                                    type="password"
-                                    placeholder="Enter your password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-11/12 bg-slate-700 text-gray-100"
-                                />
-                            </div>
-                        </div>
 
-                        {/* Start Button */}
-                        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                            <button
-                                onClick={handleStart}
-                                disabled={(!selectedLanguage && !!assessment.languageOptions?.length) || !email || !isValidEmail(email) || isStarting}
-                                className="w-full  disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
-                            // className="w-full bg-gradient-to-r duration-1000 from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
-                            >
-                                {isStarting ? (
-                                    <>
-                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                                        <span>Waiting for GitHub Connection...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Play className="h-5 w-5" />
-                                        <span>Start Assessment</span>
-                                    </>
+                            {/* Start Button */}
+                            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                                <button
+                                    onClick={handleStart}
+                                    disabled={(!selectedLanguage && !!assessment.languageOptions?.length) || !email || !isValidEmail(email) || isStarting}
+                                    className="w-full  disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
+                                // className="w-full bg-gradient-to-r duration-1000 from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
+                                >
+                                    {isStarting ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                            <span>Waiting for GitHub Connection...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Play className="h-5 w-5" />
+                                            <span>Start Assessment</span>
+                                        </>
+                                    )}
+                                </button>
+                                {!selectedLanguage && !!assessment.languageOptions?.length && (
+                                    <p className="text-sm text-gray-400 mt-2 text-center">
+                                        Please select a language combination first
+                                    </p>
                                 )}
-                            </button>
-                            {!selectedLanguage && !!assessment.languageOptions?.length && (
-                                <p className="text-sm text-gray-400 mt-2 text-center">
-                                    Please select a language combination first
-                                </p>
-                            )}
-                            {(!email || !isValidEmail(email)) && (
-                                <p className="text-sm text-gray-400 mt-2 text-center">
-                                    Please enter a valid email address
-                                </p>
-                            )}
-                        </div>
+                                {(!email || !isValidEmail(email)) && (
+                                    <p className="text-sm text-gray-400 mt-2 text-center">
+                                        Please enter a valid email address
+                                    </p>
+                                )}
+                            </div>
 
-                        {/* Quick Info */}
-                        {/* <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                            {/* Quick Info */}
+                            {/* <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
                             <h3 className="text-lg font-semibold text-white mb-4">Quick Info</h3>
                             <div className="space-y-3">
                                 <div className="flex justify-between">
@@ -519,7 +592,7 @@ export default function CandidateAssessmentPreview() {
                                 </div>
                             </div>
                         </div> */}
-                    </div>
+                        </div>)}
                 </div>
             </div>
         </div>

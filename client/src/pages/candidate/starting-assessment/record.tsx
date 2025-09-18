@@ -9,22 +9,25 @@ import PermissionDialog from "@/components/candidate-assessment/permission-dialo
 import { useScreenRecording } from "@/hooks/use-screen-recording";
 import type { RecordingOptions, Recording } from "@/lib/types/recording";
 import CandidateInstructions from "@/components/candidate-assessment/candidate-instructions";
+import useApi from "@/hooks/use-api";
+import { toast } from "@/hooks/use-toast";
 
 /**
  * When candidate starts recording,
  * their github repository is created for them and it opens in another tab
  * @returns 
  */
-export default function Record() {
-  const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
-  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
-  const [recordingOptions, setRecordingOptions] = useState<RecordingOptions>({
+const RECORDING_OPTIONS: RecordingOptions = {
     screenSource: "entire",
     includeMicrophone: true,
     includeSystemAudio: false,
     microphoneVolume: 75,
     format: "mp4",
-  });
+}
+
+export default function RecordScreen() {
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
+  const { apiCall } = useApi();
 
   const {
     isRecording,
@@ -35,22 +38,13 @@ export default function Record() {
     pauseRecording,
     resumeRecording,
     error: recordingError,
-  } = useScreenRecording(recordingOptions);
-
-  // TODO:
-  const createCandidateRepo = async () => {
-    try {
-
-    }
-    catch (error) {
-
-    }
-  }
+  } = useScreenRecording(RECORDING_OPTIONS);
 
   const handleStartRecording = async () => {
     try {
-      const candidateRepoUrl: string = await createCandidateRepo();
+      const candidateRepoData = await createCandidateRepo();
       await startRecording();
+      window.open(candidateRepoData?.githubRepositoryLink, "_blank");
     } catch (error) {
       if (error instanceof Error && error.name === "NotAllowedError") {
         setShowPermissionDialog(true);

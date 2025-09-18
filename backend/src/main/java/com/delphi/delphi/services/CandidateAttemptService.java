@@ -191,46 +191,49 @@ public class CandidateAttemptService {
      * @return The updated candidate attempt
      */
     @CachePut(value = "attempts", key = "#result.id")
-    public CandidateAttemptCacheDto startAttempt(CandidateCacheDto candidate, AssessmentCacheDto assessment, String languageChoice) {
+    public CandidateAttemptCacheDto startAttempt(CandidateCacheDto candidate, AssessmentCacheDto assessment, String owner, String languageChoice) {
         if (!assessment.getLanguageOptions().isEmpty() && !assessment.getLanguageOptions().contains(languageChoice)) {
             throw new IllegalArgumentException("Language choice not supported for this assessment");
         }
 
-        CandidateAttempt existingAttempt = candidateAttemptRepository.findByCandidateIdAndAssessmentId(
-                candidate.getId(),
-                assessment.getId()).orElseThrow(() -> new IllegalArgumentException("Candidate does not have an attempt for this assessment"));
+        CandidateAttemptCacheDto existingAttempt = getAttemptByCandidateAndAssessment(candidate.getId(), assessment.getId());
+        log.info("--------------------------------");
+        log.info("Existing attempt ID: {}", existingAttempt.getId());
+        log.info("--------------------------------");
 
         String repoName = "assessment-" + assessment.getId() + "-" + String.valueOf(Instant.now().toEpochMilli());
-        String fullGithubUrl = "https://github.com/" + "TODO:" + "/" + repoName;
-
-        existingAttempt.setStatus(AttemptStatus.STARTED);
-        existingAttempt.setStartedDate(LocalDateTime.now());
-        if (languageChoice != null) {
-            existingAttempt.setLanguageChoice(languageChoice);
+        Object candidateGithubUsername = redisService.get(usernameCacheKeyPrefix + candidate.getEmail());
+        if (candidateGithubUsername == null) {
+            throw new IllegalArgumentException("You are not connected to Github. Please connect your Github account to start the assessment.");
         }
-        existingAttempt.setGithubRepositoryLink(fullGithubUrl);
+        String fullGithubUrl = "https://github.com/" + candidateGithubUsername.toString() + "/" + repoName;
 
-        CandidateAttemptCacheDto result = new CandidateAttemptCacheDto(
-            candidateAttemptRepository.save(existingAttempt));
+        candidateAttemptRepository.updateStatus(existingAttempt.getId(), AttemptStatus.STARTED);
+        candidateAttemptRepository.updateStartedDate(existingAttempt.getId(), LocalDateTime.now());
+        if (languageChoice != null) {
+            candidateAttemptRepository.updateLanguageChoice(existingAttempt.getId(), languageChoice);
+        }
+        candidateAttemptRepository.updateGithubRepositoryLink(existingAttempt.getId(), fullGithubUrl);
 
         // Creating candidate github repo
-        String templateOwner = "TODO:";
-        String templateRepoName = assessment.getGithubRepoName();
-        String githubAccessToken;
+        String templateRepoName = assessment.getGithubRepoName();        
+        Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + candidate.getEmail());
+        if (candidateGithubToken == null) {
+            throw new IllegalArgumentException("You are not connected to Github. Please connect your Github account to start the assessment.");
+        }
+
         try {
-            githubAccessToken = encryptionService.decrypt("TODO:");
+            // Extract repository name from the full URL for GitHub API call
+            githubService.createPersonalRepoFromTemplate(candidateGithubToken.toString(), owner, templateRepoName, repoName);
         } catch (Exception e) {
-            log.error("Error decrypting github access token: {}", e.getMessage());
+            log.error("Error decrypting github access token and creating repo: {}", e.getMessage());
             throw new RuntimeException("Error decrypting github access token: " + e.getMessage());
         }
 
-        // Extract repository name from the full URL for GitHub API call
-        githubService.createPersonalRepoFromTemplate(githubAccessToken, templateOwner, templateRepoName, repoName);
-
         // Update cache: update general caches and evict specific caches
-        updateCacheAfterAttemptUpdate(candidate.getId(), assessment.getId(), result);
+        updateCacheAfterAttemptUpdate(candidate.getId(), assessment.getId(), existingAttempt);
         
-        return result;
+        return existingAttempt;
     }
 
     public boolean hasValidGithubToken(String candidateEmail) {

@@ -30,6 +30,7 @@ import Recordings from "./pages/candidate/starting-assessment/recordings";
 import AssessmentDetails from "./pages/employer/assessment-details/assessment-details";
 import AddCandidate from "./pages/employer/new-candidate";
 import CandidateDetails from "./pages/employer/candidate-details";
+import RecordScreen from "./pages/candidate/starting-assessment/record";
 
 function Router() {
   return (
@@ -75,7 +76,7 @@ function Router() {
       <ProtectedRoute path="/candidate/profile" component={CandidateProfile} role="candidate" />
 
       {/* Candidate Assessment Routes */}
-      <Route path="/assessments/starting/:attempt_id" component={Record} />
+      <Route path="/assessments/starting/:attempt_id" component={RecordScreen} />
       <Route path="/candidate/recordings" component={Recordings} />
       
       {/* Fallback to 404 */}

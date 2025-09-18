@@ -40,6 +40,7 @@ import com.delphi.delphi.repositories.CandidateRepository;
 import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.CandidateAttemptService;
 import com.delphi.delphi.services.CandidateService;
+import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.enums.AttemptStatus;
 import com.delphi.delphi.utils.exceptions.AssessmentNotFoundException;
 import com.delphi.delphi.utils.exceptions.CandidateNotFoundException;
@@ -49,6 +50,8 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/attempts")
 public class CandidateAttemptController {
+
+    private final UserService userService;
     private final CandidateService candidateService;
     private final AssessmentService assessmentService;
     private final CandidateAttemptService candidateAttemptService;
@@ -59,12 +62,13 @@ public class CandidateAttemptController {
     public CandidateAttemptController(CandidateAttemptService candidateAttemptService,
             AssessmentService assessmentService,
             AssessmentRepository assessmentRepository,
-            CandidateRepository candidateRepository, CandidateService candidateService) {
+            CandidateRepository candidateRepository, CandidateService candidateService, UserService userService) {
         this.assessmentService = assessmentService;
         this.candidateAttemptService = candidateAttemptService;
         this.assessmentRepository = assessmentRepository;
         this.candidateRepository = candidateRepository;
         this.candidateService = candidateService;
+        this.userService = userService;
     }
 
     // Invite a candidate to an assessment
@@ -94,6 +98,40 @@ public class CandidateAttemptController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error inviting candidate: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Update DB and create the candidate's github repo
+     * 
+     * @param startAttemptDto
+     * @return
+     */
+    @PostMapping("/live/start")
+    public ResponseEntity<?> startCandidateAttempt(@Valid @RequestBody StartAttemptDto startAttemptDto) {
+        try {
+            CandidateCacheDto candidate = candidateService.getCandidateByEmail(startAttemptDto.getCandidateEmail());
+            AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(startAttemptDto.getAssessmentId());
+
+            String userGithubUsername = userService.getGithubUsernameByUserId(candidate.getUserId());
+            log.info("Found candidate, assessment, and github username");
+            // Updating DB with full GitHub repository URL
+            CandidateAttemptCacheDto createdAttempt = candidateAttemptService.startAttempt(
+                    candidate,
+                    assessment,
+                    userGithubUsername,
+                    startAttemptDto.getLanguageChoice());
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "id", createdAttempt.getId(),
+                "githubRepositoryLink", createdAttempt.getGithubRepositoryLink(),
+                "languageChoice", createdAttempt.getLanguageChoice(),
+                "startedDate", createdAttempt.getStartedDate()
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Error creating candidate attempt: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Internal server error: " + e.getMessage());
         }
     }
 
@@ -149,33 +187,6 @@ public class CandidateAttemptController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error authenticating candidate: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Update DB and create the candidate's github repo
-     * 
-     * @param startAttemptDto
-     * @return
-     */
-    @PostMapping("/start")
-    public ResponseEntity<?> startCandidateAttempt(@Valid @RequestBody StartAttemptDto startAttemptDto) {
-        try {
-            CandidateCacheDto candidate = candidateService.getCandidateByEmail(startAttemptDto.getCandidateEmail());
-            AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(startAttemptDto.getAssessmentId());
-
-            // Updating DB with full GitHub repository URL
-            CandidateAttemptCacheDto createdAttempt = candidateAttemptService.startAttempt(
-                    candidate,
-                    assessment,
-                    startAttemptDto.getLanguageChoice());
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(new FetchCandidateAttemptDto(createdAttempt));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Error creating candidate attempt: " + e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Internal server error: " + e.getMessage());
         }
     }
 

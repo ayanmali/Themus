@@ -7,16 +7,14 @@ public class StartAttemptDto {
     private String languageChoice;
     private String candidateEmail;
     private Long assessmentId;
-    private String plainTextPassword;
 
     public StartAttemptDto() {
     }
 
-    public StartAttemptDto(String languageChoice, String candidateEmail, Long assessmentId, String password) {
+    public StartAttemptDto(String languageChoice, String candidateEmail, Long assessmentId) {
         this.languageChoice = languageChoice;
         this.candidateEmail = candidateEmail;
         this.assessmentId = assessmentId;
-        this.plainTextPassword = password;
     }
 
     public String getLanguageChoice() {
@@ -41,14 +39,6 @@ public class StartAttemptDto {
 
     public void setAssessmentId(Long assessmentId) {
         this.assessmentId = assessmentId;
-    }
-
-    public String getPlainTextPassword() {
-        return plainTextPassword;
-    }
-
-    public void setPlainTextPassword(String plainTextPassword) {
-        this.plainTextPassword = plainTextPassword;
     }
    
 }

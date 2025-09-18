@@ -420,6 +420,10 @@ public class GithubService {
             if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
                 githubAccessToken = encryptionService.decrypt(token);
             }
+            log.info("Creating personal repo from template with token: {}...", githubAccessToken);
+            log.info("Template owner: {}", templateOwner);
+            log.info("Template repo name: {}", templateRepoName);
+            log.info("Repo name: {}", repoName);
             // For GitHub App installation tokens, we need to create repo in the installation's account
             String url = String.format("https://api.github.com/repos/%s/%s/generate", templateOwner, templateRepoName);
 

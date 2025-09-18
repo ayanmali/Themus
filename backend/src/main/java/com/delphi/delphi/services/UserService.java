@@ -256,6 +256,19 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(newPassword));
         return new UserCacheDto(userRepository.save(user));
     }
+
+    // Get user by GitHub username
+    @Cacheable(value = "users", key = "'gh_username:' + #userId")
+    @Transactional(readOnly = true)
+    public String getGithubUsernameByUserId(Long userId) {
+        String githubUsername = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId))
+            .getGithubUsername();
+        if (githubUsername == null) {
+            throw new IllegalArgumentException("User with id: " + userId + " has not connected to Github");
+        }
+        return githubUsername;
+    }
     
     // Get user by GitHub username
     // @Cacheable(value = "users", key = "gh_username + ':' + #githubUsername")
@@ -319,7 +332,7 @@ public class UserService {
 
         redisService.set("cache:users:gh_username_exists:" + githubUsername, true);
         redisService.set("cache:users:gh_access_token_exists:" + githubAccessToken, true);
-        redisService.set("cache:users:connectedGithub:" + userId, true);
+        redisService.set("cache:users:connected_github:" + userId, true);
 
         return new UserCacheDto(userRepository.save(user));
     }
@@ -429,7 +442,7 @@ public class UserService {
     }
 
     private void evictGithubCaches(Long userId) {   
-        redisService.evictCache("cache:users:connectedGithub:" + userId + ":*");
+        redisService.evictCache("cache:users:connected_github:" + userId + ":*");
         redisService.evictCache("cache:users:encrypted_github_access_token:" + userId);
     }
 }

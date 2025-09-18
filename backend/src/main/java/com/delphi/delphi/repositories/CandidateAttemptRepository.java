@@ -129,4 +129,23 @@ public interface CandidateAttemptRepository extends JpaRepository<CandidateAttem
     @Query("UPDATE CandidateAttempt ca SET ca.status = 'EXPIRED' WHERE (ca.status = 'STARTED' OR ca.status = 'INVITED') AND ca.assessment.status = 'INACTIVE'")
     int updateAttemptsForInactiveAssessments();
 
+    // Update status
+    @Modifying
+    @Query("UPDATE CandidateAttempt ca SET ca.status = :status WHERE ca.id = :id")
+    int updateStatus(@Param("id") Long id, @Param("status") AttemptStatus status);
+
+    // Update started date
+    @Modifying
+    @Query("UPDATE CandidateAttempt ca SET ca.startedDate = :startedDate WHERE ca.id = :id")
+    int updateStartedDate(@Param("id") Long id, @Param("startedDate") LocalDateTime startedDate);
+
+    // Update language choice
+    @Modifying
+    @Query("UPDATE CandidateAttempt ca SET ca.languageChoice = :languageChoice WHERE ca.id = :id")
+    int updateLanguageChoice(@Param("id") Long id, @Param("languageChoice") String languageChoice);
+
+    // Update github repository link
+    @Modifying
+    @Query("UPDATE CandidateAttempt ca SET ca.githubRepositoryLink = :githubRepositoryLink WHERE ca.id = :id")
+    int updateGithubRepositoryLink(@Param("id") Long id, @Param("githubRepositoryLink") String githubRepositoryLink);
 }
