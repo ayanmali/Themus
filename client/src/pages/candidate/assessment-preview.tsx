@@ -110,20 +110,29 @@ export default function CandidateAssessmentPreview() {
             });
             // Check if user needs to be redirected to GitHub app installation
             // Ensures that candidate has valid github connection
-            if (authResp?.requiresRedirect && authResp?.redirectUrl) {
+            //if (authResp?.requiresRedirect && authResp?.redirectUrl) {
+            if (!authResp?.result) {
+                const githubInstallUrlResponse: { redirectUrl: string } = await apiCall("/api/attempts/live/github/generate-install-url", {
+                    method: "POST",
+                });
                 // Enter polling state immediately so UI updates and disables button
                 setIsStarting(true);
+                // Show loading state
+                toast({
+                    title: "Connecting GitHub",
+                    description: "Please complete the GitHub installation in the new tab. This tab will automatically proceed once connected.",
+                });
                 // Open GitHub installation in new tab
-                window.open(authResp.redirectUrl, '_blank');
+                window.open(githubInstallUrlResponse.redirectUrl, '_blank');
                 // Start polling for GitHub connection
                 startPollingForGitHubConnection();
                 return;
             }
 
-            if (authResp?.result === false) {
-                alert('You are not invited to take this assessment.');
-                return;
-            }
+            // if (authResp?.result === false) {
+            //     alert('You are not invited to take this assessment.');
+            //     return;
+            // }
         } catch (error: any) {
             // Handle authentication errors
             if (error.status === 401) {
@@ -165,7 +174,7 @@ export default function CandidateAssessmentPreview() {
             const candidateRepoData = await createCandidateRepo();
             //await startRecording();
             window.open(candidateRepoData?.githubRepositoryLink, "_blank");
-          }
+        }
         catch (error: any) {
             // if (error instanceof Error && error.name === "NotAllowedError") {
             //   setShowPermissionDialog(true);

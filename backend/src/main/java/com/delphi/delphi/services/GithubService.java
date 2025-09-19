@@ -46,7 +46,7 @@ import reactor.core.publisher.Mono;
  * It is used to get repository branches, and add branch.
  * It is used to get branch SHA, and add branch.
  * 
- * github.com/apps/themus-bot
+ * github.com/apps/themus-assessments
  */
 
 public class GithubService {
@@ -286,6 +286,9 @@ public class GithubService {
      */
     public Map<String, Object> validateGithubCredentials(String githubAccessToken) {
         try {
+            if (githubAccessToken == null) {
+                return null;
+            }
             // decrypting the access token if it is encrypted
             String token = githubAccessToken;
             if (!githubAccessToken.startsWith("ghu_") && !githubAccessToken.startsWith("gho_")) {

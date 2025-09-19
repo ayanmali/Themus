@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.dtos.AuthenticateCandidateDto;
 import com.delphi.delphi.dtos.FetchCandidateAttemptDto;
 import com.delphi.delphi.dtos.InviteCandidateDto;
@@ -51,6 +53,8 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/attempts")
 public class CandidateAttemptController {
 
+    private final RedisService redisService;
+
     private final UserService userService;
     private final CandidateService candidateService;
     private final AssessmentService assessmentService;
@@ -59,16 +63,21 @@ public class CandidateAttemptController {
     private final CandidateRepository candidateRepository;
     private final Logger log = LoggerFactory.getLogger(CandidateAttemptController.class);
 
+    private final String appInstallBaseUrl;
+    private final String githubCacheKeyPrefix = "github_install_url_random_string:";
+
     public CandidateAttemptController(CandidateAttemptService candidateAttemptService,
             AssessmentService assessmentService,
             AssessmentRepository assessmentRepository,
-            CandidateRepository candidateRepository, CandidateService candidateService, UserService userService) {
+            CandidateRepository candidateRepository, CandidateService candidateService, UserService userService, RedisService redisService, @Value("${github.app.name}") String githubAppName) {
         this.assessmentService = assessmentService;
         this.candidateAttemptService = candidateAttemptService;
         this.assessmentRepository = assessmentRepository;
         this.candidateRepository = candidateRepository;
         this.candidateService = candidateService;
         this.userService = userService;
+        this.redisService = redisService;
+        this.appInstallBaseUrl = String.format("https://github.com/apps/%s/installations/new", githubAppName);
     }
 
     // Invite a candidate to an assessment
@@ -160,13 +169,15 @@ public class CandidateAttemptController {
                     .isCandidateConnectedToGithub(authenticateCandidateDto.getCandidateEmail())
                     && candidateAttemptService.hasValidGithubToken(authenticateCandidateDto.getCandidateEmail());
             if (!isConnectedToGithub) {
-                log.info("Candidate is not connected to github, returning redirect URL...");
-                // Return redirect URL instead of server-side redirect to avoid CORS issues
+                Object redirectUrl = redisService.get(githubCacheKeyPrefix + authenticateCandidateDto.getCandidateEmail());
+                if (redirectUrl != null) {
+                    return ResponseEntity.ok(Map.of(
+                            "result", false,
+                            "redirectUrl", String.format("%s?state=%s_candidate_%s", appInstallBaseUrl, redirectUrl, authenticateCandidateDto.getCandidateEmail()),
+                            "requiresRedirect", true));
+                }
                 return ResponseEntity.ok(Map.of(
-                        "result", false,
-                        "redirectUrl",
-                        candidateAttemptService.generateGitHubInstallUrl(authenticateCandidateDto.getCandidateEmail()),
-                        "requiresRedirect", true));
+                        "result", false));
             }
 
             log.info("Candidate is connected to Github and has provided a valid attempt password, continuing...");
@@ -177,12 +188,12 @@ public class CandidateAttemptController {
         }
     }
 
-    @PostMapping("/live/generate-github-install-url")
+    @PostMapping("/live/github/generate-install-url")
     public ResponseEntity<?> generateGitHubInstallUrl(@RequestParam String email) {
         try {
             return ResponseEntity.ok(
                     Map.of(
-                            "url",
+                            "redirectUrl",
                             candidateAttemptService.generateGitHubInstallUrl(email)));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

@@ -253,6 +253,7 @@ export default function AssessmentDetails() {
 
     // SSE Chat hook
     // Message sending handles incoming and outgoing messages
+    // TODO: handle GitHub authentication errors; if the user does not have a valid github token, server should throw an error. Frontend should catch this error, generate an install URL, and begin polling for a valid token.
     const { sendMessage: sendSseMessage, isLoading: isSseLoading } = useSse({
         //assessmentId: assessmentId ? parseInt(assessmentId) : 0,
         onEventHandler: (newMessages) => {

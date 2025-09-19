@@ -313,12 +313,15 @@ export function CreateAssessmentForm() {
       // Check if user has valid GitHub token
       const hasValidGitHubToken = await checkGitHubToken();
       if (!hasValidGitHubToken?.result) {
+        // Generate the install URL on the server
+        const githubInstallUrlResponse: { redirectUrl: string } = await apiCall("/api/users/github/generate-install-url", {
+          method: "POST",
+        });
+        
         // Open GitHub app installation in new window
-        // const githubInstallUrl = await apiCall("/api/users/github/generate-install-url", {
-        //   method: "POST",
-        // });
-        console.log('GitHub install URL:', hasValidGitHubToken.redirectUrl);
-        window.open(hasValidGitHubToken.redirectUrl, '_blank');
+
+        console.log('GitHub install URL:', githubInstallUrlResponse.redirectUrl);
+        window.open(githubInstallUrlResponse.redirectUrl, '_blank');
         
         // Show loading state
         toast({

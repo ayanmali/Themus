@@ -133,11 +133,11 @@ public class AssessmentService {
             githubService.createOrgRepo(user.getGithubAccessToken(), user.getGithubUsername(),
                     assessment.getGithubRepoName());
         }
-        log.info("adding themus-bot as contributor to the repo...");
-        // add themus-bot as contributor to the repo
+        log.info("adding themus assessments as contributor to the repo...");
+        // add themus-assessments as contributor to the repo
         //githubService.addContributor(user.getGithubAccessToken(), user.getGithubUsername(), assessment.getGithubRepoName(), Constants.CONTRIBUTOR_USERNAME);
 
-        log.info("repo created and themus-bot added as contributor, setting github repository link for assessment: {}", assessment);
+        log.info("repo created and themus assessments added as contributor, setting github repository link for assessment: {}", assessment);
         assessment.setGithubRepositoryLink(
                 "https://github.com/" + user.getGithubUsername().toLowerCase() + "/" + assessment.getGithubRepoName());
 

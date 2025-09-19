@@ -32,6 +32,7 @@ import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.repositories.CandidateAttemptRepository;
 import com.delphi.delphi.specifications.CandidateAttemptSpecifications;
+import com.delphi.delphi.utils.Constants;
 import com.delphi.delphi.utils.enums.AttemptStatus;
 
 
@@ -206,7 +207,7 @@ public class CandidateAttemptService {
         if (candidateGithubUsername == null) {
             throw new IllegalArgumentException("You are not connected to Github. Please connect your Github account to start the assessment.");
         }
-        String fullGithubUrl = "https://github.com/" + candidateGithubUsername.toString() + "/" + repoName;
+        String fullGithubUrl = "https://github.com/" + Constants.THEMUS_USERNAME + "/" + repoName;
 
         candidateAttemptRepository.updateStatus(existingAttempt.getId(), AttemptStatus.STARTED);
         candidateAttemptRepository.updateStartedDate(existingAttempt.getId(), LocalDateTime.now());

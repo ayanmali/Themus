@@ -1,8 +1,6 @@
 package com.delphi.delphi.controllers;
 
 import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,6 +108,16 @@ public class UserController {
         return ResponseEntity.ok(new FetchUserDto(getCurrentUser()));
     }
 
+    @PostMapping("/github/generate-install-url")
+    public ResponseEntity<?> generateInstallUrl() {
+        try {
+            UserCacheDto user = getCurrentUser();
+            return ResponseEntity.ok(Map.of("redirectUrl", userService.generateGitHubInstallUrl(user.getEmail())));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error generating GitHub install URL: " + e.getMessage());
+        }
+    }
+    
     // for the client to check if it is authenticated
     @GetMapping("/is-connected-github")
     public ResponseEntity<?> isConnectedGithub(HttpServletResponse response) {
@@ -118,6 +126,9 @@ public class UserController {
             // check if github credentials exist in DB
             UserCacheDto user = getCurrentUser();
             log.info("Usercontroller - User: {}", user);
+            log.info("User email: {}", user.getEmail());
+            log.info("User github access token: {}", user.getGithubAccessToken());
+            log.info("User github username: {}", user.getGithubUsername());
             if (!userService.connectedGithub(user)) {
                 log.info("Github credentials not found in DB");
                 return ResponseEntity.ok(Map.of("redirectUrl", userService.generateGitHubInstallUrl(user.getEmail()), 
@@ -128,9 +139,14 @@ public class UserController {
             Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user.getGithubAccessToken());
 
             log.info("Github credentials valid: {}", githubCredentialsValid);
+
             if (githubCredentialsValid == null) {
-                return ResponseEntity.ok(Map.of("result", false, "redirectUrl", userService.generateGitHubInstallUrl(user.getEmail()), 
-                                                "requiresRedirect", true));
+                Object redirectUrl = redisService.get(githubCacheKeyPrefix + user.getEmail());
+                if (redirectUrl != null) {
+                    return ResponseEntity.ok(Map.of("result", false, "redirectUrl", String.format("%s?state=%s_user_%s", appInstallBaseUrl, redirectUrl, user.getEmail()), 
+                                                    "requiresRedirect", true));
+                }
+                return ResponseEntity.ok(Map.of("result", false));
             }
 
             return ResponseEntity.ok(Map.of("result", true));
@@ -389,18 +405,18 @@ public class UserController {
     }
 
     // for users to generate a github install url
-    @PostMapping("/github/generate-install-url")
-    public ResponseEntity<?> generateGitHubInstallUrl() {
-        try {
-            UserCacheDto user = getCurrentUser();
-            String randomString = UUID.randomUUID().toString();
-            redisService.setWithExpiration(githubCacheKeyPrefix + user.getEmail(), randomString, 10, TimeUnit.MINUTES);
-            String installUrl = String.format("%s?state=%s_user_%s", appInstallBaseUrl, randomString, user.getEmail());
-            return ResponseEntity.ok(Map.of("url", installUrl));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error generating GitHub install URL: " + e.getMessage());
-        }
-    }
+    // @PostMapping("/github/generate-install-url")
+    // public ResponseEntity<?> generateGitHubInstallUrl() {
+    //     try {
+    //         UserCacheDto user = getCurrentUser();
+    //         String randomString = UUID.randomUUID().toString();
+    //         redisService.setWithExpiration(githubCacheKeyPrefix + user.getEmail(), randomString, 10, TimeUnit.MINUTES);
+    //         String installUrl = String.format("%s?state=%s_user_%s", appInstallBaseUrl, randomString, user.getEmail());
+    //         return ResponseEntity.ok(Map.of("url", installUrl));
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error generating GitHub install URL: " + e.getMessage());
+    //     }
+    // }
 
     // unauthenticated endpoint
     // @GetMapping("/github/callback")
