@@ -192,7 +192,7 @@ public class CandidateAttemptService {
      * @return The updated candidate attempt
      */
     @CachePut(value = "attempts", key = "#result.id")
-    public CandidateAttemptCacheDto startAttempt(CandidateCacheDto candidate, AssessmentCacheDto assessment, String owner, String languageChoice) {
+    public CandidateAttemptCacheDto startAttempt(CandidateCacheDto candidate, AssessmentCacheDto assessment, String userGithubUsername, String languageChoice) {
         if (!assessment.getLanguageOptions().isEmpty() && !assessment.getLanguageOptions().contains(languageChoice)) {
             throw new IllegalArgumentException("Language choice not supported for this assessment");
         }
@@ -225,7 +225,7 @@ public class CandidateAttemptService {
 
         try {
             // Clones the template repo in the Themus GitHub account
-            githubService.createCandidateRepo(templateRepoName, repoName);
+            githubService.createCandidateRepo(userGithubUsername, templateRepoName, repoName);
             // add candidate as a contributor to the repo
             githubService.addContributorToCandidateRepo(repoName, candidateGithubUsername.toString());
         } catch (Exception e) {

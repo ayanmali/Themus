@@ -14,6 +14,7 @@ export default function CandidateAssessmentPreview() {
     const [selectedLanguage, setSelectedLanguage] = useState('');
     const [email, setEmail] = useState('');
     const [isStarting, setIsStarting] = useState(false);
+    // set to true after the candidate clicks the start button and connects their github account if not already connected
     const [hasStarted, setHasStarted] = useState(false);
     const [password, setPassword] = useState('');
     const params = useParams();
@@ -112,8 +113,8 @@ export default function CandidateAssessmentPreview() {
             // Ensures that candidate has valid github connection
             //if (authResp?.requiresRedirect && authResp?.redirectUrl) {
             if (!authResp?.result) {
-                const githubInstallUrlResponse: { redirectUrl: string } = await apiCall("/api/attempts/live/github/generate-install-url", {
-                    method: "POST",
+                const githubInstallUrlResponse: { redirectUrl: string } = await apiCall("/api/attempts/live/github/generate-install-url?email=" + email, {
+                    method: "POST"
                 });
                 // Enter polling state immediately so UI updates and disables button
                 setIsStarting(true);
@@ -126,7 +127,7 @@ export default function CandidateAssessmentPreview() {
                 window.open(githubInstallUrlResponse.redirectUrl, '_blank');
                 // Start polling for GitHub connection
                 startPollingForGitHubConnection();
-                return;
+                //eturn;
             }
 
             // if (authResp?.result === false) {

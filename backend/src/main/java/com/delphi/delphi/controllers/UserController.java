@@ -114,10 +114,11 @@ public class UserController {
             UserCacheDto user = getCurrentUser();
             return ResponseEntity.ok(Map.of("redirectUrl", userService.generateGitHubInstallUrl(user.getEmail())));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error generating GitHub install URL: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error generating GitHub install URL: " + e.getMessage());
         }
     }
-    
+
     // for the client to check if it is authenticated
     @GetMapping("/is-connected-github")
     public ResponseEntity<?> isConnectedGithub(HttpServletResponse response) {
@@ -131,20 +132,22 @@ public class UserController {
             log.info("User github username: {}", user.getGithubUsername());
             if (!userService.connectedGithub(user)) {
                 log.info("Github credentials not found in DB");
-                return ResponseEntity.ok(Map.of("redirectUrl", userService.generateGitHubInstallUrl(user.getEmail()), 
-                                                "requiresRedirect", true));
+                return ResponseEntity.ok(Map.of("redirectUrl", userService.generateGitHubInstallUrl(user.getEmail()),
+                        "requiresRedirect", true));
             }
             log.info("Usercontroller - Validating github credentials...");
             // check if github credentials are valid
-            Map<String, Object> githubCredentialsValid = githubService.validateGithubCredentials(user.getGithubAccessToken());
+            Map<String, Object> githubCredentialsValid = githubService
+                    .validateGithubCredentials(user.getGithubAccessToken());
 
             log.info("Github credentials valid: {}", githubCredentialsValid);
 
             if (githubCredentialsValid == null) {
                 Object redirectUrl = redisService.get(githubCacheKeyPrefix + user.getEmail());
                 if (redirectUrl != null) {
-                    return ResponseEntity.ok(Map.of("result", false, "redirectUrl", String.format("%s?state=%s_user_%s", appInstallBaseUrl, redirectUrl, user.getEmail()), 
-                                                    "requiresRedirect", true));
+                    return ResponseEntity.ok(Map.of("result", false, "redirectUrl",
+                            String.format("%s?state=%s_user_%s", appInstallBaseUrl, redirectUrl, user.getEmail()),
+                            "requiresRedirect", true));
                 }
                 return ResponseEntity.ok(Map.of("result", false));
             }
@@ -207,31 +210,34 @@ public class UserController {
     // Get all users with pagination and filtering
     // @GetMapping("/filter")
     // public ResponseEntity<?> getAllUsers(
-    //         @RequestParam(defaultValue = "0") int page,
-    //         @RequestParam(defaultValue = "10") int size,
-    //         @RequestParam(defaultValue = "id") String sortBy,
-    //         @RequestParam(defaultValue = "asc") String sortDirection,
-    //         @RequestParam(required = false) String name,
-    //         @RequestParam(required = false) String organizationName,
-    //         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAfter,
-    //         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdBefore) {
-    //     try {
-    //         Sort sort = sortDirection.equalsIgnoreCase("desc")
-    //                 ? Sort.by(sortBy).descending()
-    //                 : Sort.by(sortBy).ascending();
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size,
+    // @RequestParam(defaultValue = "id") String sortBy,
+    // @RequestParam(defaultValue = "asc") String sortDirection,
+    // @RequestParam(required = false) String name,
+    // @RequestParam(required = false) String organizationName,
+    // @RequestParam(required = false) @DateTimeFormat(iso =
+    // DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAfter,
+    // @RequestParam(required = false) @DateTimeFormat(iso =
+    // DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdBefore) {
+    // try {
+    // Sort sort = sortDirection.equalsIgnoreCase("desc")
+    // ? Sort.by(sortBy).descending()
+    // : Sort.by(sortBy).ascending();
 
-    //         Pageable pageable = PageRequest.of(page, size, sort);
-    //         List<UserCacheDto> users = userService.getUsersWithFilters(name, organizationName, createdAfter, createdBefore,
-    //                 pageable);
-    //         List<FetchUserDto> userDtos = users.stream()
-    //                 .map(FetchUserDto::new)
-    //                 .collect(Collectors.toList());
+    // Pageable pageable = PageRequest.of(page, size, sort);
+    // List<UserCacheDto> users = userService.getUsersWithFilters(name,
+    // organizationName, createdAfter, createdBefore,
+    // pageable);
+    // List<FetchUserDto> userDtos = users.stream()
+    // .map(FetchUserDto::new)
+    // .collect(Collectors.toList());
 
-    //         return ResponseEntity.ok(userDtos);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body("Error retrieving users: " + e.getMessage());
-    //     }
+    // return ResponseEntity.ok(userDtos);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error retrieving users: " + e.getMessage());
+    // }
     // }
 
     // Update user
@@ -271,93 +277,99 @@ public class UserController {
     // Search users by organization
     // @GetMapping("/search/organization")
     // public ResponseEntity<?> searchUsersByOrganization(
-    //         @RequestParam String organizationName,
-    //         @RequestParam(defaultValue = "0") int page,
-    //         @RequestParam(defaultValue = "10") int size) {
-    //     try {
-    //         Pageable pageable = PageRequest.of(page, size);
-    //         List<UserCacheDto> users = userService.searchUsersByOrganization(organizationName, pageable);
-    //         List<FetchUserDto> userDtos = users.stream()
-    //                 .map(FetchUserDto::new)
-    //                 .collect(Collectors.toList());
+    // @RequestParam String organizationName,
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size) {
+    // try {
+    // Pageable pageable = PageRequest.of(page, size);
+    // List<UserCacheDto> users =
+    // userService.searchUsersByOrganization(organizationName, pageable);
+    // List<FetchUserDto> userDtos = users.stream()
+    // .map(FetchUserDto::new)
+    // .collect(Collectors.toList());
 
-    //         return ResponseEntity.ok(userDtos);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body("Error searching users: " + e.getMessage());
-    //     }
+    // return ResponseEntity.ok(userDtos);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error searching users: " + e.getMessage());
+    // }
     // }
 
     // Search users by name
     // @GetMapping("/search/name")
     // public ResponseEntity<?> searchUsersByName(
-    //         @RequestParam String name,
-    //         @RequestParam(defaultValue = "0") int page,
-    //         @RequestParam(defaultValue = "10") int size) {
-    //     try {
-    //         Pageable pageable = PageRequest.of(page, size);
-    //         List<UserCacheDto> users = userService.searchUsersByName(name, pageable);
-    //         List<FetchUserDto> userDtos = users.stream()
-    //                 .map(FetchUserDto::new)
-    //                 .collect(Collectors.toList());
+    // @RequestParam String name,
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size) {
+    // try {
+    // Pageable pageable = PageRequest.of(page, size);
+    // List<UserCacheDto> users = userService.searchUsersByName(name, pageable);
+    // List<FetchUserDto> userDtos = users.stream()
+    // .map(FetchUserDto::new)
+    // .collect(Collectors.toList());
 
-    //         return ResponseEntity.ok(userDtos);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body("Error searching users: " + e.getMessage());
-    //     }
+    // return ResponseEntity.ok(userDtos);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error searching users: " + e.getMessage());
+    // }
     // }
 
     // Get users created within date range
     // @GetMapping("/created-between")
     // public ResponseEntity<?> getUsersCreatedBetween(
-    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-    //         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-    //         @RequestParam(defaultValue = "0") int page,
-    //         @RequestParam(defaultValue = "10") int size) {
-    //     try {
-    //         Pageable pageable = PageRequest.of(page, size);
-    //         List<UserCacheDto> users = userService.getUsersCreatedBetween(startDate, endDate, pageable);
-    //         List<FetchUserDto> userDtos = users.stream()
-    //                 .map(FetchUserDto::new)
-    //                 .collect(Collectors.toList());
+    // @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    // LocalDateTime startDate,
+    // @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    // LocalDateTime endDate,
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size) {
+    // try {
+    // Pageable pageable = PageRequest.of(page, size);
+    // List<UserCacheDto> users = userService.getUsersCreatedBetween(startDate,
+    // endDate, pageable);
+    // List<FetchUserDto> userDtos = users.stream()
+    // .map(FetchUserDto::new)
+    // .collect(Collectors.toList());
 
-    //         return ResponseEntity.ok(userDtos);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body("Error retrieving users: " + e.getMessage());
-    //     }
+    // return ResponseEntity.ok(userDtos);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error retrieving users: " + e.getMessage());
+    // }
     // }
 
     // Get users with active assessments
     // @GetMapping("/with-active-assessments")
     // public ResponseEntity<?> getUsersWithActiveAssessments(
-    //         @RequestParam(defaultValue = "0") int page,
-    //         @RequestParam(defaultValue = "10") int size) {
-    //     try {
-    //         Pageable pageable = PageRequest.of(page, size);
-    //         List<UserCacheDto> users = userService.getUsersWithActiveAssessments(pageable);
-    //         List<FetchUserDto> userDtos = users.stream()
-    //                 .map(FetchUserDto::new)
-    //                 .collect(Collectors.toList());
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size) {
+    // try {
+    // Pageable pageable = PageRequest.of(page, size);
+    // List<UserCacheDto> users =
+    // userService.getUsersWithActiveAssessments(pageable);
+    // List<FetchUserDto> userDtos = users.stream()
+    // .map(FetchUserDto::new)
+    // .collect(Collectors.toList());
 
-    //         return ResponseEntity.ok(userDtos);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body("Error retrieving users: " + e.getMessage());
-    //     }
+    // return ResponseEntity.ok(userDtos);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error retrieving users: " + e.getMessage());
+    // }
     // }
 
     // Count users by organization
     // @GetMapping("/count/organization")
-    // public ResponseEntity<?> countUsersByOrganization(@RequestParam String organizationName) {
-    //     try {
-    //         Long count = userService.countUsersByOrganization(organizationName);
-    //         return ResponseEntity.ok(count);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body("Error counting users: " + e.getMessage());
-    //     }
+    // public ResponseEntity<?> countUsersByOrganization(@RequestParam String
+    // organizationName) {
+    // try {
+    // Long count = userService.countUsersByOrganization(organizationName);
+    // return ResponseEntity.ok(count);
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error counting users: " + e.getMessage());
+    // }
     // }
 
     // Change password
@@ -407,40 +419,49 @@ public class UserController {
     // for users to generate a github install url
     // @PostMapping("/github/generate-install-url")
     // public ResponseEntity<?> generateGitHubInstallUrl() {
-    //     try {
-    //         UserCacheDto user = getCurrentUser();
-    //         String randomString = UUID.randomUUID().toString();
-    //         redisService.setWithExpiration(githubCacheKeyPrefix + user.getEmail(), randomString, 10, TimeUnit.MINUTES);
-    //         String installUrl = String.format("%s?state=%s_user_%s", appInstallBaseUrl, randomString, user.getEmail());
-    //         return ResponseEntity.ok(Map.of("url", installUrl));
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error generating GitHub install URL: " + e.getMessage());
-    //     }
+    // try {
+    // UserCacheDto user = getCurrentUser();
+    // String randomString = UUID.randomUUID().toString();
+    // redisService.setWithExpiration(githubCacheKeyPrefix + user.getEmail(),
+    // randomString, 10, TimeUnit.MINUTES);
+    // String installUrl = String.format("%s?state=%s_user_%s", appInstallBaseUrl,
+    // randomString, user.getEmail());
+    // return ResponseEntity.ok(Map.of("url", installUrl));
+    // } catch (Exception e) {
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error
+    // generating GitHub install URL: " + e.getMessage());
+    // }
     // }
 
     // unauthenticated endpoint
     // @GetMapping("/github/callback")
-    // public ResponseEntity<?> callback(@RequestParam String code, @RequestParam String state, HttpServletResponse response) {
-    //     String userOrCandidate = state.split("_")[0].toLowerCase();
-    //     switch (userOrCandidate) {
-    //         case "user" -> {
-    //             // authenticated endpoint
-    //             response.setHeader("Location", "http://localhost:8080/api/users/github/callback/user?code=" + code);
-    //             response.setStatus(302);
-    //             return ResponseEntity.status(HttpStatus.FOUND).build();
-    //         }
-    //         case "candidate" -> {
-    //             // unauthenticated endpoint
-    //             response.setHeader("Location", "http://localhost:8080/api/users/github/callback/candidate?code=" + code);
-    //             response.setStatus(302);
-    //             return ResponseEntity.status(HttpStatus.FOUND).build();
-    //         }
-    //         default -> throw new IllegalArgumentException("Invalid state: " + state + " - state must start with user_ or candidate_");
-    //     }
+    // public ResponseEntity<?> callback(@RequestParam String code, @RequestParam
+    // String state, HttpServletResponse response) {
+    // String userOrCandidate = state.split("_")[0].toLowerCase();
+    // switch (userOrCandidate) {
+    // case "user" -> {
+    // // authenticated endpoint
+    // response.setHeader("Location",
+    // "http://localhost:8080/api/users/github/callback/user?code=" + code);
+    // response.setStatus(302);
+    // return ResponseEntity.status(HttpStatus.FOUND).build();
+    // }
+    // case "candidate" -> {
+    // // unauthenticated endpoint
+    // response.setHeader("Location",
+    // "http://localhost:8080/api/users/github/callback/candidate?code=" + code);
+    // response.setStatus(302);
+    // return ResponseEntity.status(HttpStatus.FOUND).build();
+    // }
+    // default -> throw new IllegalArgumentException("Invalid state: " + state + " -
+    // state must start with user_ or candidate_");
+    // }
     // }
 
     /*
-     * TODO: there is a bug where if the user uninstalls the github app, the github API /user method returns 200 when using the access token stored in the DB but that access token won't work for other requests
+     * TODO: there is a bug where if the user uninstalls the github app, the github
+     * API /user method returns 200 when using the access token stored in the DB but
+     * that access token won't work for other requests
      * I hate github holy sh
      */
     @GetMapping("/github/callback")
@@ -454,16 +475,20 @@ public class UserController {
         } else if (state.contains("_candidate_")) {
             userOrCandidate = "candidate";
         } else {
-            throw new IllegalArgumentException("Invalid state: " + state + " - state must start with user_ or candidate_");
+            throw new IllegalArgumentException(
+                    "Invalid state: " + state + " - state must start with user_ or candidate_");
         }
         String providedRandomString = state.split("_" + userOrCandidate + "_")[0];
         String providedEmail = state.split("_" + userOrCandidate + "_")[1];
 
-        // check if the random string passed into the state parameter is valid for the email address
+        // check if the random string passed into the state parameter is valid for the
+        // email address
         Object redisRandomString = redisService.get(githubCacheKeyPrefix + providedEmail);
         if (redisRandomString == null || !redisRandomString.toString().equals(providedRandomString)) {
-            log.error("Invalid random string: {} for email: {}", providedRandomString, providedEmail + " - state: " + state);
-            return ResponseEntity.badRequest().body("Invalid random string in state query parameter: " + providedRandomString + " for email: " + providedEmail + " - state: " + state);
+            log.error("Invalid random string: {} for email: {}", providedRandomString,
+                    providedEmail + " - state: " + state);
+            return ResponseEntity.badRequest().body("Invalid random string in state query parameter: "
+                    + providedRandomString + " for email: " + providedEmail + " - state: " + state);
         }
 
         switch (userOrCandidate) {
@@ -474,14 +499,16 @@ public class UserController {
                 return candidateCallback(code, providedEmail);
             }
             default -> {
-                return ResponseEntity.badRequest().body("Invalid state query parameter. Either \"_user_\" or \"_candidate_\" must be present in the state parameter.");
+                return ResponseEntity.badRequest().body(
+                        "Invalid state query parameter. Either \"_user_\" or \"_candidate_\" must be present in the state parameter.");
             }
         }
     }
 
     /*
      * Storing the user's GitHub token in the DB
-     * Makes a POST request to the GitHub API using the provided code to get an access token.
+     * Makes a POST request to the GitHub API using the provided code to get an
+     * access token.
      */
     private ResponseEntity<?> userCallback(String code, String providedEmail) {
 
@@ -514,38 +541,48 @@ public class UserController {
             return ResponseEntity.ok("Github account connected: " + githubUsername);
         } catch (Exception e) {
             log.error("Error updating GitHub access token: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error connecting Github account: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error connecting Github account: " + e.getMessage());
         }
     }
 
     /*
      * Storing the candidate's GitHub token in Redis
-     * Makes a POST request to the GitHub API using the provided code to get an access token.
+     * Makes a POST request to the GitHub API using the provided code to get an
+     * access token.
      */
     private ResponseEntity<?> candidateCallback(String code, String email) {
+        log.info("Candidate callback called for candidate: {}", email);
         try {
-        Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + email);
+            log.info("Getting github token and username from redis for candidate: {}", email);
+            Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + email);
+            // get a new token if the candidate doesn't have one or if the token is invalid
+            if (candidateGithubToken == null || githubService
+                    .validateGithubCredentials(encryptionService.decrypt(candidateGithubToken.toString())) == null) {
+                // request a token from github api
+                log.info("Candidate needs a new token");
+                Map<String, Object> accessTokenResponse = githubService.getAccessToken(code);
+                String githubAccessToken = (String) accessTokenResponse.get("access_token");
+                // get candidate's github username
+                // TODO: store github username and/or encrypted github token in DB candidate
+                // entity
+                Map<String, Object> githubCredentialsResponse = githubService
+                        .validateGithubCredentials(githubAccessToken);
+                String githubUsername = (String) githubCredentialsResponse.get("login");
 
-        // get a new token if the candidate doesn't have one or if the token is invalid
-        if (candidateGithubToken == null || githubService.validateGithubCredentials(encryptionService.decrypt(candidateGithubToken.toString())) == null) {
-            // request a token from github api
-            Map<String, Object> accessTokenResponse = githubService.getAccessToken(code);
-            String githubAccessToken = (String) accessTokenResponse.get("access_token");
-            // get candidate's github username
-            // TODO: store github username and/or encrypted github token in DB candidate entity
-            Map<String, Object> githubCredentialsResponse = githubService.validateGithubCredentials(githubAccessToken);
-            String githubUsername = (String) githubCredentialsResponse.get("login");
-            
-            // store the token and username in redis
+                // store the token and username in redis
 
-            redisService.set(tokenCacheKeyPrefix + email, encryptionService.encrypt(githubAccessToken));
-            redisService.set(usernameCacheKeyPrefix + email, githubUsername);
-            return ResponseEntity.ok("Github account connected: " + githubUsername);
-        }
+                log.info("Storing github token and username in redis for candidate: {}", email);
+                redisService.set(tokenCacheKeyPrefix + email, encryptionService.encrypt(githubAccessToken));
+                redisService.set(usernameCacheKeyPrefix + email, githubUsername);
+                return ResponseEntity.ok("Github account connected: " + githubUsername);
+            }
 
-        return ResponseEntity.ok("Github account already connected. You may close this tab.");
+            log.info("Github account already connected for candidate: {}", email);
+            return ResponseEntity.ok("Github account already connected. You may close this tab.");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error connecting Github account: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error connecting Github account: " + e.getMessage());
         }
     }
 

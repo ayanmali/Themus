@@ -426,10 +426,15 @@ public class GithubService {
      * @param repoName
      * @return
      */
-    public GithubRepoContents createCandidateRepo(String templateRepoName, String repoName) {
-        return createPersonalRepoFromTemplate(THEMUS_GITHUB_TOKEN, Constants.THEMUS_USERNAME, templateRepoName, repoName);
+    public GithubRepoContents createCandidateRepo(String userGithubUsername, String templateRepoName, String repoName) {
+        return createPersonalRepoFromTemplate(THEMUS_GITHUB_TOKEN, userGithubUsername, templateRepoName, repoName);
     }
 
+    /**
+     * Adds the candidate as a contributor to the repository (owned by the Themus account)
+     * @param repoName
+     * @param candidateGithubUsername
+     */
     public void addContributorToCandidateRepo(String repoName, String candidateGithubUsername) {
         addContributor(THEMUS_GITHUB_TOKEN, Constants.THEMUS_USERNAME, repoName, candidateGithubUsername);
     }
