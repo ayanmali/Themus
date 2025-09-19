@@ -130,11 +130,11 @@ public class UserController {
             log.info("User email: {}", user.getEmail());
             log.info("User github access token: {}", user.getGithubAccessToken());
             log.info("User github username: {}", user.getGithubUsername());
-            if (!userService.connectedGithub(user)) {
-                log.info("Github credentials not found in DB");
-                return ResponseEntity.ok(Map.of("redirectUrl", userService.generateGitHubInstallUrl(user.getEmail()),
-                        "requiresRedirect", true));
-            }
+            // if (!userService.connectedGithub(user)) {
+            //     log.info("Github credentials not found in DB");
+            //     return ResponseEntity.ok(Map.of("redirectUrl", userService.generateGitHubInstallUrl(user.getEmail()),
+            //             "requiresRedirect", true));
+            // }
             log.info("Usercontroller - Validating github credentials...");
             // check if github credentials are valid
             Map<String, Object> githubCredentialsValid = githubService
@@ -142,7 +142,7 @@ public class UserController {
 
             log.info("Github credentials valid: {}", githubCredentialsValid);
 
-            if (githubCredentialsValid == null) {
+            if (!userService.connectedGithub(user) || githubCredentialsValid == null) {
                 Object redirectUrl = redisService.get(githubCacheKeyPrefix + user.getEmail());
                 if (redirectUrl != null) {
                     return ResponseEntity.ok(Map.of("result", false, "redirectUrl",

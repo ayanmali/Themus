@@ -330,8 +330,8 @@ public class UserService {
         log.info("UserService - saving user: {}", user);
         log.info("UserService - user ID: {}", user.getId());
 
-        redisService.set("cache:users:gh_username_exists:" + githubUsername, true);
-        redisService.set("cache:users:gh_access_token_exists:" + githubAccessToken, true);
+        // redisService.set("cache:users:gh_username_exists:" + githubUsername, true);
+        // redisService.set("cache:users:gh_access_token_exists:" + githubAccessToken, true);
         redisService.set("cache:users:connected_github:" + userId, true);
 
         return new UserCacheDto(userRepository.save(user));
