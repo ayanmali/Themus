@@ -128,7 +128,7 @@ public class AssessmentService {
 
         // create github repo for the assessment
         if (user.getGithubAccountType() == GithubAccountType.USER) {
-            githubService.createPersonalRepo(user.getGithubAccessToken(), assessment.getGithubRepoName());
+            githubService.createPersonalRepo(user.getGithubAccessToken(), user.getGithubUsername(), assessment.getGithubRepoName());
         } else {
             githubService.createOrgRepo(user.getGithubAccessToken(), user.getGithubUsername(),
                     assessment.getGithubRepoName());

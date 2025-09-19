@@ -224,7 +224,7 @@ public class CandidateAttemptService {
         }
 
         try {
-            // Extract repository name from the full URL for GitHub API call
+            // Clones the template repo in the Themus GitHub account
             githubService.createCandidateRepo(templateRepoName, repoName);
             // add candidate as a contributor to the repo
             githubService.addContributorToCandidateRepo(repoName, candidateGithubUsername.toString());

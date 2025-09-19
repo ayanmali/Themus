@@ -364,7 +364,7 @@ public class GithubService {
     //         .onErrorReturn("Error retrieving scopes");
     // }
 
-    public GithubRepoContents createPersonalRepo(String token, String repoName) {
+    public GithubRepoContents createPersonalRepo(String token, String owner, String repoName) {
         try {
             String githubAccessToken = token;
             if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
@@ -406,6 +406,8 @@ public class GithubService {
             if (repo == null) {
                 throw new RuntimeException("Failed to create personal repo: repo details from Github API response is null");
             }
+
+            addContributor(githubAccessToken, owner, repoName, Constants.CONTRIBUTOR_USERNAME);
 
             return repo;
         } catch (RestClientException e) {
@@ -533,7 +535,8 @@ public class GithubService {
 
             log.info("Creating repo '{}' with token: {}...", repoName, githubAccessToken.substring(0, Math.min(10, token.length())));
 
-            return webClient.post()
+
+            GithubRepoContents repo = webClient.post()
                 .uri(url)
                 .header("Authorization", "Bearer " + githubAccessToken)
                 .header("Accept", "application/vnd.github.v3+json")
@@ -551,6 +554,15 @@ public class GithubService {
                 })
                 .bodyToMono(GithubRepoContents.class)
                 .block();
+
+            if (repo == null) {
+                throw new RuntimeException("Failed to create org repo: repo details from Github API response is null");
+            }
+
+            // adding the Themus org as a contributor to the repo
+            addContributor(githubAccessToken, orgName, repoName, Constants.CONTRIBUTOR_USERNAME);
+
+            return repo;
         } catch (RestClientException e) {
             log.error("RestClient error creating repo: {}", e.getMessage(), e);
             throw new RuntimeException("Error creating repo: " + e.getMessage(), e);
