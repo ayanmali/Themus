@@ -9,13 +9,15 @@ import { useQuery } from '@tanstack/react-query';
 import useApi from '@/hooks/use-api';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { toast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 export default function CandidateAssessmentPreview() {
     const [selectedLanguage, setSelectedLanguage] = useState('');
     const [email, setEmail] = useState('');
     const [isStarting, setIsStarting] = useState(false);
     // set to true after the candidate clicks the start button and connects their github account if not already connected
-    const [hasStarted, setHasStarted] = useState(false);
+    const [hasStarted, setHasStarted] = useState(true);
     const [password, setPassword] = useState('');
     const params = useParams();
     const { apiCall } = useApi();
@@ -127,7 +129,7 @@ export default function CandidateAssessmentPreview() {
                 window.open(githubInstallUrlResponse.redirectUrl, '_blank');
                 // Start polling for GitHub connection
                 startPollingForGitHubConnection();
-                //eturn;
+                return;
             }
 
             // if (authResp?.result === false) {
@@ -219,13 +221,25 @@ export default function CandidateAssessmentPreview() {
                 console.log('GitHub connection polling attempt', attempts + 1, ':', response);
 
                 if (response.result) {
-                    // GitHub connection established, redirect to starting page
-                    console.log('GitHub connection established, redirecting...');
-                    setIsStarting(false);
+                    // GitHub connection established, now create the candidate repo
+                    console.log('GitHub connection established, creating candidate repository...');
 
-                    //navigate(`/assessments/starting/${attemptId}`);
-                    setHasStarted(true);
-                    return;
+                    try {
+                        const candidateRepoData = await createCandidateRepo();
+                        window.open(candidateRepoData?.githubRepositoryLink, "_blank");
+                        setIsStarting(false);
+                        setHasStarted(true);
+                        return;
+                    } catch (error: any) {
+                        console.error('Error creating candidate repository:', error);
+                        setIsStarting(false);
+                        toast({
+                            title: "Error",
+                            description: error.message,
+                            variant: "destructive",
+                        });
+                        return;
+                    }
                 }
 
                 // Continue polling
@@ -344,12 +358,12 @@ export default function CandidateAssessmentPreview() {
                                 <Clock className="h-4 w-4" />
                                 {hasStarted ? (
                                     <span className="text-sm">
-                                        Time Remaining: {`${(assessment.duration ?? 0) % 60 === 0 ? minutesToHours(assessment.duration ?? 0) : assessment.duration ?? 0} ${(assessment.duration ?? 0 % 60) === 0 ? 'hours' : 'minutes'}`}
+                                        Time Remaining: {`${(assessment.duration ?? 0) % 60 === 0 ? minutesToHours(assessment.duration ?? 0) : assessment.duration ?? 0} ${(assessment.duration ?? 0) % 60 === 0 ? 'hours' : 'minutes'}`}
                                     </span>
 
                                 ) : (
                                     <span className="text-sm">
-                                        Time Limit: {`${(assessment.duration ?? 0) % 60 === 0 ? minutesToHours(assessment.duration ?? 0) : assessment.duration ?? 0} ${(assessment.duration ?? 0 % 60) === 0 ? 'hours' : 'minutes'}`}
+                                        Time Limit: {`${(assessment.duration ?? 0) % 60 === 0 ? minutesToHours(assessment.duration ?? 0) : assessment.duration ?? 0} ${(assessment.duration ?? 0) % 60 === 0 ? 'hours' : 'minutes'}`}
                                     </span>
                                 )}
                             </div>
@@ -425,16 +439,32 @@ export default function CandidateAssessmentPreview() {
                             <h3 className="text-lg font-semibold text-white mb-4">Good luck!</h3>
                             <p className="text-gray-300">The GitHub repository has been created for you. You can start the assessment now.</p>
                             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                                <button
-                                    //onClick={handleFinish}
-                                    //disabled={(!selectedLanguage && !!assessment.languageOptions?.length) || !email || !isValidEmail(email) || isStarting}
-                                    disabled={isStarting}
-                                    className="w-full  disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
-                                // className="w-full bg-gradient-to-r duration-1000 from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
-                                >
-                                    <CheckCircle className="h-5 w-5" />
-                                    <span>I'm ready to submit</span>
-                                </button>
+
+                                <Dialog>
+                                    <DialogTrigger asChild className="w-full flex">
+                                        <button
+                                            //onClick={handleFinish}
+                                            //disabled={(!selectedLanguage && !!assessment.languageOptions?.length) || !email || !isValidEmail(email) || isStarting}
+                                            disabled={isStarting}
+                                            className="w-full  disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
+                                        // className="w-full bg-gradient-to-r duration-1000 from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
+                                        >
+                                            <CheckCircle className="h-5 w-5" />
+                                            <span>I'm ready to submit</span>
+                                        </button>
+                                    </DialogTrigger>
+                                    <DialogContent className="bg-slate-800/60 border-slate-700/50 text-slate-300 backdrop-blur-sm">
+                                        <DialogHeader>
+                                            <DialogTitle>Submit Assessment</DialogTitle>
+                                        </DialogHeader>
+                                        <DialogDescription>
+                                            Ensure you have committed and pushed your changes to your branch and submitted a pull request before submitting.
+                                        </DialogDescription>
+                                        <DialogFooter>
+                                            <Button type="submit" variant="default" className="bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-700/80 hover:text-white hover:border-slate-600/50 backdrop-blur-sm">Submit</Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
                             </div>
                         </div>
 

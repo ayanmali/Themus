@@ -207,14 +207,21 @@ public class CandidateAttemptService {
         if (candidateGithubUsername == null) {
             throw new IllegalArgumentException("You are not connected to Github. Please connect your Github account to start the assessment.");
         }
-        String fullGithubUrl = "https://github.com/" + Constants.THEMUS_USERNAME + "/" + repoName;
+        String fullGithubUrl = "https://github.com/" + Constants.THEMUS_ORG_NAME + "/" + repoName;
 
+        LocalDateTime now = LocalDateTime.now();
         candidateAttemptRepository.updateStatus(existingAttempt.getId(), AttemptStatus.STARTED);
-        candidateAttemptRepository.updateStartedDate(existingAttempt.getId(), LocalDateTime.now());
+        candidateAttemptRepository.updateStartedDate(existingAttempt.getId(), now);
         if (languageChoice != null) {
             candidateAttemptRepository.updateLanguageChoice(existingAttempt.getId(), languageChoice);
         }
         candidateAttemptRepository.updateGithubRepositoryLink(existingAttempt.getId(), fullGithubUrl);
+
+        // for caching and API response
+        existingAttempt.setStatus(AttemptStatus.STARTED);
+        existingAttempt.setStartedDate(now);
+        existingAttempt.setLanguageChoice(languageChoice);
+        existingAttempt.setGithubRepositoryLink(fullGithubUrl);
 
         // Creating candidate github repo
         String templateRepoName = assessment.getGithubRepoName();        
@@ -227,7 +234,7 @@ public class CandidateAttemptService {
             // Clones the template repo in the Themus GitHub account
             githubService.createCandidateRepo(userGithubUsername, templateRepoName, repoName);
             // add candidate as a contributor to the repo
-            githubService.addCollaboratorToCandidateRepo(repoName, candidateGithubUsername.toString());
+            githubService.addCollaboratorToCandidateRepo(repoName, candidateGithubUsername.toString(), candidateGithubToken.toString());
         } catch (Exception e) {
             log.error("Error decrypting github access token and creating repo: {}", e.getMessage());
             throw new RuntimeException("Error decrypting github access token: " + e.getMessage());

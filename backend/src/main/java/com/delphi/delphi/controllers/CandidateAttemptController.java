@@ -130,10 +130,14 @@ public class CandidateAttemptController {
                     assessment,
                     userGithubUsername,
                     startAttemptDto.getLanguageChoice());
+            log.info("Created candidate attempt with ID: {}", createdAttempt.getId());
+            log.info("Github repository link: {}", createdAttempt.getGithubRepositoryLink());
+            log.info("Language choice: {}", createdAttempt.getLanguageChoice());
+            log.info("Started date: {}", createdAttempt.getStartedDate());
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "id", createdAttempt.getId(),
                 "githubRepositoryLink", createdAttempt.getGithubRepositoryLink(),
-                "languageChoice", createdAttempt.getLanguageChoice(),
+                "languageChoice", createdAttempt.getLanguageChoice() != null ? createdAttempt.getLanguageChoice() : "N/A",
                 "startedDate", createdAttempt.getStartedDate()
             ));
         } catch (IllegalArgumentException e) {
