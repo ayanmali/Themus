@@ -74,7 +74,7 @@ public class UserController {
              */
             @Value("${app.client-domain}") String appClientDomain,
             @Value("${app.env}") String appEnv,
-            @Value("${github.app.name}") String githubAppName,
+            @Value("${themus.github.app.name}") String githubAppName,
             GithubService githubService,
             RedisService redisService, EncryptionService encryptionService) {
         this.userService = userService;

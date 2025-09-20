@@ -60,7 +60,7 @@ public class CandidateAttemptService {
     private final GithubService githubService;
     private final String appInstallBaseUrl;
 
-    public CandidateAttemptService(CandidateAttemptRepository candidateAttemptRepository, RedisService redisService, EncryptionService encryptionService, @Value("${github.app.name}") String githubAppName, GithubService githubService) {
+    public CandidateAttemptService(CandidateAttemptRepository candidateAttemptRepository, RedisService redisService, EncryptionService encryptionService, @Value("${themus.github.app.name}") String githubAppName, GithubService githubService) {
         this.candidateAttemptRepository = candidateAttemptRepository;
         this.redisService = redisService;
         this.encryptionService = encryptionService;
@@ -227,7 +227,7 @@ public class CandidateAttemptService {
             // Clones the template repo in the Themus GitHub account
             githubService.createCandidateRepo(userGithubUsername, templateRepoName, repoName);
             // add candidate as a contributor to the repo
-            githubService.addContributorToCandidateRepo(repoName, candidateGithubUsername.toString());
+            githubService.addCollaboratorToCandidateRepo(repoName, candidateGithubUsername.toString());
         } catch (Exception e) {
             log.error("Error decrypting github access token and creating repo: {}", e.getMessage());
             throw new RuntimeException("Error decrypting github access token: " + e.getMessage());

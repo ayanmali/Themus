@@ -69,7 +69,7 @@ public class CandidateAttemptController {
     public CandidateAttemptController(CandidateAttemptService candidateAttemptService,
             AssessmentService assessmentService,
             AssessmentRepository assessmentRepository,
-            CandidateRepository candidateRepository, CandidateService candidateService, UserService userService, RedisService redisService, @Value("${github.app.name}") String githubAppName) {
+            CandidateRepository candidateRepository, CandidateService candidateService, UserService userService, RedisService redisService, @Value("${themus.github.app.name}") String githubAppName) {
         this.assessmentService = assessmentService;
         this.candidateAttemptService = candidateAttemptService;
         this.assessmentRepository = assessmentRepository;

@@ -7,7 +7,8 @@ public class Constants {
     public static final Map<String, String> AUTHOR = Map.of("name", "themus-assessments[bot]", "email", "220768808+themus-assessments[bot]@users.noreply.github.com");
 
     // Themus account
-    public static final String THEMUS_USERNAME = "Themus-dev";
+    public static final String THEMUS_USERNAME = "themus-gh";
+    public static final String THEMUS_ORG_NAME = "themus-assessments";
     // public static final String GITHUB_BRANCH_NAME = "main";
     // public static final String GITHUB_OWNER = "ayanmali";
     // public static final String GITHUB_ACCESS_TOKEN = "";

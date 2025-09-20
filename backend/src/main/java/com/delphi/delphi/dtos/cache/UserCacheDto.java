@@ -3,19 +3,19 @@ package com.delphi.delphi.dtos.cache;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import com.delphi.delphi.entities.Assessment;
-import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.utils.git.GithubAccountType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public class UserCacheDto implements UserDetails {
+
+    private static final long serialVersionUID = 1L;
+
     private Long id;
     private String name;
     private String email;
@@ -44,12 +44,9 @@ public class UserCacheDto implements UserDetails {
         this.githubAccountType = user.getGithubAccountType();
         this.createdDate = user.getCreatedDate();
         this.updatedDate = user.getUpdatedDate();
-        if (user.getAssessments() != null) {
-            this.assessmentIds = user.getAssessments().stream().map(Assessment::getId).collect(Collectors.toList());
-        }
-        if (user.getCandidates() != null) {
-            this.candidateIds = user.getCandidates().stream().map(Candidate::getId).collect(Collectors.toList());
-        }
+        //TODO: fix this
+        this.assessmentIds = null;
+        this.candidateIds = null;
     }
 
     public Long getId() {
@@ -156,8 +153,19 @@ public class UserCacheDto implements UserDetails {
     }
 
     @Override
+    @JsonIgnore
     public String getPassword() {
         return encryptedPassword;
+    }
+
+    @JsonIgnore
+    public String getEncryptedPassword() {
+        return encryptedPassword;
+    }
+
+    @JsonIgnore
+    public void setEncryptedPassword(String encryptedPassword) {
+        this.encryptedPassword = encryptedPassword;
     }
 
 }

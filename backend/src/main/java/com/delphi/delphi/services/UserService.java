@@ -37,7 +37,7 @@ public class UserService {
     private final String githubCacheKeyPrefix = "github_install_url_random_string:";
     private final String appInstallBaseUrl;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, EncryptionService encryptionService, RedisService redisService, @Value("${github.app.name}") String githubAppName) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, EncryptionService encryptionService, RedisService redisService, @Value("${themus.github.app.name}") String githubAppName) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.encryptionService = encryptionService;
@@ -55,7 +55,8 @@ public class UserService {
         // Encrypt password before saving
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         
-        return new UserCacheDto(userRepository.save(user));
+        User savedUser = userRepository.save(user);
+        return new UserCacheDto(savedUser);
     }
 
     // Authenticate user
@@ -74,8 +75,9 @@ public class UserService {
     @Cacheable(value = "users", key = "#id")
     @Transactional(readOnly = true)
     public UserCacheDto getUserByIdOrThrow(Long id) {
-        return new UserCacheDto(userRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id)));
+        User user = userRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
+        return new UserCacheDto(user);
     }
 
     // for users to generate a github install url
@@ -86,7 +88,8 @@ public class UserService {
     }
     
     // Get user by email
-    @Caching(cacheable = {
+    @Caching(
+       cacheable = {
         @Cacheable(value = "users", key = "#email")
     }, put = {
         @CachePut(value = "users", key = "#result.id")
@@ -94,7 +97,8 @@ public class UserService {
     //@CacheEvict(value = "users", key = "#email", beforeInvocation = true)
     @Transactional(readOnly = true)
     public UserCacheDto getUserByEmail(String email) {
-        return new UserCacheDto(userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found with email: " + email)));
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+        return new UserCacheDto(user);
     }
     
     // Clear user cache for specific email
@@ -145,7 +149,8 @@ public class UserService {
             existingUser.setPassword(passwordEncoder.encode(userUpdates.getPassword()));
         }
         
-        return new UserCacheDto(userRepository.save(existingUser));
+        User user = userRepository.save(existingUser);
+        return new UserCacheDto(user);
     }
     
     // Delete user
@@ -161,19 +166,19 @@ public class UserService {
     }
 
     // checks if user's github credentials exist (not necessarily valid; validateGithubCredentials() should be called to check if they are valid)
-    @Cacheable(value = "users", key = "'connectedGithub:' + #user.id")
+    @Cacheable(value = "users", key = "'connected_github:' + #user.id")
     @Transactional(readOnly = true)
     public boolean connectedGithub(User user) {
         log.info("UserService - checking if user is connected to github: {}", user);
-        return user.getGithubUsername() != null && user.getGithubAccessToken() != null;
+        return getGithubUsernameByUserId(user.getId()) != null && getDecryptedGithubToken(user.getId()) != null;
     }
 
     // checks if user's github credentials exist (not necessarily valid; validateGithubCredentials() should be called to check if they are valid)
-    @Cacheable(value = "users", key = "'connectedGithub:' + #user.id")
+    @Cacheable(value = "users", key = "'connected_github:' + #user.id")
     @Transactional(readOnly = true)
     public boolean connectedGithub(UserCacheDto user) {
         log.info("UserService - checking if user is connected to github: {}", user);
-        return user.getGithubUsername() != null && user.getGithubAccessToken() != null;
+        return getGithubUsernameByUserId(user.getId()) != null && getDecryptedGithubToken(user.getId()) != null;
     }
     
     // Check if email exists
@@ -241,7 +246,9 @@ public class UserService {
         }
         
         user.setPassword(passwordEncoder.encode(newPassword));
-        return new UserCacheDto(userRepository.save(user));
+
+        User savedUser = userRepository.save(user);
+        return new UserCacheDto(savedUser);
     }
     
     // Reset password (admin function)
@@ -254,7 +261,9 @@ public class UserService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
         user.setPassword(passwordEncoder.encode(newPassword));
-        return new UserCacheDto(userRepository.save(user));
+
+        User savedUser = userRepository.save(user);
+        return new UserCacheDto(savedUser);
     }
 
     // Get user by GitHub username
@@ -265,7 +274,8 @@ public class UserService {
             .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId))
             .getGithubUsername();
         if (githubUsername == null) {
-            throw new IllegalArgumentException("User with id: " + userId + " has not connected to Github");
+            // throw new IllegalArgumentException("User with id: " + userId + " has not connected to Github");
+            return null;
         }
         return githubUsername;
     }
@@ -334,7 +344,8 @@ public class UserService {
         // redisService.set("cache:users:gh_access_token_exists:" + githubAccessToken, true);
         redisService.set("cache:users:connected_github:" + userId, true);
 
-        return new UserCacheDto(userRepository.save(user));
+        User savedUser = userRepository.save(user);
+        return new UserCacheDto(savedUser);
     }
 
     @Caching(evict = {

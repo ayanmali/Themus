@@ -30,6 +30,7 @@ import com.delphi.delphi.utils.git.GithubFileResponse;
 import com.delphi.delphi.utils.git.GithubReference;
 import com.delphi.delphi.utils.git.GithubRepoBranch;
 import com.delphi.delphi.utils.git.GithubRepoContents;
+import com.delphi.delphi.utils.git.GithubRepoInvitation;
 
 import io.jsonwebtoken.Jwts;
 import reactor.core.publisher.Mono;
@@ -379,7 +380,7 @@ public class GithubService {
                     "description", "Assessment repository",
                     "private", true,
                     "auto_init", false,
-                    "isTemplate", true);
+                    "is_template", true);
 
             log.info("Creating repo '{}' with token: {}...", repoName, githubAccessToken.substring(0, Math.min(10, token.length())));
             
@@ -407,7 +408,18 @@ public class GithubService {
                 throw new RuntimeException("Failed to create personal repo: repo details from Github API response is null");
             }
 
-            addContributor(githubAccessToken, owner, repoName, Constants.CONTRIBUTOR_USERNAME);
+             // add the Themus GitHub account as collaborator to the repo
+            // necessary so the candidate repos can be created in the Themus GitHub org account
+            addCollaborator(githubAccessToken, owner, repoName, Constants.THEMUS_USERNAME);
+            
+            // Get all invitations for the repo
+            List<GithubRepoInvitation> invitations = getInvitations(githubAccessToken, owner, repoName);
+            // Accept all invitations
+            for (GithubRepoInvitation invitation : invitations) {
+                if (invitation.getInvitee().getLogin().equals(Constants.THEMUS_USERNAME)) {
+                    acceptInvitation(THEMUS_GITHUB_TOKEN, invitation.getId());
+                }
+            }
 
             return repo;
         } catch (RestClientException e) {
@@ -435,12 +447,13 @@ public class GithubService {
      * @param repoName
      * @param candidateGithubUsername
      */
-    public void addContributorToCandidateRepo(String repoName, String candidateGithubUsername) {
-        addContributor(THEMUS_GITHUB_TOKEN, Constants.THEMUS_USERNAME, repoName, candidateGithubUsername);
+    public void addCollaboratorToCandidateRepo(String repoName, String candidateGithubUsername) {
+        addCollaborator(THEMUS_GITHUB_TOKEN, Constants.THEMUS_ORG_NAME, repoName, candidateGithubUsername);
     }
 
-    public void addContributor(String token, String owner, String repo, String username) {
+    public void addCollaborator(String token, String owner, String repo, String username) {
         try {
+            log.info("Adding collaborator {} to repo {}/{}", username, owner, repo);
             String githubAccessToken = token;
             if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
                 githubAccessToken = encryptionService.decrypt(token);
@@ -476,7 +489,7 @@ public class GithubService {
 
             Map<String, Object> body = Map.of(
                     "name", repoName,
-                    "description", "Assessment repository",
+                    "description", "Candidate repository",
                     "private", true,
                     "auto_init", false,
                     "include_all_branches", true,
@@ -536,7 +549,7 @@ public class GithubService {
                     "has_downloads", false,
                     "has_issues", true,
                     "has_wiki", true,
-                    "isTemplate", true);
+                    "is_template", true);
 
             log.info("Creating repo '{}' with token: {}...", repoName, githubAccessToken.substring(0, Math.min(10, token.length())));
 
@@ -565,7 +578,16 @@ public class GithubService {
             }
 
             // adding the Themus org as a contributor to the repo
-            addContributor(githubAccessToken, orgName, repoName, Constants.CONTRIBUTOR_USERNAME);
+            addCollaborator(githubAccessToken, orgName, repoName, Constants.THEMUS_USERNAME);
+
+            // Get all invitations for the repo
+            List<GithubRepoInvitation> invitations = getInvitations(githubAccessToken, orgName, repoName);
+            // Accept all invitations
+            for (GithubRepoInvitation invitation : invitations) {
+                if (invitation.getInvitee().getLogin().equals(Constants.THEMUS_USERNAME)) {
+                    acceptInvitation(THEMUS_GITHUB_TOKEN, invitation.getId());
+                }
+            }
 
             return repo;
         } catch (RestClientException e) {
@@ -575,6 +597,52 @@ public class GithubService {
         catch (Exception e) {
             log.error("Error creating org repo: {}", e.getMessage(), e);
             throw new RuntimeException("Error creating repo: " + e.getMessage(), e);
+        }
+    }
+
+    public List<GithubRepoInvitation> getInvitations(String token, String owner, String repo) {
+        try {
+            String githubAccessToken = token;
+            if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
+                githubAccessToken = encryptionService.decrypt(token);
+            }
+            // For GitHub App installation tokens, we need to create repo in the installation's account
+            String url = String.format("https://api.github.com/repos/%s/%s/invitations", owner, repo);
+            return webClient.get()
+                .uri(url)
+                .header("Authorization", "Bearer " + githubAccessToken)
+                .header("Accept", "application/vnd.github.v3+json")
+                .header("User-Agent", "Themus-App/1.0")
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<List<GithubRepoInvitation>>() {})
+                .block();
+        }
+        catch (Exception e) {
+            log.error("Error getting invitation: {}", e.getMessage(), e);
+            throw new RuntimeException("Error getting invitation: " + e.getMessage(), e);
+        }
+    }
+
+    public String acceptInvitation(String token, Long invitationId) {
+        try {
+            String githubAccessToken = token;
+            if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
+                githubAccessToken = encryptionService.decrypt(token);
+            }
+            // For GitHub App installation tokens, we need to create repo in the installation's account
+            String url = String.format("https://api.github.com/user/repository_invitations/%s", invitationId);
+            return webClient.patch()
+                .uri(url)
+                .header("Authorization", "Bearer " + githubAccessToken)
+                .header("Accept", "application/vnd.github.v3+json")
+                .header("User-Agent", "Themus-App/1.0")
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+        }
+        catch (Exception e) {
+            log.error("Error accepting invitation: {}", e.getMessage(), e);
+            throw new RuntimeException("Error accepting invitation: " + e.getMessage(), e);
         }
     }
 
@@ -606,7 +674,7 @@ public class GithubService {
     //     }
     // }
 
-    // public String addContributor(String token, String owner, String repo, String username) {
+    // public String addCollaborator(String token, String owner, String repo, String username) {
     //     try {
     //         String url = String.format("https://api.github.com/repos/%s/%s/collaborators/%s", owner, repo, username);
 

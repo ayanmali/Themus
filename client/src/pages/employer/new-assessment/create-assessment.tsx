@@ -375,7 +375,7 @@ export function CreateAssessmentForm() {
         `Have candidates build a web application with Next, using a Postgres database. Have them Dockerize the app and include a docker-compose.yml file in their submission.`,
       role: "Software Engineering Intern",
       skills: ["Next.js", "Tailwind CSS", "TypeScript", "Docker", "Prisma"],
-      duration: 180,
+      duration: 60,
       durationUnit: "minutes"
     },
     {

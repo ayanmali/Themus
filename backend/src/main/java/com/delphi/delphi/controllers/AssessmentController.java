@@ -82,7 +82,7 @@ public class AssessmentController {
 
     public AssessmentController(AssessmentService assessmentService, UserService userService,
             GithubService githubService, JobRepository jobRepository, RabbitTemplate rabbitTemplate,
-            ChatService chatService, @Value("${github.app.name}") String githubAppName,
+            ChatService chatService, @Value("${themus.github.app.name}") String githubAppName,
             DelegatingSecurityContextAsyncTaskExecutor taskExecutor) {
         this.assessmentService = assessmentService;
         // this.chatMessagePublisher = chatMessagePublisher;
