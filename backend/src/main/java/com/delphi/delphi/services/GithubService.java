@@ -459,7 +459,10 @@ public class GithubService {
      * @return
      */
     public GithubRepoContents createCandidateRepo(String userGithubUsername, String templateRepoName, String repoName) {
-        return createPersonalRepoFromTemplate(THEMUS_GITHUB_TOKEN, userGithubUsername, templateRepoName, repoName);
+        GithubRepoContents repo = createPersonalRepoFromTemplate(THEMUS_GITHUB_TOKEN, userGithubUsername, templateRepoName, repoName);
+        // create a branch for the candidate to work in
+        addBranch(THEMUS_GITHUB_TOKEN, Constants.THEMUS_ORG_NAME, repoName, "assessment", "main");
+        return repo;
     }
 
     /**

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Clock, Code, BookOpen, Users, CheckCircle, AlertCircle, Play, Info } from 'lucide-react';
 import { Assessment } from '@/lib/types/assessment';
 import { minutesToHours } from '@/lib/utils';
@@ -11,20 +11,78 @@ import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/comp
 import { toast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { useScreenRecording } from '@/hooks/use-screen-recording';
 
 export default function CandidateAssessmentPreview() {
     const [selectedLanguage, setSelectedLanguage] = useState('');
     const [email, setEmail] = useState('');
     const [isStarting, setIsStarting] = useState(false);
     // set to true after the candidate clicks the start button and connects their github account if not already connected
-    const [hasStarted, setHasStarted] = useState(true);
+    const [hasStarted, setHasStarted] = useState(false);
     const [password, setPassword] = useState('');
+    const [timeRemaining, setTimeRemaining] = useState(0); // in minutes
+    const [isTimerActive, setIsTimerActive] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const params = useParams();
     const { apiCall } = useApi();
     const assessmentId = Number(params.assessment_id);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
 
     // State variable doesn't work for some reason - gets set to null upon navigation
     let attemptId: number | null = null;
+
+    // Screen recording hook
+    const { 
+        isRecording, 
+        startRecording, 
+        stopRecording, 
+        recordingDuration,
+        error: recordingError 
+    } = useScreenRecording({
+        screenSource: 'entire',
+        format: 'webm',
+        includeMicrophone: true,
+        includeSystemAudio: true,
+        microphoneVolume: 0.8,
+    });
+
+    // Timer effect
+    useEffect(() => {
+        if (isTimerActive && timeRemaining > 0) {
+            timerRef.current = setInterval(() => {
+                setTimeRemaining(prev => {
+                    if (prev <= 1) {
+                        // Timer expired, auto-submit
+                        handleTimerExpired();
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 60000); // Update every minute
+        } else if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
+
+        return () => {
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+            }
+        };
+    }, [isTimerActive, timeRemaining]);
+
+    // Handle timer expiration
+    const handleTimerExpired = async () => {
+        if (isTimerActive) {
+            setIsTimerActive(false);
+            toast({
+                title: "Time's Up!",
+                description: "The assessment time has expired. Your work will be automatically submitted.",
+                variant: "destructive",
+            });
+            await submitAssessment();
+        }
+    };
 
     // Creates the candidate's github repository from the template
     const createCandidateRepo = async () => {
@@ -50,6 +108,74 @@ export default function CandidateAssessmentPreview() {
                 description: error.message,
                 variant: "destructive",
             });
+        }
+    }
+
+    const beginAssessment = async () => {
+        try {
+            setHasStarted(true);
+            
+            // Start screen recording
+            await startRecording();
+            
+            // Start timer
+            if (assessment?.duration) {
+                setTimeRemaining(assessment.duration);
+                setIsTimerActive(true);
+            }
+            
+            toast({
+                title: "Assessment Started",
+                description: "Screen recording has begun. The timer is now active.",
+            });
+        } catch (error: any) {
+            console.error('Error starting assessment:', error);
+            toast({
+                title: "Error",
+                description: "Failed to start recording. Please try again.",
+                variant: "destructive",
+            });
+        }
+    }
+
+    const submitAssessment = async () => {
+        try {
+            setIsSubmitting(true);
+            
+            // Stop timer
+            setIsTimerActive(false);
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+            }
+            
+            // Stop recording
+            if (isRecording) {
+                stopRecording();
+            }
+            
+            // Submit attempt to backend
+            if (attemptId) {
+                await apiCall(`/api/attempts/${attemptId}/submit`, {
+                    method: 'POST',
+                });
+            }
+            
+            toast({
+                title: "Assessment Submitted",
+                description: "Your assessment has been successfully submitted.",
+            });
+            
+            setHasStarted(false);
+        } catch (error: any) {
+            console.error('Error submitting assessment:', error);
+            toast({
+                title: "Error",
+                description: "Failed to submit assessment. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSubmitting(false);
         }
     }
 
@@ -191,7 +317,8 @@ export default function CandidateAssessmentPreview() {
         setIsStarting(false);
         //navigate(`/assessments/starting/${attemptId}`);
 
-        setHasStarted(true);
+        beginAssessment();
+        //setHasStarted(true);
 
     };
 
@@ -228,7 +355,8 @@ export default function CandidateAssessmentPreview() {
                         const candidateRepoData = await createCandidateRepo();
                         window.open(candidateRepoData?.githubRepositoryLink, "_blank");
                         setIsStarting(false);
-                        setHasStarted(true);
+                        beginAssessment();
+                        // setHasStarted(true);
                         return;
                     } catch (error: any) {
                         console.error('Error creating candidate repository:', error);
@@ -356,11 +484,10 @@ export default function CandidateAssessmentPreview() {
                             </div>
                             <div className="flex items-center space-x-2 text-gray-400">
                                 <Clock className="h-4 w-4" />
-                                {hasStarted ? (
+                                {hasStarted && isTimerActive ? (
                                     <span className="text-sm">
-                                        Time Remaining: {`${(assessment.duration ?? 0) % 60 === 0 ? minutesToHours(assessment.duration ?? 0) : assessment.duration ?? 0} ${(assessment.duration ?? 0) % 60 === 0 ? 'hours' : 'minutes'}`}
+                                        Time Remaining: {`${timeRemaining % 60 === 0 ? minutesToHours(timeRemaining) : timeRemaining} ${timeRemaining % 60 === 0 ? 'hours' : 'minutes'}`}
                                     </span>
-
                                 ) : (
                                     <span className="text-sm">
                                         Time Limit: {`${(assessment.duration ?? 0) % 60 === 0 ? minutesToHours(assessment.duration ?? 0) : assessment.duration ?? 0} ${(assessment.duration ?? 0) % 60 === 0 ? 'hours' : 'minutes'}`}
@@ -436,14 +563,30 @@ export default function CandidateAssessmentPreview() {
                     {/* Sidebar */}
                     {hasStarted ? (
                         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                            <h3 className="text-lg font-semibold text-white mb-4">Good luck!</h3>
-                            <p className="text-gray-300">The GitHub repository has been created for you. You can start the assessment now.</p>
+                            <h3 className="text-lg font-semibold text-white mb-4">Assessment in Progress</h3>
+                            <div className="space-y-4">
+                                <div className="flex items-center space-x-2">
+                                    <div className={`w-3 h-3 rounded-full ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-gray-500'}`}></div>
+                                    <span className="text-sm text-gray-300">
+                                        {isRecording ? 'Recording in progress' : 'Recording stopped'}
+                                    </span>
+                                </div>
+                                <p className="text-gray-300 text-sm">
+                                    The GitHub repository has been created for you. Your screen is being recorded.
+                                </p>
+                                {isTimerActive && (
+                                    <div className="bg-yellow-900/30 border border-yellow-700/50 rounded-lg p-3">
+                                        <p className="text-yellow-300 text-sm font-medium">
+                                            ⏰ {timeRemaining} minutes remaining
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
 
                                 <Dialog>
                                     <DialogTrigger asChild className="w-full flex">
                                         <button
-                                            //onClick={handleFinish}
                                             //disabled={(!selectedLanguage && !!assessment.languageOptions?.length) || !email || !isValidEmail(email) || isStarting}
                                             disabled={isStarting}
                                             className="w-full  disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center space-x-2"
@@ -461,7 +604,14 @@ export default function CandidateAssessmentPreview() {
                                             Ensure you have committed and pushed your changes to your branch and submitted a pull request before submitting.
                                         </DialogDescription>
                                         <DialogFooter>
-                                            <Button type="submit" variant="default" className="bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-700/80 hover:text-white hover:border-slate-600/50 backdrop-blur-sm">Submit</Button>
+                                            <Button 
+                                                onClick={submitAssessment} 
+                                                disabled={isSubmitting}
+                                                variant="default" 
+                                                className="bg-slate-800/60 border-slate-700/50 text-slate-300 hover:bg-slate-700/80 hover:text-white hover:border-slate-600/50 backdrop-blur-sm"
+                                            >
+                                                {isSubmitting ? 'Submitting...' : 'Submit'}
+                                            </Button>
                                         </DialogFooter>
                                     </DialogContent>
                                 </Dialog>
