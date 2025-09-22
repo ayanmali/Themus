@@ -106,6 +106,20 @@ public class AssessmentController {
         return userDetails.getUsername();
     }
 
+    /**
+     * Verifies that the current user owns the specified assessment
+     * @param assessmentId The ID of the assessment to check
+     * @throws IllegalArgumentException if the assessment doesn't exist or doesn't belong to the current user
+     */
+    private void verifyAssessmentOwnership(Long assessmentId) {
+        UserCacheDto currentUser = getCurrentUser();
+        AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(assessmentId);
+        
+        if (!assessment.getUserId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Access denied: You can only access your own assessments");
+        }
+    }
+
     // TODO: add dashboard
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboard() {
@@ -165,8 +179,11 @@ public class AssessmentController {
     @GetMapping("/chat-history/{assessmentId}")
     public ResponseEntity<?> getChatHistory(@PathVariable Long assessmentId) {
         try {
+            verifyAssessmentOwnership(assessmentId);
             List<ChatMessageCacheDto> messages = chatService.getMessagesByAssessmentId(assessmentId);
             return ResponseEntity.ok(messages);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error getting chat history: " + e.getMessage());
@@ -406,6 +423,7 @@ public class AssessmentController {
             }
             log.info("User is connected to github, proceeding...");
 
+            verifyAssessmentOwnership(messageDto.getAssessmentId());
             AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(messageDto.getAssessmentId());
 
             Job job = new Job(JobStatus.PENDING, JobType.CHAT_COMPLETION);
@@ -477,6 +495,8 @@ public class AssessmentController {
 
             return ResponseEntity.status(HttpStatus.CREATED).body(emitter);
 
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (AmqpException e) {
             log.error("Error pushing chat job to queue: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error pushing chat job to queue: " + e.getMessage());
@@ -524,8 +544,11 @@ public class AssessmentController {
     @PostMapping("/{assessmentId}/invite-candidate/{candidateId}")
     public ResponseEntity<?> inviteCandidate(@PathVariable Long assessmentId, @PathVariable Long candidateId) {
         try {
+            verifyAssessmentOwnership(assessmentId);
             CandidateAttempt candidateAttempt = assessmentService.addCandidateFromExisting(assessmentId, candidateId);
             return ResponseEntity.ok(new FetchCandidateAttemptDto(candidateAttempt));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error adding candidate: " + e.getMessage());
@@ -539,10 +562,14 @@ public class AssessmentController {
     public ResponseEntity<?> addAndInviteCandidate(@Valid @RequestBody NewCandidateDto newCandidateDto,
             @PathVariable Long assessmentId) {
         try {
+            verifyAssessmentOwnership(assessmentId);
             CandidateAttempt candidateAttempt = assessmentService.addCandidateFromNew(assessmentId,
                     newCandidateDto.getFirstName(), newCandidateDto.getLastName(), newCandidateDto.getEmail());
             return ResponseEntity.status(HttpStatus.CREATED).body(new FetchCandidateAttemptDto(candidateAttempt));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.badRequest().body("Error creating candidate: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -555,8 +582,11 @@ public class AssessmentController {
     public ResponseEntity<?> removeCandidateFromAssessment(@PathVariable Long assessmentId,
             @PathVariable Long candidateId) {
         try {
+            verifyAssessmentOwnership(assessmentId);
             Candidate candidate = assessmentService.removeCandidateFromAssessment(assessmentId, candidateId);
             return ResponseEntity.ok(new FetchCandidateDto(candidate));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error removing candidate: " + e.getMessage());
@@ -567,6 +597,7 @@ public class AssessmentController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getAssessmentById(@PathVariable Long id) {
         try {
+            verifyAssessmentOwnership(id);
             AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(id);
             // if (assessment.getStatus() == AssessmentStatus.ACTIVE) {
             // return ResponseEntity.ok(new FetchAssessmentDto(assessment));
@@ -574,6 +605,8 @@ public class AssessmentController {
             // return ResponseEntity.notFound().build();
             // }
             return ResponseEntity.ok(new FetchAssessmentDto(assessment));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("Error retrieving assessment: " + e.getMessage());
@@ -621,6 +654,7 @@ public class AssessmentController {
     public ResponseEntity<?> updateAssessment(@PathVariable Long id,
             @Valid @RequestBody NewAssessmentDto assessmentUpdates) {
         try {
+            verifyAssessmentOwnership(id);
             Assessment updateAssessment = new Assessment();
             updateAssessment.setName(assessmentUpdates.getName());
             updateAssessment.setDescription(assessmentUpdates.getDescription());
@@ -637,6 +671,9 @@ public class AssessmentController {
             AssessmentCacheDto updatedAssessment = assessmentService.updateAssessment(id, updateAssessment);
             return ResponseEntity.ok(new FetchAssessmentDto(updatedAssessment));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.badRequest().body("Error updating assessment: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -648,9 +685,13 @@ public class AssessmentController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteAssessment(@PathVariable Long id) {
         try {
+            verifyAssessmentOwnership(id);
             assessmentService.deleteAssessment(id);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -884,9 +925,13 @@ public class AssessmentController {
     @PostMapping("/{id}/activate")
     public ResponseEntity<?> activateAssessment(@PathVariable Long id) {
         try {
+            verifyAssessmentOwnership(id);
             Assessment assessment = assessmentService.activateAssessment(id);
             return ResponseEntity.ok(new FetchAssessmentDto(assessment));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.badRequest().body("Error activating assessment: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -898,9 +943,13 @@ public class AssessmentController {
     @PostMapping("/{id}/deactivate")
     public ResponseEntity<?> deactivateAssessment(@PathVariable Long id) {
         try {
+            verifyAssessmentOwnership(id);
             Assessment assessment = assessmentService.deactivateAssessment(id);
             return ResponseEntity.ok(new FetchAssessmentDto(assessment));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.badRequest().body("Error deactivating assessment: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -912,9 +961,15 @@ public class AssessmentController {
     @PostMapping("/{id}/publish")
     public ResponseEntity<?> publishAssessment(@PathVariable Long id) {
         try {
+            verifyAssessmentOwnership(id);
             Assessment assessment = assessmentService.publishAssessment(id);
             return ResponseEntity.ok(new FetchAssessmentDto(assessment));
-        } catch (IllegalStateException | IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
+            return ResponseEntity.badRequest().body("Error publishing assessment: " + e.getMessage());
+        } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body("Error publishing assessment: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -928,9 +983,13 @@ public class AssessmentController {
             @PathVariable Long id,
             @RequestBody List<String> skills) {
         try {
+            verifyAssessmentOwnership(id);
             Assessment assessment = assessmentService.updateSkills(id, skills);
             return ResponseEntity.ok(new FetchAssessmentDto(assessment));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.badRequest().body("Error updating skills: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -944,9 +1003,13 @@ public class AssessmentController {
             @PathVariable Long id,
             @RequestParam String skill) {
         try {
+            verifyAssessmentOwnership(id);
             Assessment assessment = assessmentService.addSkill(id, skill);
             return ResponseEntity.ok(new FetchAssessmentDto(assessment));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.badRequest().body("Error adding skill: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -960,9 +1023,13 @@ public class AssessmentController {
             @PathVariable Long id,
             @PathVariable String skill) {
         try {
+            verifyAssessmentOwnership(id);
             Assessment assessment = assessmentService.removeSkill(id, skill);
             return ResponseEntity.ok(new FetchAssessmentDto(assessment));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.badRequest().body("Error removing skill: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -976,9 +1043,13 @@ public class AssessmentController {
             @PathVariable Long id,
             @RequestBody List<String> languageOptions) {
         try {
+            verifyAssessmentOwnership(id);
             Assessment assessment = assessmentService.updateLanguageOptions(id, languageOptions);
             return ResponseEntity.ok(new FetchAssessmentDto(assessment));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.badRequest().body("Error updating language options: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -992,9 +1063,13 @@ public class AssessmentController {
             @PathVariable Long id,
             @RequestBody Map<String, String> metadata) {
         try {
+            verifyAssessmentOwnership(id);
             Assessment assessment = assessmentService.updateMetadata(id, metadata);
             return ResponseEntity.ok(new FetchAssessmentDto(assessment));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.badRequest().body("Error updating metadata: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

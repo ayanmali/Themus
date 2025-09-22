@@ -62,6 +62,20 @@ public class CandidateController {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         return userDetails.getUsername();
     }
+
+    /**
+     * Verifies that the current user owns the specified candidate
+     * @param candidateId The ID of the candidate to check
+     * @throws IllegalArgumentException if the candidate doesn't exist or doesn't belong to the current user
+     */
+    private void verifyCandidateOwnership(Long candidateId) {
+        UserCacheDto currentUser = getCurrentUser();
+        CandidateCacheDto candidate = candidateService.getCandidateById(candidateId);
+        
+        if (!candidate.getUserId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Access denied: You can only access your own candidates");
+        }
+    }
     
     // Create a new candidate
     @PostMapping("/new")
@@ -87,8 +101,11 @@ public class CandidateController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getCandidateById(@PathVariable Long id) {
         try {
+            verifyCandidateOwnership(id);
             CandidateCacheDto candidate = candidateService.getCandidateById(id);
             return ResponseEntity.ok(new FetchCandidateDto(candidate));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error retrieving candidate: " + e.getMessage());
@@ -116,7 +133,14 @@ public class CandidateController {
     public ResponseEntity<?> getCandidateByEmail(@PathVariable String email) {
         try {
             CandidateCacheDto candidate = candidateService.getCandidateByEmail(email);
+            // Verify ownership after getting the candidate
+            UserCacheDto currentUser = getCurrentUser();
+            if (!candidate.getUserId().equals(currentUser.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied: You can only access your own candidates");
+            }
             return ResponseEntity.ok(new FetchCandidateDto(candidate));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error retrieving candidate: " + e.getMessage());
@@ -229,6 +253,7 @@ public class CandidateController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateCandidate(@PathVariable Long id, @Valid @RequestBody NewCandidateDto candidateUpdates) {
         try {
+            verifyCandidateOwnership(id);
             Candidate updateCandidate = new Candidate();
             updateCandidate.setFirstName(candidateUpdates.getFirstName());
             updateCandidate.setLastName(candidateUpdates.getLastName());
@@ -237,6 +262,9 @@ public class CandidateController {
             CandidateCacheDto updatedCandidate = candidateService.updateCandidate(id, updateCandidate);
             return ResponseEntity.ok(new FetchCandidateDto(updatedCandidate));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.badRequest().body("Error updating candidate: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -248,9 +276,13 @@ public class CandidateController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteCandidate(@PathVariable Long id) {
         try {
+            verifyCandidateOwnership(id);
             candidateService.deleteCandidate(id);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -431,9 +463,13 @@ public class CandidateController {
             @PathVariable Long id,
             @RequestBody Map<String, String> metadata) {
         try {
+            verifyCandidateOwnership(id);
             CandidateCacheDto updatedCandidate = candidateService.updateCandidateMetadata(id, metadata);
             return ResponseEntity.ok(new FetchCandidateDto(updatedCandidate));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.badRequest().body("Error updating metadata: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -448,9 +484,13 @@ public class CandidateController {
             @RequestParam String key,
             @RequestParam String value) {
         try {
+            verifyCandidateOwnership(id);
             CandidateCacheDto updatedCandidate = candidateService.addMetadata(id, key, value);
             return ResponseEntity.ok(new FetchCandidateDto(updatedCandidate));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.badRequest().body("Error adding metadata: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -464,9 +504,13 @@ public class CandidateController {
             @PathVariable Long id,
             @PathVariable String key) {
         try {
+            verifyCandidateOwnership(id);
             CandidateCacheDto updatedCandidate = candidateService.removeMetadata(id, key);
             return ResponseEntity.ok(new FetchCandidateDto(updatedCandidate));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.badRequest().body("Error removing metadata: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

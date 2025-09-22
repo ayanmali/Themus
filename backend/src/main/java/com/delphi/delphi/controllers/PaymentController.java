@@ -50,7 +50,7 @@ public class PaymentController {
     @GetMapping("/initiate-checkout")
     public ResponseEntity<?> initiateStripeCheckout() {
         UserCacheDto user = getCurrentUser();
-        log.info("Creating Stripe customer and initiating checkoutfor user: {}", user.getId());
+        log.info("Creating Stripe customer and initiating checkout for user: {}", user.getId());
         Customer customer = stripeService.createCustomer(user);
         Session session = stripeService.createCheckoutSession(customer.getId());
         log.info("Checkout session created for user: {}", user.getId());

@@ -46,6 +46,7 @@ import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.enums.AttemptStatus;
 import com.delphi.delphi.utils.exceptions.AssessmentNotFoundException;
 import com.delphi.delphi.utils.exceptions.CandidateNotFoundException;
+import com.delphi.delphi.dtos.cache.UserCacheDto;
 
 import jakarta.validation.Valid;
 
@@ -78,6 +79,30 @@ public class CandidateAttemptController {
         this.userService = userService;
         this.redisService = redisService;
         this.appInstallBaseUrl = String.format("https://github.com/apps/%s/installations/new", githubAppName);
+    }
+
+    private UserCacheDto getCurrentUser() {
+        return userService.getUserByEmail(getCurrentUserEmail());
+    }
+
+    private String getCurrentUserEmail() {
+        org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        org.springframework.security.core.userdetails.UserDetails userDetails = (org.springframework.security.core.userdetails.UserDetails) authentication.getPrincipal();
+        return userDetails.getUsername();
+    }
+
+    /**
+     * Verifies that the current user owns the specified candidate attempt
+     * @param attemptId The ID of the candidate attempt to check
+     * @throws IllegalArgumentException if the attempt doesn't exist or doesn't belong to the current user
+     */
+    private void verifyAttemptOwnership(Long attemptId) {
+        UserCacheDto currentUser = getCurrentUser();
+        CandidateAttemptCacheDto attempt = candidateAttemptService.getCandidateAttemptById(attemptId);
+        
+        if (!attempt.getCandidate().getUserId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Access denied: You can only access your own candidate attempts");
+        }
     }
 
     // Invite a candidate to an assessment
@@ -209,11 +234,14 @@ public class CandidateAttemptController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getCandidateAttemptById(@PathVariable Long id) {
         try {
+            verifyAttemptOwnership(id);
             CandidateAttemptCacheDto attempt = candidateAttemptService.getCandidateAttemptById(id);
             return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error retrieving candidate attempt: " + e.getMessage());
+                .body("Error retrieving candidate attempt: " + e.getMessage());
         }
     }
 
@@ -256,6 +284,7 @@ public class CandidateAttemptController {
     public ResponseEntity<?> updateCandidateAttempt(@PathVariable Long id,
             @Valid @RequestBody UpdateCandidateAttemptDto attemptUpdates) {
         try {
+            verifyAttemptOwnership(id);
             CandidateAttempt updateAttempt = new CandidateAttempt();
             updateAttempt.setGithubRepositoryLink(attemptUpdates.getGithubRepositoryLink());
             updateAttempt.setLanguageChoice(attemptUpdates.getLanguageChoiceOptional().orElse(null));
@@ -264,10 +293,13 @@ public class CandidateAttemptController {
             CandidateAttemptCacheDto updatedAttempt = candidateAttemptService.updateCandidateAttempt(id, updateAttempt);
             return ResponseEntity.ok(new FetchCandidateAttemptDto(updatedAttempt));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.badRequest().body("Error updating candidate attempt: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error updating candidate attempt: " + e.getMessage());
+                .body("Error updating candidate attempt: " + e.getMessage());
         }
     }
 
@@ -275,13 +307,17 @@ public class CandidateAttemptController {
     @DeleteMapping("/{id}/delete")
     public ResponseEntity<?> deleteCandidateAttempt(@PathVariable Long id) {
         try {
+            verifyAttemptOwnership(id);
             candidateAttemptService.deleteCandidateAttempt(id);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error deleting candidate attempt: " + e.getMessage());
+                .body("Error deleting candidate attempt: " + e.getMessage());
         }
     }
 
@@ -619,11 +655,14 @@ public class CandidateAttemptController {
     @GetMapping("/{id}/details")
     public ResponseEntity<?> getAttemptWithDetails(@PathVariable Long id) {
         try {
+            verifyAttemptOwnership(id);
             CandidateAttemptCacheDto attempt = candidateAttemptService.getAttemptWithDetails(id);
             return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error retrieving attempt details: " + e.getMessage());
+                .body("Error retrieving attempt details: " + e.getMessage());
         }
     }
 
@@ -690,14 +729,20 @@ public class CandidateAttemptController {
     @PostMapping("/{id}/submit")
     public ResponseEntity<?> submitAttempt(@PathVariable Long id) {
         try {
+            verifyAttemptOwnership(id);
             CandidateAttemptCacheDto attempt = candidateAttemptService.submitAttempt(id);
             // TODO: add email job to queue here
             return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt));
-        } catch (IllegalStateException | IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
+            return ResponseEntity.badRequest().body("Error submitting attempt: " + e.getMessage());
+        } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body("Error submitting attempt: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error submitting attempt: " + e.getMessage());
+                .body("Error submitting attempt: " + e.getMessage());
         }
     }
 
@@ -705,13 +750,19 @@ public class CandidateAttemptController {
     @PostMapping("/{id}/evaluate")
     public ResponseEntity<?> markAsEvaluated(@PathVariable Long id) {
         try {
+            verifyAttemptOwnership(id);
             CandidateAttemptCacheDto attempt = candidateAttemptService.markAsEvaluated(id);
             return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt));
-        } catch (IllegalStateException | IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
+            return ResponseEntity.badRequest().body("Error marking as evaluated: " + e.getMessage());
+        } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body("Error marking as evaluated: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error marking as evaluated: " + e.getMessage());
+                .body("Error marking as evaluated: " + e.getMessage());
         }
     }
 

@@ -58,6 +58,24 @@ public class EvaluationController {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         return userDetails.getUsername();
     }
+
+    /**
+     * Verifies that the current user owns the specified evaluation
+     * @param evaluationId The ID of the evaluation to check
+     * @throws IllegalArgumentException if the evaluation doesn't exist or doesn't belong to the current user
+     */
+    private void verifyEvaluationOwnership(Long evaluationId) {
+        UserCacheDto currentUser = getCurrentUser();
+        
+        // Check if the evaluation belongs to the current user by checking if it exists in their evaluations
+        List<EvaluationCacheDto> userEvaluations = evaluationService.getEvaluationsByUserId(currentUser.getId(), PageRequest.of(0, Integer.MAX_VALUE));
+        boolean isOwned = userEvaluations.stream()
+                .anyMatch(eval -> eval.getId().equals(evaluationId));
+        
+        if (!isOwned) {
+            throw new IllegalArgumentException("Access denied: You can only access your own evaluations");
+        }
+    }
     // Create a new evaluation
     @PostMapping
     public ResponseEntity<?> createEvaluation(@Valid @RequestBody NewEvaluationDto newEvaluationDto) {
@@ -83,8 +101,11 @@ public class EvaluationController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getEvaluationById(@PathVariable Long id) {
         try {
+            verifyEvaluationOwnership(id);
             EvaluationCacheDto evaluation = evaluationService.getEvaluationById(id);
             return ResponseEntity.ok(new FetchEvaluationDto(evaluation));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error retrieving evaluation: " + e.getMessage());
@@ -120,12 +141,16 @@ public class EvaluationController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateEvaluation(@PathVariable Long id, @Valid @RequestBody NewEvaluationDto evaluationUpdates) {
         try {
+            verifyEvaluationOwnership(id);
             Evaluation updateEvaluation = new Evaluation();
             // Only metadata can be updated for evaluations based on the service
             
             EvaluationCacheDto updatedEvaluation = evaluationService.updateEvaluation(id, updateEvaluation);
             return ResponseEntity.ok(new FetchEvaluationDto(updatedEvaluation));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.badRequest().body("Error updating evaluation: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -137,9 +162,13 @@ public class EvaluationController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteEvaluation(@PathVariable Long id) {
         try {
+            verifyEvaluationOwnership(id);
             evaluationService.deleteEvaluation(id);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -153,10 +182,14 @@ public class EvaluationController {
         try {
             Optional<EvaluationCacheDto> evaluation = evaluationService.getEvaluationByCandidateAttemptId(candidateAttemptId);
             if (evaluation.isPresent()) {
+                // Verify ownership of the evaluation
+                verifyEvaluationOwnership(evaluation.get().getId());
                 return ResponseEntity.ok(new FetchEvaluationDto(evaluation.get()));
             } else {
                 return ResponseEntity.notFound().build();
             }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error retrieving evaluation: " + e.getMessage());
@@ -248,8 +281,11 @@ public class EvaluationController {
     @GetMapping("/{id}/details")
     public ResponseEntity<?> getEvaluationWithDetails(@PathVariable Long id) {
         try {
+            verifyEvaluationOwnership(id);
             EvaluationCacheDto evaluation = evaluationService.getEvaluationWithDetails(id);
             return ResponseEntity.ok(new FetchEvaluationDto(evaluation));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error retrieving evaluation details: " + e.getMessage());
@@ -294,9 +330,13 @@ public class EvaluationController {
             @PathVariable Long id,
             @RequestBody Map<String, String> metadata) {
         try {
+            verifyEvaluationOwnership(id);
             EvaluationCacheDto updatedEvaluation = evaluationService.updateEvaluationMetadata(id, metadata);
             return ResponseEntity.ok(new FetchEvaluationDto(updatedEvaluation));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.badRequest().body("Error updating metadata: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -311,9 +351,13 @@ public class EvaluationController {
             @RequestParam String key,
             @RequestParam String value) {
         try {
+            verifyEvaluationOwnership(id);
             EvaluationCacheDto updatedEvaluation = evaluationService.addMetadata(id, key, value);
             return ResponseEntity.ok(new FetchEvaluationDto(updatedEvaluation));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.badRequest().body("Error adding metadata: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -327,9 +371,13 @@ public class EvaluationController {
             @PathVariable Long id,
             @PathVariable String key) {
         try {
+            verifyEvaluationOwnership(id);
             EvaluationCacheDto updatedEvaluation = evaluationService.removeMetadata(id, key);
             return ResponseEntity.ok(new FetchEvaluationDto(updatedEvaluation));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            }
             return ResponseEntity.badRequest().body("Error removing metadata: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
