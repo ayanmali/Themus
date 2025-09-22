@@ -22,6 +22,7 @@ import LandingPage from "./pages/landing-page/lander";
 import SignupPage from "./pages/auth/signup";
 import LoginPage from "./pages/auth/login";
 import CandidateAssessmentPreview from "./pages/candidate/assessment-preview";
+import AssessmentSubmissionConfirmation from "./pages/candidate/assessment-submission-confirmation";
 import CandidateDashboard from "./pages/candidate/assessments-overview";
 import {PricingPage, SubscriptionSuccessPage } from "./pages/pricing";
 import ForgotPassword from "./pages/auth/forgot-password";
@@ -71,6 +72,8 @@ function Router() {
       
       {/* Candidate Assessment Preview - preview before they begin */}
       <Route path="/assessments/preview/:assessment_id" component={CandidateAssessmentPreview} />
+      {/* Assessment Submission Confirmation */}
+      <Route path="/assessments/submitted/:assessment_id" component={AssessmentSubmissionConfirmation} />
       {/* <Route path="/assessments-overview" component={CandidateDashboard} /> */}
       <ProtectedRoute path="/candidate/assessments" component={CandidateAssessments} role="candidate" />
       <ProtectedRoute path="/candidate/profile" component={CandidateProfile} role="candidate" />

@@ -34,6 +34,7 @@ import com.delphi.delphi.repositories.CandidateAttemptRepository;
 import com.delphi.delphi.specifications.CandidateAttemptSpecifications;
 import com.delphi.delphi.utils.Constants;
 import com.delphi.delphi.utils.enums.AttemptStatus;
+import com.delphi.delphi.utils.git.GitHubPullRequest;
 
 
 @Service
@@ -639,28 +640,38 @@ public class CandidateAttemptService {
     //     return candidateAttemptRepository.save(attempt);
     // }
 
+    @Cacheable(value = "attempts", key = "#id")
+    @Transactional(readOnly = true)
+    public CandidateAttemptCacheDto getAttemptById(Long id) {
+        return new CandidateAttemptCacheDto(candidateAttemptRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("CandidateAttempt not found with id: " + id)));
+    }
+
     // Submit attempt
     @CachePut(value = "attempts", key = "#result.id")
-    public CandidateAttemptCacheDto submitAttempt(Long id, String githubRepositoryLink) {
-        CandidateAttempt attempt = candidateAttemptRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("CandidateAttempt not found with id: " + id));
+    public CandidateAttemptCacheDto submitAttempt(Long id) {
+        CandidateAttemptCacheDto attempt = getAttemptById(id);
 
         if (attempt.getStatus() != AttemptStatus.STARTED) {
             throw new IllegalStateException("Only started attempts can be submitted");
         }
 
-        attempt.setStatus(AttemptStatus.COMPLETED);
-        attempt.setCompletedDate(LocalDateTime.now());
-        if (githubRepositoryLink != null) {
-            attempt.setGithubRepositoryLink(githubRepositoryLink);
-        }
+        String ownerAndRepoName = attempt.getGithubRepositoryLink().split("https://github.com/")[1];
+        GitHubPullRequest candidatePullRequest = githubService.getPullRequests(ownerAndRepoName).getFirst();
 
-        CandidateAttemptCacheDto result = new CandidateAttemptCacheDto(candidateAttemptRepository.save(attempt));
+        candidateAttemptRepository.updateStatus(id, AttemptStatus.COMPLETED);
+        attempt.setStatus(AttemptStatus.COMPLETED);
+        candidateAttemptRepository.updateCompletedDate(id, LocalDateTime.now());
+        attempt.setCompletedDate(LocalDateTime.now());
+        if (candidatePullRequest.getUrl() != null) {
+            candidateAttemptRepository.updateGithubRepositoryLink(id, candidatePullRequest.getUrl());
+            attempt.setGithubRepositoryLink(candidatePullRequest.getUrl());
+        }
         
         // Update cache: update general caches and evict specific caches
-        updateCacheAfterAttemptUpdate(attempt.getCandidate().getId(), attempt.getAssessment().getId(), result);
+        updateCacheAfterAttemptUpdate(attempt.getCandidate().getId(), attempt.getAssessment().getId(), attempt);
         
-        return result;
+        return attempt;
     }
 
     // Mark as evaluated

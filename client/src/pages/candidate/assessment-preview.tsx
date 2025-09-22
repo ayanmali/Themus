@@ -4,7 +4,7 @@ import { Assessment } from '@/lib/types/assessment';
 import { minutesToHours } from '@/lib/utils';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { useParams } from 'wouter';
+import { useParams, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import useApi from '@/hooks/use-api';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -24,6 +24,7 @@ export default function CandidateAssessmentPreview() {
     const [isTimerActive, setIsTimerActive] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const params = useParams();
+    const [, navigate] = useLocation();
     const { apiCall } = useApi();
     const assessmentId = Number(params.assessment_id);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -166,7 +167,8 @@ export default function CandidateAssessmentPreview() {
                 description: "Your assessment has been successfully submitted.",
             });
             
-            setHasStarted(false);
+            // Redirect to confirmation page
+            navigate(`/assessments/submitted/${assessmentId}`);
         } catch (error: any) {
             console.error('Error submitting assessment:', error);
             toast({

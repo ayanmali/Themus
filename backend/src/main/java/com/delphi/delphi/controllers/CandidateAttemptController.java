@@ -688,11 +688,10 @@ public class CandidateAttemptController {
 
     // Submit attempt
     @PostMapping("/{id}/submit")
-    public ResponseEntity<?> submitAttempt(
-            @PathVariable Long id,
-            @RequestParam(required = false) String githubRepositoryLink) {
+    public ResponseEntity<?> submitAttempt(@PathVariable Long id) {
         try {
-            CandidateAttemptCacheDto attempt = candidateAttemptService.submitAttempt(id, githubRepositoryLink);
+            CandidateAttemptCacheDto attempt = candidateAttemptService.submitAttempt(id);
+            // TODO: add email job to queue here
             return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt));
         } catch (IllegalStateException | IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error submitting attempt: " + e.getMessage());

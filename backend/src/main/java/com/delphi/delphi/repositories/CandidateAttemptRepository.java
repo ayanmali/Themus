@@ -148,4 +148,9 @@ public interface CandidateAttemptRepository extends JpaRepository<CandidateAttem
     @Modifying
     @Query("UPDATE CandidateAttempt ca SET ca.githubRepositoryLink = :githubRepositoryLink WHERE ca.id = :id")
     int updateGithubRepositoryLink(@Param("id") Long id, @Param("githubRepositoryLink") String githubRepositoryLink);
+
+    // Update completed date
+    @Modifying
+    @Query("UPDATE CandidateAttempt ca SET ca.completedDate = :completedDate WHERE ca.id = :id")
+    int updateCompletedDate(@Param("id") Long id, @Param("completedDate") LocalDateTime completedDate);
 }

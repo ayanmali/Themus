@@ -24,6 +24,7 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.delphi.delphi.utils.Constants;
+import com.delphi.delphi.utils.git.GitHubPullRequest;
 import com.delphi.delphi.utils.git.GithubBranchDetails;
 import com.delphi.delphi.utils.git.GithubFile;
 import com.delphi.delphi.utils.git.GithubFileResponse;
@@ -1002,6 +1003,27 @@ public class GithubService {
         } catch (Exception e) {
             throw new RuntimeException("Error getting commit details: " + e.getMessage());
         }
+    }
+
+    /**
+     * Get PRs from the candidate's repository
+     */
+    public List<GitHubPullRequest> getPullRequests(String ownerAndRepoName) {
+        try {
+            String url = String.format("https://api.github.com/repos/%s/pulls", Constants.THEMUS_ORG_NAME, ownerAndRepoName);
+
+            return webClient.get()
+                    .uri(url)
+                    .header("Authorization", "token " + THEMUS_GITHUB_TOKEN)
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<List<GitHubPullRequest>>() {
+                    }).block();
+        } catch (RestClientException e) {
+            throw new RuntimeException("Error getting pull requests: " + e.getMessage());
+        } catch (Exception e) {
+            throw new RuntimeException("Error getting pull requests: " + e.getMessage());
+        }
+        
     }
 
     // TODO: see if this fixes the duplicate message bug
