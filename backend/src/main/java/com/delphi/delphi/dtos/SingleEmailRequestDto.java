@@ -2,8 +2,15 @@ package com.delphi.delphi.dtos;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class SingleEmailRequestDto extends EmailRequestDto {
     private Long candidateId;
+
+    public SingleEmailRequestDto() {
+        super();
+    }
 
 
     public SingleEmailRequestDto(Long candidateId, EmailRequestDto emailRequest) {

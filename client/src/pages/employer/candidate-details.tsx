@@ -14,6 +14,7 @@ import { PaginatedResponse } from "@/lib/types/paginated-response";
 
 import { Candidate } from "@/lib/types/candidate";
 import { CandidateAttempt } from "@/lib/types/candidate-attempt";
+import { SendEmailDialog, sendEmailMutation } from "@/components/layout/send-email";
 
 export default function CandidateDetails() {
     const { apiCall } = useApi();
@@ -95,38 +96,7 @@ export default function CandidateDetails() {
         },
     });
 
-    // Send email mutation
-    const sendEmailMutation = useMutation({
-        mutationFn: async ({ candidateId, subject, text }: { candidateId: number; subject: string; text: string }) => {
-            const response = await apiCall(`/api/email/send`, {
-                method: 'POST',
-                body: JSON.stringify({
-                    candidateId: candidateId,
-                    subject: subject,
-                    text: text
-                }),
-            });
-            return response;
-        },
-        onSuccess: () => {
-            // Close dialog and reset form
-            setIsEmailDialogOpen(false);
-            setEmailSubject('');
-            setEmailMessage('');
-            
-            toast({
-                title: "Success",
-                description: "Email sent successfully",
-            });
-        },
-        onError: (error: any) => {
-            toast({
-                title: "Error",
-                description: error.message || "Failed to send email",
-                variant: "destructive",
-            });
-        },
-    });
+    const emailMutation = sendEmailMutation(apiCall, setIsEmailDialogOpen, setEmailSubject, setEmailMessage);
 
     // Fetch candidate attempts
     const { data: attemptsData, isLoading: attemptsLoading, error: attemptsError } = useQuery({
@@ -812,86 +782,7 @@ export default function CandidateDetails() {
             </div>
 
             {/* Email Dialog */}
-            <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
-                <DialogContent className="sm:max-w-[600px] bg-slate-800 text-white border-slate-500">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Mail size={20} />
-                            Send Email to {getCurrentName() || getCurrentEmail()}
-                        </DialogTitle>
-                        <DialogDescription className="text-gray-300">
-                            Send an email to the candidate.
-                        </DialogDescription>
-                    </DialogHeader>
-                    
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <label htmlFor="email-subject" className="text-sm font-medium text-gray-300">
-                                Subject
-                            </label>
-                            <Input
-                                id="email-subject"
-                                value={emailSubject}
-                                onChange={(e) => setEmailSubject(e.target.value)}
-                                placeholder="Enter email subject..."
-                                className="bg-gray-700 text-white border-gray-600 focus:border-blue-400"
-                            />
-                        </div>
-                        
-                        <div className="space-y-2">
-                            <label htmlFor="email-message" className="text-sm font-medium text-gray-300">
-                                Message
-                            </label>
-                            <Textarea
-                                id="email-message"
-                                value={emailMessage}
-                                onChange={(e) => setEmailMessage(e.target.value)}
-                                placeholder="Enter your message..."
-                                className="bg-gray-700 text-white border-gray-600 focus:border-blue-400 min-h-[200px] resize-none"
-                            />
-                        </div>
-                    </div>
-                    
-                    <DialogFooter>
-                        <Button
-                            variant="secondary"
-                            onClick={() => {
-                                setIsEmailDialogOpen(false);
-                                setEmailSubject('');
-                                setEmailMessage('');
-                            }}
-                            disabled={sendEmailMutation.isPending}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={() => {
-                                if (candidate?.id && emailSubject.trim() && emailMessage.trim()) {
-                                    sendEmailMutation.mutate({
-                                        candidateId: candidate.id,
-                                        subject: emailSubject.trim(),
-                                        text: emailMessage.trim()
-                                    });
-                                }
-                            }}
-                            disabled={!emailSubject.trim() || !emailMessage.trim() || sendEmailMutation.isPending}
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
-                        >
-                            {sendEmailMutation.isPending ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Sending...
-                                </>
-                            ) : (
-                                <>
-                                    <Mail size={16} className="mr-2" />
-                                    Send Email
-                                </>
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <SendEmailDialog apiCall={apiCall} isEmailDialogOpen={isEmailDialogOpen} setIsEmailDialogOpen={setIsEmailDialogOpen} id={candidate?.id} name={candidate?.fullName || candidate?.email} email={candidate?.email} emailSubject={emailSubject} setEmailSubject={setEmailSubject} emailMessage={emailMessage} setEmailMessage={setEmailMessage} sendEmailMutation={emailMutation} />
         </div>
     );
 }

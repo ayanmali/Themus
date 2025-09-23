@@ -24,6 +24,10 @@ public class ResendService {
     }
 
     public CreateEmailResponse sendEmail(String from, String to, String subject, String text) {
+        log.info("Sending email from: {}", from);
+        log.info("Sending email to: {}", to);
+        log.info("Email subject: {}", subject);
+        log.info("Email text: {}", text);
         CreateEmailOptions params = CreateEmailOptions.builder()
                 .from(from)
                 .to(to)

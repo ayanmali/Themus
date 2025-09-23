@@ -1,8 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import { MoreHorizontal } from "lucide-react";
+import { Mail, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "./ui/dialog";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
+import { DialogFooter } from "./ui/dialog";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
+import useApi from "@/hooks/use-api";
+import { SendEmailDialog, sendEmailMutation } from "./layout/send-email";
 
 interface CandidateCardProps {
   id: number;
@@ -27,6 +37,11 @@ export function CandidateCard({
   // daysRemaining,
   // skills = [],
 }: CandidateCardProps) {
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailMessage, setEmailMessage] = useState('');
+  const { apiCall } = useApi();
+
   const getStatusColor = (status?: string) => {
     if (!status) return "bg-gray-100 text-gray-800";
 
@@ -45,6 +60,7 @@ export function CandidateCard({
     }
   };
 
+  const emailMutation = sendEmailMutation(apiCall, setIsEmailDialogOpen, setEmailSubject, setEmailMessage);
   // const formattedStatus = assessmentStatus === "in_progress" 
   //   ? "In Progress" 
   //   : assessmentStatus === "not_started" 
@@ -66,38 +82,41 @@ export function CandidateCard({
               <div className="text-sm text-gray-100">{email}</div>
             </div>
           </div>
-          <div className="flex space-x-2">
-            <Button size="sm">
-              Assign
-            </Button>
-          </div>
-          <div>
+          <div className="flex items-center gap-2">
+            <div className="flex space-x-2">
+              <Button size="sm">
+                Assign
+              </Button>
+            </div>
+            <div>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="p-2 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
-                  <MoreHorizontal size={20} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
-                <DropdownMenuLabel>More Actions</DropdownMenuLabel>
-                <DropdownMenuGroup>
-                  <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white" onClick={() => navigator.clipboard.writeText(`${import.meta.env.VITE_APP_URL}/assessments/preview/${assessment.id}`)}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="p-2 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
+                    <MoreHorizontal size={20} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
+                  <DropdownMenuLabel>More Actions</DropdownMenuLabel>
+                  <DropdownMenuGroup>
+                    {/* <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white" onClick={() => navigator.clipboard.writeText(`${import.meta.env.VITE_APP_URL}/assessments/preview/${assessment.id}`)}>
                     Item 1
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
-                    Item 2
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white" onClick={() => window.open(assessment.githubRepositoryLink, '_blank')}>
+                  </DropdownMenuItem> */}
+                    <DropdownMenuItem onClick={() => setIsEmailDialogOpen(true)} className="hover:bg-slate-700 transition-colors hover:text-white">
+                      <Mail size={16} className="mr-2" />
+                      Send email
+                    </DropdownMenuItem>
+                    {/* <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white" onClick={() => window.open(assessment.githubRepositoryLink, '_blank')}>
                     Item 3
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-slate-700" />
-                  <DropdownMenuItem className="hover:bg-slate-700 text-red-400 transition-colors hover:text-white">
-                    Delete Candidate
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  </DropdownMenuItem> */}
+                    <DropdownMenuSeparator className="bg-slate-700" />
+                    <DropdownMenuItem className="hover:bg-slate-700 text-red-400 transition-colors hover:text-white">
+                      Delete Candidate
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
 
@@ -150,6 +169,7 @@ export function CandidateCard({
         </div>
       )} */}
       </Link>
+      <SendEmailDialog apiCall={apiCall} isEmailDialogOpen={isEmailDialogOpen} setIsEmailDialogOpen={setIsEmailDialogOpen} id={id} name={name} email={email} emailSubject={emailSubject} setEmailSubject={setEmailSubject} emailMessage={emailMessage} setEmailMessage={setEmailMessage} sendEmailMutation={emailMutation} />
     </div>
   );
 }

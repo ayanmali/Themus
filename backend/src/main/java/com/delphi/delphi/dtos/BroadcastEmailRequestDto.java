@@ -6,6 +6,10 @@ import java.util.List;
 public class BroadcastEmailRequestDto extends EmailRequestDto {
     private List<Long> candidateIds;
 
+    public BroadcastEmailRequestDto() {
+        super();
+    }
+
     public BroadcastEmailRequestDto(EmailRequestDto emailRequest, List<Long> candidateIds) {
         super(emailRequest.getSubject(), emailRequest.getText(), emailRequest.getScheduledAt());
         this.candidateIds = candidateIds;

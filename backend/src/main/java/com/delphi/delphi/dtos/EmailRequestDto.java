@@ -2,10 +2,17 @@ package com.delphi.delphi.dtos;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class EmailRequestDto {
     private String subject;
     private String text;
     private LocalDateTime scheduledAt;
+
+    public EmailRequestDto() {
+        // Default constructor required for JSON deserialization
+    }
 
     public EmailRequestDto(String subject, String text, LocalDateTime scheduledAt) {
         this.subject = subject;

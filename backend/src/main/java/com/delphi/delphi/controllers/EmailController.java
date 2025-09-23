@@ -66,6 +66,9 @@ public class EmailController {
     public ResponseEntity<Map<String, Object>> sendEmail(@RequestBody SingleEmailRequestDto emailRequest) {
         // TODO: implement custom from address
         // String fromEmail = getCurrentUser().getEmail();
+        log.info("Sending email to candidate: {}", emailRequest.getCandidateId());
+        log.info("Email subject: {}", emailRequest.getSubject());
+        log.info("Email message: {}", emailRequest.getText());
         CandidateCacheDto candidate = candidateService.getCandidateById(emailRequest.getCandidateId());
         log.info("Passing email request to queue");
         // Long jobId = UUID.randomUUID().getMostSignificantBits();

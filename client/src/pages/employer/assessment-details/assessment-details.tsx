@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PaginatedResponse } from "@/lib/types/paginated-response";
 import { useSse } from "@/hooks/use-sse";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { broadcastEmailMutation, SendEmailDialog, sendEmailMutation } from "@/components/layout/send-email";
 
 export default function AssessmentDetails() {
     const { apiCall } = useApi();
@@ -197,69 +198,10 @@ export default function AssessmentDetails() {
     });
 
     // Send email mutation
-    const sendEmailMutation = useMutation({
-        mutationFn: async ({ candidateId, subject, text }: { candidateId: number; subject: string; text: string }) => {
-            const response = await apiCall(`/api/email/send`, {
-                method: 'POST',
-                body: JSON.stringify({
-                    candidateId: candidateId,
-                    subject: subject,
-                    text: text
-                }),
-            });
-            return response;
-        },
-        onSuccess: () => {
-            // Close dialog and reset form
-            setIsEmailDialogOpen(false);
-            setEmailSubject('');
-            setEmailMessage('');
-            setSelectedCandidateForEmail(null);
-
-            toast({
-                title: "Success",
-                description: "Email sent successfully",
-            });
-        },
-        onError: (error: any) => {
-            toast({
-                title: "Error",
-                description: error.message || "Failed to send email",
-                variant: "destructive",
-            });
-        },
-    });
+    const emailMutation = sendEmailMutation(apiCall, setIsEmailDialogOpen, setEmailSubject, setEmailMessage);
 
     // Broadcast email mutation
-    const broadcastEmailMutation = useMutation({
-        mutationFn: async ({ candidateIds, subject, text }: { candidateIds: number[]; subject: string; text: string }) => {
-            const response = await apiCall(`/api/email/broadcast`, {
-                method: 'POST',
-                body: JSON.stringify({
-                    candidateIds: candidateIds,
-                    subject: subject,
-                    text: text
-                }),
-            });
-            return response;
-        },
-        onSuccess: () => {
-            setIsBroadcastDialogOpen(false);
-            setBroadcastSubject('');
-            setBroadcastMessage('');
-            toast({
-                title: "Success",
-                description: "Email broadcast to all candidates successfully",
-            });
-        },
-        onError: (error: any) => {
-            toast({
-                title: "Error",
-                description: error.message || "Failed to send broadcast email",
-                variant: "destructive",
-            });
-        }
-    });
+    
 
     // Fetch chat messages
     const { data: chatHistoryData, isLoading: chatHistoryLoading, error: chatHistoryError } = useQuery<ChatMessage[]>({
@@ -335,6 +277,8 @@ export default function AssessmentDetails() {
             });
         },
     });
+
+    const broadcastMutation = broadcastEmailMutation(apiCall, setIsBroadcastDialogOpen, setBroadcastSubject, setBroadcastMessage);
 
     // Combined send message function
     const handleSendMessage = (message: string, model: string) => {
@@ -1118,7 +1062,7 @@ export default function AssessmentDetails() {
                                                             setBroadcastSubject('');
                                                             setBroadcastMessage('');
                                                         }}
-                                                        disabled={broadcastEmailMutation.isPending}
+                                                        disabled={broadcastMutation.isPending}
                                                     >
                                                         Cancel
                                                     </Button>
@@ -1145,12 +1089,12 @@ export default function AssessmentDetails() {
                                                                 });
                                                                 return;
                                                             }
-                                                            broadcastEmailMutation.mutate({ candidateIds: ids, subject, text });
+                                                            broadcastMutation.mutate({ candidateIds: ids, subject, text });
                                                         }}
-                                                        disabled={broadcastEmailMutation.isPending || !broadcastSubject.trim() || !broadcastMessage.trim()}
+                                                        disabled={broadcastMutation.isPending || !broadcastSubject.trim() || !broadcastMessage.trim()}
                                                         className="bg-blue-600 hover:bg-blue-700 text-white"
                                                     >
-                                                        {broadcastEmailMutation.isPending ? (
+                                                        {broadcastMutation.isPending ? (
                                                             <>
                                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                                                 Sending...
@@ -1446,6 +1390,7 @@ export default function AssessmentDetails() {
                                                                                     setIsEmailDialogOpen(true);
                                                                                 }}
                                                                             >
+                                                                                <Mail size={16} className="mr-2" />
                                                                                 Send email
                                                                             </DropdownMenuItem>
 
@@ -1661,87 +1606,7 @@ export default function AssessmentDetails() {
             </Dialog>
 
             {/* Email Dialog */}
-            <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
-                <DialogContent className="sm:max-w-[600px] bg-slate-800 text-white border-slate-500">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Mail size={20} />
-                            Send Email to {selectedCandidateForEmail?.candidate?.fullName || selectedCandidateForEmail?.candidate?.email}
-                        </DialogTitle>
-                        <DialogDescription className="text-gray-300">
-                            Send an email to the candidate.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <label htmlFor="email-subject" className="text-sm font-medium text-gray-300">
-                                Subject
-                            </label>
-                            <Input
-                                id="email-subject"
-                                value={emailSubject}
-                                onChange={(e) => setEmailSubject(e.target.value)}
-                                placeholder="Enter email subject..."
-                                className="bg-gray-700 text-white border-gray-600 focus:border-blue-400"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <label htmlFor="email-message" className="text-sm font-medium text-gray-300">
-                                Message
-                            </label>
-                            <Textarea
-                                id="email-message"
-                                value={emailMessage}
-                                onChange={(e) => setEmailMessage(e.target.value)}
-                                placeholder="Enter your message..."
-                                className="bg-gray-700 text-white border-gray-600 focus:border-blue-400 min-h-[200px] resize-none"
-                            />
-                        </div>
-                    </div>
-
-                    <DialogFooter>
-                        <Button
-                            variant="secondary"
-                            onClick={() => {
-                                setIsEmailDialogOpen(false);
-                                setEmailSubject('');
-                                setEmailMessage('');
-                                setSelectedCandidateForEmail(null);
-                            }}
-                            disabled={sendEmailMutation.isPending}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={() => {
-                                if (selectedCandidateForEmail?.candidate?.id && emailSubject.trim() && emailMessage.trim()) {
-                                    sendEmailMutation.mutate({
-                                        candidateId: selectedCandidateForEmail.candidate.id,
-                                        subject: emailSubject.trim(),
-                                        text: emailMessage.trim()
-                                    });
-                                }
-                            }}
-                            disabled={!emailSubject.trim() || !emailMessage.trim() || sendEmailMutation.isPending}
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
-                        >
-                            {sendEmailMutation.isPending ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Sending...
-                                </>
-                            ) : (
-                                <>
-                                    <Mail size={16} className="mr-2" />
-                                    Send Email
-                                </>
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <SendEmailDialog apiCall={apiCall} isEmailDialogOpen={isEmailDialogOpen} setIsEmailDialogOpen={setIsEmailDialogOpen} id={selectedCandidateForEmail?.candidate?.id} name={selectedCandidateForEmail?.candidate?.fullName || selectedCandidateForEmail?.candidate?.email} email={selectedCandidateForEmail?.candidate?.email} emailSubject={emailSubject} setEmailSubject={setEmailSubject} emailMessage={emailMessage} setEmailMessage={setEmailMessage} setSelectedCandidateForEmail={setSelectedCandidateForEmail} sendEmailMutation={emailMutation} />
         </div>
     )
 }
