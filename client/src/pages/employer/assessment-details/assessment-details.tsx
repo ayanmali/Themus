@@ -68,6 +68,11 @@ export default function AssessmentDetails() {
     const [emailMessage, setEmailMessage] = useState('');
     const [selectedCandidateForEmail, setSelectedCandidateForEmail] = useState<CandidateAttempt | null>(null);
 
+    // Broadcast email dialog state
+    const [isBroadcastDialogOpen, setIsBroadcastDialogOpen] = useState(false);
+    const [broadcastSubject, setBroadcastSubject] = useState('');
+    const [broadcastMessage, setBroadcastMessage] = useState('');
+
     // Chat state
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
@@ -134,7 +139,7 @@ export default function AssessmentDetails() {
                     }),
                 })
             );
-            
+
             const results = await Promise.all(promises);
             return results;
         },
@@ -143,11 +148,11 @@ export default function AssessmentDetails() {
             queryClient.invalidateQueries({ queryKey: ['candidateAttempts', 'assessment', assessmentId] });
             queryClient.invalidateQueries({ queryKey: ['availableCandidates', 'assessment', assessmentId] });
             queryClient.invalidateQueries({ queryKey: ['assessment', assessmentId] });
-            
+
             // Reset dialog state
             setSelectedCandidateIds([]);
             setIsAddDialogOpen(false);
-            
+
             toast({
                 title: "Success",
                 description: "Candidates added to assessment successfully",
@@ -176,7 +181,7 @@ export default function AssessmentDetails() {
             queryClient.invalidateQueries({ queryKey: ['candidateAttempts', 'assessment', assessmentId] });
             queryClient.invalidateQueries({ queryKey: ['availableCandidates', 'assessment', assessmentId] });
             queryClient.invalidateQueries({ queryKey: ['assessment', assessmentId] });
-            
+
             toast({
                 title: "Success",
                 description: "Candidate removed from assessment successfully",
@@ -210,7 +215,7 @@ export default function AssessmentDetails() {
             setEmailSubject('');
             setEmailMessage('');
             setSelectedCandidateForEmail(null);
-            
+
             toast({
                 title: "Success",
                 description: "Email sent successfully",
@@ -223,6 +228,37 @@ export default function AssessmentDetails() {
                 variant: "destructive",
             });
         },
+    });
+
+    // Broadcast email mutation
+    const broadcastEmailMutation = useMutation({
+        mutationFn: async ({ candidateIds, subject, text }: { candidateIds: number[]; subject: string; text: string }) => {
+            const response = await apiCall(`/api/email/broadcast`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    candidateIds: candidateIds,
+                    subject: subject,
+                    text: text
+                }),
+            });
+            return response;
+        },
+        onSuccess: () => {
+            setIsBroadcastDialogOpen(false);
+            setBroadcastSubject('');
+            setBroadcastMessage('');
+            toast({
+                title: "Success",
+                description: "Email broadcast to all candidates successfully",
+            });
+        },
+        onError: (error: any) => {
+            toast({
+                title: "Error",
+                description: error.message || "Failed to send broadcast email",
+                variant: "destructive",
+            });
+        }
     });
 
     // Fetch chat messages
@@ -285,7 +321,7 @@ export default function AssessmentDetails() {
                 updatedAt: new Date(),
             };
             setChatMessages(prev => [...prev, userMessage]);
-            
+
             // Refetch chat history after a delay to get the AI response
             setTimeout(() => {
                 queryClient.invalidateQueries({ queryKey: ['chatHistory', assessmentId] });
@@ -315,7 +351,7 @@ export default function AssessmentDetails() {
 
         // Try SSE first, fallback to regular mutation
         try {
-            sendSseMessage({message, model, assessmentId}, '/api/assessments/chat');
+            sendSseMessage({ message, model, assessmentId }, '/api/assessments/chat');
         } catch (error) {
             console.log('SSE failed, falling back to regular chat');
             sendChatMessageMutation.mutate({ message, model });
@@ -451,7 +487,7 @@ export default function AssessmentDetails() {
         }
         return durationUnit === 'minutes' ? assessment?.duration || 0 : assessment?.duration || 0 / 60;
     };
-    
+
 
     // Helper functions for specific field types
     const getCurrentName = (): string => {
@@ -1023,134 +1059,242 @@ export default function AssessmentDetails() {
                             <div className="mt-6">
                                 <div className="flex items-center justify-between mb-2">
                                     <h3 className="text-lg font-semibold">Candidates</h3>
-                                    <Dialog open={isAddDialogOpen} onOpenChange={(open) => { 
-                                        setIsAddDialogOpen(open); 
-                                        if (!open) { 
-                                            setSelectedCandidateIds([]); 
-                                            // Refetch available candidates when dialog closes to ensure fresh data
-                                            queryClient.invalidateQueries({ queryKey: ['availableCandidates', 'assessment', assessmentId] });
-                                        } 
-                                    }}>
-                                        <DialogTrigger asChild>
-                                            <Button
-                                                variant="default"
-                                                className="w-fit p-2 px-4 hover:bg-slate-700 hover:text-white rounded-lg border border-slate-700 transition-colors"
-                                                onClick={() => {
-                                                    // Reset selected candidates when opening dialog
-                                                    setSelectedCandidateIds([]);
+                                    {/* Broadcast Email Dialog */}
+                                    <div className="flex items-center gap-2">
+                                        <Dialog open={isBroadcastDialogOpen} onOpenChange={setIsBroadcastDialogOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button
+                                                    variant="default"
+                                                    className="w-fit p-2 px-4 hover:bg-slate-700 hover:text-white rounded-lg border border-slate-700 transition-colors"
+                                                    onClick={() => {
+                                                        setIsBroadcastDialogOpen(true);
+                                                    }}
+                                                    disabled={candidateAttempts.length === 0}
+                                                >
+                                                    <Mail size={16} />
+                                                    <span>Email all</span>
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="sm:max-w-[600px] bg-slate-800 text-white border-slate-500">
+                                                <DialogHeader>
+                                                    <DialogTitle className="flex items-center gap-2">
+                                                        <Mail size={16} />
+                                                        Send Email to All Candidates
+                                                    </DialogTitle>
+                                                    <DialogDescription>
+                                                        Compose a message to send to all candidates in this assessment.
+                                                    </DialogDescription>
+                                                </DialogHeader>
 
-                                                }}
-                                                disabled={availableCandidatesLoading || !!availableCandidatesError}
-                                            >
-                                                <Plus size={16} />
-                                                <span>Add</span>
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="sm:max-w-[500px] p-0 bg-slate-800 text-white border-slate-500">
-                                            <DialogHeader className="px-6 pt-6">
-                                                <DialogTitle>Add candidates to assessment</DialogTitle>
-                                                <DialogDescription>
-                                                    Search and select a candidate to add to the assessment.
-                                                </DialogDescription>
-                                            </DialogHeader>
+                                                <div className="space-y-4 py-2">
+                                                    <div className="space-y-2">
+                                                        <label htmlFor="broadcast-subject" className="text-sm font-medium text-gray-300">Subject</label>
+                                                        <Input
+                                                            id="broadcast-subject"
+                                                            value={broadcastSubject}
+                                                            onChange={(e) => setBroadcastSubject(e.target.value)}
+                                                            placeholder="Enter email subject..."
+                                                            className="bg-gray-700 text-white border-gray-600 focus:border-blue-400"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label htmlFor="broadcast-message" className="text-sm font-medium text-gray-300">Message</label>
+                                                        <Textarea
+                                                            id="broadcast-message"
+                                                            value={broadcastMessage}
+                                                            onChange={(e) => setBroadcastMessage(e.target.value)}
+                                                            placeholder="Enter your message..."
+                                                            className="bg-gray-700 text-white border-gray-600 focus:border-blue-400 min-h-[200px] resize-none"
+                                                        />
+                                                    </div>
+                                                    <p className="text-xs text-gray-400">Sending to {candidateAttempts.length} candidate{candidateAttempts.length !== 1 ? 's' : ''} currently listed.</p>
+                                                </div>
 
-                                            {/* Candidate Attempts Section */}
-                                            <div className="px-6">
-                                                <Command className="rounded-lg border border-gray-600 bg-slate-800 text-white">
-                                                    <CommandInput
-                                                        placeholder="Search candidates by name or email..."
-                                                        className="border-none focus:ring-0"
-                                                    />
-                                                    <Button variant="ghost" className="w-full p-2 pt-5 pb-5 justify-start font-light">
-                                                        <Plus size={16} />
-                                                        <span>Add new candidate</span>
+                                                <DialogFooter>
+                                                    <Button
+                                                        variant="secondary"
+                                                        onClick={() => {
+                                                            setIsBroadcastDialogOpen(false);
+                                                            setBroadcastSubject('');
+                                                            setBroadcastMessage('');
+                                                        }}
+                                                        disabled={broadcastEmailMutation.isPending}
+                                                    >
+                                                        Cancel
                                                     </Button>
-
-                                                    <CommandList className="max-h-[300px] overflow-y-auto">
-                                                        {availableCandidatesLoading ? (
-                                                            <div className="flex items-center justify-center p-4">
-                                                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                                                Loading candidates...
-                                                            </div>
+                                                    <Button
+                                                        onClick={() => {
+                                                            const subject = broadcastSubject.trim();
+                                                            const text = broadcastMessage.trim();
+                                                            if (!subject || !text) {
+                                                                toast({
+                                                                    title: "Missing fields",
+                                                                    description: "Please provide both a subject and message.",
+                                                                    variant: "destructive",
+                                                                });
+                                                                return;
+                                                            }
+                                                            const ids = candidateAttempts
+                                                                .map((a) => a.candidate?.id)
+                                                                .filter((id): id is number => typeof id === 'number');
+                                                            if (ids.length === 0) {
+                                                                toast({
+                                                                    title: "No candidates",
+                                                                    description: "There are no candidates to email.",
+                                                                    variant: "destructive",
+                                                                });
+                                                                return;
+                                                            }
+                                                            broadcastEmailMutation.mutate({ candidateIds: ids, subject, text });
+                                                        }}
+                                                        disabled={broadcastEmailMutation.isPending || !broadcastSubject.trim() || !broadcastMessage.trim()}
+                                                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                                                    >
+                                                        {broadcastEmailMutation.isPending ? (
+                                                            <>
+                                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                Sending...
+                                                            </>
                                                         ) : (
                                                             <>
-                                                                <CommandEmpty>No candidates found.</CommandEmpty>
-                                                                <CommandGroup heading="Available Candidates">
-                                                                    {filteredAvailableCandidates.map((candidate: Candidate) => (
-                                                                <CommandItem
-                                                                    key={candidate.id}
-                                                                    className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-700"
-                                                                    onSelect={() => {
-                                                                        setSelectedCandidateIds(prev =>
-                                                                            prev.includes(candidate.id.toString())
-                                                                                ? prev.filter(id => id !== candidate.id.toString())
-                                                                                : [...prev, candidate.id.toString()]
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    <div className="flex items-center justify-center w-4 h-4 border border-gray-400 rounded">
-                                                                        {selectedCandidateIds.includes(candidate.id.toString()) && (
-                                                                            <Check size={12} className="text-blue-400" />
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="flex flex-col flex-1">
-                                                                        <span className="font-medium text-white">
-                                                                            {candidate.fullName || `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim()}
-                                                                        </span>
-                                                                        <span className="text-sm text-gray-400">{candidate.email}</span>
-                                                                    </div>
-                                                                </CommandItem>
-                                                            ))}
-                                                                </CommandGroup>
+                                                                <Mail size={16} className="mr-2" />
+                                                                Send Email
                                                             </>
                                                         )}
-                                                    </CommandList>
-                                                </Command>
-                                            </div>
+                                                    </Button>
+                                                </DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
+                                        {/* Add Candidates Dialog */}
+                                        <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+                                            setIsAddDialogOpen(open);
+                                            if (!open) {
+                                                setSelectedCandidateIds([]);
+                                                // Refetch available candidates when dialog closes to ensure fresh data
+                                                queryClient.invalidateQueries({ queryKey: ['availableCandidates', 'assessment', assessmentId] });
+                                            }
+                                        }}>
+                                            <DialogTrigger asChild>
+                                                <Button
+                                                    variant="default"
+                                                    className="w-fit p-2 px-4 hover:bg-slate-700 hover:text-white rounded-lg border border-slate-700 transition-colors"
+                                                    onClick={() => {
+                                                        // Reset selected candidates when opening dialog
+                                                        setSelectedCandidateIds([]);
 
-                                            <DialogFooter className="px-6 pb-6">
-                                                <div className="flex items-center justify-between w-full">
-                                                    <span className="text-sm text-gray-400">
-                                                        {selectedCandidateIds.length} candidate{selectedCandidateIds.length !== 1 ? 's' : ''} selected
-                                                    </span>
-                                                    <div className="flex gap-2">
-                                                        <DialogClose asChild>
-                                                            <Button
-                                                                variant="secondary"
-                                                                onClick={() => {
-                                                                    setSelectedCandidateIds([]);
-                                                                    // Refetch available candidates when dialog closes to ensure fresh data
-                                                                    queryClient.invalidateQueries({ queryKey: ['availableCandidates', 'assessment', assessmentId] });
-                                                                }}
-                                                            >
-                                                                Cancel
-                                                            </Button>
-                                                        </DialogClose>
+                                                    }}
+                                                    disabled={availableCandidatesLoading || !!availableCandidatesError}
+                                                >
+                                                    <Plus size={16} />
+                                                    <span>Add</span>
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="sm:max-w-[500px] p-0 bg-slate-800 text-white border-slate-500">
+                                                <DialogHeader className="px-6 pt-6">
+                                                    <DialogTitle>Add candidates to assessment</DialogTitle>
+                                                    <DialogDescription>
+                                                        Search and select a candidate to add to the assessment.
+                                                    </DialogDescription>
+                                                </DialogHeader>
 
-                                                        <Button
-                                                            type="submit"
-                                                            disabled={selectedCandidateIds.length === 0 || addCandidatesMutation.isPending}
-                                                            onClick={() => {
-                                                                console.log('Adding candidates:', selectedCandidateIds);
-                                                                addCandidatesMutation.mutate(selectedCandidateIds);
-                                                            }}
-                                                        >
-                                                            {addCandidatesMutation.isPending ? (
-                                                                <>
-                                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                                    Adding...
-                                                                </>
-                                                            ) : (
-                                                                `Add ${selectedCandidateIds.length} Candidate${selectedCandidateIds.length !== 1 ? 's' : ''}`
-                                                            )}
+                                                {/* Candidate Attempts Section */}
+                                                <div className="px-6">
+                                                    <Command className="rounded-lg border border-gray-600 bg-slate-800 text-white">
+                                                        <CommandInput
+                                                            placeholder="Search candidates by name or email..."
+                                                            className="border-none focus:ring-0"
+                                                        />
+                                                        <Button variant="ghost" className="w-full p-2 pt-5 pb-5 justify-start font-light">
+                                                            <Plus size={16} />
+                                                            <span>Add new candidate</span>
                                                         </Button>
 
-
-                                                    </div>
+                                                        <CommandList className="max-h-[300px] overflow-y-auto">
+                                                            {availableCandidatesLoading ? (
+                                                                <div className="flex items-center justify-center p-4">
+                                                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                                                    Loading candidates...
+                                                                </div>
+                                                            ) : (
+                                                                <>
+                                                                    <CommandEmpty>No candidates found.</CommandEmpty>
+                                                                    <CommandGroup heading="Available Candidates">
+                                                                        {filteredAvailableCandidates.map((candidate: Candidate) => (
+                                                                            <CommandItem
+                                                                                key={candidate.id}
+                                                                                className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-700"
+                                                                                onSelect={() => {
+                                                                                    setSelectedCandidateIds(prev =>
+                                                                                        prev.includes(candidate.id.toString())
+                                                                                            ? prev.filter(id => id !== candidate.id.toString())
+                                                                                            : [...prev, candidate.id.toString()]
+                                                                                    );
+                                                                                }}
+                                                                            >
+                                                                                <div className="flex items-center justify-center w-4 h-4 border border-gray-400 rounded">
+                                                                                    {selectedCandidateIds.includes(candidate.id.toString()) && (
+                                                                                        <Check size={12} className="text-blue-400" />
+                                                                                    )}
+                                                                                </div>
+                                                                                <div className="flex flex-col flex-1">
+                                                                                    <span className="font-medium text-white">
+                                                                                        {candidate.fullName || `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim()}
+                                                                                    </span>
+                                                                                    <span className="text-sm text-gray-400">{candidate.email}</span>
+                                                                                </div>
+                                                                            </CommandItem>
+                                                                        ))}
+                                                                    </CommandGroup>
+                                                                </>
+                                                            )}
+                                                        </CommandList>
+                                                    </Command>
                                                 </div>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                    </Dialog>
+
+                                                <DialogFooter className="px-6 pb-6">
+                                                    <div className="flex items-center justify-between w-full">
+                                                        <span className="text-sm text-gray-400">
+                                                            {selectedCandidateIds.length} candidate{selectedCandidateIds.length !== 1 ? 's' : ''} selected
+                                                        </span>
+                                                        <div className="flex gap-2">
+                                                            <DialogClose asChild>
+                                                                <Button
+                                                                    variant="secondary"
+                                                                    onClick={() => {
+                                                                        setSelectedCandidateIds([]);
+                                                                        // Refetch available candidates when dialog closes to ensure fresh data
+                                                                        queryClient.invalidateQueries({ queryKey: ['availableCandidates', 'assessment', assessmentId] });
+                                                                    }}
+                                                                >
+                                                                    Cancel
+                                                                </Button>
+                                                            </DialogClose>
+
+                                                            <Button
+                                                                type="submit"
+                                                                disabled={selectedCandidateIds.length === 0 || addCandidatesMutation.isPending}
+                                                                onClick={() => {
+                                                                    console.log('Adding candidates:', selectedCandidateIds);
+                                                                    addCandidatesMutation.mutate(selectedCandidateIds);
+                                                                }}
+                                                            >
+                                                                {addCandidatesMutation.isPending ? (
+                                                                    <>
+                                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                        Adding...
+                                                                    </>
+                                                                ) : (
+                                                                    `Add ${selectedCandidateIds.length} Candidate${selectedCandidateIds.length !== 1 ? 's' : ''}`
+                                                                )}
+                                                            </Button>
+
+
+                                                        </div>
+                                                    </div>
+                                                </DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
+                                    </div>
 
                                 </div>
                                 <div className="bg-slate-700 rounded-lg p-4">
@@ -1231,7 +1375,7 @@ export default function AssessmentDetails() {
                                                                             {attempt.candidate?.fullName || `${attempt.candidate?.firstName || ''} ${attempt.candidate?.lastName || ''}`.trim()}
                                                                         </h4>
                                                                         <p className="text-sm text-gray-400 mb-2">{attempt.candidate?.email}</p>
-                                                                        
+
                                                                         {/* Status and dates */}
                                                                         <div className="space-y-1">
                                                                             <div className="flex items-center gap-2">
@@ -1244,19 +1388,19 @@ export default function AssessmentDetails() {
                                                                                     </span>
                                                                                 )}
                                                                             </div>
-                                                                            
+
                                                                             {attempt.startedDate && (
                                                                                 <p className="text-xs text-gray-400">
                                                                                     Started: {new Date(attempt.startedDate).toLocaleString()}
                                                                                 </p>
                                                                             )}
-                                                                            
+
                                                                             {attempt.completedDate && (
                                                                                 <p className="text-xs text-gray-400">
                                                                                     Submitted: {new Date(attempt.completedDate).toLocaleString()}
                                                                                 </p>
                                                                             )}
-                                                                            
+
                                                                             {attempt.evaluatedDate && (
                                                                                 <p className="text-xs text-gray-400">
                                                                                     Evaluated: {new Date(attempt.evaluatedDate).toLocaleString()}
@@ -1266,7 +1410,7 @@ export default function AssessmentDetails() {
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            
+
                                                             <div className="flex items-center gap-2">
                                                                 {/* View Evaluation Button */}
                                                                 {attempt.status?.toLowerCase() === "evaluated" && attempt.evaluationId && (
@@ -1285,7 +1429,7 @@ export default function AssessmentDetails() {
                                                                         View Evaluation
                                                                     </Button>
                                                                 )}
-                                                                
+
                                                                 <DropdownMenu>
                                                                     <DropdownMenuTrigger asChild>
                                                                         <Button variant="ghost" className="p-2 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
@@ -1295,7 +1439,7 @@ export default function AssessmentDetails() {
                                                                     <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
                                                                         <DropdownMenuLabel>More Actions</DropdownMenuLabel>
                                                                         <DropdownMenuGroup>
-                                                                            <DropdownMenuItem 
+                                                                            <DropdownMenuItem
                                                                                 className="hover:bg-slate-700 transition-colors hover:text-white"
                                                                                 onClick={() => {
                                                                                     setSelectedCandidateForEmail(attempt);
@@ -1304,23 +1448,23 @@ export default function AssessmentDetails() {
                                                                             >
                                                                                 Send email
                                                                             </DropdownMenuItem>
-                                                                            
+
                                                                             {attempt.githubRepositoryLink && (
-                                                                                <DropdownMenuItem 
+                                                                                <DropdownMenuItem
                                                                                     className="hover:bg-slate-700 transition-colors hover:text-white"
                                                                                     onClick={() => {
                                                                                         window.open(attempt.githubRepositoryLink, '_blank');
                                                                                     }}
                                                                                 >
-                                                                                    {attempt.status?.toLowerCase() === "evaluated" || attempt.status?.toLowerCase() === "completed" 
-                                                                                        ? "View Pull Request on GitHub" 
+                                                                                    {attempt.status?.toLowerCase() === "evaluated" || attempt.status?.toLowerCase() === "completed"
+                                                                                        ? "View Pull Request on GitHub"
                                                                                         : "View Repository on GitHub"}
                                                                                 </DropdownMenuItem>
                                                                             )}
-                                                                            
+
                                                                             <DropdownMenuSeparator className="bg-slate-700" />
-                                                                            
-                                                                            <DropdownMenuItem 
+
+                                                                            <DropdownMenuItem
                                                                                 className="hover:bg-red-700 transition-colors hover:text-white text-red-400"
                                                                                 onClick={() => {
                                                                                     if (confirm('Are you sure you want to remove this candidate from the assessment?')) {
@@ -1478,12 +1622,12 @@ export default function AssessmentDetails() {
 
                     <div className="lg:col-span-1 overflow-y-auto">
                         <div className="h-full">
-                            <ChatMessages 
-                                messages={chatMessages} 
+                            <ChatMessages
+                                messages={chatMessages}
                                 onSendMessage={handleSendMessage}
                                 isLoading={sendChatMessageMutation.isPending || isSseLoading}
                                 isHistoryLoading={chatHistoryLoading}
-                                //assessmentId={assessment?.id}
+                            //assessmentId={assessment?.id}
                             />
                         </div>
                     </div>
@@ -1528,7 +1672,7 @@ export default function AssessmentDetails() {
                             Send an email to the candidate.
                         </DialogDescription>
                     </DialogHeader>
-                    
+
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
                             <label htmlFor="email-subject" className="text-sm font-medium text-gray-300">
@@ -1542,7 +1686,7 @@ export default function AssessmentDetails() {
                                 className="bg-gray-700 text-white border-gray-600 focus:border-blue-400"
                             />
                         </div>
-                        
+
                         <div className="space-y-2">
                             <label htmlFor="email-message" className="text-sm font-medium text-gray-300">
                                 Message
@@ -1556,7 +1700,7 @@ export default function AssessmentDetails() {
                             />
                         </div>
                     </div>
-                    
+
                     <DialogFooter>
                         <Button
                             variant="secondary"
