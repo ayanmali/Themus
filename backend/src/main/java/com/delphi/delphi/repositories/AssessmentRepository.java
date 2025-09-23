@@ -108,4 +108,8 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long>, J
        @Query("UPDATE Assessment a SET a.status = 'INACTIVE' " +
                      "WHERE a.endDate < :currentDate AND a.status = 'ACTIVE'")
        int updateExpiredAssessments(@Param("currentDate") LocalDateTime currentDate);
+
+       @Modifying
+       @Query("UPDATE Assessment a SET a.instructions = :setupInstructions WHERE a.id = :id")
+       int updateSetupInstructions(@Param("id") Long id, @Param("setupInstructions") String setupInstructions);
 }

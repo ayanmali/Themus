@@ -16,8 +16,8 @@ export type Assessment = {
     endDate?: Date;
     duration?: number; // in minutes - for take home assessments, this is the estimated duration of the assessment in minutes. For live coding assessments, this is the duration of the assessment in minutes.
     languageOptions?: string[]; // ex. ["React", "Vue", "Angular"]
-    rules?: string[];
-    instructions?: string[];
+    rules?: string;
+    instructions?: string;
     details?: string; // additional details about the assessment
     //type: 'take-home' | 'live-coding'; // Take home assessments are completed by the candidate at their own pace, while live coding assessments are completed live in real-time
     githubRepositoryLink: string; // link to the repository

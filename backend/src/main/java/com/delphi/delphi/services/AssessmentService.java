@@ -36,6 +36,7 @@ import com.delphi.delphi.repositories.CandidateAttemptRepository;
 import com.delphi.delphi.repositories.CandidateRepository;
 import com.delphi.delphi.repositories.UserRepository;
 import com.delphi.delphi.specifications.AssessmentSpecifications;
+import com.delphi.delphi.utils.Constants;
 import com.delphi.delphi.utils.enums.AssessmentStatus;
 import com.delphi.delphi.utils.enums.AttemptStatus;
 import com.delphi.delphi.utils.exceptions.AssessmentNotFoundException;
@@ -118,6 +119,7 @@ public class AssessmentService {
         assessment.setDuration(newAssessmentDto.getDuration());
         assessment.setSkills(newAssessmentDto.getSkills());
         assessment.setDetails(newAssessmentDto.getDetails());
+        assessment.setRules(Constants.DEFAULT_RULES_GUIDELINES);
         assessment.setLanguageOptions(newAssessmentDto.getLanguageOptions());
         // TODO: replace w/ something else?
         assessment.setGithubRepoName(newAssessmentDto.getName().toLowerCase().replaceAll("[^a-zA-Z0-9]","-") + "-"
@@ -321,6 +323,69 @@ public class AssessmentService {
         updateCacheAfterAssessmentUpdate(existingAssessment.getUser().getId(), updatedAssessment);
         
         return updatedAssessment;
+    }
+
+    // Update assessment
+    @CachePut(value = "assessments", key = "#result.id")
+    public AssessmentCacheDto updateAssessment(Assessment existingAssessment, Assessment assessmentUpdates) {
+        // Update fields if provided
+        if (assessmentUpdates.getName() != null) {
+            existingAssessment.setName(assessmentUpdates.getName());
+        }
+        if (assessmentUpdates.getDescription() != null) {
+            existingAssessment.setDescription(assessmentUpdates.getDescription());
+        }
+        if (assessmentUpdates.getRole() != null) {
+            existingAssessment.setRole(assessmentUpdates.getRole());
+        }
+        if (assessmentUpdates.getStatus() != null) {
+            existingAssessment.setStatus(assessmentUpdates.getStatus());
+        }
+        if (assessmentUpdates.getStartDate() != null) {
+            existingAssessment.setStartDate(assessmentUpdates.getStartDate());
+        }
+        if (assessmentUpdates.getEndDate() != null) {
+            existingAssessment.setEndDate(assessmentUpdates.getEndDate());
+        }
+        if (assessmentUpdates.getDuration() != null) {
+            existingAssessment.setDuration(assessmentUpdates.getDuration());
+        }
+        if (assessmentUpdates.getGithubRepositoryLink() != null) {
+            existingAssessment.setGithubRepositoryLink(assessmentUpdates.getGithubRepositoryLink());
+        }
+        if (assessmentUpdates.getSkills() != null) {
+            existingAssessment.setSkills(assessmentUpdates.getSkills());
+        }
+        if (assessmentUpdates.getLanguageOptions() != null) {
+            existingAssessment.setLanguageOptions(assessmentUpdates.getLanguageOptions());
+        }
+        if (assessmentUpdates.getMetadata() != null) {
+            existingAssessment.setMetadata(assessmentUpdates.getMetadata());
+        }
+        if (assessmentUpdates.getDetails() != null) {
+            existingAssessment.setDetails(assessmentUpdates.getDetails());
+        }
+
+        // Validate date logic after updates
+        if (existingAssessment.getStartDate() != null && existingAssessment.getEndDate() != null) {
+            if (!existingAssessment.getEndDate().isAfter(existingAssessment.getStartDate())) {
+                throw new IllegalArgumentException("End date must be after start date");
+            }
+        }
+
+        AssessmentCacheDto updatedAssessment = new AssessmentCacheDto(assessmentRepository.save(existingAssessment));
+        
+        // Update cache: update general cache and evict specific caches
+        updateCacheAfterAssessmentUpdate(existingAssessment.getUser().getId(), updatedAssessment);
+        
+        return updatedAssessment;
+    }
+
+    public AssessmentCacheDto updateSetupInstructions(AssessmentCacheDto assessment, String setupInstructions) {
+        assessment.setInstructions(setupInstructions);
+        assessmentRepository.updateSetupInstructions(assessment.getId(), setupInstructions);
+        updateCacheAfterAssessmentUpdate(assessment.getUserId(), assessment);
+        return assessment;
     }
 
     // Delete assessment

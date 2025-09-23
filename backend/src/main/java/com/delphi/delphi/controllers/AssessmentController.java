@@ -317,6 +317,10 @@ public class AssessmentController {
             emitter.onCompletion(() -> {
                 log.info("SSE emitter completed for assessment creation job: {}", jobId);
                 chatService.removeSseEmitter(jobId);
+                // update assessment setup instructions
+                String readme = githubService.getRepoReadMe(user.getGithubAccessToken(), user.getGithubUsername(), assessment.getGithubRepoName());
+                String setupInstructions = readme.split("## Getting Started")[1].split("## ")[0].trim();
+                assessmentService.updateSetupInstructions(assessment, setupInstructions);
             });
 
             emitter.onTimeout(() -> {

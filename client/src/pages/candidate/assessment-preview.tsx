@@ -534,7 +534,7 @@ export default function CandidateAssessmentPreview() {
                                 <h2 className="text-xl font-semibold text-white">Rules & Guidelines</h2>
                             </div>
                             <ul className="space-y-3">
-                                {assessment.rules?.map((rule, index) => (
+                                {assessment.rules?.split("\n").map((rule, index) => (
                                     <li key={index} className="flex items-start space-x-3">
                                         <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 flex-shrink-0"></div>
                                         <span className="text-gray-300">{rule}</span>
@@ -550,7 +550,7 @@ export default function CandidateAssessmentPreview() {
                                 <h2 className="text-xl font-semibold text-white">Instructions</h2>
                             </div>
                             <ol className="space-y-3">
-                                {assessment.instructions?.map((instruction, index) => (
+                                {assessment.instructions?.split("\n").map((instruction, index) => (
                                     <li key={index} className="flex items-start space-x-3">
                                         <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0">
                                             {index + 1}

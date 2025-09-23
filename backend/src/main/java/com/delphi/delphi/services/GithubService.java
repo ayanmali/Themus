@@ -460,7 +460,8 @@ public class GithubService {
      * @return
      */
     public GithubRepoContents createCandidateRepo(String userGithubUsername, String templateRepoName, String repoName) {
-        GithubRepoContents repo = createPersonalRepoFromTemplate(THEMUS_GITHUB_TOKEN, userGithubUsername, templateRepoName, repoName);
+        GithubRepoContents repo = createPersonalRepoFromTemplate(THEMUS_GITHUB_TOKEN, userGithubUsername,
+                templateRepoName, repoName);
         // create a branch for the candidate to work in
         addBranch(THEMUS_GITHUB_TOKEN, Constants.THEMUS_ORG_NAME, repoName, "assessment", "main");
         return repo;
@@ -473,7 +474,8 @@ public class GithubService {
      * @param repoName
      * @param candidateGithubUsername
      */
-    public void addCollaboratorToCandidateRepo(String repoName, String candidateGithubUsername, String candidateGithubToken) {
+    public void addCollaboratorToCandidateRepo(String repoName, String candidateGithubUsername,
+            String candidateGithubToken) {
         addCollaborator(THEMUS_GITHUB_TOKEN, Constants.THEMUS_ORG_NAME, repoName, candidateGithubUsername);
         try {
             // Get all invitations for the repo
@@ -1010,7 +1012,8 @@ public class GithubService {
      */
     public List<GitHubPullRequest> getPullRequests(String ownerAndRepoName) {
         try {
-            String url = String.format("https://api.github.com/repos/%s/pulls", Constants.THEMUS_ORG_NAME, ownerAndRepoName);
+            String url = String.format("https://api.github.com/repos/%s/pulls", Constants.THEMUS_ORG_NAME,
+                    ownerAndRepoName);
 
             return webClient.get()
                     .uri(url)
@@ -1023,7 +1026,33 @@ public class GithubService {
         } catch (Exception e) {
             throw new RuntimeException("Error getting pull requests: " + e.getMessage());
         }
-        
+
+    }
+
+    public String getRepoReadMe(String token, String owner, String repoName) {
+        try {
+            String githubAccessToken = token;
+            if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
+                githubAccessToken = encryptionService.decrypt(token);
+            }
+
+            String url = String.format("https://api.github.com/repos/%s/%s/readme", owner, repoName);
+
+            GithubRepoContents repoContents = webClient.get()
+                    .uri(url)
+                    .header("Authorization", "token " + githubAccessToken)
+                    .retrieve()
+                    .bodyToMono(GithubRepoContents.class).block();
+            if (repoContents == null) {
+                throw new RuntimeException("Failed to get repo readme");
+            }
+            return decodeFromBase64(repoContents.getContent());
+        } catch (RestClientException e) {
+            throw new RuntimeException("Error getting repo readme: " + e.getMessage());
+        } catch (Exception e) {
+            throw new RuntimeException("Error getting repo readme: " + e.getMessage());
+        }
+
     }
 
     // TODO: see if this fixes the duplicate message bug
