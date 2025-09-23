@@ -97,7 +97,6 @@ public class EmailController {
      */
     @PostMapping("/broadcast")
     public ResponseEntity<Map<String, Object>> broadcastEmail(@RequestBody BroadcastEmailRequestDto emailRequest) {
-        // TODO: implement broadcast email
         for (Long candidateId : emailRequest.getCandidateIds()) {
             CandidateCacheDto candidate = candidateService.getCandidateById(candidateId);
             log.info("Passing email request to queue");

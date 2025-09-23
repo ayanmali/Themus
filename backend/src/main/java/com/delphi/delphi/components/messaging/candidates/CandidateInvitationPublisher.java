@@ -71,4 +71,4 @@ public class CandidateInvitationPublisher {
             throw new RuntimeException("Failed to publish candidate invitation message", e);
         }
     }
-} 
+}
