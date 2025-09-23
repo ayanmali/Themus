@@ -26,7 +26,6 @@ public class ThemusApplication {
     ThemusApplication(UserService userService) {
         this.userService = userService;
     }
-	// TODO: add authorization to all endpoints
 	// TODO: add more endpoints for data access
 	private UserCacheDto getCurrentUser() {
         return userService.getUserByEmail(getCurrentUserEmail());

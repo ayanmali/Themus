@@ -284,7 +284,6 @@ public class AssessmentController {
             log.info("User's github account type: {}", user.getGithubAccountType());
             log.info("Assessmentcontroller - Checking if user is connected to github");
 
-            // TODO: replace 302 responses with redirect URL responses
             if (!userService.connectedGithub(user)) {
                 log.info("User is not connected to github, redirecting to installation page");
                 return ResponseEntity.ok(Map.of("redirectUrl", userService.generateGitHubInstallUrl(user.getEmail()), "requiresRedirect", true));

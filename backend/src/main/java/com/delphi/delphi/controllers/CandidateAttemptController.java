@@ -33,6 +33,7 @@ import com.delphi.delphi.dtos.UpdateCandidateAttemptDto;
 import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateCacheDto;
+import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.dtos.filter_queries.GetCandidateAttemptsDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
@@ -46,7 +47,6 @@ import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.enums.AttemptStatus;
 import com.delphi.delphi.utils.exceptions.AssessmentNotFoundException;
 import com.delphi.delphi.utils.exceptions.CandidateNotFoundException;
-import com.delphi.delphi.dtos.cache.UserCacheDto;
 
 import jakarta.validation.Valid;
 
@@ -523,7 +523,7 @@ public class CandidateAttemptController {
 
     @GetMapping("/live/{assessmentId}/can-take-assessment")
     public ResponseEntity<?> canTakeAssessment(@PathVariable Long assessmentId, @RequestParam String email) {
-        // TODO: check if this email address corresponds to a valid candidate attempt in
+        // check if this email address corresponds to a valid candidate attempt in
         // the DB
         // if it does, then we can just redirect to the assessment page
         try {
