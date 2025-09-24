@@ -45,16 +45,10 @@ export function HeroSection() {
                                     <Typewriter
                                         text={[
                                             'Senior Software Engineer',
-                                            'Java · Spring Boot · Hibernate',
-                                            'TypeScript · React · Next.js',
-                                            'Backend Engineer',
-                                            'Full‑stack Engineer',
-                                            'Data Engineer',
-                                            'Software Engineer II',
-                                            'Performance Engineer',
-                                            'SDET / QA Engineer',
-                                            'Cloud Engineer',
-                                            'CI/CD Engineer'
+                                            'iOS Engineer',
+                                            'AI Researcher',
+                                            'Mid-Level Data Engineer',
+                                            'Junior Full‑Stack Developer',
                                         ]}
                                         speed={40}
                                         waitTime={1600}
@@ -70,13 +64,11 @@ export function HeroSection() {
                                     <div className="text-base md:text-lg text-gray-200">
                                         <Typewriter
                                             text={[
-                                                'Python · FastAPI · PostgreSQL',
-                                                'Java · Spring Boot · Hibernate',
-                                                'TypeScript · React · Next.js',
-                                                'Node.js · Express · Prisma',
-                                                'Docker · Kubernetes · Helm',
-                                                'AWS · Lambda · DynamoDB',
-                                                'CI/CD · GitHub Actions · Terraform'
+                                                'Go, Kafka, Redis, Goroutines, gRPC, Protocol Buffers',
+                                                'Swift, SwiftUI, iOS',
+                                                'Python, PyTorch, OpenCV',
+                                                'Python, PostgreSQL, PySpark, Kafka',
+                                                'Next.js, TypeScript, Tailwind CSS, Prisma'
                                             ]}
                                             speed={40}
                                             waitTime={1600}
@@ -93,13 +85,10 @@ export function HeroSection() {
                                         <Typewriter
                                             text={[
                                                 'migrating a monolithic system into a microservices architecture',
-                                                'designing a REST API',
-                                                'building a full‑stack web application',
-                                                'designing a database schema',
-                                                'refactoring legacy code',
-                                                'performance optimization',
-                                                'unit and integration tests',
-                                                'cloud-native services'
+                                                'designing an iOS application',
+                                                'debugging a transformer',
+                                                'designing an ETL pipeline',
+                                                'creating a full-stack web application',
                                             ]}
                                             speed={40}
                                             waitTime={1600}
