@@ -7,6 +7,7 @@ import HowItWorks from './how-it-works';
 import Benefits from './benefits';
 import Problem from './problem';
 import Solution from './solution';
+import { Typewriter } from '@/components/ui/typewriter'
 
 export function HeroSection() {
     return (
@@ -37,13 +38,80 @@ export function HeroSection() {
                                 </Button>
                             </div>
                         </div>
-                        {/* <img
-                                className="pointer-events-none order-first ml-auto h-56 w-full object-cover invert sm:h-96 lg:static lg:order-last lg:h-max lg:w-full lg:object-contain dark:mix-blend-lighten dark:invert-0"
-                                src="https://ik.imagekit.io/lrigu76hy/tailark/abstract-bg.jpg?updatedAt=1745733473768"
-                                alt="Abstract Object"
-                                height="4000"
-                                width="3000"
-                            /> */}
+                        <div className="mt-0 lg:mt-0 lg:self-center mx-auto w-full max-w-md lg:mr-0 lg:ml-auto">
+                            <div className="bg-slate-900/70 border border-white/15 rounded-xl p-6 shadow-lg shadow-black/20">
+                                <p className="text-xs text-gray-400 mb-2">Role</p>
+                                <div className="text-base md:text-lg text-gray-200">
+                                    <Typewriter
+                                        text={[
+                                            'Senior Software Engineer',
+                                            'Java · Spring Boot · Hibernate',
+                                            'TypeScript · React · Next.js',
+                                            'Backend Engineer',
+                                            'Full‑stack Engineer',
+                                            'Data Engineer',
+                                            'Software Engineer II',
+                                            'Performance Engineer',
+                                            'SDET / QA Engineer',
+                                            'Cloud Engineer',
+                                            'CI/CD Engineer'
+                                        ]}
+                                        speed={40}
+                                        waitTime={1600}
+                                        deleteSpeed={28}
+                                        initialDelay={200}
+                                        className=""
+                                    //syncSignal={syncTick}
+                                    />
+                                </div>
+
+                                <div className="mt-6 pt-4 border-t border-white/10">
+                                    <p className="text-xs text-gray-400 mb-2">Skills</p>
+                                    <div className="text-base md:text-lg text-gray-200">
+                                        <Typewriter
+                                            text={[
+                                                'Python · FastAPI · PostgreSQL',
+                                                'Java · Spring Boot · Hibernate',
+                                                'TypeScript · React · Next.js',
+                                                'Node.js · Express · Prisma',
+                                                'Docker · Kubernetes · Helm',
+                                                'AWS · Lambda · DynamoDB',
+                                                'CI/CD · GitHub Actions · Terraform'
+                                            ]}
+                                            speed={40}
+                                            waitTime={1600}
+                                            deleteSpeed={28}
+                                            initialDelay={200}
+                                            className=""
+                                        //syncSignal={syncTick}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="mt-6 pt-4 border-t border-white/10">
+                                    <p className="text-xs text-gray-400 mb-2">Create an assessment on</p>
+                                    <div className="text-base md:text-lg text-gray-200">
+                                        <Typewriter
+                                            text={[
+                                                'migrating a monolithic system into a microservices architecture',
+                                                'designing a REST API',
+                                                'building a full‑stack web application',
+                                                'designing a database schema',
+                                                'refactoring legacy code',
+                                                'performance optimization',
+                                                'unit and integration tests',
+                                                'cloud-native services'
+                                            ]}
+                                            speed={40}
+                                            waitTime={1600}
+                                            deleteSpeed={28}
+                                            initialDelay={200}
+                                            className=""
+                                        />
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
                     </div>
                 </section>
                 {/* <section className="bg-background pb-16 md:pb-32">
