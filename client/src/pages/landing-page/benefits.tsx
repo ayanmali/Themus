@@ -2,6 +2,11 @@ import React, { useState } from 'react';
 import { ChevronDown, Calendar, Clock, Globe, Video, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+/**
+ * 
+ * 1. Tailored for you - define the problems and skills you're looking for and select the best candidate for your team
+ * 2. 
+ */
 const Benefits = () => {
     const [minNotice, setMinNotice] = useState('1 hour');
     const [bufferBefore, setBufferBefore] = useState('15 mins');
@@ -18,10 +23,10 @@ const Benefits = () => {
             {/* Hero Section */}
             <div className="text-center py-12">
                 <h1 className="text-5xl font-lora md:text-6xl mb-8 leading-tight">
-                    The new way to screen candidates
+                    Why keep guessing?
                 </h1>
                 <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
-                    Ditch the old hiring process and screen candidates easily, with confidence
+                    Cut through the noise and hire difference-makers who can ship features and fix bugs, not just solve LeetCode problems
                 </p>
                 <Button className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-3 rounded-full border border-gray-600 transition-colors flex items-center mx-auto">
                     Get started

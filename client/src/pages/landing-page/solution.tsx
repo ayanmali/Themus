@@ -3,7 +3,12 @@ import { Calendar, Clock, Video, Phone, MapPin, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Typewriter } from '@/components/ui/typewriter';
 
-const HowItWorks = () => {
+/**
+ * 1. repository-based assessments that reflect real-world bugs and challenges they would face on the job
+ * 2. Candidates are assessed on their ability to parse and build upon AI-generated code
+ * 3. Coming soon - Complete analysis of their style of AI-assisted programming
+ */
+const Solution = () => {
     const [selectedDay, setSelectedDay] = useState('Mon');
 
     const availabilityData = [
@@ -16,17 +21,36 @@ const HowItWorks = () => {
         <div className="min-h-screen bg-slate-800 text-white relative flex max-w-6xl flex-col">
             {/* Navigation */}
             <nav className="flex justify-center items-center px-8">
-                <div className="text-lg text-white/80">How it works</div>
+                <div className="text-lg text-white/80">The Solution</div>
             </nav>
 
             {/* Hero Section */}
             <div className="text-center py-12">
                 <h1 className="text-5xl font-lora md:text-6xl mb-8 leading-tight">
-                    idk what to put here
+                <p className="whitespace-pre-wrap">
+                        <span>{"Find your next superstar "}</span>
+                        <Typewriter
+                            text={[
+                                "engineer",
+                                "researcher",
+                                "developer",
+                                "scientist",
+                                "analyst"
+                            ]}
+                            speed={70}
+                            className="text-purple-300"
+                            waitTime={1500}
+                            deleteSpeed={40}
+                            cursorChar={"_"}
+                        />
+                    </p>
                 </h1>
                 <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
-                    Hire your next superstar with confidence
+                    Find the candidate that's right for your team
                 </p>
+                {/* <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
+                    Traditional data structures and algorithms problems don't reflect the skills that technical professionals need to have to be successful in their role.
+                </p> */}
                 <Button className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-3 rounded-full border border-gray-600 transition-colors flex items-center mx-auto">
                     Get started
                     <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,7 +60,6 @@ const HowItWorks = () => {
             </div>
 
             {/* Features Grid */}
-      
             <div className="py-8">
                 <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
                     {/* Feature 1 - Calendar Connection */}
@@ -86,8 +109,8 @@ const HowItWorks = () => {
                                 <div
                                     key={item.day}
                                     className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${selectedDay === item.day
-                                        ? 'bg-gray-700 border-gray-500'
-                                        : 'bg-gray-900 border-gray-600 hover:bg-gray-700'
+                                            ? 'bg-gray-700 border-gray-500'
+                                            : 'bg-gray-900 border-gray-600 hover:bg-gray-700'
                                         }`}
                                     onClick={() => setSelectedDay(item.day)}
                                 >
@@ -195,4 +218,4 @@ const HowItWorks = () => {
     );
 };
 
-export default HowItWorks;
+export default Solution;

@@ -5,6 +5,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "..
 import { HeroHeader } from './hero-header'
 import HowItWorks from './how-it-works';
 import Benefits from './benefits';
+import Problem from './problem';
+import Solution from './solution';
 
 export function HeroSection() {
     return (
@@ -148,8 +150,14 @@ export function HeroSection() {
                     </div>
                 </section> */}
                 <section className="relative mx-auto flex max-w-6xl flex-col px-6">
-                    <HowItWorks />
+                    <Problem />
                 </section>
+                <section className="relative mx-auto flex max-w-6xl flex-col px-6">
+                    <Solution />
+                </section>
+                {/* <section className="relative mx-auto flex max-w-6xl flex-col px-6">
+                    <HowItWorks />
+                </section> */}
                 <div className="py-10"></div>
                 <section className="relative mx-auto flex max-w-6xl flex-col px-6">
                     <Benefits />
