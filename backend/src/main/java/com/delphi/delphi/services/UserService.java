@@ -18,6 +18,7 @@ import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.repositories.UserRepository;
+import com.delphi.delphi.utils.CacheUtils;
 import com.delphi.delphi.utils.git.GithubAccountType;
 
 @Service
@@ -34,7 +35,6 @@ public class UserService {
 
     private final RedisService redisService;
 
-    private final String githubCacheKeyPrefix = "github_install_url_random_string:";
     private final String appInstallBaseUrl;
 
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, EncryptionService encryptionService, RedisService redisService, @Value("${themus.github.app.name}") String githubAppName) {
@@ -83,7 +83,7 @@ public class UserService {
     // for users to generate a github install url
     public String generateGitHubInstallUrl(String email) {
         String randomString = UUID.randomUUID().toString();
-        redisService.setWithExpiration(githubCacheKeyPrefix + email, randomString, 10, TimeUnit.MINUTES);
+        redisService.setWithExpiration(CacheUtils.githubCacheKeyPrefix + email, randomString, 10, TimeUnit.MINUTES);
         return String.format("%s?state=%s_user_%s", appInstallBaseUrl, randomString, email);
     }
     

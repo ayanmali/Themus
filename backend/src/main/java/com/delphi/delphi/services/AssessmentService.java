@@ -2,6 +2,7 @@ package com.delphi.delphi.services;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,8 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -22,23 +25,33 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.components.messaging.candidates.CandidateInvitationPublisher;
+import com.delphi.delphi.configs.rabbitmq.TopicConfig;
+import com.delphi.delphi.dtos.EmailRequestDto;
 import com.delphi.delphi.dtos.NewAssessmentDto;
 import com.delphi.delphi.dtos.PaginatedResponseDto;
 import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
+import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
+import com.delphi.delphi.dtos.cache.CandidateCacheDto;
 import com.delphi.delphi.dtos.cache.ChatMessageCacheDto;
 import com.delphi.delphi.dtos.cache.UserCacheDto;
+import com.delphi.delphi.dtos.messaging.emails.PublishSendEmailJobDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
+import com.delphi.delphi.entities.Job;
 import com.delphi.delphi.entities.User;
 import com.delphi.delphi.repositories.AssessmentRepository;
 import com.delphi.delphi.repositories.CandidateAttemptRepository;
 import com.delphi.delphi.repositories.CandidateRepository;
+import com.delphi.delphi.repositories.JobRepository;
 import com.delphi.delphi.repositories.UserRepository;
 import com.delphi.delphi.specifications.AssessmentSpecifications;
+import com.delphi.delphi.utils.CacheUtils;
 import com.delphi.delphi.utils.Constants;
 import com.delphi.delphi.utils.enums.AssessmentStatus;
 import com.delphi.delphi.utils.enums.AttemptStatus;
+import com.delphi.delphi.utils.enums.JobStatus;
+import com.delphi.delphi.utils.enums.JobType;
 import com.delphi.delphi.utils.exceptions.AssessmentNotFoundException;
 import com.delphi.delphi.utils.git.GithubAccountType;
 
@@ -53,6 +66,8 @@ import com.delphi.delphi.utils.git.GithubAccountType;
  */
 public class AssessmentService {
 
+    private final JobRepository jobRepository;
+
     private final UserRepository userRepository;
     private final CandidateAttemptRepository candidateAttemptRepository;
     private final AssessmentRepository assessmentRepository;
@@ -61,11 +76,14 @@ public class AssessmentService {
     private final CandidateRepository candidateRepository;
     private final Logger log = LoggerFactory.getLogger(AssessmentService.class);
     private final RedisService redisService;
+    private final RabbitTemplate rabbitTemplate;
+    private final String appClientDomain;
+    private final EncryptionService encryptionService;      
 
     public AssessmentService(AssessmentRepository assessmentRepository, GithubService githubService,
             CandidateAttemptRepository candidateAttemptRepository,
             CandidateInvitationPublisher candidateInvitationPublisher, UserRepository userRepository,
-            CandidateRepository candidateRepository, RedisService redisService) {
+            CandidateRepository candidateRepository, RedisService redisService, JobRepository jobRepository, RabbitTemplate rabbitTemplate, @Value("${app.client-domain}") String appClientDomain, EncryptionService encryptionService) {
         this.assessmentRepository = assessmentRepository;
         this.githubService = githubService;
         this.candidateAttemptRepository = candidateAttemptRepository;
@@ -73,6 +91,10 @@ public class AssessmentService {
         this.userRepository = userRepository;
         this.candidateRepository = candidateRepository;
         this.redisService = redisService;
+        this.jobRepository = jobRepository;
+        this.rabbitTemplate = rabbitTemplate;
+        this.appClientDomain = appClientDomain;
+        this.encryptionService = encryptionService;
     }
 
     // Create a new assessment
@@ -519,20 +541,63 @@ public class AssessmentService {
 
     // Activate assessment
     @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
-    public Assessment activateAssessment(Long id) {
-        Assessment assessment = assessmentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id));
-        assessment.setStatus(AssessmentStatus.ACTIVE);
-        return assessmentRepository.save(assessment);
+    public Long activateAssessment(Long id, List<CandidateAttemptCacheDto> attempts, String employerName) {
+        assessmentRepository.updateStatus(id, AssessmentStatus.ACTIVE);
+
+        // broadcast email to all candidates who have not submitted an attempt yet
+        for (CandidateAttemptCacheDto attempt : attempts) {
+            CandidateCacheDto candidate = attempt.getCandidate();
+            log.info("Passing email request to queue");
+            // Long jobId = UUID.randomUUID().getMostSignificantBits();
+            Job job = new Job(JobStatus.PENDING, JobType.SEND_EMAIL);
+            job = jobRepository.save(job);
+
+            log.info("Job created: {}", job.getId());
+
+            Object encryptedPassword = redisService.get(CacheUtils.candidateAttemptPasswordCacheKeyPrefix + attempt.getId());
+            if (encryptedPassword == null) {
+                throw new IllegalArgumentException("Candidate attempt password not found. Have you been invited to this assessment?");
+            }
+            String decryptedPassword = "";
+            try {
+                decryptedPassword = encryptionService.decrypt(encryptedPassword.toString());
+                log.info("Decrypted password: {}", decryptedPassword);
+            } catch (Exception e) {
+                log.error("Error decrypting candidate attempt password: {}", e.getMessage());
+                throw new RuntimeException("Error decrypting candidate attempt password: " + e.getMessage());
+            }
+            if (decryptedPassword.isEmpty()) {
+                throw new IllegalArgumentException("Candidate attempt password unable to be decrypted");
+            }
+            // TODO: save a placeholder emailrequestdto outside the loop, then use that for all emails by substituting the candidate name
+            PublishSendEmailJobDto publishSendEmailJobDto = new PublishSendEmailJobDto(job.getId(), candidate,
+                    new EmailRequestDto(String.format("Invitation to Take Assessment for %s - %s", employerName, attempt.getAssessment().getRole()),
+                                    String.format("""
+                                        Hello %s,\n\n
+                                        You have been invited to take an online assessment for the %s position at %s.\n\n
+                                        Click the link below to access the assessment:\n\n%s\n\n
+                                        You will be asked to enter a password when you access the assessment. Your password is: %s\n\n
+                                        Please complete the assessment by %s.\n\n
+                                        Please do not reply to this email as it is an automated message.""",
+                                    attempt.getCandidate().getFirstName(), 
+                                    attempt.getAssessment().getRole(), 
+                                    employerName, 
+                                    String.format("https://%s/assessments/preview/%s", appClientDomain, id),
+                                    decryptedPassword,
+                                    attempt.getAssessment().getEndDate().format(DateTimeFormatter.ofPattern("MM/dd/yyyy"))), 
+                                    null));
+            rabbitTemplate.convertAndSend(TopicConfig.EMAIL_TOPIC_EXCHANGE_NAME, TopicConfig.EMAIL_ROUTING_KEY,
+                    publishSendEmailJobDto);
+            log.info("Email job published to queue");
+        }
+        return id;
     }
 
     // Deactivate assessment
     @CacheEvict(value = "assessments", beforeInvocation = true, key = "#id")
-    public Assessment deactivateAssessment(Long id) {
-        Assessment assessment = assessmentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Assessment not found with id: " + id));
-        assessment.setStatus(AssessmentStatus.INACTIVE);
-        return assessmentRepository.save(assessment);
+    public Long deactivateAssessment(Long id) {
+        assessmentRepository.updateStatus(id, AssessmentStatus.INACTIVE);
+        return id;
     }
 
     // Publish assessment (change from draft to active)

@@ -32,6 +32,7 @@ import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.repositories.CandidateAttemptRepository;
 import com.delphi.delphi.specifications.CandidateAttemptSpecifications;
+import com.delphi.delphi.utils.CacheUtils;
 import com.delphi.delphi.utils.Constants;
 import com.delphi.delphi.utils.enums.AttemptStatus;
 import com.delphi.delphi.utils.git.GitHubPullRequest;
@@ -54,10 +55,6 @@ public class CandidateAttemptService {
     private final CandidateAttemptRepository candidateAttemptRepository;
     private final Logger log = LoggerFactory.getLogger(CandidateAttemptService.class);
     private final RedisService redisService;
-    private final String candidateAttemptPasswordCacheKeyPrefix = "candidate_attempt_password:";
-    private final String githubCacheKeyPrefix = "github_install_url_random_string:";
-    private final String tokenCacheKeyPrefix = "candidate_github_token:";
-    private final String usernameCacheKeyPrefix = "candidate_github_username:";
     private final GithubService githubService;
     private final String appInstallBaseUrl;
 
@@ -134,7 +131,7 @@ public class CandidateAttemptService {
     // for candidates to generate a github install url
     public String generateGitHubInstallUrl(String candidateEmail) {
         String randomString = UUID.randomUUID().toString();
-        redisService.setWithExpiration(githubCacheKeyPrefix + candidateEmail, randomString, 10, TimeUnit.MINUTES);
+        redisService.setWithExpiration(CacheUtils.githubCacheKeyPrefix + candidateEmail, randomString, 10, TimeUnit.MINUTES);
         String installUrl = String.format("%s?state=%s_candidate_%s", appInstallBaseUrl, randomString, candidateEmail);
         return installUrl;
     }
@@ -153,8 +150,8 @@ public class CandidateAttemptService {
 
     public boolean isCandidateConnectedToGithub(String email) {
         // Check if the candidate has a github token and username
-        Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + email);
-        Object candidateGithubUsername = redisService.get(usernameCacheKeyPrefix + email);
+        Object candidateGithubToken = redisService.get(CacheUtils.tokenCacheKeyPrefix + email);
+        Object candidateGithubUsername = redisService.get(CacheUtils.usernameCacheKeyPrefix + email);
 
         return !(candidateGithubToken == null || candidateGithubUsername == null
                 || githubService.validateGithubCredentials(candidateGithubToken.toString()) == null);
@@ -164,7 +161,7 @@ public class CandidateAttemptService {
         CandidateAttemptCacheDto existingAttempt = getCandidateAttemptByCandidateEmailAndAssessmentId(authenticateCandidateDto.getCandidateEmail(), authenticateCandidateDto.getAssessmentId());
         
         // Check if candidate already has an attempt for this assessment
-        Object encryptedPassword = redisService.get(candidateAttemptPasswordCacheKeyPrefix + existingAttempt.getId());
+        Object encryptedPassword = redisService.get(CacheUtils.candidateAttemptPasswordCacheKeyPrefix + existingAttempt.getId());
         if (encryptedPassword == null) {
             throw new IllegalArgumentException("Candidate attempt password not found. Have you been invited to this assessment?");
         }
@@ -204,7 +201,7 @@ public class CandidateAttemptService {
         log.info("--------------------------------");
 
         String repoName = "assessment-" + assessment.getId() + "-" + String.valueOf(Instant.now().toEpochMilli());
-        Object candidateGithubUsername = redisService.get(usernameCacheKeyPrefix + candidate.getEmail());
+        Object candidateGithubUsername = redisService.get(CacheUtils.usernameCacheKeyPrefix + candidate.getEmail());
         if (candidateGithubUsername == null) {
             throw new IllegalArgumentException("You are not connected to Github. Please connect your Github account to start the assessment.");
         }
@@ -226,7 +223,7 @@ public class CandidateAttemptService {
 
         // Creating candidate github repo
         String templateRepoName = assessment.getGithubRepoName();        
-        Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + candidate.getEmail());
+        Object candidateGithubToken = redisService.get(CacheUtils.tokenCacheKeyPrefix + candidate.getEmail());
         if (candidateGithubToken == null) {
             throw new IllegalArgumentException("You are not connected to Github. Please connect your Github account to start the assessment.");
         }
@@ -248,7 +245,7 @@ public class CandidateAttemptService {
     }
 
     public boolean hasValidGithubToken(String candidateEmail) {
-        Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + candidateEmail);
+        Object candidateGithubToken = redisService.get(CacheUtils.tokenCacheKeyPrefix + candidateEmail);
         // get a new token if the candidate doesn't have one or if the token is invalid
         try {
             if (candidateGithubToken == null || githubService
@@ -497,6 +494,13 @@ public class CandidateAttemptService {
     @Transactional(readOnly = true)
     public List<CandidateAttemptCacheDto> getAttemptsByAssessmentId(Long assessmentId, Pageable pageable) {
         return candidateAttemptRepository.findByAssessmentId(assessmentId, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
+    }
+
+    // Get attempts by assessment ID
+    @Cacheable(value = "attempts", key = "#assessmentId")
+    @Transactional(readOnly = true)
+    public List<CandidateAttemptCacheDto> getAttemptsByAssessmentId(Long assessmentId) {
+        return candidateAttemptRepository.findByAssessmentId(assessmentId).stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Get attempts by status

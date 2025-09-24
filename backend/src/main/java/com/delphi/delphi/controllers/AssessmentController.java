@@ -42,6 +42,7 @@ import com.delphi.delphi.dtos.NewCandidateDto;
 import com.delphi.delphi.dtos.NewUserMessageDto;
 import com.delphi.delphi.dtos.PaginatedResponseDto;
 import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
+import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
 import com.delphi.delphi.dtos.cache.ChatMessageCacheDto;
 import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.dtos.filter_queries.GetAssessmentsDto;
@@ -53,10 +54,12 @@ import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.entities.Job;
 import com.delphi.delphi.repositories.JobRepository;
 import com.delphi.delphi.services.AssessmentService;
+import com.delphi.delphi.services.CandidateAttemptService;
 import com.delphi.delphi.services.ChatService;
 import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.enums.AssessmentStatus;
+import com.delphi.delphi.utils.enums.AttemptStatus;
 import com.delphi.delphi.utils.enums.JobStatus;
 import com.delphi.delphi.utils.enums.JobType;
 
@@ -72,6 +75,7 @@ public class AssessmentController {
     private final UserService userService;
     private final GithubService githubService;
     private final ChatService chatService;
+    private final CandidateAttemptService candidateAttemptService;
     // private final ChatMessagePublisher chatMessagePublisher;
     private final JobRepository jobRepository;
     private final AssessmentService assessmentService;
@@ -83,7 +87,7 @@ public class AssessmentController {
     public AssessmentController(AssessmentService assessmentService, UserService userService,
             GithubService githubService, JobRepository jobRepository, RabbitTemplate rabbitTemplate,
             ChatService chatService, @Value("${themus.github.app.name}") String githubAppName,
-            DelegatingSecurityContextAsyncTaskExecutor taskExecutor) {
+            DelegatingSecurityContextAsyncTaskExecutor taskExecutor, CandidateAttemptService candidateAttemptService) {
         this.assessmentService = assessmentService;
         // this.chatMessagePublisher = chatMessagePublisher;
         this.userService = userService;
@@ -91,6 +95,7 @@ public class AssessmentController {
         this.jobRepository = jobRepository;
         this.rabbitTemplate = rabbitTemplate;
         this.chatService = chatService;
+        this.candidateAttemptService = candidateAttemptService;
         // state specifies whether this installation is for a user or a candidate
         this.appInstallUrl = String.format("https://github.com/apps/%s/installations/new", githubAppName);
         this.taskExecutor = taskExecutor;
@@ -111,13 +116,14 @@ public class AssessmentController {
      * @param assessmentId The ID of the assessment to check
      * @throws IllegalArgumentException if the assessment doesn't exist or doesn't belong to the current user
      */
-    private void verifyAssessmentOwnership(Long assessmentId) {
+    private UserCacheDto verifyAssessmentOwnership(Long assessmentId) {
         UserCacheDto currentUser = getCurrentUser();
         AssessmentCacheDto assessment = assessmentService.getAssessmentByIdCache(assessmentId);
         
         if (!assessment.getUserId().equals(currentUser.getId())) {
             throw new IllegalArgumentException("Access denied: You can only access your own assessments");
         }
+        return currentUser;
     }
 
     // TODO: add dashboard
@@ -925,30 +931,38 @@ public class AssessmentController {
     }
 
     // Activate assessment
-    @PostMapping("/{id}/activate")
+    @PutMapping("/{id}/activate")
     public ResponseEntity<?> activateAssessment(@PathVariable Long id) {
         try {
-            verifyAssessmentOwnership(id);
-            Assessment assessment = assessmentService.activateAssessment(id);
-            return ResponseEntity.ok(new FetchAssessmentDto(assessment));
+            UserCacheDto user = verifyAssessmentOwnership(id);
+            // only getting candidates who have not submitted an attempt yet
+            List<CandidateAttemptCacheDto> attempts = candidateAttemptService.getAttemptsByAssessmentId(id).stream().filter(attempt -> attempt.getStatus() == AttemptStatus.INVITED).collect(Collectors.toList());
+            assessmentService.activateAssessment(id, attempts, user.getOrganizationName());
+            return ResponseEntity.ok(id);
         } catch (IllegalArgumentException e) {
             if (e.getMessage().contains("Access denied")) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
             }
             return ResponseEntity.badRequest().body("Error activating assessment: " + e.getMessage());
-        } catch (Exception e) {
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body("Error activating assessment: " + e.getMessage());
+        } catch (AmqpException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("RabbitMQ Error activating assessment: " + e.getMessage());
+        }
+        catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error activating assessment: " + e.getMessage());
         }
     }
 
     // Deactivate assessment
-    @PostMapping("/{id}/deactivate")
+    @PutMapping("/{id}/deactivate")
     public ResponseEntity<?> deactivateAssessment(@PathVariable Long id) {
         try {
             verifyAssessmentOwnership(id);
-            Assessment assessment = assessmentService.deactivateAssessment(id);
-            return ResponseEntity.ok(new FetchAssessmentDto(assessment));
+            assessmentService.deactivateAssessment(id);
+            return ResponseEntity.ok(id);
         } catch (IllegalArgumentException e) {
             if (e.getMessage().contains("Access denied")) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());

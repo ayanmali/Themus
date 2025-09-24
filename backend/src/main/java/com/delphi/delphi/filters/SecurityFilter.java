@@ -1,10 +1,13 @@
 package com.delphi.delphi.filters;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import jakarta.servlet.Filter;
@@ -15,8 +18,8 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+
 // Security filter
-// TODO: enable this in production
 @Component
 @Order(3) // Run after JWT filter
 public class SecurityFilter implements Filter {
@@ -34,6 +37,12 @@ public class SecurityFilter implements Filter {
         "wget",
         "httpclient/4"
     };
+
+    private final String appEnv;
+
+    public SecurityFilter(@Value("${app.env}") String appEnv) {
+        this.appEnv = appEnv;
+    }
     
     // check for user agent and block if it's a bot
     @Override
@@ -42,25 +51,30 @@ public class SecurityFilter implements Filter {
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
 
+        if (appEnv.equals("dev")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         // check for user agent and block if it's a bot
-        // String userAgent = req.getHeader("User-Agent");
-        // String requestPath = req.getRequestURI();
+        String userAgent = req.getHeader("User-Agent");
+        String requestPath = req.getRequestURI();
         
-        // log.info("SecurityFilter - Processing request to: {} with User-Agent: {}", requestPath, userAgent);
+        log.info("SecurityFilter - Processing request to: {} with User-Agent: {}", requestPath, userAgent);
         
-        // // Allow requests to auth endpoints regardless of user agent
-        // if (requestPath.startsWith("/api/auth/")) {
-        //     log.info("SecurityFilter - Allowing auth endpoint: {}", requestPath);
-        //     chain.doFilter(request, response);
-        //     return;
-        // }
+        // Allow requests to auth endpoints regardless of user agent
+        if (requestPath.startsWith("/api/auth/")) {
+            log.info("SecurityFilter - Allowing auth endpoint: {}", requestPath);
+            chain.doFilter(request, response);
+            return;
+        }
         
-        // // Be more permissive - only block if user agent explicitly matches known bots
-        // if (userAgent != null && Arrays.stream(BOT_AGENTS).anyMatch(agent -> userAgent.toLowerCase().contains(agent.toLowerCase()))) {
-        //     res.setStatus(HttpStatus.FORBIDDEN.value());
-        //     log.warn("SecurityFilter - Blocked request from bot: {} to path: {}", userAgent, requestPath);
-        //     return;
-        // }
+        // Be more permissive - only block if user agent explicitly matches known bots
+        if (userAgent != null && Arrays.stream(BOT_AGENTS).anyMatch(agent -> userAgent.toLowerCase().contains(agent.toLowerCase()))) {
+            res.setStatus(HttpStatus.FORBIDDEN.value());
+            log.warn("SecurityFilter - Blocked request from bot: {} to path: {}", userAgent, requestPath);
+            return;
+        }
         
         // log.info("SecurityFilter - Allowing request from: {} to path: {}", userAgent, requestPath);
         chain.doFilter(request, response);

@@ -6,6 +6,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class CacheUtils {
+    public static final String candidateAttemptPasswordCacheKeyPrefix = "candidate_attempt_password:";
+    public static final String githubCacheKeyPrefix = "github_install_url_random_string:";
+    public static final String tokenCacheKeyPrefix = "candidate_github_token:";
+    public static final String usernameCacheKeyPrefix = "candidate_github_username:";
+
     public static String normalizeDateTime(LocalDateTime dt) {
         if (dt == null) {
             return "null";

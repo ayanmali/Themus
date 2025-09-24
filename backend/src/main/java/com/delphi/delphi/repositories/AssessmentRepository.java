@@ -112,4 +112,9 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long>, J
        @Modifying
        @Query("UPDATE Assessment a SET a.instructions = :setupInstructions WHERE a.id = :id")
        int updateSetupInstructions(@Param("id") Long id, @Param("setupInstructions") String setupInstructions);
+
+       @Modifying
+       @Query("UPDATE Assessment a SET a.status = :status WHERE a.id = :id")
+       int updateStatus(@Param("id") Long id, @Param("status") AssessmentStatus status);
+
 }

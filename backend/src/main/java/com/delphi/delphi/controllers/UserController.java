@@ -29,6 +29,7 @@ import com.delphi.delphi.entities.User;
 import com.delphi.delphi.services.EncryptionService;
 import com.delphi.delphi.services.GithubService;
 import com.delphi.delphi.services.UserService;
+import com.delphi.delphi.utils.CacheUtils;
 import com.delphi.delphi.utils.git.GithubAccountType;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -50,10 +51,6 @@ public class UserController {
     private final RedisService redisService;
 
     private final String appInstallBaseUrl;
-
-    private final String tokenCacheKeyPrefix = "candidate_github_token:";
-    private final String usernameCacheKeyPrefix = "candidate_github_username:";
-    private final String githubCacheKeyPrefix = "github_install_url_random_string:";
 
     // github client id and secret
     // private final String clientId;
@@ -144,7 +141,7 @@ public class UserController {
             log.info("Github credentials valid: {}", githubCredentialsValid);
 
             if (!userService.connectedGithub(user) || githubCredentialsValid == null) {
-                Object redirectUrl = redisService.get(githubCacheKeyPrefix + user.getEmail());
+                Object redirectUrl = redisService.get(CacheUtils.githubCacheKeyPrefix + user.getEmail());
                 if (redirectUrl != null) {
                     return ResponseEntity.ok(Map.of("result", false, "redirectUrl",
                             String.format("%s?state=%s_user_%s", appInstallBaseUrl, redirectUrl, user.getEmail()),
@@ -485,7 +482,7 @@ public class UserController {
 
         // check if the random string passed into the state parameter is valid for the
         // email address
-        Object redisRandomString = redisService.get(githubCacheKeyPrefix + providedEmail);
+        Object redisRandomString = redisService.get(CacheUtils.githubCacheKeyPrefix + providedEmail);
         if (redisRandomString == null || !redisRandomString.toString().equals(providedRandomString)) {
             log.error("Invalid random string: {} for email: {}", providedRandomString,
                     providedEmail + " - state: " + state);
@@ -557,7 +554,7 @@ public class UserController {
         log.info("Candidate callback called for candidate: {}", email);
         try {
             log.info("Getting github token and username from redis for candidate: {}", email);
-            Object candidateGithubToken = redisService.get(tokenCacheKeyPrefix + email);
+            Object candidateGithubToken = redisService.get(CacheUtils.tokenCacheKeyPrefix + email);
             // get a new token if the candidate doesn't have one or if the token is invalid
             if (candidateGithubToken == null || githubService
                     .validateGithubCredentials(encryptionService.decrypt(candidateGithubToken.toString())) == null) {
@@ -575,8 +572,8 @@ public class UserController {
                 // store the token and username in redis
 
                 log.info("Storing github token and username in redis for candidate: {}", email);
-                redisService.set(tokenCacheKeyPrefix + email, encryptionService.encrypt(githubAccessToken));
-                redisService.set(usernameCacheKeyPrefix + email, githubUsername);
+                redisService.set(CacheUtils.tokenCacheKeyPrefix + email, encryptionService.encrypt(githubAccessToken));
+                redisService.set(CacheUtils.usernameCacheKeyPrefix + email, githubUsername);
                 return ResponseEntity.ok("Github account connected: " + githubUsername);
             }
 

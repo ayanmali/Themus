@@ -51,6 +51,7 @@ import com.delphi.delphi.services.AssessmentService;
 import com.delphi.delphi.services.CandidateAttemptService;
 import com.delphi.delphi.services.CandidateService;
 import com.delphi.delphi.services.UserService;
+import com.delphi.delphi.utils.CacheUtils;
 import com.delphi.delphi.utils.enums.AttemptStatus;
 import com.delphi.delphi.utils.enums.JobStatus;
 import com.delphi.delphi.utils.enums.JobType;
@@ -77,7 +78,6 @@ public class CandidateAttemptController {
     private final Logger log = LoggerFactory.getLogger(CandidateAttemptController.class);
 
     private final String appInstallBaseUrl;
-    private final String githubCacheKeyPrefix = "github_install_url_random_string:";
 
     public CandidateAttemptController(CandidateAttemptService candidateAttemptService,
             AssessmentService assessmentService,
@@ -212,7 +212,7 @@ public class CandidateAttemptController {
                     .isCandidateConnectedToGithub(authenticateCandidateDto.getCandidateEmail())
                     && candidateAttemptService.hasValidGithubToken(authenticateCandidateDto.getCandidateEmail());
             if (!isConnectedToGithub) {
-                Object redirectUrl = redisService.get(githubCacheKeyPrefix + authenticateCandidateDto.getCandidateEmail());
+                Object redirectUrl = redisService.get(CacheUtils.githubCacheKeyPrefix + authenticateCandidateDto.getCandidateEmail());
                 if (redirectUrl != null) {
                     return ResponseEntity.ok(Map.of(
                             "result", false,

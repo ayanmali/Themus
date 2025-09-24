@@ -1,6 +1,7 @@
 package com.delphi.delphi.repositories;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -23,6 +24,8 @@ public interface CandidateAttemptRepository extends JpaRepository<CandidateAttem
     
     // Find attempts by assessment ID with pagination
     Page<CandidateAttempt> findByAssessmentId(Long assessmentId, Pageable pageable);
+
+    List<CandidateAttempt> findByAssessmentId(Long assessmentId);
     
     // Find attempts by status with pagination
     Page<CandidateAttempt> findByStatus(AttemptStatus status, Pageable pageable);
