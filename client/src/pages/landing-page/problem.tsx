@@ -21,7 +21,7 @@ const Problem = () => {
         <div className="min-h-screen bg-slate-800 text-white relative flex max-w-6xl flex-col">
             {/* Navigation */}
             <nav className="flex justify-center items-center px-8">
-                <div className="text-lg text-white/80">The Talent War</div>
+                <div className="text-lg text-white/80">The Cost of Guessing</div>
             </nav>
 
             {/* Hero Section */}
@@ -48,17 +48,17 @@ const Problem = () => {
                 {
                     icon: <Code size={24} />,
                     title: "The top candidates aren't doing LeetCode problems",
-                    description: "They're building products, shipping code, and making real contributions."
+                    description: "They're building products, shipping code, and making real contributions instead of memorizing algorithms."
                 },
                 {
                     icon: <Brain size={24} />,
-                    title: "Data structures and algorithms problems don't provide any signal",
-                    description: "Outdated screening methods leave you with candidates who lack the practical skills that you're looking for"
+                    title: "Throwing darts in the dark",
+                    description: "Data structures and algorithms code screens leave you with candidates who lack the practical skills that impact your team's success."
                 },
                 {
                     icon: <X size={24} />,
                     title: "Easy to cheat on",
-                    description: "AI tools make it easier than ever to cheat on assessments, leaving you catfished once they show up for the job."
+                    description: "AI tools make it easier than ever to cheat on assessments, clogging up your pipeline with candidates who can't deliver."
                 }
             ]} />
         </div>

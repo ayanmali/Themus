@@ -41,9 +41,9 @@ const Benefits = () => {
                 <div className="grid md:grid-cols-2 gap-8 max-w-7xl mx-auto">
                     {/* Avoid meeting overload */}
                     <div className="bg-gray-800 p-8 rounded-3xl border border-gray-700">
-                        <h3 className="text-2xl font-bold mb-4">Avoid meeting overload</h3>
-                        <div className="text-gray-400 mb-8">
-                            Only get booked when you want to. Set daily, weekly or monthly limits and add buffers around your events to allow you to focus or take a break.
+                        <h3 className="text-2xl mt-2 mb-4 font-lora">Tailored to your team's needs</h3>
+                        <div className="text-gray-300 mb-8">
+                            You have complete control over the skills you want to screen for and the challenges for candidates to work on. Specify the role you're hiring for, the technologies and skills you're looking for, and a brief description of what you want to assess. We take care of the rest.
                             <p className="text-2xl font-bold mb-4">Notice and buffers</p>
 
                             <div className="space-y-6">
@@ -120,9 +120,9 @@ const Benefits = () => {
 
                     {/* Custom booking link */}
                     <div className="bg-gray-800 p-8 rounded-3xl border border-gray-700">
-                        <h3 className="text-2xl font-bold mb-4">Stand out with a custom booking link</h3>
-                        <p className="text-gray-400 mb-8">
-                            Customize your booking link so it's short and easy to remember for your bookers. No more long, complicated links one can easily forget.
+                        <h3 className="text-2xl mt-2 mb-4 font-lora">See how candidates work with AI-generated code</h3>
+                        <p className="text-gray-300 mb-8">
+                            See how candidates improve half-implemented features and fix bugs introduced by LLMs, essential skills for fast-paced teams that ship reliable, maintainable code fast and often.
                         </p>
 
                         {/* Booking Link Preview */}
@@ -163,76 +163,6 @@ const Benefits = () => {
                                 <Globe className="w-4 h-4 text-gray-400" />
                                 <span className="text-sm text-gray-300">Europe/Warsaw</span>
                                 <ChevronDown className="w-4 h-4 text-gray-400" />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Streamline bookers' experience */}
-                    <div className="bg-gray-800 p-8 rounded-3xl border border-gray-700">
-                        <h3 className="text-2xl font-bold mb-4">Streamline your bookers' experience</h3>
-                        <p className="text-gray-400 mb-8">
-                            Let your bookers overlay their calendar, receive booking confirmations via text or email, get events added to their calendar, and allow them to reschedule with ease.
-                        </p>
-
-                        {/* Calendar Preview */}
-                        <div className="bg-gray-900 p-6 rounded-2xl border border-gray-600">
-                            <div className="flex justify-between items-center mb-4">
-                                <h4 className="text-lg font-medium">Overlay my calendar</h4>
-                                <div className="flex space-x-2">
-                                    <button className="px-3 py-1 bg-gray-700 text-xs rounded">12h</button>
-                                    <button className="px-3 py-1 bg-gray-600 text-xs rounded">24h</button>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-5 gap-2">
-                                {['Wed 06', 'Thu 07', 'Fri 08', 'Sat 09', 'Sun 10'].map((day, index) => (
-                                    <div key={day} className="text-center">
-                                        <div className="text-sm text-gray-400 mb-2">{day}</div>
-                                        <div className="h-32 bg-gray-800 rounded-lg border border-gray-700 relative">
-                                            {/* Sample calendar blocks */}
-                                            {index === 1 && (
-                                                <div className="absolute top-2 left-1 right-1 h-6 bg-blue-600 rounded opacity-60"></div>
-                                            )}
-                                            {index === 2 && (
-                                                <>
-                                                    <div className="absolute top-4 left-1 right-1 h-4 bg-green-600 rounded opacity-60"></div>
-                                                    <div className="absolute bottom-4 left-1 right-1 h-8 bg-purple-600 rounded opacity-60"></div>
-                                                </>
-                                            )}
-                                            {index === 4 && (
-                                                <div className="absolute top-8 left-1 right-1 h-6 bg-red-600 rounded opacity-60"></div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Reduce no-shows */}
-                    <div className="bg-gray-800 p-8 rounded-3xl border border-gray-700">
-                        <h3 className="text-2xl font-bold mb-4">Reduce no-shows with automated meeting reminders</h3>
-                        <p className="text-gray-400 mb-8">
-                            Easily send sms or meeting reminder emails about bookings, and send automated follow-ups to gather any relevant information before the meeting.
-                        </p>
-
-                        {/* Notification Preview */}
-                        <div className="bg-gray-900 p-4 rounded-2xl border border-gray-600">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 bg-white text-black rounded-lg flex items-center justify-center font-bold text-sm">
-                                    Cal
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <div className="text-sm font-medium">Booking rescheduled</div>
-                                            <div className="text-xs text-gray-400">
-                                                Joshua Smith has rescheduled the meeting to Wed, 30 Mar 15:00
-                                            </div>
-                                        </div>
-                                        <div className="text-xs text-gray-500">16 mins</div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>

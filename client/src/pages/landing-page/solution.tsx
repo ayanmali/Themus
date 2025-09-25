@@ -27,7 +27,7 @@ const Solution = () => {
             {/* Hero Section */}
             <div className="text-center py-12">
                 <h1 className="text-5xl font-lora md:text-6xl mb-8 leading-tight">
-                <p className="whitespace-pre-wrap">
+                    <p className="whitespace-pre-wrap">
                         <span>{"Find your next superstar "}</span>
                         <Typewriter
                             text={[
@@ -46,7 +46,7 @@ const Solution = () => {
                     </p>
                 </h1>
                 <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
-                    Find the candidate that's right for your team
+                    Make the hire that's right for your team
                 </p>
                 {/* <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
                     Traditional data structures and algorithms problems don't reflect the skills that technical professionals need to have to be successful in their role.
@@ -67,7 +67,7 @@ const Solution = () => {
                         <div className="mb-6">
                             <span className="text-gray-500 text-sm">01</span>
                             <h3 className="text-2xl mt-2 mb-4 font-lora">Describe the role</h3>
-                            <p className="text-gray-400">
+                            <p className="text-gray-300">
                                 Fill out a short form to describe the role you're hiring for.
                             </p>
                         </div>
@@ -98,7 +98,7 @@ const Solution = () => {
                         <div className="mb-6">
                             <span className="text-gray-500 text-sm">02</span>
                             <h3 className="text-2xl mt-2 mb-4 font-lora">Repository creation</h3>
-                            <p className="text-gray-400">
+                            <p className="text-gray-300">
                                 We'll design the assessment and store the files in a private GitHub repository.
                             </p>
                         </div>
@@ -109,8 +109,8 @@ const Solution = () => {
                                 <div
                                     key={item.day}
                                     className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${selectedDay === item.day
-                                            ? 'bg-gray-700 border-gray-500'
-                                            : 'bg-gray-900 border-gray-600 hover:bg-gray-700'
+                                        ? 'bg-gray-700 border-gray-500'
+                                        : 'bg-gray-900 border-gray-600 hover:bg-gray-700'
                                         }`}
                                     onClick={() => setSelectedDay(item.day)}
                                 >
@@ -128,7 +128,7 @@ const Solution = () => {
                         <div className="mb-6">
                             <span className="text-gray-500 text-sm">03</span>
                             <h3 className="text-2xl mt-2 mb-4 font-lora">Invite candidates</h3>
-                            <p className="text-gray-400">
+                            <p className="text-gray-300">
                                 Just enter their name and email and we'll take care of inviting and notifying them.
                             </p>
                         </div>
@@ -152,14 +152,16 @@ const Solution = () => {
                             </button>
                         </div>
                     </div>
-
+                </div>
+                <div className="py-4"></div>
+                <div className="grid md:grid-cols-2 gap-8 max-w-7xl mx-auto">
                     {/* Feature 4 - Completing the assessment */}
                     <div className="bg-gray-800 p-8 rounded-3xl border border-gray-700">
                         <div className="mb-6">
                             <span className="text-gray-500 text-sm">04</span>
                             <h3 className="text-2xl mt-2 mb-4 font-lora">Completing the assessment</h3>
-                            <p className="text-gray-400">
-                                Candidates will receive a secure link to the assessment. They'll have their own private GitHub repository to work on, and they'll submit a pull request with their changes for review when they're finished.
+                            <p className="text-gray-300">
+                                Candidates will receive a secure link to complete the assessment. They'll have their own private GitHub repository to work on, and they'll submit a pull request with their changes for review when they're finished.
                             </p>
                         </div>
 
@@ -188,7 +190,7 @@ const Solution = () => {
                         <div className="mb-6">
                             <span className="text-gray-500 text-sm">05</span>
                             <h3 className="text-2xl mt-2 mb-4 font-lora">Evaluations</h3>
-                            <p className="text-gray-400">
+                            <p className="text-gray-300">
                                 Easily keep track of all pull requests and contact candidates directly through your dashboard.
                             </p>
                         </div>

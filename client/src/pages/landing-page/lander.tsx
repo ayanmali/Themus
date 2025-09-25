@@ -3,7 +3,7 @@ import { Link } from 'wouter'
 import { Button } from '@/components/ui/button'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../../components/ui/accordion";
 import { HeroHeader } from './hero-header'
-import HowItWorks from './how-it-works';
+// import HowItWorks from './how-it-works';
 import Benefits from './benefits';
 import Problem from './problem';
 import Solution from './solution';
@@ -15,7 +15,7 @@ export function HeroSection() {
             <HeroHeader />
             <main className="overflow-x-hidden pb-10">
                 <section>
-                    <div className="pt-12 lg:pt-44 h-screen relative mx-auto flex max-w-6xl flex-col px-6 lg:grid lg:grid-cols-2">
+                    <div className="h-screen relative mx-auto flex max-w-6xl flex-col px-6 lg:grid lg:grid-cols-2 items-center">
                         <div className="mx-auto max-w-lg text-center lg:ml-0 lg:text-left">
                             <h1 className="font-lora mt-8 max-w-2xl text-balance text-5xl md:text-6xl lg:mt-16 xl:text-7xl">Technical Hiring for the Modern Era</h1>
                             <p className="mt-8 max-w-2xl text-pretty text-lg">Assess candidates on their ability to debug and enhance AI-generated code and how they use AI programming tools.</p>
@@ -66,7 +66,7 @@ export function HeroSection() {
                                             text={[
                                                 'Go, Kafka, Redis, Goroutines, gRPC, Protocol Buffers',
                                                 'Swift, SwiftUI, iOS',
-                                                'Python, PyTorch, OpenCV',
+                                                'Python, NumPy, PyTorch, OpenCV',
                                                 'Python, PostgreSQL, PySpark, Kafka',
                                                 'Next.js, TypeScript, Tailwind CSS, Prisma'
                                             ]}
@@ -88,7 +88,7 @@ export function HeroSection() {
                                                 'designing an iOS application',
                                                 'debugging a transformer',
                                                 'designing an ETL pipeline',
-                                                'creating a full-stack web application',
+                                                'creating a web-based note-taking application',
                                             ]}
                                             speed={40}
                                             waitTime={1600}
@@ -229,46 +229,40 @@ export function HeroSection() {
                                 collapsible
                                 className="mb-8"
                             >
-                                <AccordionItem value="item-1">
-                                    <AccordionTrigger>Product Information</AccordionTrigger>
-                                    <AccordionContent className="flex flex-col gap-4 text-balance">
+                                <AccordionItem value="item-1" className="border-b border-white/30">
+                                    <AccordionTrigger>How are assessments graded?</AccordionTrigger>
+                                    <AccordionContent className="flex flex-col gap-4 ">
                                         <p>
-                                            Our flagship product combines cutting-edge technology with sleek
-                                            design. Built with premium materials, it offers unparalleled
-                                            performance and reliability.
+                                            We're developing a scoring system that reviews pull requests 
+                                            as soon as they come in and automatically evaluate them based on 
+                                            a set of criteria. 
                                         </p>
                                         <p>
-                                            Key features include advanced processing capabilities, and an
-                                            intuitive user interface designed for both beginners and experts.
-                                        </p>
-                                    </AccordionContent>
-                                </AccordionItem>
-                                <AccordionItem value="item-2">
-                                    <AccordionTrigger>Shipping Details</AccordionTrigger>
-                                    <AccordionContent className="flex flex-col gap-4 text-balance">
-                                        <p>
-                                            We offer worldwide shipping through trusted courier partners.
-                                            Standard delivery takes 3-5 business days, while express shipping
-                                            ensures delivery within 1-2 business days.
-                                        </p>
-                                        <p>
-                                            All orders are carefully packaged and fully insured. Track your
-                                            shipment in real-time through our dedicated tracking portal.
+                                        We're also working on a system to analyze candidate behaviour during 
+                                        the assessment to provide insights into what AI tools they're using 
+                                        and how they use them.
                                         </p>
                                     </AccordionContent>
                                 </AccordionItem>
-                                <AccordionItem value="item-3">
-                                    <AccordionTrigger>Return Policy</AccordionTrigger>
-                                    <AccordionContent className="flex flex-col gap-4 text-balance">
+                                <AccordionItem value="item-2" className="border-b border-white/30">
+                                    <AccordionTrigger>How are assessments created?</AccordionTrigger>
+                                    <AccordionContent className="flex flex-col gap-4">
                                         <p>
-                                            We stand behind our products with a comprehensive 30-day return
-                                            policy. If you&apos;re not completely satisfied, simply return the
-                                            item in its original condition.
+                                            We designed a coding agent that uses LLMs to generate code directly inside of GitHub based on a set of parameters that you define.
                                         </p>
                                         <p>
-                                            Our hassle-free return process includes free return shipping and
-                                            full refunds processed within 48 hours of receiving the returned
-                                            item.
+                                            When you create an assessment, all files generated by the agent are saved to a private GitHub repository that you own and can modify freely.
+                                        </p>
+                                    </AccordionContent>
+                                </AccordionItem>
+                                <AccordionItem value="item-3" className="border-b border-white/30">
+                                    <AccordionTrigger>How do candidates complete assessments?</AccordionTrigger>
+                                    <AccordionContent className="flex flex-col gap-4">
+                                        <p>
+                                            When you make an assessment public, candidates will receive an email containing a password and a link where they can complete the assessment securely. Once they begin, a private GitHub repository is created for them to work on containing the code and files.
+                                        </p>
+                                        <p>
+                                            Candidates will have a certain amount of time to commit their changes and submit a pull request outlining their changes. Once they submit, you'll be able to view their pull request from your Assessments dashboard.
                                         </p>
                                     </AccordionContent>
                                 </AccordionItem>
@@ -317,7 +311,7 @@ export function HeroSection() {
 
 export default function LandingPage() {
     return (
-        <div>
+        <div className="bg-slate-800">
             <HeroSection />
         </div>
     )
