@@ -39,66 +39,63 @@ export function HeroSection() {
                             </div>
                         </div>
                         <div className="mt-0 lg:mt-0 lg:self-center mx-auto w-full max-w-md lg:mr-0 lg:ml-auto">
-                            <div className="bg-slate-900/70 border border-white/15 rounded-xl p-6 shadow-lg shadow-black/20">
+                            <div className="text-sm md:text-base text-gray-200">
                                 <p className="text-xs text-gray-400 mb-2">Role</p>
-                                <div className="text-base md:text-lg text-gray-200">
+                                <Typewriter
+                                    text={[
+                                        'Senior Software Engineer',
+                                        'iOS Engineer',
+                                        'AI Researcher',
+                                        'Mid-Level Data Engineer',
+                                        'Junior Full‑Stack Developer',
+                                    ]}
+                                    //speed={25}
+                                    animationDuration={1250}
+                                    deleteDuration={800}
+                                    waitTime={1600}
+                                    //deleteSpeed={35}
+                                    initialDelay={200}
+                                />
+                            </div>
+
+                            <div className="text-sm md:text-base text-gray-200 mt-6 pt-4 border-t border-white/10">
+                                <p className="text-xs text-gray-400 mb-2">Skills</p>
+                                <Typewriter
+                                    text={[
+                                        'Go, Redis, Goroutines, gRPC, Protocol Buffers',
+                                        'Swift, SwiftUI, Combine, UIKit',
+                                        'Python, NumPy, PyTorch, OpenCV',
+                                        'Python, PostgreSQL, PySpark, Kafka',
+                                        'Next.js, TypeScript, Tailwind CSS, Prisma'
+                                    ]}
+                                    //speed={25}
+                                    animationDuration={1250}
+                                    deleteDuration={800}
+                                    waitTime={1600}
+                                    //deleteSpeed={35}
+                                    initialDelay={200}
+                                //syncSignal={syncTick}
+                                />
+                            </div>
+                            <div className="text-sm md:text-base text-gray-200 mt-6 pt-4 border-t border-white/10">
+                                <p className="text-xs text-gray-400 mb-2">Create an assessment on</p>
+                                <div className="sm:h-10 md:h-auto overflow-hidden">
                                     <Typewriter
                                         text={[
-                                            'Senior Software Engineer',
-                                            'iOS Engineer',
-                                            'AI Researcher',
-                                            'Mid-Level Data Engineer',
-                                            'Junior Full‑Stack Developer',
+                                            'migrating a monolithic system into microservices',
+                                            'designing an iOS application',
+                                            'debugging a transformer',
+                                            'designing an ETL pipeline',
+                                            'creating a web-based note-taking application',
                                         ]}
-                                        speed={40}
+                                        //speed={25}
+                                        animationDuration={1250}
+                                        deleteDuration={800}
                                         waitTime={1600}
-                                        deleteSpeed={28}
+                                        //deleteSpeed={35}
                                         initialDelay={200}
-                                        className=""
-                                    //syncSignal={syncTick}
                                     />
                                 </div>
-
-                                <div className="mt-6 pt-4 border-t border-white/10">
-                                    <p className="text-xs text-gray-400 mb-2">Skills</p>
-                                    <div className="text-base md:text-lg text-gray-200">
-                                        <Typewriter
-                                            text={[
-                                                'Go, Kafka, Redis, Goroutines, gRPC, Protocol Buffers',
-                                                'Swift, SwiftUI, iOS',
-                                                'Python, NumPy, PyTorch, OpenCV',
-                                                'Python, PostgreSQL, PySpark, Kafka',
-                                                'Next.js, TypeScript, Tailwind CSS, Prisma'
-                                            ]}
-                                            speed={40}
-                                            waitTime={1600}
-                                            deleteSpeed={28}
-                                            initialDelay={200}
-                                            className=""
-                                        //syncSignal={syncTick}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="mt-6 pt-4 border-t border-white/10">
-                                    <p className="text-xs text-gray-400 mb-2">Create an assessment on</p>
-                                    <div className="text-base md:text-lg text-gray-200">
-                                        <Typewriter
-                                            text={[
-                                                'migrating a monolithic system into a microservices architecture',
-                                                'designing an iOS application',
-                                                'debugging a transformer',
-                                                'designing an ETL pipeline',
-                                                'creating a web-based note-taking application',
-                                            ]}
-                                            speed={40}
-                                            waitTime={1600}
-                                            deleteSpeed={28}
-                                            initialDelay={200}
-                                            className=""
-                                        />
-                                    </div>
-                                </div>
-
                             </div>
                         </div>
                     </div>
@@ -233,14 +230,14 @@ export function HeroSection() {
                                     <AccordionTrigger>How are assessments graded?</AccordionTrigger>
                                     <AccordionContent className="flex flex-col gap-4 ">
                                         <p>
-                                            We're developing a scoring system that reviews pull requests 
-                                            as soon as they come in and automatically evaluate them based on 
-                                            a set of criteria. 
+                                            We're developing a scoring system that reviews pull requests
+                                            as soon as they come in and automatically evaluate them based on
+                                            a set of criteria.
                                         </p>
                                         <p>
-                                        We're also working on a system to analyze candidate behaviour during 
-                                        the assessment to provide insights into what AI tools they're using 
-                                        and how they use them.
+                                            We're also working on a system to analyze candidate behaviour during
+                                            the assessment to provide insights into what AI tools they're using
+                                            and how they use them.
                                         </p>
                                     </AccordionContent>
                                 </AccordionItem>

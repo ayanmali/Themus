@@ -5,9 +5,11 @@ import { cn } from "@/lib/utils"
 
 interface TypewriterProps {
   text: string | string[]
+  animationDuration?: number // New prop for fixed duration in milliseconds
   speed?: number
   initialDelay?: number
   waitTime?: number
+  deleteDuration?: number // New prop for fixed delete duration in milliseconds
   deleteSpeed?: number
   loop?: boolean
   className?: string
@@ -23,6 +25,8 @@ interface TypewriterProps {
 
 const Typewriter = ({
   text,
+  animationDuration = 1500,
+  deleteDuration = 500,
   speed = 50,
   initialDelay = 0,
   waitTime = 2000,
@@ -58,34 +62,38 @@ const Typewriter = ({
 
     const currentText = texts[currentTextIndex]
 
-    const startTyping = () => {
-      if (isDeleting) {
-        if (displayText === "") {
-          setIsDeleting(false)
-          if (currentTextIndex === texts.length - 1 && !loop) {
-            return
+    // Calculate dynamic speeds based on text length and desired duration
+    const calculatedSpeed = animationDuration ? animationDuration / currentText.length : speed
+    const calculatedDeleteSpeed = deleteDuration ? deleteDuration / currentText.length : deleteSpeed
+
+      const startTyping = () => {
+        if (isDeleting) {
+          if (displayText === "") {
+            setIsDeleting(false)
+            if (currentTextIndex === texts.length - 1 && !loop) {
+              return
+            }
+            setCurrentTextIndex((prev) => (prev + 1) % texts.length)
+            setCurrentIndex(0)
+            timeout = setTimeout(() => {}, waitTime)
+          } else {
+            timeout = setTimeout(() => {
+              setDisplayText((prev) => prev.slice(0, -1))
+            }, calculatedDeleteSpeed)
           }
-          setCurrentTextIndex((prev) => (prev + 1) % texts.length)
-          setCurrentIndex(0)
-          timeout = setTimeout(() => {}, waitTime)
         } else {
-          timeout = setTimeout(() => {
-            setDisplayText((prev) => prev.slice(0, -1))
-          }, deleteSpeed)
-        }
-      } else {
-        if (currentIndex < currentText.length) {
-          timeout = setTimeout(() => {
-            setDisplayText((prev) => prev + currentText[currentIndex])
-            setCurrentIndex((prev) => prev + 1)
-          }, speed)
-        } else if (texts.length > 1) {
-          timeout = setTimeout(() => {
-            setIsDeleting(true)
-          }, waitTime)
+          if (currentIndex < currentText.length) {
+            timeout = setTimeout(() => {
+              setDisplayText((prev) => prev + currentText[currentIndex])
+              setCurrentIndex((prev) => prev + 1)
+            }, calculatedSpeed)
+          } else if (texts.length > 1) {
+            timeout = setTimeout(() => {
+              setIsDeleting(true)
+            }, waitTime)
+          }
         }
       }
-    }
 
     // Apply initial delay only at the start
     if (currentIndex === 0 && !isDeleting && displayText === "") {
@@ -99,12 +107,15 @@ const Typewriter = ({
     currentIndex,
     displayText,
     isDeleting,
+    animationDuration,
+    deleteDuration,
     speed,
     deleteSpeed,
     waitTime,
     texts,
     currentTextIndex,
     loop,
+    initialDelay
   ])
 
   return (
