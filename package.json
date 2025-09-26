@@ -74,10 +74,10 @@
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.15",
     "@types/connect-pg-simple": "^7.0.3",
-    "@types/node": "20.16.11",
+    "@types/node": "24.5.2",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.3.2",
+    "@vitejs/plugin-react": "^4.6.0",
     "autoprefixer": "^10.4.20",
     "drizzle-kit": "^0.18.1",
     "esbuild": "^0.25.0",
@@ -85,7 +85,7 @@
     "tailwindcss": "^3.4.14",
     "tsx": "^4.19.1",
     "typescript": "5.6.3",
-    "vite": "^7.0.4"
+    "vite": "^7.1.7"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
