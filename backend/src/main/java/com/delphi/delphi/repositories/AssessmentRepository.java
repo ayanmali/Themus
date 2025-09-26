@@ -73,7 +73,7 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long>, J
 
        // Count assessments by status for a user
        @Query("SELECT COUNT(a) FROM Assessment a WHERE a.user.id = :userId AND a.status = :status")
-       Long countByUserIdAndStatus(@Param("userId") Long userId, @Param("status") AssessmentStatus status);
+       Integer countByUserIdAndStatus(@Param("userId") Long userId, @Param("status") AssessmentStatus status);
 
        // Find assessments with multiple optional filters
        // Use COALESCE to avoid untyped `? is null` SQL parameters that break on

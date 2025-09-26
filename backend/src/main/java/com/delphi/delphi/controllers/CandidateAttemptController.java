@@ -140,13 +140,17 @@ public class CandidateAttemptController {
         try {
             UserCacheDto user = getCurrentUser();
             // get active assessments
-            Long activeAssessments = assessmentService.countAssessmentsByUserAndStatus(user, AssessmentStatus.ACTIVE);
+            log.info("Getting active assessments");
+            Integer activeAssessments = assessmentService.countAssessmentsByUserAndStatus(user, AssessmentStatus.ACTIVE);
             // get total invited candidates
-            Long totalInvited = candidateAttemptService.countAttemptsByUserAndStatus(user, AttemptStatus.INVITED);
+            log.info("Getting total invited candidates");
+            Integer totalInvited = candidateAttemptService.countAttemptsByUserAndStatus(user, AttemptStatus.INVITED);
             // get ongoing attempts (status = STARTED)
-            Long ongoingAttempts = candidateAttemptService.countAttemptsByUserAndStatus(user, AttemptStatus.STARTED);
+            log.info("Getting ongoing attempts");
+            Integer ongoingAttempts = candidateAttemptService.countAttemptsByUserAndStatus(user, AttemptStatus.STARTED);
             // get pending reviews (status = COMPLETED)
-            Long pendingReviews = candidateAttemptService.countAttemptsByUserAndStatus(user, AttemptStatus.COMPLETED);
+            log.info("Getting pending reviews");
+            Integer pendingReviews = candidateAttemptService.countAttemptsByUserAndStatus(user, AttemptStatus.COMPLETED);
             return ResponseEntity.ok(Map.of(
                 "activeAssessments", activeAssessments,
                 "totalInvited", totalInvited,
@@ -681,30 +685,30 @@ public class CandidateAttemptController {
     }
 
     // Count attempts by assessment and status
-    @GetMapping("/count/assessment/{assessmentId}/status/{status}")
-    public ResponseEntity<?> countAttemptsByAssessmentAndStatus(
-            @PathVariable Long assessmentId,
-            @PathVariable AttemptStatus status) {
-        try {
-            Long count = candidateAttemptService.countAttemptsByAssessmentAndStatus(assessmentId, status);
-            return ResponseEntity.ok(count);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error counting attempts: " + e.getMessage());
-        }
-    }
+    // @GetMapping("/count/assessment/{assessmentId}/status/{status}")
+    // public ResponseEntity<?> countAttemptsByAssessmentAndStatus(
+    //         @PathVariable Long assessmentId,
+    //         @PathVariable AttemptStatus status) {
+    //     try {
+    //         Long count = candidateAttemptService.countAttemptsByAssessmentAndStatus(assessmentId, status);
+    //         return ResponseEntity.ok(count);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error counting attempts: " + e.getMessage());
+    //     }
+    // }
 
-    // Count attempts by candidate
-    @GetMapping("/count/candidate/{candidateId}")
-    public ResponseEntity<?> countAttemptsByCandidate(@PathVariable Long candidateId) {
-        try {
-            Long count = candidateAttemptService.countAttemptsByCandidate(candidateId);
-            return ResponseEntity.ok(count);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error counting attempts: " + e.getMessage());
-        }
-    }
+    // // Count attempts by candidate
+    // @GetMapping("/count/candidate/{candidateId}")
+    // public ResponseEntity<?> countAttemptsByCandidate(@PathVariable Long candidateId) {
+    //     try {
+    //         Long count = candidateAttemptService.countAttemptsByCandidate(candidateId);
+    //         return ResponseEntity.ok(count);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error counting attempts: " + e.getMessage());
+    //     }
+    // }
 
     // Get attempt with details
     @GetMapping("/{id}/details")
@@ -831,6 +835,17 @@ public class CandidateAttemptController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error marking as evaluated: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/quick-overview")
+    public ResponseEntity<?> getQuickOverview() {
+        try {
+            UserCacheDto user = getCurrentUser();
+            return ResponseEntity.ok(candidateAttemptService.getQuickOverview(user.getId()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error getting quick overview: " + e.getMessage());
         }
     }
 

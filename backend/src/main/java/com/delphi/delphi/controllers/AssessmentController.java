@@ -635,10 +635,10 @@ public class AssessmentController {
             List<AssessmentCacheDto> assessments = assessmentService.getActiveAssessmentsByUser(user, pageable);
             List<Map<String, Object>> response = assessments.stream().map(assessment -> {
                 Long assessmentId = assessment.getId();
-                Long invited = candidateAttemptService.countAttemptsByAssessmentAndStatus(assessmentId, AttemptStatus.INVITED);
-                Long started = candidateAttemptService.countAttemptsByAssessmentAndStatus(assessmentId, AttemptStatus.STARTED);
-                Long completed = candidateAttemptService.countAttemptsByAssessmentAndStatus(assessmentId, AttemptStatus.COMPLETED);
-                Long evaluated = candidateAttemptService.countAttemptsByAssessmentAndStatus(assessmentId, AttemptStatus.EVALUATED);
+                Integer invited = candidateAttemptService.countAttemptsByAssessmentAndStatus(assessmentId, AttemptStatus.INVITED);
+                Integer started = candidateAttemptService.countAttemptsByAssessmentAndStatus(assessmentId, AttemptStatus.STARTED);
+                Integer completed = candidateAttemptService.countAttemptsByAssessmentAndStatus(assessmentId, AttemptStatus.COMPLETED);
+                Integer evaluated = candidateAttemptService.countAttemptsByAssessmentAndStatus(assessmentId, AttemptStatus.EVALUATED);
                 return Map.of(
                     "assessment", assessment,
                     "invitedCount", invited,
@@ -954,7 +954,7 @@ public class AssessmentController {
             @PathVariable AssessmentStatus status) {
         try {
             UserCacheDto user = getCurrentUser();
-            Long count = assessmentService.countAssessmentsByUserAndStatus(user, status);
+            Integer count = assessmentService.countAssessmentsByUserAndStatus(user, status);
             return ResponseEntity.ok(count);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

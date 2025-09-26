@@ -81,10 +81,10 @@ public interface CandidateAttemptRepository extends JpaRepository<CandidateAttem
     
     // Count attempts by status for an assessment
     @Query("SELECT COUNT(ca) FROM CandidateAttempt ca WHERE ca.assessment.id = :assessmentId AND ca.status = :status")
-    Long countByAssessmentIdAndStatus(@Param("assessmentId") Long assessmentId, @Param("status") AttemptStatus status);
+    Integer countByAssessmentIdAndStatus(@Param("assessmentId") Long assessmentId, @Param("status") AttemptStatus status);
     
     // Count attempts by candidate
-    Long countByCandidateId(Long candidateId);
+    Integer countByCandidateId(Long candidateId);
     
     // Find attempts with candidate and assessment details
     @Query("SELECT ca FROM CandidateAttempt ca " +
@@ -162,37 +162,49 @@ public interface CandidateAttemptRepository extends JpaRepository<CandidateAttem
     @Query(value = ""
         + "SELECT * FROM ("
         + "  SELECT ca.id AS attemptId, ca.assessment_id AS assessmentId, ca.candidate_id AS candidateId, 'STARTED' AS eventType, ca.started_date AS eventTime "
-        + "  FROM candidate_attempts ca "
-        + "  JOIN candidates c ON c.id = ca.candidate_id "
+        + "  FROM themus.candidate_attempts ca "
+        + "  JOIN themus.candidates c ON c.id = ca.candidate_id "
         + "  WHERE c.user_id = :userId AND ca.started_date IS NOT NULL "
         + "  UNION ALL "
         + "  SELECT ca.id AS attemptId, ca.assessment_id AS assessmentId, ca.candidate_id AS candidateId, 'COMPLETED' AS eventType, ca.completed_date AS eventTime "
-        + "  FROM candidate_attempts ca "
-        + "  JOIN candidates c ON c.id = ca.candidate_id "
+        + "  FROM themus.candidate_attempts ca "
+        + "  JOIN themus.candidates c ON c.id = ca.candidate_id "
         + "  WHERE c.user_id = :userId AND ca.completed_date IS NOT NULL "
         + "  UNION ALL "
         + "  SELECT ca.id AS attemptId, ca.assessment_id AS assessmentId, ca.candidate_id AS candidateId, 'EVALUATED' AS eventType, ca.evaluated_date AS eventTime "
-        + "  FROM candidate_attempts ca "
-        + "  JOIN candidates c ON c.id = ca.candidate_id "
+        + "  FROM themus.candidate_attempts ca "
+        + "  JOIN themus.candidates c ON c.id = ca.candidate_id "
         + "  WHERE c.user_id = :userId AND ca.evaluated_date IS NOT NULL "
         + ") ev ORDER BY ev.eventTime DESC",
         countQuery = ""
         + "SELECT COUNT(1) FROM ("
         + "  SELECT ca.id "
-        + "  FROM candidate_attempts ca JOIN candidates c ON c.id = ca.candidate_id "
+        + "  FROM themus.candidate_attempts ca JOIN themus.candidates c ON c.id = ca.candidate_id "
         + "  WHERE c.user_id = :userId AND ca.started_date IS NOT NULL "
         + "  UNION ALL "
         + "  SELECT ca.id "
-        + "  FROM candidate_attempts ca JOIN candidates c ON c.id = ca.candidate_id "
+        + "  FROM themus.candidate_attempts ca JOIN themus.candidates c ON c.id = ca.candidate_id "
         + "  WHERE c.user_id = :userId AND ca.completed_date IS NOT NULL "
         + "  UNION ALL "
         + "  SELECT ca.id "
-        + "  FROM candidate_attempts ca JOIN candidates c ON c.id = ca.candidate_id "
+        + "  FROM themus.candidate_attempts ca JOIN themus.candidates c ON c.id = ca.candidate_id "
         + "  WHERE c.user_id = :userId AND ca.evaluated_date IS NOT NULL "
         + ") ev",
         nativeQuery = true)
     Page<RecentEventView> findRecentEventsByUserId(@Param("userId") Long userId, Pageable pageable);
 
     @Query("SELECT COUNT(ca) FROM CandidateAttempt ca WHERE ca.candidate.user.id = :userId AND ca.status = :status")
-    Long countByUserIdAndStatus(@Param("userId") Long userId, @Param("status") AttemptStatus status);
+    Integer countByUserIdAndStatus(@Param("userId") Long userId, @Param("status") AttemptStatus status);
+    
+    // Count attempts started in last 7 days
+    @Query("SELECT COUNT(ca) FROM CandidateAttempt ca WHERE ca.candidate.user.id = :userId AND ca.startedDate >= :sevenDaysAgo")
+    Integer countAttemptsStartedInLast7Days(@Param("userId") Long userId, @Param("sevenDaysAgo") LocalDateTime sevenDaysAgo);
+    
+    // Calculate average time to complete (in hours)
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (ca.completed_date - ca.started_date)) / 3600) FROM themus.candidate_attempts ca JOIN themus.candidates c ON c.id = ca.candidate_id WHERE c.user_id = :userId AND ca.started_date IS NOT NULL AND ca.completed_date IS NOT NULL", nativeQuery = true)
+    Double getAverageTimeToComplete(@Param("userId") Long userId);
+    
+    // Count new submissions in last 7 days
+    @Query("SELECT COUNT(ca) FROM CandidateAttempt ca WHERE ca.candidate.user.id = :userId AND ca.completedDate >= :sevenDaysAgo")
+    Integer countNewSubmissionsInLast7Days(@Param("userId") Long userId, @Param("sevenDaysAgo") LocalDateTime sevenDaysAgo);
 }

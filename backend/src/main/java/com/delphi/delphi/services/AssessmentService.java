@@ -543,7 +543,7 @@ public class AssessmentService {
     // Count assessments by status for a user
     @Cacheable(value = "assessments", key = "#user.id + ':' + #status + ':' + #count")
     @Transactional(readOnly = true)
-    public Long countAssessmentsByUserAndStatus(UserCacheDto user, AssessmentStatus status) {
+    public Integer countAssessmentsByUserAndStatus(UserCacheDto user, AssessmentStatus status) {
         return assessmentRepository.countByUserIdAndStatus(user.getId(), status);
     }
 

@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -601,14 +602,14 @@ public class CandidateAttemptService {
     // Count attempts by assessment and status
     @Cacheable(value = "attempts", key = "'assessment:status:count' + ':' + #assessmentId + ':' + #status")
     @Transactional(readOnly = true)
-    public Long countAttemptsByAssessmentAndStatus(Long assessmentId, AttemptStatus status) {
+    public Integer countAttemptsByAssessmentAndStatus(Long assessmentId, AttemptStatus status) {
         return candidateAttemptRepository.countByAssessmentIdAndStatus(assessmentId, status);
     }
 
     // Count attempts by candidate
     @Cacheable(value = "attempts", key = "'candidate:count' + ':' + #candidateId")
     @Transactional(readOnly = true)
-    public Long countAttemptsByCandidate(Long candidateId) {
+    public Integer countAttemptsByCandidate(Long candidateId) {
         return candidateAttemptRepository.countByCandidateId(candidateId);
     }
 
@@ -641,8 +642,59 @@ public class CandidateAttemptService {
     // Count attempts by user and status
     @Cacheable(value = "attempts", key = "'user:status:count' + ':' + #userId + ':' + #status")
     @Transactional(readOnly = true)
-    public Long countAttemptsByUserAndStatus(UserCacheDto user, AttemptStatus status) {
+    public Integer countAttemptsByUserAndStatus(UserCacheDto user, AttemptStatus status) {
         return candidateAttemptRepository.countByUserIdAndStatus(user.getId(), status);
+    }
+
+    // Get completion rate for a user
+    @Cacheable(value = "attempts", key = "'completion_rate' + ':' + #userId")
+    @Transactional(readOnly = true)
+    public Double getCompletionRate(Long userId) {
+        Integer totalStarted = candidateAttemptRepository.countByUserIdAndStatus(userId, AttemptStatus.STARTED);
+        Integer totalCompleted = candidateAttemptRepository.countByUserIdAndStatus(userId, AttemptStatus.COMPLETED);
+        Integer totalEvaluated = candidateAttemptRepository.countByUserIdAndStatus(userId, AttemptStatus.EVALUATED);
+        
+        // Completion rate = (completed + evaluated) / (started + completed + evaluated) * 100
+        int totalAttempts = totalStarted + totalCompleted + totalEvaluated;
+        double completionRate = totalAttempts > 0 ? ((double)(totalCompleted + totalEvaluated) / totalAttempts) * 100 : 0.0;
+        
+        return Math.round(completionRate * 100.0) / 100.0; // Round to 2 decimal places
+    }
+
+    // Get attempts started in last 7 days for a user
+    @Cacheable(value = "attempts", key = "'attempts_started_7d' + ':' + #userId")
+    @Transactional(readOnly = true)
+    public Integer getAttemptsStartedInLast7Days(Long userId) {
+        LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
+        return candidateAttemptRepository.countAttemptsStartedInLast7Days(userId, sevenDaysAgo);
+    }
+
+    // Get average time to complete for a user
+    @Cacheable(value = "attempts", key = "'avg_time_complete' + ':' + #userId")
+    @Transactional(readOnly = true)
+    public Double getAverageTimeToComplete(Long userId) {
+        Double avgTimeToComplete = candidateAttemptRepository.getAverageTimeToComplete(userId);
+        return avgTimeToComplete != null ? Math.round(avgTimeToComplete * 100.0) / 100.0 : 0.0;
+    }
+
+    // Get new submissions in last 7 days for a user
+    @Cacheable(value = "attempts", key = "'new_submissions_7d' + ':' + #userId")
+    @Transactional(readOnly = true)
+    public Integer getNewSubmissionsInLast7Days(Long userId) {
+        LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
+        return candidateAttemptRepository.countNewSubmissionsInLast7Days(userId, sevenDaysAgo);
+    }
+
+    // Get quick overview statistics for dashboard (combines individual methods)
+    @Cacheable(value = "attempts", key = "'quick_overview' + ':' + #userId")
+    @Transactional(readOnly = true)
+    public Map<String, Object> getQuickOverview(Long userId) {
+        return Map.of(
+            "completionRate", getCompletionRate(userId),
+            "attemptsStartedInLast7Days", getAttemptsStartedInLast7Days(userId),
+            "averageTimeToComplete", getAverageTimeToComplete(userId),
+            "newSubmissionsInLast7Days", getNewSubmissionsInLast7Days(userId)
+        );
     }
 
     // Get attempts by assessment user
