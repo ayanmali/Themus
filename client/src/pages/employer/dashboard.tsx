@@ -164,7 +164,7 @@
 //   );
 // }
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Users,
   FileText,
@@ -180,9 +180,21 @@ import {
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { useAuth } from '@/contexts/AuthContext';
+import useApi from '@/hooks/use-api';
+import { useQueries } from '@tanstack/react-query';
+import { PaginatedResponse } from '@/lib/types/paginated-response';
+import { CandidateAttempt } from '@/lib/types/candidate-attempt';
+import { Assessment } from '@/lib/types/assessment';
 
 const EmployerDashboard = () => {
   const { user } = useAuth();
+  const { apiCall } = useApi();
+  const [recentActivityPage, setRecentActivityPage] = useState<number>(0);
+  const [recentActivitySize, setRecentActivitySize] = useState<number>(10);
+  const [activeAssessmentsPage, setActiveAssessmentsPage] = useState<number>(0);
+  const [activeAssessmentsSize, setActiveAssessmentsSize] = useState<number>(10);
+  const [pendingPullRequestsPage, setPendingPullRequestsPage] = useState<number>(0);
+  const [pendingPullRequestsSize, setPendingPullRequestsSize] = useState<number>(10);
 
   // TODO: Add actual API calls when needed
   // const getData = async () => {
@@ -207,35 +219,89 @@ const EmployerDashboard = () => {
   // }
 
   // Mock data - replace with actual API calls
-  const stats = {
-    activeAssessments: 12,
-    totalInvited: 284,
-    ongoingAttempts: 47,
-    pendingReviews: 23
-  };
+  // AttemptController: /recent
+  // const stats = {
+  //   activeAssessments: 12,
+  //   totalInvited: 284,
+  //   ongoingAttempts: 47,
+  //   pendingReviews: 23
+  // };
 
-  const recentActivity = [
-    { id: 1, type: 'submission', candidate: 'Sarah Chen', assessment: 'Full Stack Developer', time: '2 hours ago', status: 'completed' },
-    { id: 2, type: 'start', candidate: 'Mike Johnson', assessment: 'React Developer', time: '4 hours ago', status: 'in-progress' },
-    { id: 3, type: 'review', candidate: 'Alex Kumar', assessment: 'Backend Engineer', time: '6 hours ago', status: 'under-review' },
-    { id: 4, type: 'invitation', candidate: 'Lisa Wang', assessment: 'DevOps Engineer', time: '8 hours ago', status: 'invited' }
-  ];
+  const parallelResults = useQueries({
+    queries: [
+      {
+        queryKey: ['stats', 'user'],
+        queryFn: async (): Promise<{activeAssessments: number, totalInvited: number, ongoingAttempts: number, pendingReviews: number}> => {
+          const response = await apiCall('/api/attempts/stats', { method: 'GET' });
+          return response;
+        },
+      },
+      {
+        queryKey: ['recentActivity', 'user', recentActivityPage, recentActivitySize],
+        queryFn: async (): Promise<PaginatedResponse<CandidateAttempt>> => {
+          const response = await apiCall(`/api/attempts/recent?page=${recentActivityPage}&size=${recentActivitySize}`, { method: 'GET' });
+          return response;
+        },
+      },
+      {
+        queryKey: ['activeAssessments', 'user', activeAssessmentsPage, activeAssessmentsSize],
+        queryFn: async (): Promise<{assessment: Assessment, invitedCount: number, startedCount: number, completedCount: number, evaluatedCount: number}[]> => {
+          const response = await apiCall(`/api/assessments/active?page=${activeAssessmentsPage}&size=${activeAssessmentsSize}`, { method: 'GET' });
+          return response;
+        },
+      },
+      {
+        queryKey: ['pendingPullRequests', 'user', pendingPullRequestsPage, pendingPullRequestsSize],
+        queryFn: async (): Promise<PaginatedResponse<CandidateAttempt>> => {
+          const response = await apiCall(`/api/attempts/submitted/all?page=${pendingPullRequestsPage}&size=${pendingPullRequestsSize}`, { method: 'GET' });
+          return response;
+        },
+      },
+    ]
+  });
 
-  const activeAssessments = [
-    { id: 1, title: 'Full Stack Developer Assessment', invited: 45, started: 12, completed: 8, deadline: '2025-06-28' },
-    { id: 2, title: 'React Developer Challenge', invited: 32, started: 18, completed: 15, deadline: '2025-06-25' },
-    { id: 3, title: 'Backend API Development', invited: 28, started: 9, completed: 4, deadline: '2025-07-02' },
-    { id: 4, title: 'DevOps Engineer Assessment', invited: 22, started: 8, completed: 6, deadline: '2025-06-30' }
-  ];
+  // query attempts table
+  //check createdAt, startedAt, completedAt, evaluatedAt
+  // const recentActivity = [
+  //   { id: 1, type: 'submission', candidate: 'Sarah Chen', assessment: 'Full Stack Developer', time: '2 hours ago', status: 'completed' },
+  //   { id: 2, type: 'start', candidate: 'Mike Johnson', assessment: 'React Developer', time: '4 hours ago', status: 'in-progress' },
+  //   { id: 3, type: 'review', candidate: 'Alex Kumar', assessment: 'Backend Engineer', time: '6 hours ago', status: 'under-review' },
+  //   { id: 4, type: 'invitation', candidate: 'Lisa Wang', assessment: 'DevOps Engineer', time: '8 hours ago', status: 'invited' }
+  // ];
 
-  const pendingPullRequests = [
-    { id: 1, candidate: 'John Doe', assessment: 'Full Stack Dev', repo: 'ecommerce-app', time: '3 hours ago' },
-    { id: 2, candidate: 'Emma Wilson', assessment: 'React Challenge', repo: 'todo-app', time: '5 hours ago' },
-    { id: 3, candidate: 'David Park', assessment: 'Backend API', repo: 'user-service', time: '1 day ago' },
-    { id: 4, candidate: 'Maria Garcia', assessment: 'DevOps', repo: 'deployment-config', time: '2 days ago' }
-  ];
+  const stats = parallelResults[0]?.data
+  const statsLoading = parallelResults[0]?.isLoading;
+  const statsError = parallelResults[0]?.error as Error | null | undefined;
 
-  const StatCard = ({ icon, title, value, subtitle, trend }: { icon: React.ReactNode, title: string, value: number, subtitle: string, trend: string }) => (
+  const recentActivity = parallelResults[1]?.data
+  const recentActivityLoading = parallelResults[1]?.isLoading;
+  const recentActivityError = parallelResults[1]?.error as Error | null | undefined;
+
+  // const activeAssessments = [
+  //   { id: 1, title: 'Full Stack Developer Assessment', invited: 45, started: 12, completed: 8, deadline: '2025-06-28' },
+  //   { id: 2, title: 'React Developer Challenge', invited: 32, started: 18, completed: 15, deadline: '2025-06-25' },
+  //   { id: 3, title: 'Backend API Development', invited: 28, started: 9, completed: 4, deadline: '2025-07-02' },
+  //   { id: 4, title: 'DevOps Engineer Assessment', invited: 22, started: 8, completed: 6, deadline: '2025-06-30' }
+  // ];
+
+  // Fetch assessments using TanStack Query
+
+  const activeAssessments = parallelResults[2]?.data
+  const isLoading = parallelResults[2]?.isLoading;
+  const error = parallelResults[2]?.error as Error | null | undefined;
+
+  // const pendingPullRequests = [
+  //   { id: 1, candidate: 'John Doe', assessment: 'Full Stack Dev', repo: 'ecommerce-app', time: '3 hours ago' },
+  //   { id: 2, candidate: 'Emma Wilson', assessment: 'React Challenge', repo: 'todo-app', time: '5 hours ago' },
+  //   { id: 3, candidate: 'David Park', assessment: 'Backend API', repo: 'user-service', time: '1 day ago' },
+  //   { id: 4, candidate: 'Maria Garcia', assessment: 'DevOps', repo: 'deployment-config', time: '2 days ago' }
+  // ];
+
+  const pendingPullRequests = parallelResults[3]?.data
+  const pendingPullRequestsLoading = parallelResults[3]?.isLoading;
+  const pendingPullRequestsError = parallelResults[3]?.error as Error | null | undefined;
+
+  const StatCard = ({ icon, title, value, subtitle, trend }: { icon: React.ReactNode, title: string, value?: number, subtitle: string, trend: string }) => (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6 hover:bg-gray-800/70 transition-all duration-200">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
@@ -327,28 +393,28 @@ const EmployerDashboard = () => {
             <StatCard
               icon={<FileText className="w-5 h-5 text-blue-400" />}
               title="Active Assessments"
-              value={stats.activeAssessments}
+              value={stats?.activeAssessments}
               subtitle="Currently running"
               trend="+2 this week"
             />
             <StatCard
               icon={<Users className="w-5 h-5 text-green-400" />}
               title="Total Invited"
-              value={stats.totalInvited}
+              value={stats?.totalInvited}
               subtitle="Candidates invited"
               trend="+18 today"
             />
             <StatCard
               icon={<Clock className="w-5 h-5 text-yellow-400" />}
               title="Ongoing Attempts"
-              value={stats.ongoingAttempts}
+              value={stats?.ongoingAttempts}
               subtitle="Currently taking assessments"
               trend="+1 today"
             />
             <StatCard
               icon={<GitPullRequest className="w-5 h-5 text-purple-400" />}
               title="Pending Reviews"
-              value={stats.pendingReviews}
+              value={stats?.pendingReviews}
               subtitle="Pull requests to review"
               trend="5 urgent"
             />
@@ -368,7 +434,7 @@ const EmployerDashboard = () => {
                   </button>
                 </div>
                 <div className="space-y-2">
-                  {recentActivity.map(activity => (
+                  {recentActivity?.content.map(activity => (
                     <ActivityItem key={activity.id} activity={activity} />
                   ))}
                 </div>
@@ -378,31 +444,32 @@ const EmployerDashboard = () => {
               <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6">
                 <h2 className="text-xl font-semibold text-white mb-6">Active Assessments</h2>
                 <div className="space-y-4">
-                  {activeAssessments.map(assessment => (
-                    <div key={assessment.id} className="p-4 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors">
+                  
+                  {activeAssessments?.map(data => (
+                    <div key={data.assessment.id} className="p-4 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors">
                       <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-medium text-white">{assessment.title}</h3>
-                        <span className="text-sm text-gray-400">Due: {assessment.deadline}</span>
+                        <h3 className="font-medium text-white">{data.assessment.name}</h3>
+                        <span className="text-sm text-gray-400">Due: {data.assessment.endDate?.toLocaleDateString()}</span>
                       </div>
                       <div className="grid grid-cols-3 gap-4 text-sm">
                         <div>
                           <p className="text-gray-400">Invited</p>
-                          <p className="text-white font-medium">{assessment.invited}</p>
+                          <p className="text-white font-medium">{data.invitedCount}</p>
                         </div>
                         <div>
                           <p className="text-gray-400">Started</p>
-                          <p className="text-blue-400 font-medium">{assessment.started}</p>
+                          <p className="text-blue-400 font-medium">{data.startedCount}</p>
                         </div>
                         <div>
-                          <p className="text-gray-400">Completed</p>
-                          <p className="text-green-400 font-medium">{assessment.completed}</p>
+                          <p className="text-gray-400">Awaiting Evaluation</p>
+                          <p className="text-green-400 font-medium">{data.completedCount}</p>
                         </div>
                       </div>
                       <div className="mt-3">
                         <div className="w-full bg-gray-600 rounded-full h-2">
                           <div
                             className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${(assessment.completed / assessment.invited) * 100}%` }}
+                            style={{ width: `${(data.completedCount / data.invitedCount) * 100}%` }}
                           ></div>
                         </div>
                       </div>
@@ -442,21 +509,21 @@ const EmployerDashboard = () => {
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold text-white">Pending Reviews</h2>
                   <span className="bg-red-600/20 text-red-400 px-2 py-1 rounded-full text-xs font-medium">
-                    {pendingPullRequests.length} urgent
+                    {pendingPullRequests?.content.length} urgent
                   </span>
                 </div>
                 <div className="space-y-3">
-                  {pendingPullRequests.map(pr => (
+                  {pendingPullRequests?.content.map(pr => (
                     <div key={pr.id} className="p-3 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors cursor-pointer">
                       <div className="flex items-center space-x-3">
                         <GitPullRequest className="w-4 h-4 text-purple-400 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-white font-medium truncate">{pr.candidate}</p>
-                          <p className="text-gray-400 text-xs">{pr.assessment}</p>
-                          <p className="text-gray-500 text-xs font-mono">{pr.repo}</p>
+                          <p className="text-white font-medium truncate">{pr.candidate?.firstName} {pr.candidate?.lastName}</p>
+                          <p className="text-gray-400 text-xs">{pr.assessment?.name}</p>
+                          <p className="text-gray-500 text-xs font-mono">{pr.githubRepositoryLink}</p>
                         </div>
                       </div>
-                      <p className="text-gray-500 text-xs mt-2">{pr.time}</p>
+                      <p className="text-gray-500 text-xs mt-2">{pr.completedDate?.toLocaleDateString()}</p>
                     </div>
                   ))}
                 </div>

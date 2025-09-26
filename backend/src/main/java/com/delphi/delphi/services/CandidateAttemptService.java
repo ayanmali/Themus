@@ -24,13 +24,16 @@ import org.springframework.transaction.annotation.Transactional;
 import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.dtos.AuthenticateCandidateDto;
 import com.delphi.delphi.dtos.PaginatedResponseDto;
+import com.delphi.delphi.dtos.RecentEventDto;
 import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateAttemptCacheDto;
 import com.delphi.delphi.dtos.cache.CandidateCacheDto;
+import com.delphi.delphi.dtos.cache.UserCacheDto;
 import com.delphi.delphi.entities.Assessment;
 import com.delphi.delphi.entities.Candidate;
 import com.delphi.delphi.entities.CandidateAttempt;
 import com.delphi.delphi.repositories.CandidateAttemptRepository;
+import com.delphi.delphi.repositories.projections.RecentEventView;
 import com.delphi.delphi.specifications.CandidateAttemptSpecifications;
 import com.delphi.delphi.utils.CacheUtils;
 import com.delphi.delphi.utils.Constants;
@@ -590,26 +593,27 @@ public class CandidateAttemptService {
     // Get submitted attempts without evaluation
     @Cacheable(value = "attempts", key = "'submittedWithoutEvaluation' + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
-    public List<CandidateAttemptCacheDto> getSubmittedAttemptsWithoutEvaluation(Pageable pageable) {
-        return candidateAttemptRepository.findSubmittedAttemptsWithoutEvaluation(pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
+    public List<CandidateAttemptCacheDto> getCompletedAttemptsWithoutEvaluation(Pageable pageable) {
+        return candidateAttemptRepository.findCompletedAttemptsWithoutEvaluation(pageable).getContent().stream()
+        .map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
     }
 
     // Count attempts by assessment and status
-    @Cacheable(value = "attempts", key = "'count' + ':' + #assessmentId + ':' + #status")
+    @Cacheable(value = "attempts", key = "'assessment:status:count' + ':' + #assessmentId + ':' + #status")
     @Transactional(readOnly = true)
     public Long countAttemptsByAssessmentAndStatus(Long assessmentId, AttemptStatus status) {
         return candidateAttemptRepository.countByAssessmentIdAndStatus(assessmentId, status);
     }
 
     // Count attempts by candidate
-    @Cacheable(value = "attempts", key = "'count' + ':' + #candidateId")
+    @Cacheable(value = "attempts", key = "'candidate:count' + ':' + #candidateId")
     @Transactional(readOnly = true)
     public Long countAttemptsByCandidate(Long candidateId) {
         return candidateAttemptRepository.countByCandidateId(candidateId);
     }
 
     // Get attempt with details
-    @Cacheable(value = "attempts", key = "'withDetails' + ':' + #attemptId")
+    @Cacheable(value = "attempts", key = "'with_details' + ':' + #attemptId")
     @Transactional(readOnly = true)
     public CandidateAttemptCacheDto getAttemptWithDetails(Long attemptId) {
         return new CandidateAttemptCacheDto(candidateAttemptRepository.findByIdWithDetails(attemptId)
@@ -621,6 +625,24 @@ public class CandidateAttemptService {
     @Transactional(readOnly = true)
     public List<CandidateAttemptCacheDto> getRecentAttemptsByUserId(Long userId, Pageable pageable) {
         return candidateAttemptRepository.findRecentAttemptsByUserId(userId, pageable).getContent().stream().map(CandidateAttemptCacheDto::new).collect(Collectors.toList());
+    }
+
+    // Get recent events by user
+    @Cacheable(value = "attempts", key = "'recent_events' + ':' + #userId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Transactional(readOnly = true)
+    public List<RecentEventDto> getRecentEventsByUserId(Long userId, Pageable pageable) {
+        List<RecentEventView> rows = candidateAttemptRepository.findRecentEventsByUserId(userId, pageable).getContent();
+        return rows.stream()
+            .map(r -> new com.delphi.delphi.dtos.RecentEventDto(
+                r.getAttemptId(), r.getAssessmentId(), r.getCandidateId(), r.getEventType(), r.getEventTime()))
+            .collect(Collectors.toList());
+    }
+
+    // Count attempts by user and status
+    @Cacheable(value = "attempts", key = "'user:status:count' + ':' + #userId + ':' + #status")
+    @Transactional(readOnly = true)
+    public Long countAttemptsByUserAndStatus(UserCacheDto user, AttemptStatus status) {
+        return candidateAttemptRepository.countByUserIdAndStatus(user.getId(), status);
     }
 
     // Get attempts by assessment user

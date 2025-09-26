@@ -480,8 +480,16 @@ public class AssessmentService {
                 .map(AssessmentCacheDto::new).collect(Collectors.toList());
     }
 
+    @Cacheable(value = "assessments", key = "'active' + ':' + #user.id + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Transactional(readOnly = true)
+    public List<AssessmentCacheDto> getActiveAssessmentsByUser(UserCacheDto user, Pageable pageable) {
+        return assessmentRepository.findByUserIdAndStatus(user.getId(), AssessmentStatus.ACTIVE, pageable).getContent().stream()
+                .map(AssessmentCacheDto::new).collect(Collectors.toList());
+
+    }
+
     // Get active assessments within current date
-    @Cacheable(value = "assessments", key = "#currentDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    @Cacheable(value = "assessments", key = "'active' + ':' + #currentDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public List<AssessmentCacheDto> getActiveAssessmentsInDateRange(LocalDateTime currentDate, Pageable pageable) {
         return assessmentRepository.findActiveAssessmentsInDateRange(currentDate, pageable).getContent().stream()

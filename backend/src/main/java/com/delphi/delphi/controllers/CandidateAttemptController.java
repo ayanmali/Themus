@@ -32,6 +32,7 @@ import com.delphi.delphi.dtos.FetchCandidateAttemptDto;
 import com.delphi.delphi.dtos.InviteCandidateDto;
 import com.delphi.delphi.dtos.PaginatedResponseDto;
 import com.delphi.delphi.dtos.PreviewAssessmentDto;
+import com.delphi.delphi.dtos.RecentEventDto;
 import com.delphi.delphi.dtos.StartAttemptDto;
 import com.delphi.delphi.dtos.UpdateCandidateAttemptDto;
 import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
@@ -52,6 +53,7 @@ import com.delphi.delphi.services.CandidateAttemptService;
 import com.delphi.delphi.services.CandidateService;
 import com.delphi.delphi.services.UserService;
 import com.delphi.delphi.utils.CacheUtils;
+import com.delphi.delphi.utils.enums.AssessmentStatus;
 import com.delphi.delphi.utils.enums.AttemptStatus;
 import com.delphi.delphi.utils.enums.JobStatus;
 import com.delphi.delphi.utils.enums.JobType;
@@ -116,6 +118,45 @@ public class CandidateAttemptController {
         
         if (!attempt.getCandidate().getUserId().equals(currentUser.getId())) {
             throw new IllegalArgumentException("Access denied: You can only access your own candidate attempts");
+        }
+    }
+
+    @GetMapping("/recent")
+    public ResponseEntity<?> getRecentEvents(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+        try {
+            UserCacheDto user = getCurrentUser();
+            Pageable pageable = PageRequest.of(page, size);
+            List<RecentEventDto> events = candidateAttemptService.getRecentEventsByUserId(user.getId(), pageable);
+            return ResponseEntity.ok(events);
+        }
+        catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error retrieving recent events: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<?> getStats() {
+        try {
+            UserCacheDto user = getCurrentUser();
+            // get active assessments
+            Long activeAssessments = assessmentService.countAssessmentsByUserAndStatus(user, AssessmentStatus.ACTIVE);
+            // get total invited candidates
+            Long totalInvited = candidateAttemptService.countAttemptsByUserAndStatus(user, AttemptStatus.INVITED);
+            // get ongoing attempts (status = STARTED)
+            Long ongoingAttempts = candidateAttemptService.countAttemptsByUserAndStatus(user, AttemptStatus.STARTED);
+            // get pending reviews (status = COMPLETED)
+            Long pendingReviews = candidateAttemptService.countAttemptsByUserAndStatus(user, AttemptStatus.COMPLETED);
+            return ResponseEntity.ok(Map.of(
+                "activeAssessments", activeAssessments,
+                "totalInvited", totalInvited,
+                "ongoingAttempts", ongoingAttempts,
+                "pendingReviews", pendingReviews
+            ));
+        }
+        catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error retrieving stats: " + e.getMessage());
         }
     }
 
@@ -627,7 +668,7 @@ public class CandidateAttemptController {
         try {
             Pageable pageable = PageRequest.of(page, size);
             List<CandidateAttemptCacheDto> attempts = candidateAttemptService
-                    .getSubmittedAttemptsWithoutEvaluation(pageable);
+                    .getCompletedAttemptsWithoutEvaluation(pageable);
             List<FetchCandidateAttemptDto> attemptDtos = attempts.stream()
                     .map(FetchCandidateAttemptDto::new)
                     .collect(Collectors.toList());

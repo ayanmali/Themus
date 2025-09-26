@@ -14,6 +14,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.delphi.delphi.entities.CandidateAttempt;
+import com.delphi.delphi.repositories.projections.RecentEventView;
 import com.delphi.delphi.utils.enums.AttemptStatus;
 
 @Repository
@@ -75,8 +76,8 @@ public interface CandidateAttemptRepository extends JpaRepository<CandidateAttem
     Page<CandidateAttempt> findAttemptsWithEvaluation(Pageable pageable);
     
     // Find attempts without evaluation but submitted
-    @Query("SELECT ca FROM CandidateAttempt ca WHERE ca.status = 'SUBMITTED' AND ca.evaluation IS NULL")
-    Page<CandidateAttempt> findSubmittedAttemptsWithoutEvaluation(Pageable pageable);
+    @Query("SELECT ca FROM CandidateAttempt ca WHERE ca.status = 'COMPLETED' AND ca.evaluation IS NULL")
+    Page<CandidateAttempt> findCompletedAttemptsWithoutEvaluation(Pageable pageable);
     
     // Count attempts by status for an assessment
     @Query("SELECT COUNT(ca) FROM CandidateAttempt ca WHERE ca.assessment.id = :assessmentId AND ca.status = :status")
@@ -156,4 +157,42 @@ public interface CandidateAttemptRepository extends JpaRepository<CandidateAttem
     @Modifying
     @Query("UPDATE CandidateAttempt ca SET ca.completedDate = :completedDate WHERE ca.id = :id")
     int updateCompletedDate(@Param("id") Long id, @Param("completedDate") LocalDateTime completedDate);
+
+    // Recent events for a user across attempts, combining started/completed/evaluated timestamps
+    @Query(value = ""
+        + "SELECT * FROM ("
+        + "  SELECT ca.id AS attemptId, ca.assessment_id AS assessmentId, ca.candidate_id AS candidateId, 'STARTED' AS eventType, ca.started_date AS eventTime "
+        + "  FROM candidate_attempts ca "
+        + "  JOIN candidates c ON c.id = ca.candidate_id "
+        + "  WHERE c.user_id = :userId AND ca.started_date IS NOT NULL "
+        + "  UNION ALL "
+        + "  SELECT ca.id AS attemptId, ca.assessment_id AS assessmentId, ca.candidate_id AS candidateId, 'COMPLETED' AS eventType, ca.completed_date AS eventTime "
+        + "  FROM candidate_attempts ca "
+        + "  JOIN candidates c ON c.id = ca.candidate_id "
+        + "  WHERE c.user_id = :userId AND ca.completed_date IS NOT NULL "
+        + "  UNION ALL "
+        + "  SELECT ca.id AS attemptId, ca.assessment_id AS assessmentId, ca.candidate_id AS candidateId, 'EVALUATED' AS eventType, ca.evaluated_date AS eventTime "
+        + "  FROM candidate_attempts ca "
+        + "  JOIN candidates c ON c.id = ca.candidate_id "
+        + "  WHERE c.user_id = :userId AND ca.evaluated_date IS NOT NULL "
+        + ") ev ORDER BY ev.eventTime DESC",
+        countQuery = ""
+        + "SELECT COUNT(1) FROM ("
+        + "  SELECT ca.id "
+        + "  FROM candidate_attempts ca JOIN candidates c ON c.id = ca.candidate_id "
+        + "  WHERE c.user_id = :userId AND ca.started_date IS NOT NULL "
+        + "  UNION ALL "
+        + "  SELECT ca.id "
+        + "  FROM candidate_attempts ca JOIN candidates c ON c.id = ca.candidate_id "
+        + "  WHERE c.user_id = :userId AND ca.completed_date IS NOT NULL "
+        + "  UNION ALL "
+        + "  SELECT ca.id "
+        + "  FROM candidate_attempts ca JOIN candidates c ON c.id = ca.candidate_id "
+        + "  WHERE c.user_id = :userId AND ca.evaluated_date IS NOT NULL "
+        + ") ev",
+        nativeQuery = true)
+    Page<RecentEventView> findRecentEventsByUserId(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("SELECT COUNT(ca) FROM CandidateAttempt ca WHERE ca.candidate.user.id = :userId AND ca.status = :status")
+    Long countByUserIdAndStatus(@Param("userId") Long userId, @Param("status") AttemptStatus status);
 }

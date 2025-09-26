@@ -622,6 +622,38 @@ public class AssessmentController {
         }
     }
 
+    /**
+     * For the user dashboard - get active assessments and number of attempts under each kind of status for that assessment
+     * @param getAssessmentsDto
+     * @return
+     */
+    @GetMapping("/active")
+    public ResponseEntity<?> getActiveAssessments(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+        try {
+            UserCacheDto user = getCurrentUser();
+            Pageable pageable = PageRequest.of(page, size);
+            List<AssessmentCacheDto> assessments = assessmentService.getActiveAssessmentsByUser(user, pageable);
+            List<Map<String, Object>> response = assessments.stream().map(assessment -> {
+                Long assessmentId = assessment.getId();
+                Long invited = candidateAttemptService.countAttemptsByAssessmentAndStatus(assessmentId, AttemptStatus.INVITED);
+                Long started = candidateAttemptService.countAttemptsByAssessmentAndStatus(assessmentId, AttemptStatus.STARTED);
+                Long completed = candidateAttemptService.countAttemptsByAssessmentAndStatus(assessmentId, AttemptStatus.COMPLETED);
+                Long evaluated = candidateAttemptService.countAttemptsByAssessmentAndStatus(assessmentId, AttemptStatus.EVALUATED);
+                return Map.of(
+                    "assessment", assessment,
+                    "invitedCount", invited,
+                    "startedCount", started,
+                    "completedCount", completed,
+                    "evaluatedCount", evaluated
+                );
+            }).collect(Collectors.toList());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error retrieving assessments: " + e.getMessage());
+        }
+    }
+
     // Get all assessments with pagination and filtering for the current user
     @GetMapping("/filter")
     public ResponseEntity<?> getAllAssessments(GetAssessmentsDto getAssessmentsDto) {
