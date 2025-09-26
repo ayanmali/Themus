@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, Calendar, Clock, Globe, Video, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Link } from 'wouter';
 
 /**
  * 
@@ -28,12 +29,15 @@ const Benefits = () => {
                 <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
                     Cut through the noise and hire difference-makers who can ship features and fix bugs, not just solve LeetCode problems
                 </p>
-                <Button className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-3 rounded-full border border-gray-600 transition-colors flex items-center mx-auto">
-                    Get started
-                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                </Button>
+                <Link href="/signup" className="flex items-center mx-auto">
+                    <Button className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-3 rounded-full border border-gray-600 transition-colors flex items-center mx-auto">
+                        <span>Get started</span>
+                        <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                    </Button>
+                </Link>
+
             </div>
 
             {/* Features Grid */}
@@ -44,77 +48,81 @@ const Benefits = () => {
                         <h3 className="text-2xl mt-2 mb-4 font-lora">Tailored to your team's needs</h3>
                         <div className="text-gray-300 mb-8">
                             You have complete control over the skills you want to screen for and the challenges for candidates to work on. Specify the role you're hiring for, the technologies and skills you're looking for, and a brief description of what you want to assess. We take care of the rest.
-                            <p className="text-2xl font-bold mb-4">Notice and buffers</p>
 
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="block text-sm text-gray-400 mb-2">Minimum notice</label>
-                                    <div className="relative">
-                                        <select
-                                            value={minNotice}
-                                            onChange={(e) => setMinNotice(e.target.value)}
-                                            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-gray-500"
-                                        >
-                                            <option>1 hour</option>
-                                            <option>2 hours</option>
-                                            <option>4 hours</option>
-                                            <option>1 day</option>
-                                        </select>
-                                        <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            {/* Assessment Customization Form */}
+                            {/* <div className="space-y-4 mt-6"> */}
+                            {/* Form Header */}
+                            {/* <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                                    <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                                    <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                                    <span className="text-xs text-gray-400 ml-2">Customize Assessment</span>
+                                </div> */}
+
+                            {/* Role Field */}
+                            {/* <div className="space-y-2">
+                                    <label className="text-xs text-gray-400 block">Role</label>
+                                    <div className="bg-gray-800/50 border border-gray-600 rounded-md px-3 py-2">
+                                        <div className="h-4 bg-gray-600/30 rounded animate-pulse"></div>
                                     </div>
-                                </div>
+                                </div> */}
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm text-gray-400 mb-2">Buffer before event</label>
-                                        <div className="relative">
-                                            <select
-                                                value={bufferBefore}
-                                                onChange={(e) => setBufferBefore(e.target.value)}
-                                                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-gray-500"
-                                            >
-                                                <option>15 mins</option>
-                                                <option>30 mins</option>
-                                                <option>1 hour</option>
-                                            </select>
-                                            <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            {/* Skills Field */}
+                            {/* <div className="space-y-2">
+                                    <label className="text-xs text-gray-400 block">Required Skills</label>
+                                    <div className="bg-gray-800/50 border border-gray-600 rounded-md px-3 py-2">
+                                        <div className="flex flex-wrap gap-1">
+                                            <div className="h-4 w-16 bg-blue-500/20 rounded animate-pulse"></div>
+                                            <div className="h-4 w-20 bg-green-500/20 rounded animate-pulse"></div>
+                                            <div className="h-4 w-14 bg-purple-500/20 rounded animate-pulse"></div>
+                                            <div className="h-4 w-18 bg-yellow-500/20 rounded animate-pulse"></div>
                                         </div>
                                     </div>
+                                </div> */}
 
-                                    <div>
-                                        <label className="block text-sm text-gray-400 mb-2">Buffer after event</label>
-                                        <div className="relative">
-                                            <select
-                                                value={bufferAfter}
-                                                onChange={(e) => setBufferAfter(e.target.value)}
-                                                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-gray-500"
-                                            >
-                                                <option>15 mins</option>
-                                                <option>30 mins</option>
-                                                <option>1 hour</option>
-                                            </select>
-                                            <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            {/* Problem Description */}
+                            {/* <div className="space-y-2">
+                                    <label className="text-xs text-gray-400 block">Problem Description</label>
+                                    <div className="bg-gray-800/50 border border-gray-600 rounded-md px-3 py-3">
+                                        <div className="space-y-1">
+                                            <div className="h-3 bg-gray-600/30 rounded animate-pulse"></div>
+                                            <div className="h-3 bg-gray-600/30 rounded animate-pulse w-3/4"></div>
+                                            <div className="h-3 bg-gray-600/30 rounded animate-pulse w-1/2"></div>
                                         </div>
                                     </div>
-                                </div>
+                                </div> */}
 
-                                <div>
-                                    <label className="block text-sm text-gray-400 mb-2">Time-slot intervals</label>
-                                    <div className="relative">
-                                        <select
-                                            value={timeSlot}
-                                            onChange={(e) => setTimeSlot(e.target.value)}
-                                            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:outline-none focus:border-gray-500"
-                                        >
-                                            <option>5 mins</option>
-                                            <option>10 mins</option>
-                                            <option>15 mins</option>
-                                            <option>30 mins</option>
-                                        </select>
-                                        <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            {/* Duration Field */}
+                            {/* <div className="space-y-2">
+                                    <label className="text-xs text-gray-400 block">Assessment Duration</label>
+                                    <div className="bg-gray-800/50 border border-gray-600 rounded-md px-3 py-2">
+                                        <div className="h-4 bg-gray-600/30 rounded animate-pulse w-20"></div>
                                     </div>
-                                </div>
-                            </div>
+                                </div> */}
+
+                            {/* Difficulty Level */}
+                            {/* <div className="space-y-2">
+                                    <label className="text-xs text-gray-400 block">Difficulty Level</label>
+                                    <div className="flex gap-2">
+                                        <div className="bg-gray-800/50 border border-gray-600 rounded-md px-3 py-2 flex-1">
+                                            <div className="h-4 bg-gray-600/30 rounded animate-pulse"></div>
+                                        </div>
+                                        <div className="bg-gray-800/50 border border-gray-600 rounded-md px-3 py-2 flex-1">
+                                            <div className="h-4 bg-gray-600/30 rounded animate-pulse"></div>
+                                        </div>
+                                        <div className="bg-gray-800/50 border border-gray-600 rounded-md px-3 py-2 flex-1">
+                                            <div className="h-4 bg-gray-600/30 rounded animate-pulse"></div>
+                                        </div>
+                                    </div>
+                                </div> */}
+
+                            {/* Generate Button */}
+                            {/* <div className="pt-2">
+                                    <div className="bg-blue-600/20 border border-blue-500/30 rounded-md px-4 py-2 text-center">
+                                        <span className="text-sm text-blue-300">🎯 Generate Assessment</span>
+                                    </div>
+                                </div> */}
+                            {/* </div> */}
                         </div>
                     </div>
 
@@ -126,45 +134,7 @@ const Benefits = () => {
                         </p>
 
                         {/* Booking Link Preview */}
-                        <div className="bg-gray-900 p-6 rounded-2xl border border-gray-600">
-                            <div className="text-center mb-4">
-                                <div className="text-lg font-medium text-gray-300">cal.com/ewa</div>
-                            </div>
 
-                            <div className="flex items-center space-x-3 mb-4">
-                                <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
-                                    <User className="w-5 h-5 text-gray-400" />
-                                </div>
-                                <div>
-                                    <div className="text-sm text-gray-400">Ewa Michalak</div>
-                                </div>
-                            </div>
-
-                            <div className="mb-4">
-                                <h4 className="text-xl font-semibold mb-2">Marketing Strategy Session</h4>
-                                <p className="text-sm text-gray-400 mb-4">
-                                    Let's collaborate on campaigns, co-marketing opportunities, and learn how Cal.com is approaching growth and brand.
-                                </p>
-                            </div>
-
-                            <div className="flex space-x-2 mb-4">
-                                <span className="px-2 py-1 bg-gray-700 text-xs rounded">15m</span>
-                                <span className="px-2 py-1 bg-gray-700 text-xs rounded">30m</span>
-                                <span className="px-2 py-1 bg-gray-700 text-xs rounded">45m</span>
-                                <span className="px-2 py-1 bg-gray-700 text-xs rounded">1h</span>
-                            </div>
-
-                            <div className="flex items-center space-x-2 mb-2">
-                                <Video className="w-4 h-4 text-green-400" />
-                                <span className="text-sm text-gray-300">Google Meet</span>
-                            </div>
-
-                            <div className="flex items-center space-x-2">
-                                <Globe className="w-4 h-4 text-gray-400" />
-                                <span className="text-sm text-gray-300">Europe/Warsaw</span>
-                                <ChevronDown className="w-4 h-4 text-gray-400" />
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>

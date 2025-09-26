@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Calendar, Clock, Video, Phone, MapPin, Copy, Code, X, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import FeatureGrid from '@/components/layout/features';
+import { Link } from 'wouter';
 
 /*
 1. the best talent isn't doing leetcode problems anymore. They're building products, shipping code, and making real contributions
@@ -35,12 +36,14 @@ const Problem = () => {
                 {/* <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
                     Traditional data structures and algorithms problems don't reflect the skills that technical professionals need to have to be successful in their role.
                 </p> */}
-                <Button className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-3 rounded-full border border-gray-600 transition-colors flex items-center mx-auto">
-                    Get started
-                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                </Button>
+                <Link href="/signup" className="flex items-center mx-auto">
+                    <Button className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-3 rounded-full border border-gray-600 transition-colors flex items-center mx-auto">
+                        <span>Get started</span>
+                        <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                    </Button>
+                </Link>
             </div>
 
             {/* Features Grid */}

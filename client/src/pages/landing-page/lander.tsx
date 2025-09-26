@@ -22,20 +22,21 @@ export function HeroSection() {
 
                             <div className="mt-12 flex flex-col items-center justify-center gap-2 sm:flex-row lg:justify-start">
 
-                                <Button className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-3 rounded-full border border-gray-600 transition-colors flex items-center mx-auto">
-                                    <Link href="/signup" className="flex items-center">
+                                <Link href="/signup" className="flex items-center mx-auto">
+                                    <Button className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-3 rounded-full border border-gray-600 transition-colors flex items-center mx-auto">
                                         <span>Get started</span>
                                         <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                         </svg>
-                                    </Link>
-                                </Button>
+                                    </Button>
+                                </Link>
 
-                                <Button className="bg-slate-700 hover:bg-slate-600 text-white px-8 py-3 rounded-full border border-gray-600 transition-colors flex items-center mx-auto">
-                                    <Link href="#link">
-                                        <span className="text-nowrap">Request a demo</span>
-                                    </Link>
-                                </Button>
+                                <Link href="#link">
+                                    <Button className="bg-slate-700 hover:bg-slate-600 text-white px-8 py-3 rounded-full border border-gray-600 transition-colors flex items-center mx-auto">
+                                            <span className="text-nowrap">Request a demo</span>
+                                    </Button>
+                                </Link>
+
                             </div>
                         </div>
                         <div className="mt-0 lg:mt-0 lg:self-center mx-auto w-full max-w-md lg:mr-0 lg:ml-auto">
@@ -52,9 +53,9 @@ export function HeroSection() {
                                     //speed={25}
                                     animationDuration={1250}
                                     deleteDuration={800}
-                                    waitTime={1600}
+                                    waitTime={2250}
                                     //deleteSpeed={35}
-                                    initialDelay={200}
+                                    initialDelay={100}
                                 />
                             </div>
 
@@ -71,9 +72,9 @@ export function HeroSection() {
                                     //speed={25}
                                     animationDuration={1250}
                                     deleteDuration={800}
-                                    waitTime={1600}
+                                    waitTime={2250}
                                     //deleteSpeed={35}
-                                    initialDelay={200}
+                                    initialDelay={100}
                                 //syncSignal={syncTick}
                                 />
                             </div>
@@ -83,17 +84,17 @@ export function HeroSection() {
                                     <Typewriter
                                         text={[
                                             'migrating a monolithic system into microservices',
-                                            'designing an iOS application',
-                                            'debugging a transformer',
+                                            'designing an AI chatbot iOS application',
+                                            'debugging a vision transformer',
                                             'designing an ETL pipeline',
                                             'creating a web-based note-taking application',
                                         ]}
                                         //speed={25}
                                         animationDuration={1250}
-                                        deleteDuration={800}
-                                        waitTime={1600}
+                                        deleteDuration={750} // to adjust for out of sync animations
+                                        waitTime={2250}
                                         //deleteSpeed={35}
-                                        initialDelay={200}
+                                        initialDelay={100}
                                     />
                                 </div>
                             </div>
