@@ -33,7 +33,9 @@ build/
 ### VS Code ###
 .vscode/
 
-**application.properties
-**prod.properties
+application.properties
+**dev.properties
+#**prod.properties
+
 **AssessmentCreationPrompts.java
 **PermittedEndpoints.java
