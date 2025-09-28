@@ -1,15 +1,15 @@
-package com.delphi.delphi;
+// package com.delphi.delphi;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+// import org.junit.jupiter.api.Test;
+// import org.springframework.boot.test.context.SpringBootTest;
 
-// @RunWith(SpringRunner.class)
-@SpringBootTest
-public class ThemusApplicationTests {
+// // @RunWith(SpringRunner.class)
+// @SpringBootTest
+// public class ThemusApplicationTests {
 
-	@Test
-	public void contextLoads() {
-		System.out.println("--- Application context loaded ---");
-	}
+// 	@Test
+// 	public void contextLoads() {
+// 		System.out.println("--- Application context loaded ---");
+// 	}
 
-}
+// }

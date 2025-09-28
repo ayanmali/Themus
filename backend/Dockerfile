@@ -1,6 +1,8 @@
 # TODO: use graalvm native image
-FROM ghcr.io/graalvm/jdk-community:24
-ARG JAR_FILE=target/*.jar
-COPY ${JAR_FILE} app.jar
+FROM ghcr.io/graalvm/jdk-community:25.0.0-ol8-20250916
+# TODO: add this to a shell script
+# RUN "mvn", "clean", "package"
+COPY ./target/*.jar app.jar
+RUN chmod +x app.jar
 
-ENTRYPOINT ["java","-jar","/app.jar"]
+ENTRYPOINT ["java","-jar","app.jar"]

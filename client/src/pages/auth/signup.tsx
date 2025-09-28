@@ -75,7 +75,9 @@ export function SignupForm({
         resolver: zodResolver(signupSchema)
     })
 
-    const selectedRole = watch("role")
+    // const selectedRole = watch("role")
+    // TODO: add job applicant role to app
+    const selectedRole = "employer"
 
     const onSubmit = async (data: SignupFormData) => {
         setIsLoading(true)
@@ -176,7 +178,7 @@ export function SignupForm({
                                 )}
                             </div>
 
-                            <div className="flex items-center gap-3">
+                            {/* <div className="flex items-center gap-3">
                                 <Label htmlFor="roleLabel" className="w-full">I am a/an...</Label>
                                 <Select onValueChange={(value: "employer" | "candidate") => setValue("role", value)}>
                                     <SelectTrigger className="w-full bg-slate-700 border-white/20">
@@ -189,10 +191,10 @@ export function SignupForm({
                                         </SelectGroup>
                                     </SelectContent>
                                 </Select>
-                            </div>
-                            {errors.role && (
+                            </div> */}
+                            {/* {errors.role && (
                                 <p className="text-red-400 text-sm">{errors.role.message}</p>
-                            )}
+                            )} */}
 
                             {selectedRole === "employer" && (
                                 <div className="grid gap-3">

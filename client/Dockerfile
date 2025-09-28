@@ -1,2 +1,0 @@
-# TODO
-FROM alpine/node
