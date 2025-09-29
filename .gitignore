@@ -12,5 +12,5 @@ gc-logs
 
 themus.log
 themus.log.*
-rabbitmq_data
-redis_data_main
+**rabbitmq_data
+**redis_data_main
