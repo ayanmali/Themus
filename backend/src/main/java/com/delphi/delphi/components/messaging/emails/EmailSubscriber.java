@@ -2,11 +2,11 @@ package com.delphi.delphi.components.messaging.emails;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 import com.delphi.delphi.components.ResendService;
-import com.delphi.delphi.configs.rabbitmq.TopicConfig;
+import com.delphi.delphi.configs.kafka.KafkaTopicsConfig;
 import com.delphi.delphi.dtos.messaging.emails.PublishSendEmailJobDto;
 import com.delphi.delphi.entities.Job;
 import com.delphi.delphi.repositories.JobRepository;
@@ -23,7 +23,7 @@ public class EmailSubscriber {
         this.resendService = resendService;
     }
 
-    @RabbitListener(queues = TopicConfig.EMAIL_QUEUE_NAME)
+    @KafkaListener(topics = KafkaTopicsConfig.EMAIL, containerFactory = "kafkaListenerContainerFactory")
     public void processEmail(PublishSendEmailJobDto publishSendEmailJobDto) {
         log.info("Processing email to: {}", publishSendEmailJobDto.getToEmail());
         log.info("Processing email subject: {}", publishSendEmailJobDto.getSubject());
