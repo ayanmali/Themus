@@ -1,64 +1,89 @@
-# services:
-#   postgres:
-#       hostname: delphi-postgres
-#       image: 'postgres:latest'
-#       environment:
-#         POSTGRES_USER: postgres
-#         POSTGRES_PASSWORD: fkdnvi4fj8g33m0
-#         POSTGRES_DB: delphi-postgres
-#       container_name: delphi-postgres
-#       env_file:
-#         - .env
-#       ports:
-#         - '5432:5432'
-#       volumes:
-#         - ./postgres_data:/var/lib/postgresql/data
-#       healthcheck:
-#         test: ["CMD-SHELL", "pg_isready -U postgres"]
-#         interval: 5s
-#         timeout: 5s
-#         retries: 5
-#   redis:
-#       hostname: delphi-redis
-#       image: 'redis:latest'
-#       container_name: delphi-redis
-#       env_file:
-#         - .env
-#       ports:
-#         - '6379:6379'
-#       volumes:
-#         - ./redis_data:/data
-#   rabbitmq:
-#     hostname: delphi-rabbitmq
-#     # image: rabbitmq:3-management
-#     image: rabbitmq:3-management
-#     container_name: delphi-rabbitmq
-#     env_file:
-#       - .env
-#     ports:
-#       - 5672:5672
-#       - 15672:15672
-#       - 61613:61613
-#     volumes:
-#       - rabbitmq_data:/var/lib/rabbitmq
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
 
-#   backend:
-#     build:
-#       context: ./backend
-#       dockerfile: Dockerfile
-#     ports:
-#       - "8080:8080"
-#     env_file:
-#       - .env
-#     volumes:
-#       - "./backend:/backend"
-#     # env_file:
-#     #   - ./diamond-backend/diamond/.env
-#     depends_on:
-#       postgres:
-#         condition: service_healthy
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+  postgres:
+      hostname: delphi-postgres
+      image: 'postgres:latest'
+      environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: fkdnvi4fj8g33m0
+        POSTGRES_DB: delphi-postgres
+      container_name: delphi-postgres
+      env_file:
+        - .env
+      ports:
+        - '5432:5432'
+      volumes:
+        - ./postgres_data:/var/lib/postgresql/data
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U postgres"]
+        interval: 5s
+        timeout: 5s
+        retries: 5
+  redis:
+      hostname: delphi-redis
+      image: 'redis:latest'
+      container_name: delphi-redis
+      env_file:
+        - .env
+      ports:
+        - '6379:6379'
+      volumes:
+        - ./redis_data:/data
+  rabbitmq:
+    hostname: delphi-rabbitmq
+    # image: rabbitmq:3-management
+    image: rabbitmq:3-management
+    container_name: delphi-rabbitmq
+    env_file:
+      - .env
+    ports:
+      - 5672:5672
+      - 15672:15672
+      - 61613:61613
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
 
-# volumes:
-#   postgres_data:
-#   rabbitmq_data:
-#   redis_data:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    volumes:
+      - "./backend:/backend"
+    # env_file:
+    #   - ./diamond-backend/diamond/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  redis_data:
