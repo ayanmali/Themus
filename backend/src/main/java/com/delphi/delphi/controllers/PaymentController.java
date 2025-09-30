@@ -59,7 +59,6 @@ public class PaymentController {
 
     /**
      * Webhook endpoint for Stripe events
-     * This now queues events for asynchronous processing via RabbitMQ
      */
     @PostMapping("/stripe/webhook")
     public ResponseEntity<?> stripeWebhook(

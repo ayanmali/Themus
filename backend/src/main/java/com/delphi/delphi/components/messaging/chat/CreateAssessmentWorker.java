@@ -6,14 +6,13 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
-import com.delphi.delphi.configs.rabbitmq.TopicConfig;
+import com.delphi.delphi.configs.kafka.KafkaTopicsConfig;
 import com.delphi.delphi.dtos.messaging.chat.PublishAssessmentCreationJobDto;
 import com.delphi.delphi.entities.Job;
 import com.delphi.delphi.repositories.JobRepository;
-
 import com.delphi.delphi.services.ChatService;
 import com.delphi.delphi.utils.AssessmentCreationPrompts;
 import com.delphi.delphi.utils.enums.JobStatus;
@@ -32,7 +31,7 @@ public class CreateAssessmentWorker {
         this.chatService = chatService;
     }
 
-    @RabbitListener(queues = TopicConfig.CREATE_ASSESSMENT_QUEUE_NAME)
+    @KafkaListener(topics = KafkaTopicsConfig.LLM_CREATE_ASSESSMENT, containerFactory = "kafkaListenerContainerFactory")
     public void processCreateAssessmentJob(PublishAssessmentCreationJobDto publishAssessmentCreationJobDto) {
         final UUID jobId = publishAssessmentCreationJobDto.getJobId();
         Job job = null;

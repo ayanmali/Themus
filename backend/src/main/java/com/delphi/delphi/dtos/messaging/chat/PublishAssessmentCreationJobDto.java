@@ -6,7 +6,9 @@ import java.util.UUID;
 
 import com.delphi.delphi.dtos.cache.AssessmentCacheDto;
 import com.delphi.delphi.dtos.cache.UserCacheDto;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PublishAssessmentCreationJobDto implements Serializable {
     private static final long serialVersionUID = 1L;
     // private String userPromptTemplate;

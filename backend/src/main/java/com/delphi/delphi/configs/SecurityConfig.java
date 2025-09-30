@@ -1,4 +1,5 @@
 package com.delphi.delphi.configs;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
@@ -39,8 +40,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtAuthFilter jwtAuthFilter(JwtService jwtService, UserDetailsService userDetailsService) {
-        return new JwtAuthFilter(jwtService, userDetailsService);
+    public JwtAuthFilter jwtAuthFilter(JwtService jwtService, UserDetailsService userDetailsService, @Value("${app.env}") String appEnv) {
+        return new JwtAuthFilter(jwtService, userDetailsService, appEnv);
     }
 
     @Bean
@@ -49,7 +50,7 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults()) // enables CORS using the bean defined in CorsConfig
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/actuator/**", "/api/auth/**", "/api/recordings/**", "/api/attempts/live/**", "/api/users/github/callback", "/").permitAll()
+                .requestMatchers("/api/auth/**", "/actuator/**", "/api/recordings/**", "/api/attempts/live/**", "/api/users/github/callback", "/").permitAll()
                 .anyRequest().authenticated()
             )
             // .exceptionHandling(exceptions -> exceptions

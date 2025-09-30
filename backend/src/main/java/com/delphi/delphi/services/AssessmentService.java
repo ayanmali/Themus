@@ -7,12 +7,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
@@ -20,12 +20,13 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.delphi.delphi.components.RedisService;
 import com.delphi.delphi.components.messaging.candidates.CandidateInvitationPublisher;
-import com.delphi.delphi.configs.rabbitmq.TopicConfig;
+import com.delphi.delphi.configs.kafka.KafkaTopicsConfig;
 import com.delphi.delphi.dtos.EmailRequestDto;
 import com.delphi.delphi.dtos.NewAssessmentDto;
 import com.delphi.delphi.dtos.PaginatedResponseDto;
@@ -66,6 +67,8 @@ import com.delphi.delphi.utils.git.GithubAccountType;
  */
 public class AssessmentService {
 
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+
     private final JobRepository jobRepository;
 
     private final UserRepository userRepository;
@@ -76,14 +79,13 @@ public class AssessmentService {
     private final CandidateRepository candidateRepository;
     private final Logger log = LoggerFactory.getLogger(AssessmentService.class);
     private final RedisService redisService;
-    private final RabbitTemplate rabbitTemplate;
     private final String appClientDomain;
     private final EncryptionService encryptionService;      
 
     public AssessmentService(AssessmentRepository assessmentRepository, GithubService githubService,
             CandidateAttemptRepository candidateAttemptRepository,
             CandidateInvitationPublisher candidateInvitationPublisher, UserRepository userRepository,
-            CandidateRepository candidateRepository, RedisService redisService, JobRepository jobRepository, RabbitTemplate rabbitTemplate, @Value("${app.client-domain}") String appClientDomain, EncryptionService encryptionService) {
+            CandidateRepository candidateRepository, RedisService redisService, JobRepository jobRepository, KafkaTemplate<String, Object> kafkaTemplate, @Value("${app.client-domain}") String appClientDomain, EncryptionService encryptionService) {
         this.assessmentRepository = assessmentRepository;
         this.githubService = githubService;
         this.candidateAttemptRepository = candidateAttemptRepository;
@@ -92,7 +94,7 @@ public class AssessmentService {
         this.candidateRepository = candidateRepository;
         this.redisService = redisService;
         this.jobRepository = jobRepository;
-        this.rabbitTemplate = rabbitTemplate;
+        this.kafkaTemplate = kafkaTemplate;
         this.appClientDomain = appClientDomain;
         this.encryptionService = encryptionService;
     }
@@ -594,8 +596,15 @@ public class AssessmentService {
                                     decryptedPassword,
                                     attempt.getAssessment().getEndDate().format(DateTimeFormatter.ofPattern("MM/dd/yyyy"))), 
                                     null));
-            rabbitTemplate.convertAndSend(TopicConfig.EMAIL_TOPIC_EXCHANGE_NAME, TopicConfig.EMAIL_ROUTING_KEY,
-                    publishSendEmailJobDto);
+            try {
+                kafkaTemplate.send(KafkaTopicsConfig.EMAIL, candidate.getId().toString(), publishSendEmailJobDto).get();
+            } catch (InterruptedException e) {
+                log.error("Error publishing email job", e);
+            } catch (ExecutionException e) {
+                log.error("Error publishing email job", e);
+            } catch (Exception e) {
+                log.error("Error publishing email job", e);
+            }
             log.info("Email job published to queue");
         }
         return id;

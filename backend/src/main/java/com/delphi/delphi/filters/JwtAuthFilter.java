@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
@@ -31,9 +32,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final Logger log = LoggerFactory.getLogger(JwtAuthFilter.class);
     private final JwtService jwtService;
 
-    public JwtAuthFilter(JwtService jwtService, UserDetailsService userDetailsService) {
+    private final String appEnv;
+
+    public JwtAuthFilter(JwtService jwtService, UserDetailsService userDetailsService, @Value("${app.env}") String appEnv) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
+        this.appEnv = appEnv;
     }
 
     @Override
@@ -93,7 +97,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         // TODO: remove this in prod
-        if (jwt.equals("THEMUS_ADMIN")) {
+        if (jwt.equals("THEMUS_ADMIN") && appEnv.equals("dev")) {
             log.info("User is admin, skipping JWT validation");
             UserDetails userDetails = userDetailsService.loadUserByUsername("nef@gmail.com");
 
