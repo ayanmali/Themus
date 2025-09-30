@@ -1,4 +1,5 @@
 package com.delphi.delphi.configs;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
@@ -39,8 +40,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtAuthFilter jwtAuthFilter(JwtService jwtService, UserDetailsService userDetailsService) {
-        return new JwtAuthFilter(jwtService, userDetailsService);
+    public JwtAuthFilter jwtAuthFilter(JwtService jwtService, UserDetailsService userDetailsService, @Value("${app.env}") String appEnv) {
+        return new JwtAuthFilter(jwtService, userDetailsService, appEnv);
     }
 
     @Bean

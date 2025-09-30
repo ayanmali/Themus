@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -31,9 +32,12 @@ public class RateLimitFilter implements Filter {
     private final JwtService jwtService;
     private final Logger log = LoggerFactory.getLogger(RateLimitFilter.class);
 
-    public RateLimitFilter(RedisService redisService, JwtService jwtService) {
+    private final String appEnv;
+
+    public RateLimitFilter(RedisService redisService, JwtService jwtService, @Value("${app.env}") String appEnv) {
         this.redisService = redisService;
         this.jwtService = jwtService;
+        this.appEnv = appEnv;
     }
 
     @Override
@@ -81,7 +85,7 @@ public class RateLimitFilter implements Filter {
         }
 
         // TODO: remove this in prod
-        if (jwt.equals("THEMUS_ADMIN")) {
+        if (jwt.equals("THEMUS_ADMIN") && appEnv.equals("dev")) {
             log.info("RateLimitFilter - User is admin, skipping rate limiting");
             chain.doFilter(request, response);
             return;
