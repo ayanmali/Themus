@@ -25,22 +25,19 @@ import org.springframework.util.backoff.FixedBackOff;
 @Configuration
 public class KafkaConfig {
 
-    private final String KAFKA_BOOTSTRAP_HOST;
-    private final String KAFKA_BOOTSTRAP_PORT;
+    private final String KAFKA_BOOTSTRAP_SERVERS;
     private final String KAFKA_GROUP_ID;
 
-    public KafkaConfig(@Value("${spring.kafka.bootstrap-server.host}") String kafkaBootstrapHost, 
-                       @Value("${spring.kafka.bootstrap-server.port}") String kafkaBootstrapPort, 
+    public KafkaConfig(@Value("${spring.kafka.bootstrap-servers}") String kafkaBootstrapServers, 
                        @Value("${spring.kafka.consumer.group-id}") String kafkaGroupId) {
-        this.KAFKA_BOOTSTRAP_HOST = kafkaBootstrapHost;
-        this.KAFKA_BOOTSTRAP_PORT = kafkaBootstrapPort;
+        this.KAFKA_BOOTSTRAP_SERVERS = kafkaBootstrapServers;
         this.KAFKA_GROUP_ID = kafkaGroupId;
     }
 
     @Bean
     public ProducerFactory<String, Object> producerFactory() {
         Map<String, Object> props = Map.of(
-            ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_HOST + ":" + KAFKA_BOOTSTRAP_PORT,
+            ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVERS,
             ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
             ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class,
             ProducerConfig.ACKS_CONFIG, "all",
@@ -62,7 +59,7 @@ public class KafkaConfig {
         JsonDeserializer<Object> jsonDeserializer = new JsonDeserializer<>();
         jsonDeserializer.addTrustedPackages("com.delphi.delphi.*");
         Map<String, Object> props = Map.of(
-            ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092",
+            ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVERS,
             ConsumerConfig.GROUP_ID_CONFIG, KAFKA_GROUP_ID,
             ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
             ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class,
@@ -73,7 +70,7 @@ public class KafkaConfig {
 
     @Bean
     public DefaultErrorHandler errorHandler() {
-        return new DefaultErrorHandler(new FixedBackOff(1000L, 3L));
+        return new DefaultErrorHandler(new FixedBackOff(1500L, 3L));
     }
 
     @Bean
