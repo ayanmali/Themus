@@ -6,7 +6,9 @@ import java.util.UUID;
 
 import com.delphi.delphi.dtos.EmailRequestDto;
 import com.delphi.delphi.dtos.cache.CandidateCacheDto;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PublishSendEmailJobDto implements Serializable {
     private static final long serialVersionUID = 1L;
     
@@ -18,6 +20,9 @@ public class PublishSendEmailJobDto implements Serializable {
     private LocalDateTime scheduledAt;
     // private String requestId;
     // private Long retryCount;
+
+    public PublishSendEmailJobDto() {
+    }
 
     public PublishSendEmailJobDto(UUID jobId, CandidateCacheDto candidate, EmailRequestDto emailRequest) {
         this.jobId = jobId;

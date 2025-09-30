@@ -4,7 +4,9 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 import com.delphi.delphi.dtos.cache.CandidateCacheDto;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CandidateInvitationMessage implements Serializable {
     private static final long serialVersionUID = 1L;
     

@@ -2,12 +2,13 @@ package com.delphi.delphi.components.messaging.candidates;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.AmqpException;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
 
 import com.delphi.delphi.dtos.cache.CandidateCacheDto;
@@ -18,18 +19,15 @@ import com.delphi.delphi.entities.Candidate;
 @Component
 public class CandidateInvitationPublisher {
 
-    private final RabbitTemplate rabbitTemplate;
-    private final String candidateInvitationTopicExchangeName;
-    private final String candidateInvitationRoutingKey;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final String candidateInvitationTopic;
     
     private static final Logger log = LoggerFactory.getLogger(CandidateInvitationPublisher.class);
 
-    public CandidateInvitationPublisher(RabbitTemplate rabbitTemplate,
-                       @Value("${candidate.invitation.topic.exchange.name}") String candidateInvitationTopicExchangeName,
-                       @Value("${candidate.invitation.routing.key}") String candidateInvitationRoutingKey) {
-        this.rabbitTemplate = rabbitTemplate;
-        this.candidateInvitationTopicExchangeName = candidateInvitationTopicExchangeName;
-        this.candidateInvitationRoutingKey = candidateInvitationRoutingKey;
+    public CandidateInvitationPublisher(KafkaTemplate<String, Object> kafkaTemplate,
+                       @Value("${candidate.invitation.topic.exchange.name}") String candidateInvitationTopic) {
+        this.kafkaTemplate = kafkaTemplate;
+        this.candidateInvitationTopic = candidateInvitationTopic;
     }
 
     public String publishCandidateInvitation(Assessment assessment, Candidate candidate, Long userId, String userEmail) {
@@ -55,17 +53,30 @@ public class CandidateInvitationPublisher {
             log.info("Publishing candidate invitation message for candidate: {} -- email: {} -- assessment: {}", 
                 candidate.getFullName(), candidate.getEmail(), assessment.getName());
             
-            rabbitTemplate.convertAndSend(
-                candidateInvitationTopicExchangeName,
-                candidateInvitationRoutingKey,
-                message
-            );
+            // Use assessment ID as key to ensure messages for same assessment go to same partition
+            String key = assessment.getId().toString();
             
-            log.info("Successfully published candidate invitation message for candidate: {} -- email: {} -- assessment: {}", 
-                candidate.getFullName(), candidate.getEmail(), assessment.getName());
+            SendResult<String, Object> result = kafkaTemplate.send(
+                candidateInvitationTopic,
+                key,
+                message
+            ).get(); // Block until send completes
+            
+            log.info("Successfully published candidate invitation message for candidate: {} -- email: {} -- assessment: {} -- partition: {} -- offset: {}", 
+                candidate.getFullName(), candidate.getEmail(), assessment.getName(), 
+                result.getRecordMetadata().partition(), result.getRecordMetadata().offset());
             
             return invitationId;
-        } catch (AmqpException e) {
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted while publishing candidate invitation message for candidate: {} -- email: {} -- assessment: {}", 
+                candidate.getFullName(), candidate.getEmail(), assessment.getName(), e);
+            throw new RuntimeException("Failed to publish candidate invitation message", e);
+        } catch (ExecutionException e) {
+            log.error("Failed to publish candidate invitation message for candidate: {} -- email: {} -- assessment: {}", 
+                candidate.getFullName(), candidate.getEmail(), assessment.getName(), e);
+            throw new RuntimeException("Failed to publish candidate invitation message", e);
+        } catch (Exception e) {
             log.error("Failed to publish candidate invitation message for candidate: {} -- email: {} -- assessment: {}", 
                 candidate.getFullName(), candidate.getEmail(), assessment.getName(), e);
             throw new RuntimeException("Failed to publish candidate invitation message", e);

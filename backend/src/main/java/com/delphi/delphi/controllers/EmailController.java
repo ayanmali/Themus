@@ -1,10 +1,11 @@
 package com.delphi.delphi.controllers;
 
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.delphi.delphi.configs.rabbitmq.TopicConfig;
+import com.delphi.delphi.configs.kafka.KafkaTopicsConfig;
 import com.delphi.delphi.dtos.BroadcastEmailRequestDto;
 import com.delphi.delphi.dtos.SingleEmailRequestDto;
 import com.delphi.delphi.dtos.cache.CandidateCacheDto;
@@ -32,7 +33,7 @@ import com.delphi.delphi.utils.enums.JobType;
 public class EmailController {
 
     private final JobRepository jobRepository;
-    private final RabbitTemplate rabbitTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
     private final CandidateService candidateService;
 
     private final UserService userService;
@@ -40,11 +41,11 @@ public class EmailController {
     private final Logger log = LoggerFactory.getLogger(EmailController.class);
 
     public EmailController(UserService userService, CandidateService candidateService, JobRepository jobRepository,
-            RabbitTemplate rabbitTemplate) {
+            KafkaTemplate<String, Object> kafkaTemplate) {
         this.userService = userService;
         this.candidateService = candidateService;
         this.jobRepository = jobRepository;
-        this.rabbitTemplate = rabbitTemplate;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     private UserCacheDto getCurrentUser() {
@@ -79,8 +80,16 @@ public class EmailController {
 
         PublishSendEmailJobDto publishSendEmailJobDto = new PublishSendEmailJobDto(job.getId(), candidate,
                 emailRequest);
-        rabbitTemplate.convertAndSend(TopicConfig.EMAIL_TOPIC_EXCHANGE_NAME, TopicConfig.EMAIL_ROUTING_KEY,
-                publishSendEmailJobDto);
+        
+        try {
+        kafkaTemplate.send(KafkaTopicsConfig.EMAIL, candidate.getId().toString(), publishSendEmailJobDto).get();
+        } catch (InterruptedException e) {
+            log.error("Error publishing email job", e);
+        } catch (ExecutionException e) {
+            log.error("Error publishing email job", e);
+        } catch (Exception e) {
+            log.error("Error publishing email job", e);
+        }
         log.info("Email job published to queue");
         // resendService.sendEmail(candidate.getEmail(), emailRequest.getSubject(),
         // emailRequest.getText());
@@ -108,8 +117,18 @@ public class EmailController {
 
             PublishSendEmailJobDto publishSendEmailJobDto = new PublishSendEmailJobDto(job.getId(), candidate,
                     emailRequest);
-            rabbitTemplate.convertAndSend(TopicConfig.EMAIL_TOPIC_EXCHANGE_NAME, TopicConfig.EMAIL_ROUTING_KEY,
-                    publishSendEmailJobDto);
+            
+            try {
+                kafkaTemplate.send(KafkaTopicsConfig.EMAIL, candidate.getId().toString(), publishSendEmailJobDto).get();
+            } catch (InterruptedException e) {
+                log.error("Error publishing email job", e);
+            } catch (ExecutionException e) {
+                log.error("Error publishing email job", e);
+            } catch (Exception e) {
+                log.error("Error publishing email job", e);
+            }
+            // rabbitTemplate.convertAndSend(TopicConfig.EMAIL_TOPIC_EXCHANGE_NAME, TopicConfig.EMAIL_ROUTING_KEY,
+            //         publishSendEmailJobDto);
             log.info("Email job published to queue");
         }
         return ResponseEntity.ok(Map.of("message", "Emails broadcasted"));

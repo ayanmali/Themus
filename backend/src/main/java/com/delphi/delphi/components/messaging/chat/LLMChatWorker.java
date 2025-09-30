@@ -8,10 +8,10 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.Message;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
-import com.delphi.delphi.configs.rabbitmq.TopicConfig;
+import com.delphi.delphi.configs.kafka.KafkaTopicsConfig;
 import com.delphi.delphi.dtos.cache.ChatMessageCacheDto;
 import com.delphi.delphi.dtos.messaging.chat.PublishChatJobDto;
 import com.delphi.delphi.entities.Job;
@@ -36,7 +36,7 @@ public class LLMChatWorker {
         this.assessmentService = assessmentService;
     }
 
-    @RabbitListener(queues = TopicConfig.LLM_CHAT_QUEUE_NAME)
+    @KafkaListener(topics = KafkaTopicsConfig.LLM_CHAT, containerFactory = "kafkaListenerContainerFactory")
     public void processLLMChatJob(PublishChatJobDto publishChatJobDto) {
         final UUID jobId = publishChatJobDto.getJobId();
         Job job = null;

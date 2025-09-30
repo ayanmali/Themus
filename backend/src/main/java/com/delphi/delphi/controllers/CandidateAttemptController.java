@@ -2,18 +2,18 @@ package com.delphi.delphi.controllers;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.AmqpException;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.components.RedisService;
-import com.delphi.delphi.configs.rabbitmq.TopicConfig;
+import com.delphi.delphi.configs.kafka.KafkaTopicsConfig;
 import com.delphi.delphi.dtos.AuthenticateCandidateDto;
 import com.delphi.delphi.dtos.EmailRequestDto;
 import com.delphi.delphi.dtos.FetchCandidateAttemptDto;
@@ -67,7 +67,7 @@ import jakarta.validation.Valid;
 public class CandidateAttemptController {
 
     private final JobRepository jobRepository;
-    private final RabbitTemplate rabbitTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     private final RedisService redisService;
 
@@ -84,7 +84,7 @@ public class CandidateAttemptController {
     public CandidateAttemptController(CandidateAttemptService candidateAttemptService,
             AssessmentService assessmentService,
             AssessmentRepository assessmentRepository,
-            CandidateRepository candidateRepository, CandidateService candidateService, UserService userService, RedisService redisService, @Value("${themus.github.app.name}") String githubAppName, JobRepository jobRepository, RabbitTemplate rabbitTemplate) {
+            CandidateRepository candidateRepository, CandidateService candidateService, UserService userService, RedisService redisService, @Value("${themus.github.app.name}") String githubAppName, JobRepository jobRepository, KafkaTemplate<String, Object> kafkaTemplate) {
         this.assessmentService = assessmentService;
         this.candidateAttemptService = candidateAttemptService;
         this.assessmentRepository = assessmentRepository;
@@ -94,7 +94,7 @@ public class CandidateAttemptController {
         this.redisService = redisService;
         this.appInstallBaseUrl = String.format("https://github.com/apps/%s/installations/new", githubAppName);
         this.jobRepository = jobRepository;
-        this.rabbitTemplate = rabbitTemplate;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     private UserCacheDto getCurrentUser() {
@@ -799,8 +799,7 @@ public class CandidateAttemptController {
                     new EmailRequestDto(String.format("Confirmation of Assessment Submission for %s - %s", user.getOrganizationName(), attempt.getAssessment().getRole()),
                                         String.format("Hello %s,\n\nYour assessment has been submitted for the %s position at %s.", attempt.getCandidate().getFirstName(), attempt.getAssessment().getRole(), user.getOrganizationName()), 
                                         null));
-            rabbitTemplate.convertAndSend(TopicConfig.EMAIL_TOPIC_EXCHANGE_NAME, TopicConfig.EMAIL_ROUTING_KEY,
-                    publishSendEmailJobDto);
+            kafkaTemplate.send(KafkaTopicsConfig.EMAIL, attempt.getCandidate().getId().toString(), publishSendEmailJobDto).get();
             return ResponseEntity.ok(new FetchCandidateAttemptDto(attempt));
         } catch (IllegalArgumentException e) {
             if (e.getMessage().contains("Access denied")) {
@@ -809,9 +808,9 @@ public class CandidateAttemptController {
             return ResponseEntity.badRequest().body("Error submitting attempt: " + e.getMessage());
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body("Error submitting attempt: " + e.getMessage());
-        } catch (AmqpException e) {
+        } catch (InterruptedException | ExecutionException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("RabbitMQ Error submitting attempt: " + e.getMessage());
+                .body("Error submitting attempt: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error submitting attempt: " + e.getMessage());

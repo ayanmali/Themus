@@ -9,8 +9,6 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.AmqpException;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -33,7 +32,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import com.delphi.delphi.configs.rabbitmq.TopicConfig;
+import com.delphi.delphi.configs.kafka.KafkaTopicsConfig;
 import com.delphi.delphi.dtos.FetchAssessmentDto;
 import com.delphi.delphi.dtos.FetchCandidateAttemptDto;
 import com.delphi.delphi.dtos.FetchCandidateDto;
@@ -79,13 +78,13 @@ public class AssessmentController {
     // private final ChatMessagePublisher chatMessagePublisher;
     private final JobRepository jobRepository;
     private final AssessmentService assessmentService;
-    private final RabbitTemplate rabbitTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
     private final String appInstallUrl;
 
     private final Logger log = LoggerFactory.getLogger(AssessmentController.class);
 
     public AssessmentController(AssessmentService assessmentService, UserService userService,
-            GithubService githubService, JobRepository jobRepository, RabbitTemplate rabbitTemplate,
+            GithubService githubService, JobRepository jobRepository, KafkaTemplate<String, Object> kafkaTemplate,
             ChatService chatService, @Value("${themus.github.app.name}") String githubAppName,
             DelegatingSecurityContextAsyncTaskExecutor taskExecutor, CandidateAttemptService candidateAttemptService) {
         this.assessmentService = assessmentService;
@@ -93,7 +92,7 @@ public class AssessmentController {
         this.userService = userService;
         this.githubService = githubService;
         this.jobRepository = jobRepository;
-        this.rabbitTemplate = rabbitTemplate;
+        this.kafkaTemplate = kafkaTemplate;
         this.chatService = chatService;
         this.candidateAttemptService = candidateAttemptService;
         // state specifies whether this installation is for a user or a candidate
@@ -363,10 +362,12 @@ public class AssessmentController {
                 try {
                     PublishAssessmentCreationJobDto publishAssessmentCreationJobDto = new PublishAssessmentCreationJobDto(
                             jobId, assessment, user, newAssessmentDto.getModel());
-                    rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME,
-                            TopicConfig.CREATE_ASSESSMENT_ROUTING_KEY, publishAssessmentCreationJobDto);
-                    log.info("Assessment creation job published to queue");
-                } catch (AmqpException e) {
+                    
+                    // Use assessment ID as key to ensure messages for same assessment go to same partition
+                    String key = assessment.getId().toString();
+                    kafkaTemplate.send(KafkaTopicsConfig.LLM_CREATE_ASSESSMENT, key, publishAssessmentCreationJobDto);
+                    log.info("Assessment creation job published to Kafka topic: {}", KafkaTopicsConfig.LLM_CREATE_ASSESSMENT);
+                } catch (Exception e) {
                     log.error("Error publishing assessment creation job", e);
                     try {
                         emitter.send(SseEmitter.event()
@@ -384,9 +385,6 @@ public class AssessmentController {
 
             return ResponseEntity.status(HttpStatus.CREATED).body(emitter);
 
-        } catch (AmqpException e) {
-            log.error("Error pushing assessment creation job to queue: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error setting up SSE assessment creation: " + e.getMessage());
         } catch (Exception e) {
             log.error("Error setting up SSE assessment creation: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error setting up SSE assessment creation: " + e.getMessage());
@@ -483,11 +481,13 @@ public class AssessmentController {
                 try {
                     PublishChatJobDto publishChatJobDto = new PublishChatJobDto(jobId, messageDto.getMessage(),
                             assessment, user, messageDto.getModel());
-                    rabbitTemplate.convertAndSend(TopicConfig.LLM_TOPIC_EXCHANGE_NAME, TopicConfig.LLM_CHAT_ROUTING_KEY,
-                            publishChatJobDto);
-                    log.info("Assessment creation job published to queue");
-                } catch (AmqpException e) {
-                    log.error("Error publishing assessment creation job", e);
+                    
+                    // Use assessment ID as key to ensure messages for same assessment go to same partition
+                    String key = assessment.getId().toString();
+                    kafkaTemplate.send(KafkaTopicsConfig.LLM_CHAT, key, publishChatJobDto);
+                    log.info("Chat job published to Kafka topic: {}", KafkaTopicsConfig.LLM_CHAT);
+                } catch (Exception e) {
+                    log.error("Error publishing chat job", e);
                     try {
                         emitter.send(SseEmitter.event()
                                     .name("error")
@@ -506,9 +506,6 @@ public class AssessmentController {
 
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
-        } catch (AmqpException e) {
-            log.error("Error pushing chat job to queue: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error pushing chat job to queue: " + e.getMessage());
         } catch (Exception e) {
             log.error("Error setting up SSE chat: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error setting up SSE chat: " + e.getMessage());
@@ -978,11 +975,7 @@ public class AssessmentController {
             return ResponseEntity.badRequest().body("Error activating assessment: " + e.getMessage());
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body("Error activating assessment: " + e.getMessage());
-        } catch (AmqpException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("RabbitMQ Error activating assessment: " + e.getMessage());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error activating assessment: " + e.getMessage());
         }
