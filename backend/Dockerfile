@@ -5,4 +5,4 @@ FROM ghcr.io/graalvm/jdk-community:25.0.0-ol8-20250916
 COPY ./target/*.jar app.jar
 RUN chmod +x app.jar
 
-ENTRYPOINT ["java","-jar","app.jar"]
+CMD ["java","-jar","app.jar"]
