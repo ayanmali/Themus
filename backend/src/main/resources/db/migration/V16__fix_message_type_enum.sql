@@ -1,3 +1,2 @@
-ALTER TYPE themus.message_type ADD VALUE 'TOOL'; -- appends to list
+-- ALTER TYPE themus.message_type ADD VALUE 'TOOL'; -- appends to list
 --ALTER TYPE themus.message_type DELETE VALUE 'FUNCTION'; -- appends to list
-
