@@ -15,7 +15,7 @@ public class CorsConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // Set allowed origins; you can use "*" for all or specify the origins explicitly, e.g., "http://localhost:3000"
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:8080", "http://localhost:3000", "https://themus.dev", "https://www.themus.dev", "https://api.themus.dev", "https://api.py.themus.dev"));
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:8080", "http://localhost:3000", "https://themus.dev", "https://www.themus.dev", "http://themus.dev", "http://www.themus.dev", "https://api.themus.dev", "https://api.py.themus.dev", "http://api.themus.dev", "http://api.py.themus.dev"));
         // Allow specific methods; you can include GET, POST, PUT, DELETE, etc.
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         // Specify allowed headers
