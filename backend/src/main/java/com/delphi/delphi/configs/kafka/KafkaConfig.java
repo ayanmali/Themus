@@ -28,34 +28,33 @@ public class KafkaConfig {
 
     private final String KAFKA_BOOTSTRAP_SERVERS;
     private final String KAFKA_CONSUMER_GROUP;
-    private final String KAFKA_SECURITY_PROTOCOL;
-    private final String KAFKA_SASL_MECHANISM;
-    private final String KAFKA_SASL_JAAS_CONFIG;
-    private final String KAFKA_CLIENT_DNS_LOOKUP;
+    // private final String KAFKA_SECURITY_PROTOCOL;
+    // private final String KAFKA_SASL_MECHANISM;
+    // private final String KAFKA_SASL_JAAS_CONFIG;
+    // private final String KAFKA_CLIENT_DNS_LOOKUP;
     private final String KAFKA_SESSION_TIMEOUT_MS;
     private final String KAFKA_ACKS;
-    private final String KAFKA_CLIENT_ID;
+    // private final String KAFKA_CLIENT_ID;
 
     public KafkaConfig(
         @Value("${spring.kafka.bootstrap-servers}") String kafkaBootstrapServers,
         @Value("${spring.kafka.consumer.group-id}") String kafkaGroupId,
-        @Value("${spring.kafka.security.protocol:SASL_SSL}") String securityProtocol,
-        @Value("${spring.kafka.sasl.mechanism:PLAIN}") String saslMechanism,
-        @Value("${spring.kafka.sasl.jaas.config}") String saslJaasConfig,
-        @Value("${spring.kafka.client.dns.lookup:use_all_dns_ips}") String clientDnsLookup,
+        // @Value("${spring.kafka.security.protocol:SASL_SSL}") String securityProtocol,
+        // @Value("${spring.kafka.sasl.mechanism:OAUTHBEARER}") String saslMechanism,
+        // @Value("${spring.kafka.sasl.jaas.config}") String saslJaasConfig,
+        // @Value("${spring.kafka.client.dns.lookup:use_all_dns_ips}") String clientDnsLookup,
         @Value("${spring.kafka.session.timeout.ms:45000}") String sessionTimeoutMs,
-        @Value("${spring.kafka.acks:all}") String acks,
-        @Value("${spring.kafka.client.id}") String clientId
-    ) {
+        @Value("${spring.kafka.producer.acks:all}") String acks) {
+        // @Value("${spring.kafka.client.id}") String clientId) {
         this.KAFKA_BOOTSTRAP_SERVERS = kafkaBootstrapServers;
         this.KAFKA_CONSUMER_GROUP = kafkaGroupId;
-        this.KAFKA_SECURITY_PROTOCOL = securityProtocol;
-        this.KAFKA_SASL_MECHANISM = saslMechanism;
-        this.KAFKA_SASL_JAAS_CONFIG = saslJaasConfig;
-        this.KAFKA_CLIENT_DNS_LOOKUP = clientDnsLookup;
+        // this.KAFKA_SECURITY_PROTOCOL = securityProtocol;
+        // this.KAFKA_SASL_MECHANISM = saslMechanism;
+        // this.KAFKA_SASL_JAAS_CONFIG = saslJaasConfig;
+        // this.KAFKA_CLIENT_DNS_LOOKUP = clientDnsLookup;
         this.KAFKA_SESSION_TIMEOUT_MS = sessionTimeoutMs;
         this.KAFKA_ACKS = acks;
-        this.KAFKA_CLIENT_ID = clientId;
+        // this.KAFKA_CLIENT_ID = clientId;
     }
 
     @Bean
@@ -69,12 +68,12 @@ public class KafkaConfig {
         props.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
         props.put(ProducerConfig.BATCH_SIZE_CONFIG, 16384);
         props.put(ProducerConfig.LINGER_MS_CONFIG, 1);
-        props.put(ProducerConfig.CLIENT_ID_CONFIG, KAFKA_CLIENT_ID);
+        // props.put(ProducerConfig.CLIENT_ID_CONFIG, KAFKA_CLIENT_ID
         // Security for Confluent Cloud
-        props.put("security.protocol", KAFKA_SECURITY_PROTOCOL);
-        props.put("sasl.mechanism", KAFKA_SASL_MECHANISM);
-        props.put("sasl.jaas.config", KAFKA_SASL_JAAS_CONFIG);
-        props.put("client.dns.lookup", KAFKA_CLIENT_DNS_LOOKUP);
+        // props.put("security.protocol", KAFKA_SECURITY_PROTOCOL);
+        // props.put("sasl.mechanism", KAFKA_SASL_MECHANISM);
+        // props.put("sasl.jaas.config", KAFKA_SASL_JAAS_CONFIG);
+        // props.put("client.dns.lookup", KAFKA_CLIENT_DNS_LOOKUP);
         props.put("session.timeout.ms", KAFKA_SESSION_TIMEOUT_MS);
         return new DefaultKafkaProducerFactory<>(props);
     }
@@ -95,12 +94,12 @@ public class KafkaConfig {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         // Security for Confluent Cloud
-        props.put("security.protocol", KAFKA_SECURITY_PROTOCOL);
-        props.put("sasl.mechanism", KAFKA_SASL_MECHANISM);
-        props.put("sasl.jaas.config", KAFKA_SASL_JAAS_CONFIG);
-        props.put("client.dns.lookup", KAFKA_CLIENT_DNS_LOOKUP);
+        // props.put("security.protocol", KAFKA_SECURITY_PROTOCOL);
+        // props.put("sasl.mechanism", KAFKA_SASL_MECHANISM);
+        // props.put("sasl.jaas.config", KAFKA_SASL_JAAS_CONFIG);
+        // props.put("client.dns.lookup", KAFKA_CLIENT_DNS_LOOKUP);
         props.put("session.timeout.ms", KAFKA_SESSION_TIMEOUT_MS);
-        props.put("client.id", KAFKA_CLIENT_ID);
+        // props.put("client.id", KAFKA_CLIENT_ID);
         return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), jsonDeserializer);
     }
 

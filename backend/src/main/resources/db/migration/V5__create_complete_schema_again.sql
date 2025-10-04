@@ -171,7 +171,7 @@ CREATE INDEX IF NOT EXISTS idx_candidate_attempts_created_date ON themus.candida
 CREATE INDEX IF NOT EXISTS idx_evaluations_candidate_attempt_id ON themus.evaluations(candidate_attempt_id);
 CREATE INDEX IF NOT EXISTS idx_chat_message_assessment_id ON themus.chat_message(assessment_id);
 CREATE INDEX IF NOT EXISTS idx_chat_message_created_at ON themus.chat_message(created_at);
-CREATE INDEX IF NOT EXISTS idx_open_ai_tool_calls_message_id ON themus.open_ai_tool_calls(message_id);
+CREATE INDEX IF NOT EXISTS idx_openai_tool_calls_message_id ON themus.openai_tool_calls(message_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON themus.refresh_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON themus.refresh_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_jobs_status ON themus.jobs(status);
@@ -200,6 +200,6 @@ COMMENT ON TABLE themus.candidates IS 'Stores candidate information for assessme
 COMMENT ON TABLE themus.candidate_attempts IS 'Stores individual candidate attempts at assessments';
 COMMENT ON TABLE themus.evaluations IS 'Stores evaluation results for candidate attempts';
 COMMENT ON TABLE themus.chat_message IS 'Stores chat messages for AI interactions';
-COMMENT ON TABLE themus.open_ai_tool_calls IS 'Stores OpenAI tool calls associated with chat messages';
+COMMENT ON TABLE themus.openai_tool_calls IS 'Stores OpenAI tool calls associated with chat messages';
 COMMENT ON TABLE themus.refresh_tokens IS 'Stores refresh tokens for authentication';
 COMMENT ON TABLE themus.jobs IS 'Stores background job information';
