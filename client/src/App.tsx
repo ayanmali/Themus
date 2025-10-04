@@ -32,11 +32,13 @@ import AssessmentDetails from "./pages/employer/assessment-details/assessment-de
 import AddCandidate from "./pages/employer/new-candidate";
 import CandidateDetails from "./pages/employer/candidate-details";
 import RecordScreen from "./pages/candidate/starting-assessment/record";
+import AboutPage from "./pages/about";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={LandingPage} />
+      <Route path="/about" component={AboutPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/signup" component={SignupPage} />
       <Route path="/forgot-password" component={ForgotPassword} />

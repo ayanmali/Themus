@@ -31,8 +31,8 @@ export function HeroSection() {
                                     </Button>
                                 </Link>
 
-                                <Link href="#link">
-                                    <Button className="bg-slate-700 hover:bg-slate-600 text-white px-8 py-3 rounded-full border border-gray-600 transition-colors flex items-center mx-auto">
+                                <Link href="">
+                                    <Button className="bg-slate-700 hover:bg-slate-600 text-white px-8 py-3 rounded-full border border-gray-600 transition-colors flex items-center mx-auto" onClick={() => alert('Coming soon...')} >
                                             <span className="text-nowrap">Request a demo</span>
                                     </Button>
                                 </Link>
@@ -207,14 +207,14 @@ export function HeroSection() {
                 <section className="relative mx-auto flex max-w-6xl flex-col px-6">
                     <Problem />
                 </section>
-                <section className="relative mx-auto flex max-w-6xl flex-col px-6">
+                <section className="relative mx-auto flex max-w-6xl flex-col px-6" id="features">
                     <Solution />
                 </section>
                 {/* <section className="relative mx-auto flex max-w-6xl flex-col px-6">
                     <HowItWorks />
                 </section> */}
                 <div className="py-10"></div>
-                <section className="relative mx-auto flex max-w-6xl flex-col px-6">
+                <section className="relative mx-auto flex max-w-6xl flex-col px-6" id="solution">
                     <Benefits />
                 </section>
                 <div className="py-20"></div>

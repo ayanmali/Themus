@@ -50,7 +50,7 @@ export function Header({ setSidebarOpen }: HeaderProps) {
           </div> */}
         </div>
 
-        <div className="ml-4 flex items-center md:ml-6">
+        <div className="flex items-center mr-10">
           {/* Notifications */}
 
 
@@ -82,11 +82,11 @@ export function Header({ setSidebarOpen }: HeaderProps) {
                 <Bell className="h-5 w-5 text-gray-100" />
                 <span className="sr-only">View notifications</span>
               </Button>
-
             </DropdownMenuTrigger>
+
             <DropdownMenuContent className="w-56 bg-slate-800 text-white border-slate-500" align="start">
-              <DropdownMenuLabel>More Actions</DropdownMenuLabel>
-              <DropdownMenuGroup>
+              {/* <DropdownMenuLabel>More Actions</DropdownMenuLabel> */}
+              {/* <DropdownMenuGroup>
                 <DropdownMenuItem className="hover:bg-slate-700 transition-colors hover:text-white">
                   Copy link
                 </DropdownMenuItem>
@@ -97,7 +97,7 @@ export function Header({ setSidebarOpen }: HeaderProps) {
                 <DropdownMenuItem className="hover:bg-slate-700 text-red-400 transition-colors hover:text-white">
                   Delete Assessment
                 </DropdownMenuItem>
-              </DropdownMenuGroup>
+              </DropdownMenuGroup> */}
             </DropdownMenuContent>
           </DropdownMenu>
 

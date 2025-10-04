@@ -4,14 +4,29 @@ import { Button } from "@/components/ui/button"
 import { Link } from "wouter"
 
 const menuItems = [
-    { name: 'Features', href: '/#features' },
-    { name: 'Solution', href: '/#solution' },
+    { name: 'Features', href: '#features' },
+    { name: 'Solution', href: '#solution' },
     { name: 'Pricing', href: '/pricing' },
     { name: 'About', href: '/about' },
 ]
 
 export const HeroHeader = () => {
     const [menuState, setMenuState] = React.useState(false)
+    
+    const handleSmoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+        if (href.startsWith('#')) {
+            e.preventDefault()
+            const element = document.querySelector(href)
+            if (element) {
+                element.scrollIntoView({ 
+                    behavior: 'smooth',
+                    block: 'start'
+                })
+                // Close mobile menu after navigation
+                setMenuState(false)
+            }
+        }
+    }
     return (
         <header>
             <nav
@@ -42,6 +57,7 @@ export const HeroHeader = () => {
                                         <li key={index}>
                                             <Link
                                                 href={item.href}
+                                                onClick={(e) => handleSmoothScroll(e, item.href)}
                                                 className="text-muted hover:text-white block duration-150 hover:font-medium">
                                                 <span>{item.name}</span>
                                             </Link>
@@ -58,6 +74,7 @@ export const HeroHeader = () => {
                                         <li key={index}>
                                             <Link
                                                 href={item.href}
+                                                onClick={(e) => handleSmoothScroll(e, item.href)}
                                                 className="text-muted-foreground hover:text-accent-foreground block duration-150">
                                                 <span>{item.name}</span>
                                             </Link>
