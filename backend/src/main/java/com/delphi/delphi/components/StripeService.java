@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -35,6 +37,10 @@ public class StripeService {
     private final String stripeWebhookSecret;
     private final RedisService redisService;
     private final String STRIPE_SUCCESS_URL;
+    private final String PRO_MONTHLY_PRICE_ID;
+    private final String PRO_YEARLY_PRICE_ID;
+
+    private final Logger log = LoggerFactory.getLogger(StripeService.class);
 
     public static final List<String> EVENT_TYPES = List.of(
             "checkout.session.completed",
@@ -59,12 +65,16 @@ public class StripeService {
     public StripeService(@Value("${stripe.api.key}") String stripeApiKey,
             @Value("${stripe.webhook.secret}") String stripeWebhookSecret,
             @Value("${stripe.success.url}") String stripeSuccessUrl,
+            @Value("${stripe.price.pro.monthly}") String proMonthlyPriceId,
+            @Value("${stripe.price.pro.yearly}") String proYearlyPriceId,
             RedisService redisService) {
         Stripe.apiKey = stripeApiKey;
         Stripe.setAppInfo("Themus", "0.0.1", "https://themus.dev");
         this.stripeWebhookSecret = stripeWebhookSecret;
         this.redisService = redisService;
         this.STRIPE_SUCCESS_URL = stripeSuccessUrl;
+        this.PRO_MONTHLY_PRICE_ID = proMonthlyPriceId;
+        this.PRO_YEARLY_PRICE_ID = proYearlyPriceId;
     }
 
     public Customer createCustomer(UserCacheDto user) {
@@ -92,16 +102,15 @@ public class StripeService {
         }
     }
 
-    public Session createCheckoutSession(String customerId) {
+    public Session createCheckoutSession(String customerId, Boolean annual) {
         try {
             SessionCreateParams params = SessionCreateParams.builder()
                     .setCustomer(customerId)
                     .setSuccessUrl(STRIPE_SUCCESS_URL)
-                    // .addLineItem(
-                    // SessionCreateParams.LineItem.builder()
-                    // .setPrice("price_1MotwRLkdIwHu7ixYcPLm5uZ")
-                    // .setQuantity(2L)
-                    // .build())
+                    .addLineItem(SessionCreateParams.LineItem.builder()
+                            .setPrice(annual ? PRO_YEARLY_PRICE_ID : PRO_MONTHLY_PRICE_ID)
+                            .setQuantity(1L)
+                            .build())
                     .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
                     .build();
             return Session.create(params);
@@ -178,6 +187,13 @@ public class StripeService {
         if (event.getType().startsWith("checkout.session")) {
             if (dataObject instanceof Session session) {
                 customerId = session.getCustomer();
+                
+                // Handle successful checkout completion
+                if ("checkout.session.completed".equals(event.getType())) {
+                    log.info("Checkout session completed for customer: " + customerId);
+                    // TODO: add additional success logic here
+                    // For example: send confirmation email, update user status, etc.
+                }
             }
         }
 

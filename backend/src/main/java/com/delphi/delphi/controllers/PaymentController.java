@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.delphi.delphi.components.RedisService;
@@ -48,13 +49,15 @@ public class PaymentController {
     }
 
     @GetMapping("/initiate-checkout")
-    public ResponseEntity<?> initiateStripeCheckout() {
+    public ResponseEntity<?> initiateStripeCheckout(@RequestParam(name = "annual", required = false, defaultValue = "false") Boolean annual) {
         UserCacheDto user = getCurrentUser();
         log.info("Creating Stripe customer and initiating checkout for user: {}", user.getId());
         Customer customer = stripeService.createCustomer(user);
-        Session session = stripeService.createCheckoutSession(customer.getId());
+        Session session = stripeService.createCheckoutSession(customer.getId(), annual);
         log.info("Checkout session created for user: {}", user.getId());
-        return ResponseEntity.ok(session.getUrl());
+        return ResponseEntity.ok(java.util.Map.of(
+                "ok", true,
+                "url", session.getUrl()));
     }
 
     /**
