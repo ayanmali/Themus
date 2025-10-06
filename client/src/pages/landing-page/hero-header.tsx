@@ -75,7 +75,7 @@ export const HeroHeader = () => {
                                             <Link
                                                 href={item.href}
                                                 onClick={(e) => handleSmoothScroll(e, item.href)}
-                                                className="text-muted-foreground hover:text-accent-foreground block duration-150">
+                                                className="text-muted hover:text-accent-foreground block duration-150">
                                                 <span>{item.name}</span>
                                             </Link>
                                         </li>
