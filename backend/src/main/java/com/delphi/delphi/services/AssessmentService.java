@@ -148,6 +148,7 @@ public class AssessmentService {
         // TODO: replace w/ something else?
         assessment.setGithubRepoName(newAssessmentDto.getName().toLowerCase().replaceAll("[^a-zA-Z0-9]","-") + "-"
                 + String.valueOf(Instant.now().getEpochSecond()));
+        assessment.setBaseRepoUrl(newAssessmentDto.getBaseRepoUrl());
         assessment.setUser(userRepository.findById(user.getId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + user.getId())));
         assessment.setStatus(AssessmentStatus.DRAFT);

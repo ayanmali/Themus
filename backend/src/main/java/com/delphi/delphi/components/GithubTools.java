@@ -138,6 +138,13 @@ public class GithubTools {
         // );
     }
 
+    @Tool(name = "returnRepositoryAnalysis", description = "Returns the analysis results of the repository in Markdown format. This tool should be called when the repository analysis is complete.")
+    public String returnRepositoryAnalysis(
+        @ToolParam(required = true, description = "The analysis results of the repository in Markdown format") String analysisResults) {
+        log.info("Repository analysis completed with results: {}", analysisResults);
+        return analysisResults;
+    }
+
     // TODO: add todo list tool for agent to use
     // TODO: allow agent to spawn subagents to handle different parts of the task
     // e.g. copying the code to a separate branch for different language options

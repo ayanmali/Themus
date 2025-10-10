@@ -19,6 +19,7 @@ public class PublishAssessmentCreationJobDto implements Serializable {
     private Long assessmentId;
     // For making calls to the github api
     private String githubRepoName;
+    private String baseRepoUrl;
     private String encryptedGithubToken;
     private String githubUsername;
     // Constructors
@@ -32,11 +33,12 @@ public class PublishAssessmentCreationJobDto implements Serializable {
             "DURATION", String.format("%d minutes", assessment.getDuration()), 
             "SKILLS", assessment.getSkills() != null ? String.join(", ", assessment.getSkills()) : "", 
             "DETAILS", assessment.getDetails() != null ? assessment.getDetails() : "");
-            
+
         if (assessment.getBaseRepoUrl() != null) userPromptVariables.put("BASE_REPO_URL", assessment.getBaseRepoUrl());
         this.model = model;
         this.assessmentId = assessment.getId();
         this.githubRepoName = assessment.getGithubRepoName();
+        this.baseRepoUrl = assessment.getBaseRepoUrl();
         this.encryptedGithubToken = user.getGithubAccessToken();
         this.githubUsername = user.getGithubUsername();
     }
@@ -99,5 +101,13 @@ public class PublishAssessmentCreationJobDto implements Serializable {
 
     public void setAssessmentId(Long assessmentId) {
         this.assessmentId = assessmentId;
+    }
+
+    public String getBaseRepoUrl() {
+        return baseRepoUrl;
+    }
+
+    public void setBaseRepoUrl(String baseRepoUrl) {
+        this.baseRepoUrl = baseRepoUrl;
     }
 }

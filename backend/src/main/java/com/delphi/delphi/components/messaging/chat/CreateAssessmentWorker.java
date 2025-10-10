@@ -46,13 +46,60 @@ public class CreateAssessmentWorker {
                     Map.of("message", "Processing assessment creation", "jobId", jobId.toString(), "status",
                             JobStatus.RUNNING.toString()));
 
-            // Agent loop
+            // Check if base repository URL is provided for analysis
+            if (publishAssessmentCreationJobDto.getBaseRepoUrl() != null && !publishAssessmentCreationJobDto.getBaseRepoUrl().isEmpty()) {
+                log.info("Base repository URL provided, starting repository analysis first...");
+                
+                // Send SSE event that repository analysis is starting
+                chatService.sendSseEvent(jobId, "repo_analysis_starting",
+                        Map.of("message", "Starting repository analysis", "jobId", jobId.toString(), "status",
+                                JobStatus.RUNNING.toString()));
+
+                // First, run repository analysis
+                @SuppressWarnings("unchecked")
+                List<String> languageOptions = (List<String>) publishAssessmentCreationJobDto.getUserPromptVariables().getOrDefault("LANGUAGE_OPTIONS", List.of());
+                Map<String, Object> repoAnalysisVariables = Map.of(
+                    "TECH_STACK", String.join(", ", languageOptions),
+                    "BRANCH_NAME", "main" // Default branch name
+                );
+
+                log.info("Repository analysis job processing - running agent loop...", jobId.toString());
+                chatService.getChatCompletion(
+                        jobId,
+                        List.of(), // No existing messages for new analysis
+                        AssessmentCreationPrompts.BRANCH_CREATOR_USER_PROMPT,
+                        repoAnalysisVariables,
+                        "@preset/repo-analyzer",
+                        // for storing chat messages into the assessment's chat history
+                        publishAssessmentCreationJobDto.getAssessmentId(),
+                        // for making calls to the github api
+                        publishAssessmentCreationJobDto.getEncryptedGithubToken(),
+                        publishAssessmentCreationJobDto.getGithubUsername(),
+                        publishAssessmentCreationJobDto.getGithubRepoName());
+
+                // Send SSE event that repository analysis is complete
+                chatService.sendSseEvent(jobId, "repo_analysis_completed",
+                        Map.of("message", "Repository analysis completed, starting assessment creation", "jobId", jobId.toString(), "status",
+                                JobStatus.RUNNING.toString()));
+            }
+
+            // Agent loop for assessment creation
             log.info("Create assessment job processing - running agent loop...", jobId.toString());
+            
+            // Add repository analysis context to user prompt variables if available
+            Map<String, Object> assessmentVariables = publishAssessmentCreationJobDto.getUserPromptVariables();
+            if (publishAssessmentCreationJobDto.getBaseRepoUrl() != null && !publishAssessmentCreationJobDto.getBaseRepoUrl().isEmpty()) {
+                // TODO: Extract repository analysis results from chat history and add to context
+                assessmentVariables.put("REPO_ANALYSIS_CONTEXT", "\n\n<REPOSITORY_ANALYSIS>\nRepository analysis results will be included here based on the previous analysis.\n</REPOSITORY_ANALYSIS>");
+            } else {
+                assessmentVariables.put("REPO_ANALYSIS_CONTEXT", "");
+            }
+
             chatService.getChatCompletion(
                     jobId,
                     List.of(), // No existing messages for new assessment
                     AssessmentCreationPrompts.USER_PROMPT,
-                    publishAssessmentCreationJobDto.getUserPromptVariables(),
+                    assessmentVariables,
                     publishAssessmentCreationJobDto.getModel(),
                     // for storing chat messages into the assessment's chat history
                     publishAssessmentCreationJobDto.getAssessmentId(),

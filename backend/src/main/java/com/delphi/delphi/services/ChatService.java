@@ -377,12 +377,16 @@ public class ChatService {
         return output;
     }
 
+    public String analyzeBaseRepo(String baseRepoUrl) {
+        return "";
+    }
+
     /**
      * The initial message sent to the agent to plan the assessment.
      * Stops agent execution to wait for user confirmation/feedback
      */
     // @Cacheable(value = "chatCompletions", key = "#chatHistoryId")
-    public List<ChatMessageCacheDto> getChatCompletion(UUID jobId,List<Message> existingMessages, String userPromptTemplateMessage, Map<String, Object> userPromptVariables,
+    public List<ChatMessageCacheDto> getChatCompletion(UUID jobId, List<Message> existingMessages, String userPromptTemplateMessage, Map<String, Object> userPromptVariables,
             String model, Long assessmentId, String encryptedGithubToken, String githubUsername,
             String githubRepoName) {
         try {

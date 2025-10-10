@@ -305,11 +305,12 @@ public class AssessmentController {
 
             log.info("Github credentials are valid, creating assessment");
             log.info("assessment creation request received: {}", newAssessmentDto);
+
             AssessmentCacheDto assessment = assessmentService.createAssessment(newAssessmentDto, user);
             log.info("assessment created: {}", assessment);
 
-            // Publish to assessment creation queue instead of direct call
-            log.info("Passing form data to chat message queue");
+            // Publish to assessment creation queue (handles repository analysis if baseRepoUrl is provided)
+            log.info("Passing form data to chat message topic");
             Job job = new Job(JobStatus.PENDING, JobType.CREATE_ASSESSMENT);
             job = jobRepository.save(job);
             final UUID jobId = job.getId();
@@ -355,10 +356,6 @@ public class AssessmentController {
             }
 
             CompletableFuture.runAsync(() -> {
-                // Copy security context to async thread
-                // SecurityContext securityContext = SecurityContextHolder.getContext();
-                // SecurityContextHolder.setContext(securityContext);
-
                 try {
                     PublishAssessmentCreationJobDto publishAssessmentCreationJobDto = new PublishAssessmentCreationJobDto(
                             jobId, assessment, user, newAssessmentDto.getModel());
@@ -378,7 +375,6 @@ public class AssessmentController {
                         emitter.completeWithError(ioEx);
                     }
                 } finally {
-                    // TODO: see if this can be deleted
                     SecurityContextHolder.clearContext();
                 }
             }, taskExecutor);

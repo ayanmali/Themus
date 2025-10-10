@@ -267,10 +267,10 @@ export function CreateAssessmentForm() {
   };
 
   const checkGitHubAccess = async (githubRepoUrl: string): Promise<boolean> => {
-    const result: boolean = await apiCall(`/api/users/has-access?githubRepoUrl=${githubRepoUrl}`, {
+    const result: { result: boolean } = await apiCall(`/api/users/has-access?githubRepoUrl=${githubRepoUrl}`, {
       method: "GET",
     });
-    return result;
+    return result.result;
   };
 
   // Function to poll for GitHub token validation
