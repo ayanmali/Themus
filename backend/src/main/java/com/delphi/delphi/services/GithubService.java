@@ -1055,6 +1055,40 @@ public class GithubService {
 
     }
 
+    public boolean hasAccess(String token, String githubRepoUrl) {
+        try {
+            String githubAccessToken = token;
+            if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
+                githubAccessToken = encryptionService.decrypt(token);
+            }
+
+            String[] parts = githubRepoUrl.split("/");
+            String owner = null;
+            String repo = null;
+            if (githubRepoUrl.startsWith("https://github.com/") || githubRepoUrl.startsWith("http://www.github.com/")) {
+                owner = parts[3];
+                repo = parts[4];
+            } else if (githubRepoUrl.startsWith("github.com/") || githubRepoUrl.startsWith("www.github.com/")) {
+                owner = parts[1];
+                repo = parts[2];
+            } else {
+                throw new IllegalArgumentException("Invalid GitHub repository URL: " + githubRepoUrl);
+            }
+
+            String url = String.format("https://api.github.com/repos/%s/%s", owner, repo);
+            return webClient.get()
+                    .uri(url)
+                    .header("Authorization", "token " + githubAccessToken)
+                    .retrieve()
+                    .bodyToMono(Boolean.class)
+                    .block();
+        } catch (RestClientException e) {
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     // TODO: see if this fixes the duplicate message bug
     // public ChatMessage sendMessageToUser(String text, Long assessmentId, String
     // model) {

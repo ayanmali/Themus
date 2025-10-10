@@ -27,6 +27,7 @@ public class AssessmentCacheDto {
     private Integer duration;
     private String githubRepositoryLink;
     private String githubRepoName;
+    private String baseRepoUrl;
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
     private Long userId;
@@ -55,6 +56,7 @@ public class AssessmentCacheDto {
         this.duration = assessment.getDuration();
         this.githubRepositoryLink = assessment.getGithubRepositoryLink();
         this.githubRepoName = assessment.getGithubRepoName();
+        this.baseRepoUrl = assessment.getBaseRepoUrl();
         this.createdDate = assessment.getCreatedDate();
         this.updatedDate = assessment.getUpdatedDate();
         this.userId = assessment.getUser().getId();
@@ -207,6 +209,14 @@ public class AssessmentCacheDto {
 
     public void setInstructions(String instructions) {
         this.instructions = instructions;
+    }
+
+    public String getBaseRepoUrl() {
+        return baseRepoUrl;
+    }
+
+    public void setBaseRepoUrl(String baseRepoUrl) {
+        this.baseRepoUrl = baseRepoUrl;
     }
 
     

@@ -1,0 +1,1 @@
+ALTER TABLE themus.assessments ADD COLUMN base_repo_url TEXT;

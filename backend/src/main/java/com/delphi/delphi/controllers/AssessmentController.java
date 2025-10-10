@@ -125,19 +125,19 @@ public class AssessmentController {
         return currentUser;
     }
 
-    // TODO: add dashboard
-    @GetMapping("/dashboard")
-    public ResponseEntity<?> getDashboard() {
-        try {
-            // List<Assessment> assessments =
-            // assessmentService.getAssessmentsByUserId(userId);
-            // return ResponseEntity.ok(assessments);
-            return ResponseEntity.ok("Dashboard");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error retrieving assessments: " + e.getMessage());
-        }
-    }
+    // // TODO: add dashboard
+    // @GetMapping("/dashboard")
+    // public ResponseEntity<?> getDashboard() {
+    //     try {
+    //         // List<Assessment> assessments =
+    //         // assessmentService.getAssessmentsByUserId(userId);
+    //         // return ResponseEntity.ok(assessments);
+    //         return ResponseEntity.ok("Dashboard");
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body("Error retrieving assessments: " + e.getMessage());
+    //     }
+    // }
 
     // Create a new assessment
     // @PostMapping("/new")

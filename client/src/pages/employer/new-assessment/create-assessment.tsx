@@ -22,18 +22,20 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+//import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { z } from "zod";  
-import { DatePicker } from "@/components/ui/date-picker";
+//import { DatePicker } from "@/components/ui/date-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { TechChoices } from "./tech-choices";
+//import { TechChoices } from "./tech-choices";
 import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import useApi from "@/hooks/use-api";
 import { Textarea } from "@/components/ui/textarea";
-import { useSse } from "@/hooks/use-sse";;
+import { useSse } from "@/hooks/use-sse";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+;
 
 // Create a schema for the assessment creation form
 const createAssessmentSchema = z.object({
@@ -45,6 +47,12 @@ const createAssessmentSchema = z.object({
   //assessmentType: z.enum(["TAKE_HOME", "LIVE_CODING"]),
   duration: z.number().min(1, "Duration must be at least 1 minute").max(255, "Duration must be less than 255 minutes"),
   languageOptions: z.array(z.string()).max(5, "There can be no more than 5 technology choices."),
+  githubRepoUrl: z.string().optional().refine((val) => {
+    if (!val || val === "") return true; // Allow empty values
+    return val.startsWith("https://github.com/") && val.split("/").length >= 5;
+  }, {
+    message: "Please enter a valid GitHub repository URL (e.g., https://github.com/username/repository)"
+  }),
   // startDate: z.coerce.date().min(new Date(), { message: "Start date must be in the future" }),
   // endDate: z.coerce.date().min(new Date(), { message: "End date must be in the future" }),
 });
@@ -126,6 +134,7 @@ export function CreateAssessmentForm() {
   const [name, setName] = useState<string>("");
   const [formDetails, setFormDetails] = useState("");
   const [attachments, setAttachments] = useState<string[]>([]);
+  const [githubRepoUrl, setGithubRepoUrl] = useState<string>("");
   //const [isTyping, setIsTyping] = useState(false);
   const [isPending, startTransition] = useTransition();
   //const [activeSuggestion, setActiveSuggestion] = useState<number>(-1);
@@ -154,6 +163,7 @@ export function CreateAssessmentForm() {
       details: "",
       languageOptions: [],
       duration: 0,
+      githubRepoUrl: "",
     },
   });
 
@@ -256,6 +266,13 @@ export function CreateAssessmentForm() {
     }
   };
 
+  const checkGitHubAccess = async (githubRepoUrl: string): Promise<boolean> => {
+    const result: boolean = await apiCall(`/api/users/has-access?githubRepoUrl=${githubRepoUrl}`, {
+      method: "GET",
+    });
+    return result;
+  };
+
   // Function to poll for GitHub token validation
   const pollForGitHubToken = async (): Promise<boolean> => {
     const maxAttempts = 60; // 5 minutes with 7-second intervals
@@ -346,7 +363,20 @@ export function CreateAssessmentForm() {
           description: "GitHub account successfully connected!",
         });
       }
-      
+
+      // Check if user's github has the right permissions to access the base repo
+      if (apiData.githubRepoUrl) {
+        const hasAccess = await checkGitHubAccess(apiData.githubRepoUrl);
+        if (!hasAccess) {
+          toast({
+            title: "GitHub Access Denied",
+            description: "You do not have access to the specified GitHub base repository.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
       // Proceed with assessment creation using SSE
       //console.log('🎯 About to call createAssessment with data:', apiData);
       createAssessment(apiData, '/api/assessments/new');
@@ -546,6 +576,7 @@ export function CreateAssessmentForm() {
     setDuration(selectedCommand.duration);
     setDurationUnit(selectedCommand.durationUnit);
     setFormDetails(selectedCommand.prefix + ' ');
+    setGithubRepoUrl(""); // Reset GitHub URL
     // setShowCommandPalette(false);
 
     // Sync to form state so validation sees values
@@ -554,6 +585,7 @@ export function CreateAssessmentForm() {
     form.setValue("skills", selectedCommand.skills, { shouldValidate: true, shouldDirty: true }); // Already an array
     form.setValue("duration", selectedCommand.duration, { shouldValidate: true, shouldDirty: true });
     form.setValue("details", selectedCommand.prefix + ' ', { shouldValidate: true, shouldDirty: true });
+    form.setValue("githubRepoUrl", "", { shouldValidate: true, shouldDirty: true }); // Reset GitHub URL
     // if (!form.getValues("title")) {
     //   form.setValue("title", selectedCommand.label, { shouldValidate: true, shouldDirty: true });
     // }
@@ -806,6 +838,44 @@ export function CreateAssessmentForm() {
                 )}
               />
 
+              <FormField
+                control={form.control}
+                name="githubRepoUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-slate-300 font-medium flex items-center gap-2">
+                      GitHub Repository URL
+                      <div className="group relative">
+                        <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-xs text-slate-300 cursor-help">?</div>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-slate-900 text-white border-slate-700">
+                            The specified repository can be used as a base for designing the assessment
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900/95"></div>
+                          </TooltipContent>
+                        </Tooltip>
+                        </TooltipProvider>
+                        
+                      </div>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="https://github.com/username/repository"
+                        value={githubRepoUrl}
+                        onChange={(e) => {
+                          setGithubRepoUrl(e.target.value);
+                          field.onChange(e.target.value);
+                        }}
+                        className="bg-slate-800/60 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-violet-500/20 backdrop-blur-sm"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {/* <FormField
                 control={form.control}
                 name="assessmentType"
@@ -876,6 +946,8 @@ export function CreateAssessmentForm() {
                 )}
               />
 
+              
+
               {/* <FormField
                                 control={form.control}
                                 name="description"
@@ -911,7 +983,7 @@ export function CreateAssessmentForm() {
                 </div>
               </div> */}
 
-              <FormField
+              {/* <FormField
                 control={form.control}
                 name="languageOptions"
                 render={({ field }) => (
@@ -922,7 +994,7 @@ export function CreateAssessmentForm() {
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+              /> */}
 
               <FormField
                 control={form.control}
@@ -980,7 +1052,11 @@ export function CreateAssessmentForm() {
                         </AnimatePresence> */}
 
                         <Textarea
-                          placeholder="Describe what the candidate needs to do in this assessment"
+                          placeholder="Enter any other important information about the assessment, role, or company, such as:
+                                        - the job description
+                                        - the team this role applies to
+                                        - technical constraints to follow
+                                        - specific problems, bugs, or tasks for candidates to solve, or features to implement"
                           value={field.value ?? ""}
                           onChange={(e) => {
                             setFormDetails(e.target.value);
@@ -1259,3 +1335,4 @@ export default function CreateAssessment() {
     <CreateAssessmentForm />
   );
 }
+

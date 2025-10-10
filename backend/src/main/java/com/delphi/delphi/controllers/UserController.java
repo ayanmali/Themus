@@ -117,6 +117,17 @@ public class UserController {
         }
     }
 
+    @GetMapping("/has-access")
+    public ResponseEntity<?> hasAccess(@RequestParam String githubRepoUrl) {
+        try {
+            UserCacheDto user = getCurrentUser();
+            return ResponseEntity.ok(Map.of("result", githubService.hasAccess(user.getGithubAccessToken(), githubRepoUrl)));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Error checking if user has access to GitHub repository: " + e.getMessage());
+        }
+    }
+
     // for the client to check if it is authenticated
     @GetMapping("/is-connected-github")
     public ResponseEntity<?> isConnectedGithub(HttpServletResponse response) {

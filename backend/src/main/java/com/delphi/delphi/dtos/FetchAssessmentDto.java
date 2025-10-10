@@ -21,6 +21,7 @@ public class FetchAssessmentDto {
     private LocalDateTime endDate;
     private Integer duration;
     private String githubRepositoryLink;
+    private String baseRepoUrl;
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
     private List<String> skills;
@@ -37,6 +38,7 @@ public class FetchAssessmentDto {
         this.endDate = assessment.getEndDate();
         this.duration = assessment.getDuration();
         this.githubRepositoryLink = assessment.getGithubRepositoryLink();
+        this.baseRepoUrl = assessment.getBaseRepoUrl();
         this.createdDate = assessment.getCreatedDate();
         this.updatedDate = assessment.getUpdatedDate();
         this.skills = assessment.getSkills() != null ? new ArrayList<>(assessment.getSkills()) : null;
@@ -200,6 +202,14 @@ public class FetchAssessmentDto {
 
     public void setMetadata(Map<String, String> metadata) {
         this.metadata = metadata;
+    }
+
+    public String getBaseRepoUrl() {
+        return baseRepoUrl;
+    }
+
+    public void setBaseRepoUrl(String baseRepoUrl) {
+        this.baseRepoUrl = baseRepoUrl;
     }
 
     

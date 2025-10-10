@@ -31,8 +31,9 @@ public class PublishAssessmentCreationJobDto implements Serializable {
             "ROLE", assessment.getRole(), 
             "DURATION", String.format("%d minutes", assessment.getDuration()), 
             "SKILLS", assessment.getSkills() != null ? String.join(", ", assessment.getSkills()) : "", 
-            "LANGUAGE_OPTIONS", assessment.getLanguageOptions() != null ? String.join(", ", assessment.getLanguageOptions()) : "Not applicable", 
             "DETAILS", assessment.getDetails() != null ? assessment.getDetails() : "");
+            
+        if (assessment.getBaseRepoUrl() != null) userPromptVariables.put("BASE_REPO_URL", assessment.getBaseRepoUrl());
         this.model = model;
         this.assessmentId = assessment.getId();
         this.githubRepoName = assessment.getGithubRepoName();

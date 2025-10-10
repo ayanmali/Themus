@@ -131,6 +131,10 @@ public class Assessment {
     @CollectionTable(name = "assessment_language_options", joinColumns = @JoinColumn(name = "assessment_id"))
     @Column(name = "language_option")
     private List<String> languageOptions;
+
+    // The base repository url for the assessment
+    @Column(name = "base_repo_url", columnDefinition = "TEXT", nullable = true)
+    private String baseRepoUrl;
     
     // Metadata as key-value pairs
     @ElementCollection
@@ -158,7 +162,7 @@ public class Assessment {
         // Empty constructor for Hibernate
     }
 
-    public Assessment(String name, String description, String details, String role, LocalDateTime startDate, LocalDateTime endDate, Integer duration, String githubRepositoryLink, User user, List<String> skills, List<String> languageOptions, Map<String, String> metadata) {
+    public Assessment(String name, String description, String details, String role, LocalDateTime startDate, LocalDateTime endDate, Integer duration, String githubRepositoryLink, User user, List<String> skills, List<String> languageOptions, Map<String, String> metadata, String baseRepoUrl) {
         this.name = name;
         this.description = description;
         this.details = details;
@@ -173,6 +177,7 @@ public class Assessment {
         this.metadata = metadata;
         this.status = AssessmentStatus.DRAFT;
         this.githubRepoName = name.replace(' ', '-');
+        this.baseRepoUrl = baseRepoUrl;
     }
     
     public Long getId() {
@@ -375,5 +380,13 @@ public class Assessment {
 
     public void setInstructions(String instructions) {
         this.instructions = instructions;
+    }
+
+    public String getBaseRepoUrl() {
+        return baseRepoUrl;
+    }
+
+    public void setBaseRepoUrl(String baseRepoUrl) {
+        this.baseRepoUrl = baseRepoUrl;
     }
 }
