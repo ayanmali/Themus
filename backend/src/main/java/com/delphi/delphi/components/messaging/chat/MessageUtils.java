@@ -13,6 +13,9 @@ import com.delphi.delphi.utils.enums.JobStatus;
 
 public class MessageUtils {
     private static final Logger log = LoggerFactory.getLogger(MessageUtils.class);
+    public static final String ASSESSMENT_CREATION_PRESET = "assessment-creation";
+    public static final String ASSESSMENT_CREATION_FROM_REPO_PRESET = "assessment-creation-from-existing-repo";
+    public static final String REPO_ANALYZER_PRESET = "repo-analyzer";
 
     public static void handleJobFailure(ChatService chatService, JobRepository jobRepository, Job job, UUID jobId, Exception e, String errorMessage) {
         try {

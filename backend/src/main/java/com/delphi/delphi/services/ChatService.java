@@ -78,7 +78,6 @@ public class ChatService {
 
     private final ObjectMapper objectMapper;
 
-    private final String PRESET = "assessment-creation";
     private final boolean PARALLEL_TOOL_CALLS = true;
 
     // SSE emitter management
@@ -116,14 +115,14 @@ public class ChatService {
 
     public String getRepoAnalysis(UUID jobId, List<Message> existingMessages, String userMessage,
             String model, Long assessmentId, String encryptedGithubToken, String githubUsername,
-            String githubRepoName, Tools tools) {
+            String githubRepoName, Tools tools, String preset) {
         return getRepoAnalysis(jobId, existingMessages, new UserMessage(userMessage), model, assessmentId,
-                encryptedGithubToken, githubUsername, githubRepoName, tools);
+                encryptedGithubToken, githubUsername, githubRepoName, tools, preset);
     }
 
     public String getRepoAnalysis(UUID jobId, List<Message> existingMessages, Message userMessage,
             String model, Long assessmentId, String encryptedGithubToken, String githubUsername,
-            String githubRepoName, Tools tools) {
+            String githubRepoName, Tools tools, String preset) {
         try {
             String finalResult = "";
             String notes = "";
@@ -162,7 +161,7 @@ public class ChatService {
 
             // creating a prompt with a system message and a user message
             OpenAiChatOptions chatOptions = OpenAiChatOptions.builder()
-                    .model(String.format("%s@preset/%s", model, PRESET))
+                    .model(String.format("%s@preset/%s", model, preset))
                     .toolCallbacks(ToolCallbacks.from(tools))
                     .toolChoice(OpenAiApi.ChatCompletionRequest.ToolChoiceBuilder.AUTO)
                     .internalToolExecutionEnabled(false) // disable framework-enabled tool execution
@@ -265,7 +264,8 @@ public class ChatService {
                         }
                         // generate a tool response message
                         // TODO: add the message to the newMessagescache in Redis
-                        //newMessages.add(new ToolResponseMessage(toolResponses));
+                        // dont add addNote tool calls to the context window
+                        newMessages.add(new ToolResponseMessage(toolResponses.stream().filter(toolResponse -> !toolResponse.name().equals("addNote")).collect(Collectors.toList())));
                         sendSseEvent(jobId, "message", new ToolResponseMessage(toolResponses));
                     }
 
@@ -300,10 +300,10 @@ public class ChatService {
 
     public List<ChatMessageCacheDto> getChatCompletion(UUID jobId, List<Message> existingMessages, String userMessage,
             String model, Long assessmentId, String encryptedGithubToken, String githubUsername,
-            String githubRepoName, Tools tools) {
+            String githubRepoName, Tools tools, String preset) {
         try {
             return getChatCompletion(jobId, existingMessages, new UserMessage(userMessage), model, assessmentId,
-                    encryptedGithubToken, githubUsername, githubRepoName, tools);
+                    encryptedGithubToken, githubUsername, githubRepoName, tools, preset);
         } catch (Exception e) {
             log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to get completion from AI service: " + e.getMessage(), e);
@@ -312,7 +312,7 @@ public class ChatService {
 
     public List<ChatMessageCacheDto> getChatCompletion(UUID jobId, List<Message> existingMessages, Message userMessage,
             String model, Long assessmentId, String encryptedGithubToken, String githubUsername,
-            String githubRepoName, Tools tools) {
+            String githubRepoName, Tools tools, String preset) {
         try {
             if (userMessage == null || userMessage.getText().isEmpty()) {
                 throw new Exception("User message cannot be empty");
@@ -348,8 +348,9 @@ public class ChatService {
             log.info("--------------------------------");
 
             // creating a prompt with a system message and a user message
+            
             OpenAiChatOptions chatOptions = OpenAiChatOptions.builder()
-                    .model(String.format("%s@preset/%s", model, PRESET))
+                    .model(String.format("%s@preset/%s", model, preset))
                     .toolCallbacks(ToolCallbacks.from(tools))
                     .toolChoice(OpenAiApi.ChatCompletionRequest.ToolChoiceBuilder.AUTO)
                     .internalToolExecutionEnabled(false) // disable framework-enabled tool execution
@@ -511,7 +512,7 @@ public class ChatService {
     public List<ChatMessageCacheDto> getChatCompletion(UUID jobId, List<Message> existingMessages,
             String userPromptTemplateMessage, Map<String, Object> userPromptVariables,
             String model, Long assessmentId, String encryptedGithubToken, String githubUsername,
-            String githubRepoName, Tools tools) {
+            String githubRepoName, Tools tools, String preset) {
         try {
             // Input validation
             if (userPromptTemplateMessage == null || userPromptTemplateMessage.isEmpty()) {
@@ -524,7 +525,7 @@ public class ChatService {
             Message userMessage = userPromptTemplate.createMessage(userPromptVariables);
 
             return getChatCompletion(jobId, existingMessages, userMessage, model, assessmentId, encryptedGithubToken,
-                    githubUsername, githubRepoName, tools);
+                    githubUsername, githubRepoName, tools, preset);
         } catch (Exception e) {
             log.error("Error calling OpenRouter via Spring AI: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to get completion from AI service: " + e.getMessage(), e);

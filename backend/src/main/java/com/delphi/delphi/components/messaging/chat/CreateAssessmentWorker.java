@@ -30,7 +30,6 @@ public class CreateAssessmentWorker {
     private final JobRepository jobRepository;
     private final ChatService chatService;
     private final Logger log = LoggerFactory.getLogger(CreateAssessmentWorker.class);
-    private final String PRESET = "repo-analyzer";
 
     public CreateAssessmentWorker(JobRepository jobRepository, ChatService chatService, GithubTools githubTools, RepoAnalyzerTools repoAnalyzerTools) {
         this.jobRepository = jobRepository;
@@ -70,14 +69,15 @@ public class CreateAssessmentWorker {
                         jobId,
                         List.of(), // No existing messages for new analysis
                         AssessmentCreationPrompts.REPO_ANALYSIS_USER_PROMPT,
-                        String.format("%s@preset/%s", publishAssessmentCreationJobDto.getModel(), PRESET),
+                        publishAssessmentCreationJobDto.getModel(),
                         // for storing chat messages into the assessment's chat history
                         publishAssessmentCreationJobDto.getAssessmentId(),
                         // for making calls to the github api
                         publishAssessmentCreationJobDto.getEncryptedGithubToken(),
                         publishAssessmentCreationJobDto.getGithubUsername(),
                         publishAssessmentCreationJobDto.getGithubRepoName(),
-                        repoAnalyzerTools);
+                        repoAnalyzerTools,
+                        MessageUtils.REPO_ANALYZER_PRESET);
                 
                 // Send SSE event that repository analysis is complete
                 chatService.sendSseEvent(jobId, "repo_analysis_completed",
@@ -111,7 +111,9 @@ public class CreateAssessmentWorker {
                     publishAssessmentCreationJobDto.getEncryptedGithubToken(),
                     publishAssessmentCreationJobDto.getGithubUsername(),
                     publishAssessmentCreationJobDto.getGithubRepoName(),
-                    githubTools);
+                    githubTools,
+                    // Each preset uses a different system prompt
+                    publishAssessmentCreationJobDto.getBaseRepoUrl() != null && !publishAssessmentCreationJobDto.getBaseRepoUrl().isEmpty() ? MessageUtils.ASSESSMENT_CREATION_FROM_REPO_PRESET : MessageUtils.ASSESSMENT_CREATION_PRESET);
 
             log.info("Saving completed assessment creation job with ID: {}", jobId.toString());
             job.setStatus(JobStatus.COMPLETED);

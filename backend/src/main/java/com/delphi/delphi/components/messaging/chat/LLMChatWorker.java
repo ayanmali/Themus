@@ -70,7 +70,8 @@ public class LLMChatWorker {
                     publishChatJobDto.getEncryptedGithubToken(),
                     publishChatJobDto.getGithubUsername(),
                     publishChatJobDto.getGithubRepoName(),
-                    githubTools);
+                    githubTools,
+                    MessageUtils.ASSESSMENT_CREATION_PRESET);
 
             log.info("Saving completed chat completion job with ID: {}", jobId.toString());
             job.setStatus(JobStatus.COMPLETED);
