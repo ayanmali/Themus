@@ -25,6 +25,27 @@ public class GithubUser {
 
     public GithubUser() {}
 
+    public GithubUser(String login, Long id, String nodeId, String avatarUrl, String gravatarId, String url, String htmlUrl, String followersUrl, String followingUrl, String gistsUrl, String starredUrl, String subscriptionsUrl, String organizationsUrl, String reposUrl, String eventsUrl, String receivedEventsUrl, String type, Boolean siteAdmin) {
+        this.login = login;
+        this.id = id;
+        this.nodeId = nodeId;
+        this.avatarUrl = avatarUrl;
+        this.gravatarId = gravatarId;
+        this.url = url;
+        this.htmlUrl = htmlUrl;
+        this.followersUrl = followersUrl;
+        this.followingUrl = followingUrl;
+        this.gistsUrl = gistsUrl;
+        this.starredUrl = starredUrl;
+        this.subscriptionsUrl = subscriptionsUrl;
+        this.organizationsUrl = organizationsUrl;
+        this.reposUrl = reposUrl;
+        this.eventsUrl = eventsUrl;
+        this.receivedEventsUrl = receivedEventsUrl;
+        this.type = type;
+        this.siteAdmin = siteAdmin;
+    }
+
     public String getLogin() {
         return login;
     }
@@ -167,5 +188,29 @@ public class GithubUser {
 
     public void setSiteAdmin(Boolean siteAdmin) {
         this.siteAdmin = siteAdmin;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("""
+                login: {login}
+                id: {id}
+                nodeId: {nodeId}
+                avatarUrl: {avatarUrl}
+                gravatarId: {gravatarId}
+                url: {url}
+                htmlUrl: {htmlUrl}
+                followersUrl: {followersUrl}
+                followingUrl: {followingUrl}
+                gistsUrl: {gistsUrl}
+                starredUrl: {starredUrl}
+                subscriptionsUrl: {subscriptionsUrl}
+                organizationsUrl: {organizationsUrl}
+                reposUrl: {reposUrl}
+                eventsUrl: {eventsUrl}
+                receivedEventsUrl: {receivedEventsUrl}
+                type: {type}
+                siteAdmin: {siteAdmin}
+                """, login, id, nodeId, avatarUrl, gravatarId, url, htmlUrl, followersUrl, followingUrl, gistsUrl, starredUrl, subscriptionsUrl, organizationsUrl, reposUrl, eventsUrl, receivedEventsUrl, type, siteAdmin);
     }
 }

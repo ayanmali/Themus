@@ -51,4 +51,13 @@ public class GithubDirectory implements Entry {
         this.sha = sha;
     }
         
+    @Override
+    public String toString() {
+        return String.format("""
+                type: {type}
+                name: {name}
+                path: {path}
+                sha: {sha}
+                """, type, name, path, sha);
+    }
 }

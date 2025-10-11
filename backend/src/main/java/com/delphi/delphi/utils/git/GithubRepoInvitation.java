@@ -15,6 +15,17 @@ public class GithubRepoInvitation {
 
     public GithubRepoInvitation() {}
 
+    public GithubRepoInvitation(Long id, GithubUser invitee, GithubUser inviter, String permissions, String createdAt, String url, String htmlUrl, String nodeId) {
+        this.id = id;
+        this.invitee = invitee;
+        this.inviter = inviter;
+        this.permissions = permissions;
+        this.createdAt = createdAt;
+        this.url = url;
+        this.htmlUrl = htmlUrl;
+        this.nodeId = nodeId;
+    }
+
     public Long getId() {
         return id;
     }
@@ -77,5 +88,19 @@ public class GithubRepoInvitation {
 
     public void setNodeId(String nodeId) {
         this.nodeId = nodeId;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("""
+                id: {id}
+                invitee: {invitee}
+                inviter: {inviter}
+                permissions: {permissions}
+                createdAt: {createdAt}
+                url: {url}
+                htmlUrl: {htmlUrl}
+                nodeId: {nodeId}
+                """, id, invitee, inviter, permissions, createdAt, url, htmlUrl, nodeId);
     }
 }

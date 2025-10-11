@@ -12,7 +12,9 @@ public class GithubRepoContents {
     String path;
     String content;
     String sha;
-    List<Entry> entries;
+    List<Entry> entries; // the contents of the repository (files and directories)
+
+    public GithubRepoContents() {}
 
     public GithubRepoContents(String type, String name, String content, String path, String sha, List<Entry> entries) {
         this.type = type;
@@ -69,6 +71,18 @@ public class GithubRepoContents {
 
     public void setSha(String sha) {
         this.sha = sha;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("""
+                type: {type}
+                name: {name}
+                path: {path}
+                content: {content}
+                sha: {sha}
+                entries: {entries}
+                """, type, name, path, content, sha, entries);
     }
 
 }

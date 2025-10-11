@@ -7,6 +7,8 @@ public class GitHubPullRequest {
     private String url;
     private String body;
 
+    public GitHubPullRequest() {}
+
     public GitHubPullRequest(String url, String body) {
         this.url = url;
         this.body = body;
@@ -26,5 +28,13 @@ public class GitHubPullRequest {
 
     public void setBody(String body) {
         this.body = body;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("""
+                url: {url}
+                body: {body}
+                """, url, body);
     }
 }

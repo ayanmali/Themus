@@ -1,5 +1,7 @@
 package com.delphi.delphi.utils.git;
 
+import java.util.Arrays;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -108,5 +110,21 @@ public class GithubCommit {
 
     public void setVerification(GithubCommitVerification verification) {
         this.verification = verification;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("""
+                sha: {sha}
+                nodeId: {nodeId}
+                url: {url}
+                htmlUrl: {htmlUrl}
+                author: {author}
+                committer: {committer}
+                message: {message}
+                tree: {tree}
+                parents: {parents}
+                verification: {verification}
+                """, sha, nodeId, url, htmlUrl, author, committer, message, tree, Arrays.toString(parents), verification);
     }
 }

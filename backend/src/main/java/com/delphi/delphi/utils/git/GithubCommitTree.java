@@ -29,4 +29,12 @@ public class GithubCommitTree {
     public void setSha(String sha) {
         this.sha = sha;
     }
+
+    @Override
+    public String toString() {
+        return String.format("""
+                url: {url}
+                sha: {sha}
+                """, url, sha);
+    }
 }

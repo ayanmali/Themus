@@ -6,7 +6,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class GithubRepoBranch {
     String name;
 
-    public GithubRepoBranch(String name, String sha) {
+    public GithubRepoBranch() {}
+
+    public GithubRepoBranch(String name) {
         this.name = name;
     }
 
@@ -18,5 +20,10 @@ public class GithubRepoBranch {
         this.name = name;
     }
     
-    
+    @Override
+    public String toString() {
+        return String.format("""
+                name: {name}
+                """, name);
+    }
 }

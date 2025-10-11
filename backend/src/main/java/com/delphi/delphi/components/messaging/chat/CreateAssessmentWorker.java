@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+import com.delphi.delphi.components.tools.GithubTools;
+import com.delphi.delphi.components.tools.RepoAnalyzerTools;
 import com.delphi.delphi.configs.kafka.KafkaTopicsConfig;
 import com.delphi.delphi.dtos.messaging.chat.PublishAssessmentCreationJobDto;
 import com.delphi.delphi.entities.Job;
@@ -22,13 +24,19 @@ import com.delphi.delphi.utils.enums.JobStatus;
  * Subscribes to the create assessment queue and processes the job.
  */
 public class CreateAssessmentWorker {
+
+    private final GithubTools githubTools;
+    private final RepoAnalyzerTools repoAnalyzerTools;
     private final JobRepository jobRepository;
     private final ChatService chatService;
     private final Logger log = LoggerFactory.getLogger(CreateAssessmentWorker.class);
+    private final String PRESET = "repo-analyzer";
 
-    public CreateAssessmentWorker(JobRepository jobRepository, ChatService chatService) {
+    public CreateAssessmentWorker(JobRepository jobRepository, ChatService chatService, GithubTools githubTools, RepoAnalyzerTools repoAnalyzerTools) {
         this.jobRepository = jobRepository;
         this.chatService = chatService;
+        this.githubTools = githubTools;
+        this.repoAnalyzerTools = repoAnalyzerTools;
     }
 
     @KafkaListener(topics = KafkaTopicsConfig.LLM_CREATE_ASSESSMENT, containerFactory = "kafkaListenerContainerFactory")
@@ -47,6 +55,7 @@ public class CreateAssessmentWorker {
                             JobStatus.RUNNING.toString()));
 
             // Check if base repository URL is provided for analysis
+            String repoAnalysisContext = "";
             if (publishAssessmentCreationJobDto.getBaseRepoUrl() != null && !publishAssessmentCreationJobDto.getBaseRepoUrl().isEmpty()) {
                 log.info("Base repository URL provided, starting repository analysis first...");
                 
@@ -56,27 +65,20 @@ public class CreateAssessmentWorker {
                                 JobStatus.RUNNING.toString()));
 
                 // First, run repository analysis
-                @SuppressWarnings("unchecked")
-                List<String> languageOptions = (List<String>) publishAssessmentCreationJobDto.getUserPromptVariables().getOrDefault("LANGUAGE_OPTIONS", List.of());
-                Map<String, Object> repoAnalysisVariables = Map.of(
-                    "TECH_STACK", String.join(", ", languageOptions),
-                    "BRANCH_NAME", "main" // Default branch name
-                );
-
                 log.info("Repository analysis job processing - running agent loop...", jobId.toString());
-                chatService.getChatCompletion(
+                repoAnalysisContext = chatService.getRepoAnalysis(
                         jobId,
                         List.of(), // No existing messages for new analysis
-                        AssessmentCreationPrompts.BRANCH_CREATOR_USER_PROMPT,
-                        repoAnalysisVariables,
-                        "@preset/repo-analyzer",
+                        AssessmentCreationPrompts.REPO_ANALYSIS_USER_PROMPT,
+                        String.format("%s@preset/%s", publishAssessmentCreationJobDto.getModel(), PRESET),
                         // for storing chat messages into the assessment's chat history
                         publishAssessmentCreationJobDto.getAssessmentId(),
                         // for making calls to the github api
                         publishAssessmentCreationJobDto.getEncryptedGithubToken(),
                         publishAssessmentCreationJobDto.getGithubUsername(),
-                        publishAssessmentCreationJobDto.getGithubRepoName());
-
+                        publishAssessmentCreationJobDto.getGithubRepoName(),
+                        repoAnalyzerTools);
+                
                 // Send SSE event that repository analysis is complete
                 chatService.sendSseEvent(jobId, "repo_analysis_completed",
                         Map.of("message", "Repository analysis completed, starting assessment creation", "jobId", jobId.toString(), "status",
@@ -89,8 +91,10 @@ public class CreateAssessmentWorker {
             // Add repository analysis context to user prompt variables if available
             Map<String, Object> assessmentVariables = publishAssessmentCreationJobDto.getUserPromptVariables();
             if (publishAssessmentCreationJobDto.getBaseRepoUrl() != null && !publishAssessmentCreationJobDto.getBaseRepoUrl().isEmpty()) {
-                // TODO: Extract repository analysis results from chat history and add to context
-                assessmentVariables.put("REPO_ANALYSIS_CONTEXT", "\n\n<REPOSITORY_ANALYSIS>\nRepository analysis results will be included here based on the previous analysis.\n</REPOSITORY_ANALYSIS>");
+                // Include repository analysis results in the context
+                // String repoAnalysisContext = extractRepositoryAnalysisResults(repoAnalysisMessages);
+                assessmentVariables.put("REPO_ANALYSIS_CONTEXT", 
+                    String.format("\n\n<REPOSITORY_ANALYSIS>\n%s\n</REPOSITORY_ANALYSIS>", repoAnalysisContext));
             } else {
                 assessmentVariables.put("REPO_ANALYSIS_CONTEXT", "");
             }
@@ -106,7 +110,8 @@ public class CreateAssessmentWorker {
                     // for making calls to the github api
                     publishAssessmentCreationJobDto.getEncryptedGithubToken(),
                     publishAssessmentCreationJobDto.getGithubUsername(),
-                    publishAssessmentCreationJobDto.getGithubRepoName());
+                    publishAssessmentCreationJobDto.getGithubRepoName(),
+                    githubTools);
 
             log.info("Saving completed assessment creation job with ID: {}", jobId.toString());
             job.setStatus(JobStatus.COMPLETED);

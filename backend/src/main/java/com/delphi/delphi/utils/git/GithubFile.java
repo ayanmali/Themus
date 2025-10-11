@@ -62,5 +62,15 @@ public class GithubFile implements Entry {
     public void setSha(String sha) {
         this.sha = sha;
     }
+
+    @Override
+    public String toString() {
+        return String.format("""
+                type: {type}
+                name: {name}
+                path: {path}
+                sha: {sha}
+                """, type, name, path, sha);
+    }
     
 }

@@ -1,4 +1,4 @@
-package com.delphi.delphi.components;
+package com.delphi.delphi.components.tools;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -100,6 +100,18 @@ public class ToolCallHandler {
                     return new ToolResponse(toolCall.id(), toolCall.name(), 
                         githubService.getBranchDetails(encryptedGithubToken, githubUsername, githubRepoName, branchName).block().toString());
                 }
+                case "addNote" -> {
+                    String note = (String) args.get("note");
+                    return new ToolResponse(toolCall.id(), toolCall.name(), note);
+                }
+                case "getNotes" -> {
+                    return new ToolResponse(toolCall.id(), toolCall.name(), "ADD NOTES HERE");
+                }
+                case "returnRepositoryAnalysis" -> {
+                    // This is a special case - don't execute, just return a placeholder
+                    String analysisResults = (String) args.get("analysisResults");
+                    return new ToolResponse(toolCall.id(), toolCall.name(), analysisResults);
+                }
                 case "sendMessageToUser" -> {
                     // This is a special case - don't execute, just return a placeholder
                     return new ToolResponse(toolCall.id(), toolCall.name(), "Message sent to user");
@@ -142,6 +154,6 @@ public class ToolCallHandler {
         // Add other skip conditions here as needed
         // For example, you might want to skip certain tool calls based on context
         
-        return "sendMessageToUser".equals(toolCall.name());
+        return "sendMessageToUser".equals(toolCall.name()) || "returnRepositoryAnalysis".equals(toolCall.name());
     }
 }

@@ -59,4 +59,16 @@ public class GithubCommitVerification {
     public void setVerifiedAt(String verifiedAt) {
         this.verifiedAt = verifiedAt;
     }
+
+    @Override
+    public String toString() {
+        return String.format("""
+                verified: {verified}
+                reason: {reason}
+                signature: {signature}
+                payload: {payload}
+                verifiedAt: {verifiedAt}
+                """,
+                "", verified, reason, signature, payload, verifiedAt);
+    }
 }

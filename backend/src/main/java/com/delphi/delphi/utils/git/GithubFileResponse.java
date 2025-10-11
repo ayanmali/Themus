@@ -29,4 +29,12 @@ public class GithubFileResponse {
     public void setCommit(GithubCommit commit) {
         this.commit = commit;
     }
+
+    @Override
+    public String toString() {
+        return String.format("""
+                content: {content}
+                commit: {commit}
+                """, content, commit);
+    }
 }

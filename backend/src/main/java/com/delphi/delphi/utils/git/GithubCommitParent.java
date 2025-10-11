@@ -39,4 +39,13 @@ public class GithubCommitParent {
     public void setSha(String sha) {
         this.sha = sha;
     }
+
+    @Override
+    public String toString() {
+        return String.format("""
+                url: {url}
+                htmlUrl: {htmlUrl}
+                sha: {sha}
+                """, url, htmlUrl, sha);
+    }
 }

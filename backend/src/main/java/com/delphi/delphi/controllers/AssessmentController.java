@@ -356,6 +356,10 @@ public class AssessmentController {
             }
 
             CompletableFuture.runAsync(() -> {
+                // Copy security context to async thread
+                // SecurityContext securityContext = SecurityContextHolder.getContext();
+                // SecurityContextHolder.setContext(securityContext);
+
                 try {
                     PublishAssessmentCreationJobDto publishAssessmentCreationJobDto = new PublishAssessmentCreationJobDto(
                             jobId, assessment, user, newAssessmentDto.getModel());
@@ -375,6 +379,7 @@ public class AssessmentController {
                         emitter.completeWithError(ioEx);
                     }
                 } finally {
+                    // TODO: see if this can be deleted
                     SecurityContextHolder.clearContext();
                 }
             }, taskExecutor);

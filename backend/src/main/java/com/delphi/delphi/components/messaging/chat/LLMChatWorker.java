@@ -11,6 +11,7 @@ import org.springframework.ai.chat.messages.Message;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+import com.delphi.delphi.components.tools.GithubTools;
 import com.delphi.delphi.configs.kafka.KafkaTopicsConfig;
 import com.delphi.delphi.dtos.cache.ChatMessageCacheDto;
 import com.delphi.delphi.dtos.messaging.chat.PublishChatJobDto;
@@ -28,12 +29,14 @@ public class LLMChatWorker {
     private final JobRepository jobRepository;
     private final ChatService chatService;
     private final AssessmentService assessmentService;
-    private final Logger log = LoggerFactory.getLogger(LLMChatWorker.class);  
+    private final Logger log = LoggerFactory.getLogger(LLMChatWorker.class); 
+    private final GithubTools githubTools;
 
-    public LLMChatWorker(JobRepository jobRepository, ChatService chatService, AssessmentService assessmentService) {
+    public LLMChatWorker(JobRepository jobRepository, ChatService chatService, AssessmentService assessmentService, GithubTools githubTools) {
         this.jobRepository = jobRepository;
         this.chatService = chatService;
         this.assessmentService = assessmentService;
+        this.githubTools = githubTools;
     }
 
     @KafkaListener(topics = KafkaTopicsConfig.LLM_CHAT, containerFactory = "kafkaListenerContainerFactory")
@@ -66,7 +69,8 @@ public class LLMChatWorker {
                     // for making calls to the github api
                     publishChatJobDto.getEncryptedGithubToken(),
                     publishChatJobDto.getGithubUsername(),
-                    publishChatJobDto.getGithubRepoName());
+                    publishChatJobDto.getGithubRepoName(),
+                    githubTools);
 
             log.info("Saving completed chat completion job with ID: {}", jobId.toString());
             job.setStatus(JobStatus.COMPLETED);

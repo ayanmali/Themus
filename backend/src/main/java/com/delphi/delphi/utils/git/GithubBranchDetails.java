@@ -7,6 +7,8 @@ public class GithubBranchDetails {
     String name;
     GithubCommit commit;
 
+    public GithubBranchDetails() {}
+
     public GithubBranchDetails(String name, GithubCommit commit) {
         this.name = name;
         this.commit = commit;
@@ -26,6 +28,14 @@ public class GithubBranchDetails {
 
     public void setCommit(GithubCommit commit) {
         this.commit = commit;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("""
+                name: {name}
+                commit: {commit}
+                """, name, commit);
     }
     
 }
