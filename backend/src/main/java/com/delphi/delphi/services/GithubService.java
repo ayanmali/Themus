@@ -303,6 +303,7 @@ public class GithubService {
             // decrypting the access token if it is encrypted
             String token = githubAccessToken;
             if (!githubAccessToken.startsWith("ghu_") && !githubAccessToken.startsWith("gho_")) {
+                log.info("Decrypting github access token...");
                 token = encryptionService.decrypt(githubAccessToken);
             }
             String uri = "/user";

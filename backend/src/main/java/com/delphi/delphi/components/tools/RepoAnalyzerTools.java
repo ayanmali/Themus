@@ -4,9 +4,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.stereotype.Component;
 
 import com.delphi.delphi.utils.git.GithubRepoContents;
 
+@Component
 public class RepoAnalyzerTools implements Tools {
     private final Logger log = LoggerFactory.getLogger(RepoAnalyzerTools.class);
     

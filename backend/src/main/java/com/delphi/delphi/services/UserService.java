@@ -28,55 +28,58 @@ public class UserService {
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     private final EncryptionService encryptionService;
-    
+
     private final UserRepository userRepository;
-    
+
     private final PasswordEncoder passwordEncoder;
 
     private final RedisService redisService;
 
     private final String appInstallBaseUrl;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, EncryptionService encryptionService, RedisService redisService, @Value("${themus.github.app.name}") String githubAppName) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder,
+            EncryptionService encryptionService, RedisService redisService,
+            @Value("${themus.github.app.name}") String githubAppName) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.encryptionService = encryptionService;
         this.redisService = redisService;
         this.appInstallBaseUrl = String.format("https://github.com/apps/%s/installations/new", githubAppName);
     }
-    
+
     // Create a new user
     @CachePut(value = "users", key = "#user.id")
     public UserCacheDto createUser(User user) {
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new IllegalArgumentException("User with email " + user.getEmail() + " already exists");
         }
-        
+
         // Encrypt password before saving
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        
+
         User savedUser = userRepository.save(user);
         return new UserCacheDto(savedUser);
     }
 
     // Authenticate user
     // public User authenticate(String email, String password) {
-    //     User user = userRepository.findByEmail(email)
-    //         .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + email));
-        
-    //     if (!passwordEncoder.matches(password, user.getPassword())) {
-    //         throw new IllegalArgumentException("Invalid password");
-    //     }
+    // User user = userRepository.findByEmail(email)
+    // .orElseThrow(() -> new IllegalArgumentException("User not found with email: "
+    // + email));
 
-    //     return user;
+    // if (!passwordEncoder.matches(password, user.getPassword())) {
+    // throw new IllegalArgumentException("Invalid password");
     // }
-    
+
+    // return user;
+    // }
+
     // Get user by ID or throw exception
     @Cacheable(value = "users", key = "#id")
     @Transactional(readOnly = true)
     public UserCacheDto getUserByIdOrThrow(Long id) {
         User user = userRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
         return new UserCacheDto(user);
     }
 
@@ -86,52 +89,59 @@ public class UserService {
         redisService.setWithExpiration(CacheUtils.githubCacheKeyPrefix + email, randomString, 10, TimeUnit.MINUTES);
         return String.format("%s?state=%s_user_%s", appInstallBaseUrl, randomString, email);
     }
-    
+
     // Get user by email
-    @Caching(
-       cacheable = {
-        @Cacheable(value = "users", key = "#email")
+    @Caching(cacheable = {
+            @Cacheable(value = "users", key = "#email")
     }, put = {
-        @CachePut(value = "users", key = "#result.id")
+            @CachePut(value = "users", key = "#result.id")
     })
-    //@CacheEvict(value = "users", key = "#email", beforeInvocation = true)
+    // @CacheEvict(value = "users", key = "#email", beforeInvocation = true)
     @Transactional(readOnly = true)
     public UserCacheDto getUserByEmail(String email) {
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
         return new UserCacheDto(user);
     }
-    
+
     // Clear user cache for specific email
     // @CacheEvict(value = "users", key = "#email")
     // public void clearUserCache(String email) {
-    //     // This method only exists to trigger cache eviction
-    //     log.info("Clearing cache for user email: {}", email);
+    // // This method only exists to trigger cache eviction
+    // log.info("Clearing cache for user email: {}", email);
     // }
-    
+
     // Get all users with pagination
-    // @Cacheable(value = "users", key = "#pageable.pageNumber + ':' + #pageable.pageSize")
+    // @Cacheable(value = "users", key = "#pageable.pageNumber + ':' +
+    // #pageable.pageSize")
     // @Transactional(readOnly = true)
     // public List<UserCacheDto> getAllUsers(Pageable pageable) {
-    //     return userRepository.findAll(pageable).getContent().stream().map(UserCacheDto::new).collect(Collectors.toList());
+    // return
+    // userRepository.findAll(pageable).getContent().stream().map(UserCacheDto::new).collect(Collectors.toList());
     // }
 
     // Get users with multiple filters
-    // @Cacheable(value = "users", key = "#name + ':' + #organizationName + ':' + #createdAfter + ':' + #createdBefore + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    // @Cacheable(value = "users", key = "#name + ':' + #organizationName + ':' +
+    // #createdAfter + ':' + #createdBefore + ':' + #pageable.pageNumber + ':' +
+    // #pageable.pageSize")
     // @Transactional(readOnly = true)
-    // public List<UserCacheDto> getUsersWithFilters(String name, String organizationName, LocalDateTime createdAfter, 
-    //                                      LocalDateTime createdBefore, Pageable pageable) {
-    //     return userRepository.findWithFilters(name, organizationName, createdAfter, createdBefore, pageable).getContent().stream().map(UserCacheDto::new).collect(Collectors.toList());
+    // public List<UserCacheDto> getUsersWithFilters(String name, String
+    // organizationName, LocalDateTime createdAfter,
+    // LocalDateTime createdBefore, Pageable pageable) {
+    // return userRepository.findWithFilters(name, organizationName, createdAfter,
+    // createdBefore,
+    // pageable).getContent().stream().map(UserCacheDto::new).collect(Collectors.toList());
     // }
 
     // Update user
     @Caching(put = {
-        @CachePut(value = "users", key = "#id"),
-        @CachePut(value = "users", key = "#result.email")
+            @CachePut(value = "users", key = "#id"),
+            @CachePut(value = "users", key = "#result.email")
     })
     public UserCacheDto updateUser(Long id, User userUpdates) {
         User existingUser = userRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
-        
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
+
         // Update fields if provided
         if (userUpdates.getName() != null) {
             existingUser.setName(userUpdates.getName());
@@ -148,15 +158,15 @@ public class UserService {
         if (userUpdates.getPassword() != null) {
             existingUser.setPassword(passwordEncoder.encode(userUpdates.getPassword()));
         }
-        
+
         User user = userRepository.save(existingUser);
         return new UserCacheDto(user);
     }
-    
+
     // Delete user
     @Caching(evict = {
-        @CacheEvict(value = "users", key = "#id"),
-        @CacheEvict(value = "users", key = "#result.email")
+            @CacheEvict(value = "users", key = "#id"),
+            @CacheEvict(value = "users", key = "#result.email")
     })
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
@@ -165,7 +175,8 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
-    // checks if user's github credentials exist (not necessarily valid; validateGithubCredentials() should be called to check if they are valid)
+    // checks if user's github credentials exist (not necessarily valid;
+    // validateGithubCredentials() should be called to check if they are valid)
     @Cacheable(value = "users", key = "'connected_github:' + #user.id")
     @Transactional(readOnly = true)
     public boolean connectedGithub(User user) {
@@ -173,93 +184,106 @@ public class UserService {
         return getGithubUsernameByUserId(user.getId()) != null && getDecryptedGithubToken(user.getId()) != null;
     }
 
-    // checks if user's github credentials exist (not necessarily valid; validateGithubCredentials() should be called to check if they are valid)
+    // checks if user's github credentials exist (not necessarily valid;
+    // validateGithubCredentials() should be called to check if they are valid)
     @Cacheable(value = "users", key = "'connected_github:' + #user.id")
     @Transactional(readOnly = true)
     public boolean connectedGithub(UserCacheDto user) {
         log.info("UserService - checking if user is connected to github: {}", user);
         return getGithubUsernameByUserId(user.getId()) != null && getDecryptedGithubToken(user.getId()) != null;
     }
-    
+
     // Check if email exists
     @Cacheable(value = "users", key = "'emailExists:' + #email")
     @Transactional(readOnly = true)
     public boolean emailExists(String email) {
         return userRepository.existsByEmail(email);
     }
-    
+
     // Search users by organization name
-    // @Cacheable(value = "users", key = "#organizationName + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    // @Cacheable(value = "users", key = "#organizationName + ':' +
+    // #pageable.pageNumber + ':' + #pageable.pageSize")
     // @Transactional(readOnly = true)
-    // public List<UserCacheDto> searchUsersByOrganization(String organizationName, Pageable pageable) {
-    //     return userRepository.findByOrganizationNameContainingIgnoreCase(organizationName, pageable).getContent().stream().map(UserCacheDto::new).collect(Collectors.toList());
+    // public List<UserCacheDto> searchUsersByOrganization(String organizationName,
+    // Pageable pageable) {
+    // return
+    // userRepository.findByOrganizationNameContainingIgnoreCase(organizationName,
+    // pageable).getContent().stream().map(UserCacheDto::new).collect(Collectors.toList());
     // }
-    
+
     // Search users by name
-    // @Cacheable(value = "users", key = "#name + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    // @Cacheable(value = "users", key = "#name + ':' + #pageable.pageNumber + ':' +
+    // #pageable.pageSize")
     // @Transactional(readOnly = true)
     // public List<UserCacheDto> searchUsersByName(String name, Pageable pageable) {
-    //     return userRepository.findByNameContainingIgnoreCase(name, pageable).getContent().stream().map(UserCacheDto::new).collect(Collectors.toList());
+    // return userRepository.findByNameContainingIgnoreCase(name,
+    // pageable).getContent().stream().map(UserCacheDto::new).collect(Collectors.toList());
     // }
-    
+
     // Get users created within date range
-    // @Cacheable(value = "users", key = "createdBetween + ':' + #startDate + ':' + #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    // @Cacheable(value = "users", key = "createdBetween + ':' + #startDate + ':' +
+    // #endDate + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     // @Transactional(readOnly = true)
-    // public List<UserCacheDto> getUsersCreatedBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
-    //     return userRepository.findByCreatedDateBetween(startDate, endDate, pageable).getContent().stream().map(UserCacheDto::new).collect(Collectors.toList());
+    // public List<UserCacheDto> getUsersCreatedBetween(LocalDateTime startDate,
+    // LocalDateTime endDate, Pageable pageable) {
+    // return userRepository.findByCreatedDateBetween(startDate, endDate,
+    // pageable).getContent().stream().map(UserCacheDto::new).collect(Collectors.toList());
     // }
-    
+
     // Get users with active assessments
-    // @Cacheable(value = "users", key = "activeAssessments + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
+    // @Cacheable(value = "users", key = "activeAssessments + ':' +
+    // #pageable.pageNumber + ':' + #pageable.pageSize")
     // @Transactional(readOnly = true)
     // public List<UserCacheDto> getUsersWithActiveAssessments(Pageable pageable) {
-    //     return userRepository.findUsersWithActiveAssessments(pageable).getContent().stream().map(UserCacheDto::new).collect(Collectors.toList());
+    // return
+    // userRepository.findUsersWithActiveAssessments(pageable).getContent().stream().map(UserCacheDto::new).collect(Collectors.toList());
     // }
-    
+
     // Count users by organization
     // @Cacheable(value = "users", key = "#organizationName")
     // @Transactional(readOnly = true)
     // public Long countUsersByOrganization(String organizationName) {
-    //     return userRepository.countByOrganizationName(organizationName);
+    // return userRepository.countByOrganizationName(organizationName);
     // }
-    
+
     // Get user with assessments
     // @Cacheable(value = "users", key = "withAssessments + ':' + #userId")
     // @Transactional(readOnly = true)
     // public UserCacheDto getUserWithAssessments(Long userId) {
-    //     return new UserCacheDto(userRepository.findByIdWithAssessments(userId)
-    //         .orElseThrow(() -> new IllegalArgumentException("User not found with assessments with id: " + userId)));
+    // return new UserCacheDto(userRepository.findByIdWithAssessments(userId)
+    // .orElseThrow(() -> new IllegalArgumentException("User not found with
+    // assessments with id: " + userId)));
     // }
-    
+
     // Change password
     @Caching(evict = {
-        @CacheEvict(value = "users", beforeInvocation = true, key = "#userId"),
-        @CacheEvict(value = "users", key = "#result.email")
+            @CacheEvict(value = "users", beforeInvocation = true, key = "#userId"),
+            @CacheEvict(value = "users", key = "#result.email")
     })
     @Transactional
     public UserCacheDto changePassword(Long userId, String currentPassword, String newPassword) {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
-        
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new IllegalArgumentException("Current password is incorrect");
         }
-        
+
         user.setPassword(passwordEncoder.encode(newPassword));
 
         User savedUser = userRepository.save(user);
         return new UserCacheDto(savedUser);
     }
-    
+
     // Reset password (admin function)
     @Caching(evict = {
-        @CacheEvict(value = "users", beforeInvocation = true, key = "#userId"),
-        @CacheEvict(value = "users", key = "#result.email")
+            @CacheEvict(value = "users", beforeInvocation = true, key = "#userId"),
+            @CacheEvict(value = "users", key = "#result.email")
     })
     @Transactional
     public UserCacheDto resetPassword(Long userId, String newPassword) {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
         user.setPassword(passwordEncoder.encode(newPassword));
 
         User savedUser = userRepository.save(user);
@@ -271,67 +295,79 @@ public class UserService {
     @Transactional(readOnly = true)
     public String getGithubUsernameByUserId(Long userId) {
         String githubUsername = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId))
-            .getGithubUsername();
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId))
+                .getGithubUsername();
         if (githubUsername == null) {
-            // throw new IllegalArgumentException("User with id: " + userId + " has not connected to Github");
+            // throw new IllegalArgumentException("User with id: " + userId + " has not
+            // connected to Github");
             return null;
         }
         return githubUsername;
     }
-    
+
     // Get user by GitHub username
     // @Cacheable(value = "users", key = "gh_username + ':' + #githubUsername")
     // @Transactional(readOnly = true)
     // public UserCacheDto getUserByGithubUsername(String githubUsername) {
-    //     return new UserCacheDto(userRepository.findByGithubUsername(githubUsername)
-    //         .orElseThrow(() -> new IllegalArgumentException("User not found with github username: " + githubUsername)));
+    // return new UserCacheDto(userRepository.findByGithubUsername(githubUsername)
+    // .orElseThrow(() -> new IllegalArgumentException("User not found with github
+    // username: " + githubUsername)));
     // }
-    
+
     // Get user by GitHub access token
-    // @Cacheable(value = "users", key = "gh_access_token + ':' + #githubAccessToken")
+    // @Cacheable(value = "users", key = "gh_access_token + ':' +
+    // #githubAccessToken")
     // @Transactional(readOnly = true)
     // public UserCacheDto getUserByGithubAccessToken(String githubAccessToken) {
-    //     return new UserCacheDto(userRepository.findByGithubAccessToken(githubAccessToken)
-    //         .orElseThrow(() -> new IllegalArgumentException("User not found with github access token: " + githubAccessToken)));
+    // return new
+    // UserCacheDto(userRepository.findByGithubAccessToken(githubAccessToken)
+    // .orElseThrow(() -> new IllegalArgumentException("User not found with github
+    // access token: " + githubAccessToken)));
     // }
-    
+
     // Check if GitHub username exists
-    // @Cacheable(value = "users", key = "gh_username_exists + ':' + #githubUsername")
+    // @Cacheable(value = "users", key = "gh_username_exists + ':' +
+    // #githubUsername")
     // @Transactional(readOnly = true)
     // public boolean githubUsernameExists(String githubUsername) {
-    //     return userRepository.existsByGithubUsername(githubUsername);
+    // return userRepository.existsByGithubUsername(githubUsername);
     // }
-    
+
     // // Check if GitHub access token exists
-    // @Cacheable(value = "users", key = "gh_access_token_exists + ':' + #githubAccessToken")
+    // @Cacheable(value = "users", key = "gh_access_token_exists + ':' +
+    // #githubAccessToken")
     // @Transactional(readOnly = true)
     // public boolean githubAccessTokenExists(String githubAccessToken) {
-    //     return userRepository.existsByGithubAccessToken(githubAccessToken);
+    // return userRepository.existsByGithubAccessToken(githubAccessToken);
     // }
-    
+
     // Update user's GitHub credentials
     @Caching(put = {
-        @CachePut(value = "users", key = "#userId"),
-        @CachePut(value = "users", key = "#result.email")
+            @CachePut(value = "users", key = "#userId"),
+            @CachePut(value = "users", key = "#result.email")
     })
     @Transactional
-    public UserCacheDto updateGithubCredentials(Long userId, String githubAccessToken, String githubUsername, GithubAccountType githubAccountType) throws Exception {        
+    public UserCacheDto updateGithubCredentials(Long userId, String githubAccessToken, String githubUsername,
+            GithubAccountType githubAccountType) throws Exception {
         // // Check if GitHub username is already taken by another user
-        // if (githubUsername != null && !githubUsername.equals(user.getGithubUsername()) && userRepository.existsByGithubUsername(githubUsername)) {
-        //     throw new IllegalArgumentException("GitHub username " + githubUsername + " is already in use");
+        // if (githubUsername != null &&
+        // !githubUsername.equals(user.getGithubUsername()) &&
+        // userRepository.existsByGithubUsername(githubUsername)) {
+        // throw new IllegalArgumentException("GitHub username " + githubUsername + " is
+        // already in use");
         // }
-        
+
         // // Check if GitHub access token is already taken by another user
-        // if (githubAccessToken != null && !githubAccessToken.equals(user.getGithubAccessToken())) {
-        //     if (userRepository.existsByGithubAccessToken(githubAccessToken)) {
-        //         throw new IllegalArgumentException("GitHub access token is already in use");
-        //     }
+        // if (githubAccessToken != null &&
+        // !githubAccessToken.equals(user.getGithubAccessToken())) {
+        // if (userRepository.existsByGithubAccessToken(githubAccessToken)) {
+        // throw new IllegalArgumentException("GitHub access token is already in use");
         // }
-        
+        // }
+
         // store the encrypted access token in the DB
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
         log.info("Encrypting github access token for user: {}", user.getEmail());
         String encryptedAccessToken = encryptionService.encrypt(githubAccessToken);
         user.setGithubAccessToken(encryptedAccessToken);
@@ -341,7 +377,8 @@ public class UserService {
         log.info("UserService - user ID: {}", user.getId());
 
         // redisService.set("cache:users:gh_username_exists:" + githubUsername, true);
-        // redisService.set("cache:users:gh_access_token_exists:" + githubAccessToken, true);
+        // redisService.set("cache:users:gh_access_token_exists:" + githubAccessToken,
+        // true);
         redisService.set("cache:users:connected_github:" + userId, true);
 
         User savedUser = userRepository.save(user);
@@ -349,8 +386,8 @@ public class UserService {
     }
 
     @Caching(evict = {
-        @CacheEvict(value = "users", beforeInvocation = true, key = "#user.id"),
-        @CacheEvict(value = "users", beforeInvocation = true, key = "#user.email")
+            @CacheEvict(value = "users", beforeInvocation = true, key = "#user.id"),
+            @CacheEvict(value = "users", beforeInvocation = true, key = "#user.email")
     })
     @Transactional
     public User removeGithubCredentials(User user) throws Exception {
@@ -366,94 +403,142 @@ public class UserService {
     // Update user's GitHub access token
     // @CachePut(value = "users", key = "#result.id")
     // @Transactional
-    // public User updateGithubAccessToken(User user, String githubAccessToken) throws Exception {
-    //     // store the encrypted access token in the DB
-    //     String encryptedAccessToken = encryptionService.encrypt(githubAccessToken);
-    //     user.setGithubAccessToken(encryptedAccessToken);
-        
-    //     return userRepository.save(user);
+    // public User updateGithubAccessToken(User user, String githubAccessToken)
+    // throws Exception {
+    // // store the encrypted access token in the DB
+    // String encryptedAccessToken = encryptionService.encrypt(githubAccessToken);
+    // user.setGithubAccessToken(encryptedAccessToken);
+
+    // return userRepository.save(user);
     // }
-    
+
     // Remove user's GitHub credentials
     @CacheEvict(value = "users", beforeInvocation = true, key = "#userId")
     @Transactional
     public User removeGithubCredentials(Long userId) {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
         user.setGithubAccessToken(null);
         user.setGithubUsername(null);
         evictGithubCaches(userId);
         return userRepository.save(user);
     }
-    
+
     // Find or create user by GitHub credentials
     // @CacheEvict(value = "users", key = "#githubUsername + ':' + #email")
-    // public User findOrCreateUserByGithub(String githubUsername, String githubAccessToken, String name, String email, String organizationName) {
-    //     // First try to find by GitHub username
-    //     Optional<User> existingUser = getUserByGithubUsername(githubUsername);
-    //     if (existingUser.isPresent()) {
-    //         // Update access token if different
-    //         User user = existingUser.get();
-    //         if (!githubAccessToken.equals(user.getGithubAccessToken())) {
-    //             user.setGithubAccessToken(githubAccessToken);
-    //             return userRepository.save(user);
-    //         }
-    //         return user;
-    //     }
-        
-    //     // Check if user exists by email
-    //     existingUser = getUserByEmail(email);
-    //     if (existingUser.isPresent()) {
-    //         // Link GitHub credentials to existing user
-    //         return updateGithubCredentials(existingUser.get().getId(), githubAccessToken, githubUsername);
-    //     }
-        
-    //     // Create new user with GitHub credentials
-    //     User newUser = new User();
-    //     newUser.setName(name);
-    //     newUser.setEmail(email);
-    //     newUser.setOrganizationName(organizationName);
-    //     newUser.setGithubUsername(githubUsername);
-    //     newUser.setGithubAccessToken(githubAccessToken);
-        
-    //     // Set a default password (should be changed later)
-    //     newUser.setPassword(passwordEncoder.encode("temp-github-password-" + System.currentTimeMillis()));
-        
-    //     return userRepository.save(newUser);
+    // public User findOrCreateUserByGithub(String githubUsername, String
+    // githubAccessToken, String name, String email, String organizationName) {
+    // // First try to find by GitHub username
+    // Optional<User> existingUser = getUserByGithubUsername(githubUsername);
+    // if (existingUser.isPresent()) {
+    // // Update access token if different
+    // User user = existingUser.get();
+    // if (!githubAccessToken.equals(user.getGithubAccessToken())) {
+    // user.setGithubAccessToken(githubAccessToken);
+    // return userRepository.save(user);
+    // }
+    // return user;
+    // }
+
+    // // Check if user exists by email
+    // existingUser = getUserByEmail(email);
+    // if (existingUser.isPresent()) {
+    // // Link GitHub credentials to existing user
+    // return updateGithubCredentials(existingUser.get().getId(), githubAccessToken,
+    // githubUsername);
+    // }
+
+    // // Create new user with GitHub credentials
+    // User newUser = new User();
+    // newUser.setName(name);
+    // newUser.setEmail(email);
+    // newUser.setOrganizationName(organizationName);
+    // newUser.setGithubUsername(githubUsername);
+    // newUser.setGithubAccessToken(githubAccessToken);
+
+    // // Set a default password (should be changed later)
+    // newUser.setPassword(passwordEncoder.encode("temp-github-password-" +
+    // System.currentTimeMillis()));
+
+    // return userRepository.save(newUser);
     // }
 
     // Method to get decrypted token for GitHub operations
     public String getDecryptedGithubToken(Long userId) {
+        String encryptedGithubToken = null;
         try {
             // check redis first
-            String encryptedGithubToken = getEncryptedGithubToken(userId);
+            encryptedGithubToken = getEncryptedGithubToken(userId);
             if (encryptedGithubToken != null) {
+                log.debug("Attempting to decrypt GitHub token for user: {}", userId);
                 return encryptionService.decrypt(encryptedGithubToken);
             }
 
-            // check db if not in redis
-            User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
-
-            if (user.getGithubAccessToken() != null) {
-                return encryptionService.decrypt(user.getGithubAccessToken());
-            }
+            log.debug("No encrypted GitHub token found for user: {}", userId);
             return null;
         } catch (Exception e) {
+            log.error("Error decrypting GitHub access token for user: {}. Encrypted token length: {}", 
+                     userId, encryptedGithubToken != null ? encryptedGithubToken.length() : 0, e);
             throw new RuntimeException("Error decrypting GitHub access token", e);
         }
     }
 
+    @Cacheable(value = "users", key = "'encrypted_github_access_token:' + #userId")
+    @Transactional(readOnly = true)
     private String getEncryptedGithubToken(Long userId) {
-        Object encryptedGithubToken = redisService.get("cache:users:encrypted_github_access_token:" + userId);
-        if (encryptedGithubToken == null) {
-            return null;
-        }
-        return encryptedGithubToken.toString();
+        // check db if not in redis
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+
+        return user.getGithubAccessToken(); // Return the encrypted token directly
     }
 
-    private void evictGithubCaches(Long userId) {   
+    private void evictGithubCaches(Long userId) {
         redisService.evictCache("cache:users:connected_github:" + userId + ":*");
         redisService.evictCache("cache:users:encrypted_github_access_token:" + userId);
+    }
+
+    /**
+     * Validates if the encrypted token can be decrypted successfully
+     * @param userId The user ID to validate
+     * @return true if the token can be decrypted, false otherwise
+     */
+    public boolean validateEncryptedToken(Long userId) {
+        try {
+            String encryptedToken = getEncryptedGithubToken(userId);
+            if (encryptedToken == null) {
+                return false;
+            }
+            
+            // Try to decrypt without throwing exception
+            encryptionService.decrypt(encryptedToken);
+            return true;
+        } catch (Exception e) {
+            log.warn("Encrypted token validation failed for user: {}. Error: {}", userId, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Clears invalid GitHub credentials for a user
+     * @param userId The user ID to clear credentials for
+     */
+    public void clearInvalidGithubCredentials(Long userId) {
+        try {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+            
+            log.info("Clearing invalid GitHub credentials for user: {}", user.getEmail());
+            user.setGithubAccessToken(null);
+            user.setGithubUsername(null);
+            user.setGithubAccountType(null);
+            
+            userRepository.save(user);
+            evictGithubCaches(userId);
+            
+            log.info("Successfully cleared invalid GitHub credentials for user: {}", user.getEmail());
+        } catch (Exception e) {
+            log.error("Error clearing invalid GitHub credentials for user: {}", userId, e);
+        }
     }
 }
