@@ -385,6 +385,7 @@ public class GithubService {
         try {
             String githubAccessToken = token;
             if (!token.startsWith("ghu_") && !token.startsWith("gho_")) {
+                log.info("Decrypting github access token...");
                 githubAccessToken = encryptionService.decrypt(token);
             }
             log.info("Creating personal repo with token: {}...", githubAccessToken);
@@ -439,6 +440,7 @@ public class GithubService {
             // Accept all invitations
             for (GithubRepoInvitation invitation : invitations) {
                 if (invitation.getInvitee().getLogin().equals(Constants.THEMUS_USERNAME)) {
+                    // Themus has to accept the invitation to the repo
                     acceptInvitation(THEMUS_GITHUB_TOKEN, invitation.getId());
                 }
             }
@@ -489,6 +491,7 @@ public class GithubService {
             // Accept all invitations
             for (GithubRepoInvitation invitation : invitations) {
                 if (invitation.getInvitee().getLogin().equals(candidateGithubUsername)) {
+                    // The candidate has to accept the invitation to the repo
                     acceptInvitation(githubAccessToken, invitation.getId());
                 }
             }
@@ -638,6 +641,7 @@ public class GithubService {
             // Accept all invitations
             for (GithubRepoInvitation invitation : invitations) {
                 if (invitation.getInvitee().getLogin().equals(Constants.THEMUS_USERNAME)) {
+                    // Themus has to accept the invitation to the repo
                     acceptInvitation(THEMUS_GITHUB_TOKEN, invitation.getId());
                 }
             }

@@ -487,8 +487,7 @@ public class UserService {
     @Transactional(readOnly = true)
     private String getEncryptedGithubToken(Long userId) {
         // check db if not in redis
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+        UserCacheDto user = getUserByIdOrThrow(userId);
 
         return user.getGithubAccessToken(); // Return the encrypted token directly
     }
@@ -498,47 +497,47 @@ public class UserService {
         redisService.evictCache("cache:users:encrypted_github_access_token:" + userId);
     }
 
-    /**
-     * Validates if the encrypted token can be decrypted successfully
-     * @param userId The user ID to validate
-     * @return true if the token can be decrypted, false otherwise
-     */
-    public boolean validateEncryptedToken(Long userId) {
-        try {
-            String encryptedToken = getEncryptedGithubToken(userId);
-            if (encryptedToken == null) {
-                return false;
-            }
+    // /**
+    //  * Validates if the encrypted token can be decrypted successfully
+    //  * @param userId The user ID to validate
+    //  * @return true if the token can be decrypted, false otherwise
+    //  */
+    // public boolean validateEncryptedToken(Long userId) {
+    //     try {
+    //         String encryptedToken = getEncryptedGithubToken(userId);
+    //         if (encryptedToken == null) {
+    //             return false;
+    //         }
             
-            // Try to decrypt without throwing exception
-            encryptionService.decrypt(encryptedToken);
-            return true;
-        } catch (Exception e) {
-            log.warn("Encrypted token validation failed for user: {}. Error: {}", userId, e.getMessage());
-            return false;
-        }
-    }
+    //         // Try to decrypt without throwing exception
+    //         encryptionService.decrypt(encryptedToken);
+    //         return true;
+    //     } catch (Exception e) {
+    //         log.warn("Encrypted token validation failed for user: {}. Error: {}", userId, e.getMessage());
+    //         return false;
+    //     }
+    // }
 
-    /**
-     * Clears invalid GitHub credentials for a user
-     * @param userId The user ID to clear credentials for
-     */
-    public void clearInvalidGithubCredentials(Long userId) {
-        try {
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+    // /**
+    //  * Clears invalid GitHub credentials for a user
+    //  * @param userId The user ID to clear credentials for
+    //  */
+    // public void clearInvalidGithubCredentials(Long userId) {
+    //     try {
+    //         User user = userRepository.findById(userId)
+    //                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
             
-            log.info("Clearing invalid GitHub credentials for user: {}", user.getEmail());
-            user.setGithubAccessToken(null);
-            user.setGithubUsername(null);
-            user.setGithubAccountType(null);
+    //         log.info("Clearing invalid GitHub credentials for user: {}", user.getEmail());
+    //         user.setGithubAccessToken(null);
+    //         user.setGithubUsername(null);
+    //         user.setGithubAccountType(null);
             
-            userRepository.save(user);
-            evictGithubCaches(userId);
+    //         userRepository.save(user);
+    //         evictGithubCaches(userId);
             
-            log.info("Successfully cleared invalid GitHub credentials for user: {}", user.getEmail());
-        } catch (Exception e) {
-            log.error("Error clearing invalid GitHub credentials for user: {}", userId, e);
-        }
-    }
+    //         log.info("Successfully cleared invalid GitHub credentials for user: {}", user.getEmail());
+    //     } catch (Exception e) {
+    //         log.error("Error clearing invalid GitHub credentials for user: {}", userId, e);
+    //     }
+    // }
 }

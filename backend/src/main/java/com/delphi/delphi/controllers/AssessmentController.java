@@ -295,11 +295,11 @@ public class AssessmentController {
             }
 
             // Validate that the encrypted token can be decrypted
-            if (!userService.validateEncryptedToken(user.getId())) {
-                log.warn("User {} has invalid encrypted GitHub token, clearing credentials", user.getEmail());
-                userService.clearInvalidGithubCredentials(user.getId());
-                return ResponseEntity.ok(Map.of("redirectUrl", userService.generateGitHubInstallUrl(user.getEmail()), "requiresRedirect", true));
-            }
+            // if (!userService.validateEncryptedToken(user.getId())) {
+            //     log.warn("User {} has invalid encrypted GitHub token, clearing credentials", user.getEmail());
+            //     userService.clearInvalidGithubCredentials(user.getId());
+            //     return ResponseEntity.ok(Map.of("redirectUrl", userService.generateGitHubInstallUrl(user.getEmail()), "requiresRedirect", true));
+            // }
 
             log.info("User is connected to github, validating credentials");
             Map<String, Object> githubCredentialsValid = githubService
@@ -438,11 +438,11 @@ public class AssessmentController {
             }
 
             // Validate that the encrypted token can be decrypted
-            if (!userService.validateEncryptedToken(user.getId())) {
-                log.warn("User {} has invalid encrypted GitHub token, clearing credentials", user.getEmail());
-                userService.clearInvalidGithubCredentials(user.getId());
-                return ResponseEntity.ok(Map.of("redirectUrl", appInstallUrl, "requiresRedirect", true));
-            }
+            // if (!userService.validateEncryptedToken(user.getId())) {
+            //     log.warn("User {} has invalid encrypted GitHub token, clearing credentials", user.getEmail());
+            //     userService.clearInvalidGithubCredentials(user.getId());
+            //     return ResponseEntity.ok(Map.of("redirectUrl", appInstallUrl, "requiresRedirect", true));
+            // }
             log.info("User is connected to github, proceeding...");
 
             verifyAssessmentOwnership(messageDto.getAssessmentId());
