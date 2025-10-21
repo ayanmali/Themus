@@ -114,15 +114,12 @@ public class ChatService {
     // @Cacheable(value = "chatCompletions", key = "#chatHistoryId")
 
     public String getRepoAnalysis(UUID jobId, List<Message> existingMessages, String userMessage,
-            String model, Long assessmentId, String encryptedGithubToken, String githubUsername,
-            String githubRepoName, Tools tools, String preset) {
-        return getRepoAnalysis(jobId, existingMessages, new UserMessage(userMessage), model, assessmentId,
-                encryptedGithubToken, githubUsername, githubRepoName, tools, preset);
+            String model, Long assessmentId, String encryptedGithubToken, String baseRepoUrl, Tools tools, String preset) {
+        return getRepoAnalysis(jobId, existingMessages, new UserMessage(userMessage), model, assessmentId, encryptedGithubToken, baseRepoUrl, tools, preset);
     }
 
     public String getRepoAnalysis(UUID jobId, List<Message> existingMessages, Message userMessage,
-            String model, Long assessmentId, String encryptedGithubToken, String githubUsername,
-            String githubRepoName, Tools tools, String preset) {
+            String model, Long assessmentId, String encryptedGithubToken, String baseRepoUrl, Tools tools, String preset) {
         try {
             String finalResult = "";
             String notes = "";
@@ -240,8 +237,7 @@ public class ChatService {
 
                             // executeToolCall should return a ToolResponse object
                             log.info("Executing tool call: {}", toolCall.name());
-                            ToolResponse toolResponse = toolCallHandler.executeToolCall(toolCall, encryptedGithubToken,
-                                    githubUsername, githubRepoName);
+                            ToolResponse toolResponse = toolCallHandler.executeRepoAnalysisToolCall(toolCall, encryptedGithubToken, baseRepoUrl);
                             if (toolCall.name().equals("returnRepositoryAnalysis")) {
                                 log.info("Detected returnRepositoryAnalysis tool call - stopping conversation");
                                 endConversation = true;

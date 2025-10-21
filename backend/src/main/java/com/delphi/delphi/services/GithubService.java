@@ -818,6 +818,13 @@ public class GithubService {
         }
     }
 
+    public GithubRepoContents getRepoContents(String token, String baseRepoUrl, String path, String branch) {
+        Map<String, String> ownerAndRepo = extractOwnerAndRepoFromUrl(baseRepoUrl);
+        String owner = ownerAndRepo.get("owner");
+        String repo = ownerAndRepo.get("repo");
+        return getRepoContents(token, owner, repo, path, branch);
+    }
+
     public GithubRepoContents getRepoContents(String token, String owner, String repo,
             String path, String branch) {
         try {
@@ -1140,6 +1147,84 @@ public class GithubService {
 
     private String decodeFromBase64(String content) {
         return new String(base64Decoder.decode(content), StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Extracts the owner and repository name from a GitHub repository URL.
+     * Handles various URL formats including https://, www., and different GitHub domains.
+     * 
+     * @param repoUrl The GitHub repository URL
+     * @return A Map containing "owner" and "repo" keys, or null if the URL is invalid
+     */
+    public Map<String, String> extractOwnerAndRepoFromUrl(String repoUrl) {
+        if (repoUrl == null || repoUrl.trim().isEmpty()) {
+            return null;
+        }
+
+        try {
+            // Remove trailing slash and .git extension if present
+            String cleanUrl = repoUrl.trim();
+            if (cleanUrl.endsWith("/")) {
+                cleanUrl = cleanUrl.substring(0, cleanUrl.length() - 1);
+            }
+            if (cleanUrl.endsWith(".git")) {
+                cleanUrl = cleanUrl.substring(0, cleanUrl.length() - 4);
+            }
+
+            // Handle different URL formats
+            String[] parts;
+            
+            // Handle https://github.com/owner/repo format
+            if (cleanUrl.startsWith("https://github.com/")) {
+                parts = cleanUrl.substring("https://github.com/".length()).split("/");
+            }
+            // Handle https://www.github.com/owner/repo format
+            else if (cleanUrl.startsWith("https://www.github.com/")) {
+                parts = cleanUrl.substring("https://www.github.com/".length()).split("/");
+            }
+            // Handle http://github.com/owner/repo format
+            else if (cleanUrl.startsWith("http://github.com/")) {
+                parts = cleanUrl.substring("http://github.com/".length()).split("/");
+            }
+            // Handle http://www.github.com/owner/repo format
+            else if (cleanUrl.startsWith("http://www.github.com/")) {
+                parts = cleanUrl.substring("http://www.github.com/".length()).split("/");
+            }
+            // Handle github.com/owner/repo format (without protocol)
+            else if (cleanUrl.startsWith("github.com/")) {
+                parts = cleanUrl.substring("github.com/".length()).split("/");
+            }
+            // Handle www.github.com/owner/repo format (without protocol)
+            else if (cleanUrl.startsWith("www.github.com/")) {
+                parts = cleanUrl.substring("www.github.com/".length()).split("/");
+            }
+            else {
+                log.warn("Invalid GitHub URL format: {}", repoUrl);
+                return null;
+            }
+
+            // Validate that we have exactly 2 parts (owner and repo)
+            if (parts.length != 2 || parts[0].isEmpty() || parts[1].isEmpty()) {
+                log.warn("Invalid GitHub URL structure: {}", repoUrl);
+                return null;
+            }
+
+            String owner = parts[0];
+            String repo = parts[1];
+
+            // Basic validation - owner and repo should not contain invalid characters
+            if (owner.contains(" ") || repo.contains(" ") || 
+                owner.contains("..") || repo.contains("..")) {
+                log.warn("Invalid characters in owner or repo name: owner={}, repo={}", owner, repo);
+                return null;
+            }
+
+            return Map.of("owner", owner, "repo", repo);
+
+        } catch (Exception e) {
+            log.error("Error parsing GitHub URL: {}", repoUrl, e);
+            return null;
+        }
     }
 
 }

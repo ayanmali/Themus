@@ -1,6 +1,7 @@
 package com.delphi.delphi.dtos.messaging.chat;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -28,11 +29,11 @@ public class PublishAssessmentCreationJobDto implements Serializable {
     // For simple user message
     public PublishAssessmentCreationJobDto(UUID jobId, AssessmentCacheDto assessment, UserCacheDto user, String model) {
         this.jobId = jobId;
-        this.userPromptVariables = Map.of(
-            "ROLE", assessment.getRole(), 
-            "DURATION", String.format("%d minutes", assessment.getDuration()), 
-            "SKILLS", assessment.getSkills() != null ? String.join(", ", assessment.getSkills()) : "", 
-            "DETAILS", assessment.getDetails() != null ? assessment.getDetails() : "");
+        this.userPromptVariables = new HashMap<>();
+        this.userPromptVariables.put("ROLE", assessment.getRole());
+        this.userPromptVariables.put("DURATION", String.format("%d minutes", assessment.getDuration()));
+        this.userPromptVariables.put("SKILLS", assessment.getSkills() != null ? String.join(", ", assessment.getSkills()) : "");
+        this.userPromptVariables.put("DETAILS", assessment.getDetails() != null ? assessment.getDetails() : "");
 
         if (assessment.getBaseRepoUrl() != null) userPromptVariables.put("BASE_REPO_URL", assessment.getBaseRepoUrl());
         this.model = model;

@@ -73,9 +73,8 @@ public class CreateAssessmentWorker {
                         // for storing chat messages into the assessment's chat history
                         publishAssessmentCreationJobDto.getAssessmentId(),
                         // for making calls to the github api
-                        publishAssessmentCreationJobDto.getEncryptedGithubToken(),
-                        publishAssessmentCreationJobDto.getGithubUsername(),
-                        publishAssessmentCreationJobDto.getGithubRepoName(),
+                        //publishAssessmentCreationJobDto.getEncryptedGithubToken(),
+                        publishAssessmentCreationJobDto.getBaseRepoUrl(),
                         repoAnalyzerTools,
                         MessageUtils.REPO_ANALYZER_PRESET);
                 

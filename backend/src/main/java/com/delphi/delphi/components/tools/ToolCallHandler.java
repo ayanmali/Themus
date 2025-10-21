@@ -124,6 +124,56 @@ public class ToolCallHandler {
     }
 
     /**
+     * Custom tool call execution with filtering logic
+     * @param toolCall The tool call to execute
+     * @param encryptedGithubToken The encrypted GitHub token
+     * @return ToolResponse if executed, null if skipped
+     */
+    public ToolResponse executeRepoAnalysisToolCall(ToolCall toolCall, String encryptedGithubToken, String baseRepoUrl) {
+        // Check if this tool call should be skipped
+        if (shouldSkipToolCall(toolCall)) {
+            return null; // Skip this tool call
+        }
+
+        try {
+            // Parse the JSON arguments
+            Map<String, Object> args = objectMapper.readValue(toolCall.arguments(), new TypeReference<Map<String, Object>>() {});
+
+            log.info("Base Repo URL: {}", baseRepoUrl);
+            log.info("Tool Call Arguments: {}", args.toString());
+
+            // Execute the tool call based on its name
+            switch (toolCall.name()) {
+                case "addNote" -> {
+                    String note = (String) args.get("note");
+                    return new ToolResponse(toolCall.id(), toolCall.name(), note);
+                }
+                case "getNotes" -> {
+                    return new ToolResponse(toolCall.id(), toolCall.name(), "ADD NOTES HERE");
+                }
+                case "getRepositoryContents" -> {
+                    String filePath = (String) args.get("filePath");
+                    String branch = (String) args.get("branch");
+                    return new ToolResponse(toolCall.id(), toolCall.name(), 
+                        githubService.getRepoContents(encryptedGithubToken, baseRepoUrl, filePath, branch).toString());
+                }
+                case "returnRepositoryAnalysis" -> {
+                    // This is a special case - don't execute, just return a placeholder
+                    String analysisResults = (String) args.get("analysisResults");
+                    return new ToolResponse(toolCall.id(), toolCall.name(), analysisResults);
+                }
+                // case "sendMessageToUser" -> {
+                //     // This is a special case - don't execute, just return a placeholder
+                //     return new ToolResponse(toolCall.id(), toolCall.name(), "Message sent to user");
+                // }
+                default -> throw new IllegalArgumentException("Unknown tool call: " + toolCall.name());
+            }
+        } catch (JsonProcessingException | IllegalArgumentException e) {
+            throw new RuntimeException("Error executing tool call: " + toolCall.name(), e);
+        }
+    }
+
+    /**
      * Execute multiple tool calls with custom filtering
      * @param toolCalls List of tool calls to execute
      * @param encryptedGithubToken The encrypted GitHub token
@@ -136,6 +186,27 @@ public class ToolCallHandler {
         
         for (ToolCall toolCall : toolCalls) {
             ToolResponse response = executeToolCall(toolCall, encryptedGithubToken, githubUsername, githubRepoName);
+            if (response != null) {
+                responses.add(response);
+            }
+        }
+        
+        return responses;
+    }
+
+    /**
+     * Execute multiple tool calls with custom filtering
+     * @param toolCalls List of tool calls to execute
+     * @param encryptedGithubToken The encrypted GitHub token
+     * @param githubUsername The GitHub username
+     * @param githubRepoName The GitHub repository name
+     * @return List of tool responses (excluding skipped ones)
+     */
+    public List<ToolResponse> executeRepoAnalysisToolCalls(List<ToolCall> toolCalls, String encryptedGithubToken, String baseRepoUrl) {
+        List<ToolResponse> responses = new ArrayList<>();
+        
+        for (ToolCall toolCall : toolCalls) {
+            ToolResponse response = executeRepoAnalysisToolCall(toolCall, encryptedGithubToken, baseRepoUrl);
             if (response != null) {
                 responses.add(response);
             }
